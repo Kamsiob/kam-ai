@@ -398,6 +398,55 @@ bubbles widened from a fixed 320dp to about 80 percent of screen width, so a
 long answer reads like prose while the messaging shape and left/right asymmetry
 stay.
 
+## Combined update, part 2: the shared confirmation system (PART 0)
+
+Every destructive action now runs through one component, ConfirmDialog, rather
+than a dialog per screen. It has two tiers that look identical and differ only in
+how hard they are to confirm:
+
+- Tier one, one tap, for routine single-item deletions: one chat, one memory, one
+  follow-up, one download. Deleting a chat is never a two-step gauntlet.
+- Tier two, two steps, for irreversible bulk loss: delete-all, batch delete, the
+  data wipe. The first step asks; the second states plainly it cannot be undone.
+- Tier two with a typed confirm word, for the very largest wipes (delete
+  everything, and later the forgot-code reset), so they can never be a single
+  easy tap. The confirm button stays disabled until the word is typed.
+
+Destructive styling is the amber label on a plain surface, which is amber's
+legitimate destructive use; nothing else in the dialog borrows it.
+
+A Settings toggle, on by default, controls whether deleting a single chat asks at
+all. Off means one swipe-and-tap deletes it, for people who clear chats often and
+do not want the friction. It applies only to single chat deletion; a bulk delete
+of several chats is always tier two.
+
+Three instrumented tests pin the behaviour: tier one confirms in one tap, tier
+two needs the second step, and the largest wipe does nothing until the word is
+typed.
+
+### A gap found and closed
+
+The old delete-everything dialog had a checkbox to also delete downloaded models.
+Folding that into the shared component would have meant a bespoke variant, so
+delete-everything is now data-only: it wipes conversations, memory, projects,
+follow-ups and Discover state, and leaves the downloaded models in place, where
+they are deletable individually in Storage (each a tier-one confirm). This is
+also the safer default, since re-downloading several gigabytes is a real cost and
+"delete my data" rarely means "and make me download the model again".
+
+### Still to come in this combined update
+
+Bulk multi-select mode on the lists (the selection UI itself), the Advanced
+models section and multi-model management, at-rest encryption and the app lock,
+memory modes, sharing, chat rename, the in-chat mode toggle redesign, and the
+Workbench surface. The confirmation and bulk-delete plumbing they need is now in
+place; deleteConversations and forgetMany already exist and are wired to tier
+two, waiting on the selection UI.
+
+The visual polish pass on the new surfaces (accent picker, appearance screen) is
+folded into the Phase 8 screen-by-screen review, which is the designated place
+for that audit.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

@@ -27,6 +27,8 @@ class KamRepository(
         const val THEME = "theme"
         const val WEB_SEARCH_ENABLED = "search.enabled"
         const val WEB_SEARCH_ENDPOINT = "search.endpoint"
+        const val CONFIRM_CHAT_DELETE = "confirm.chat.delete"
+        const val MEMORY_MODE = "memory.mode"
     }
 
     // Settings

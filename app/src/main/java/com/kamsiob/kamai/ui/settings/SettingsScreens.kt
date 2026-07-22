@@ -56,6 +56,7 @@ import com.kamsiob.kamai.ui.components.PrimaryButton
 import com.kamsiob.kamai.ui.components.SecondaryButton
 import com.kamsiob.kamai.ui.components.SettingsGroup
 import com.kamsiob.kamai.ui.components.SettingsRow
+import com.kamsiob.kamai.ui.components.SettingsToggleRow
 import com.kamsiob.kamai.ui.components.edgeFade
 import com.kamsiob.kamai.ui.onboarding.OnboardingCopy
 import com.kamsiob.kamai.ui.theme.KamTheme
@@ -82,6 +83,8 @@ fun SettingsScreen(
     onWebSearch: () -> Unit,
     onBackup: () -> Unit,
     onDeleteEverything: () -> Unit,
+    confirmChatDelete: Boolean,
+    onConfirmChatDelete: (Boolean) -> Unit,
     onReplayOnboarding: () -> Unit,
     onAppearance: () -> Unit,
     onSafety: () -> Unit,
@@ -135,6 +138,12 @@ fun SettingsScreen(
             if (backupAvailable) {
                 SettingsRow(title = "Backup and restore", onClick = onBackup)
             }
+            SettingsToggleRow(
+                title = "Confirm before deleting a chat",
+                subtitle = "Off means a single tap deletes it",
+                checked = confirmChatDelete,
+                onCheckedChange = onConfirmChatDelete,
+            )
             SettingsRow(
                 title = "Delete everything",
                 subtitle = "Chats, memory, projects, follow-ups",

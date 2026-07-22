@@ -15,6 +15,8 @@ import com.kamsiob.kamai.llm.InferenceEngine
 import com.kamsiob.kamai.model.ModelCatalog
 import com.kamsiob.kamai.model.TierModel
 import com.kamsiob.kamai.model.TierRecommendation
+import com.kamsiob.kamai.ui.components.ConfirmRequest
+import com.kamsiob.kamai.ui.components.ConfirmTier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -52,6 +54,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _download = MutableStateFlow<Downloader.Progress?>(null)
     val download: StateFlow<Downloader.Progress?> = _download.asStateFlow()
+
+    /** The one confirmation dialog, driven centrally. */
+    private val _confirm = MutableStateFlow<ConfirmRequest?>(null)
+    val confirm: StateFlow<ConfirmRequest?> = _confirm.asStateFlow()
+
+    /** Whether deleting a single chat asks first. Default on. PART 0. */
+    private val _confirmChatDelete = MutableStateFlow(true)
+    val confirmChatDelete: StateFlow<Boolean> = _confirmChatDelete.asStateFlow()
 
     val totalRamGb: Int = repository.totalRamGb()
     val tiers: List<TierModel> = ModelCatalog.defaults
@@ -99,6 +109,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _chatsView.value = runCatching {
                 ChatsView.valueOf(repository.setting(KamRepository.Keys.CHATS_VIEW).orEmpty())
             }.getOrDefault(ChatsView.COMPACT)
+            _confirmChatDelete.value =
+                repository.setting(KamRepository.Keys.CONFIRM_CHAT_DELETE) != "false"
 
             loadActiveModelIfPresent()
             _ready.value = true
@@ -109,6 +121,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val model = repository.activeModel() ?: return
         val file = repository.fileFor(model)
         if (file.exists()) engine.load(model, file)
+    }
+
+    fun requestConfirm(request: ConfirmRequest) { _confirm.value = request }
+    fun dismissConfirm() { _confirm.value = null }
+
+    fun setConfirmChatDelete(on: Boolean) {
+        _confirmChatDelete.value = on
+        viewModelScope.launch {
+            repository.putSetting(KamRepository.Keys.CONFIRM_CHAT_DELETE, on.toString())
+        }
     }
 
     fun showToast(message: String) {
@@ -181,9 +203,50 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         showToast("Archived")
     }
 
-    fun deleteConversation(id: String) = viewModelScope.launch {
-        repository.deleteConversation(id)
-        showToast("Deleted")
+    /** Single chat delete. Tier one, and skipped entirely if the user turned
+     *  the confirmation off. Never a two-step gauntlet for one chat. */
+    fun deleteConversation(id: String, title: String?) {
+        val doDelete = {
+            viewModelScope.launch {
+                repository.deleteConversation(id)
+                showToast("Deleted")
+            }
+            Unit
+        }
+        if (_confirmChatDelete.value) {
+            requestConfirm(
+                ConfirmRequest(
+                    tier = ConfirmTier.SINGLE,
+                    title = "Delete this chat?",
+                    body = "\"${title ?: "This conversation"}\" and its messages will be removed.",
+                    confirmLabel = "Delete",
+                    onConfirm = doDelete,
+                ),
+            )
+        } else {
+            doDelete()
+        }
+    }
+
+    /** Bulk chat delete. Tier two, because deleting several at once is major. */
+    fun deleteConversations(ids: List<String>) {
+        if (ids.isEmpty()) return
+        requestConfirm(
+            ConfirmRequest(
+                tier = ConfirmTier.MAJOR,
+                title = "Delete ${ids.size} chats?",
+                body = "This removes ${ids.size} conversations and everything in them.",
+                undoneNote = "Those ${ids.size} conversations will be gone for good. A backup " +
+                    "is the only way to bring them back.",
+                confirmLabel = "Delete ${ids.size}",
+                onConfirm = {
+                    viewModelScope.launch {
+                        ids.forEach { repository.deleteConversation(it) }
+                        showToast("Deleted ${ids.size}")
+                    }
+                },
+            ),
+        )
     }
 
     // Follow-ups
@@ -198,6 +261,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         repository.setFollowUpCompleted(id, completed)
     }
 
+    /** Single follow-up: light swipe-remove with a toast, no dialog. It is the
+     *  least destructive thing in the app and a bookmark is cheap to recreate. */
     fun deleteFollowUp(id: String) = viewModelScope.launch {
         repository.deleteFollowUp(id)
         showToast("Removed")
@@ -205,9 +270,42 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // Memory and projects
 
-    fun forget(id: String) = viewModelScope.launch {
-        repository.forget(id)
-        showToast("Forgotten")
+    fun forget(id: String, text: String? = null) {
+        requestConfirm(
+            ConfirmRequest(
+                tier = ConfirmTier.SINGLE,
+                title = "Forget this?",
+                body = text?.let { "\"${it.take(80)}\"" } ?: "This memory will be removed.",
+                confirmLabel = "Forget",
+                onConfirm = {
+                    viewModelScope.launch {
+                        repository.forget(id)
+                        showToast("Forgotten")
+                    }
+                    Unit
+                },
+            ),
+        )
+    }
+
+    fun forgetMany(ids: List<String>) {
+        if (ids.isEmpty()) return
+        requestConfirm(
+            ConfirmRequest(
+                tier = ConfirmTier.MAJOR,
+                title = "Forget ${ids.size} memories?",
+                body = "The selected ${ids.size} memories will be removed.",
+                undoneNote = "Those ${ids.size} memories will be gone for good.",
+                confirmLabel = "Forget ${ids.size}",
+                onConfirm = {
+                    viewModelScope.launch {
+                        ids.forEach { repository.forget(it) }
+                        showToast("Forgotten ${ids.size}")
+                    }
+                    Unit
+                },
+            ),
+        )
     }
 
     fun saveProject(id: String?, name: String, instructions: String) = viewModelScope.launch {
@@ -221,15 +319,45 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // Storage
 
-    fun deleteArtifact(id: String) = viewModelScope.launch {
-        repository.deleteArtifact(id)
-        showToast("Deleted")
+    fun deleteArtifact(id: String, name: String? = null) {
+        requestConfirm(
+            ConfirmRequest(
+                tier = ConfirmTier.SINGLE,
+                title = "Delete ${name ?: "this download"}?",
+                body = "It will be removed from this phone. You can download it again later.",
+                confirmLabel = "Delete",
+                onConfirm = {
+                    viewModelScope.launch {
+                        repository.deleteArtifact(id)
+                        showToast("Deleted")
+                    }
+                    Unit
+                },
+            ),
+        )
     }
 
-    fun deleteEverything(includeDownloads: Boolean) = viewModelScope.launch {
-        repository.deleteEverything(includeDownloads)
-        if (includeDownloads) engine.unload()
-        showToast("Everything is gone")
+    fun requestDeleteEverything(includeDownloads: Boolean) {
+        requestConfirm(
+            ConfirmRequest(
+                tier = ConfirmTier.MAJOR,
+                title = "Delete everything?",
+                body = "Every conversation, everything remembered, every project, and " +
+                    "every follow-up." + if (includeDownloads) " Downloaded models too." else "",
+                undoneNote = "This erases all of it and cannot be undone. If you have a " +
+                    "backup, that is the only way to bring any of it back.",
+                confirmWord = "delete",
+                confirmLabel = "Delete everything",
+                onConfirm = {
+                    viewModelScope.launch {
+                        repository.deleteEverything(includeDownloads)
+                        if (includeDownloads) engine.unload()
+                        showToast("Everything is gone")
+                    }
+                    Unit
+                },
+            ),
+        )
     }
 
     override fun onCleared() {

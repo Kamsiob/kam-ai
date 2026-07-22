@@ -28,11 +28,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,6 +49,7 @@ import com.kamsiob.kamai.ui.chat.ChatScreen
 import com.kamsiob.kamai.ui.chat.ChatViewModel
 import com.kamsiob.kamai.ui.chats.ChatsScreen
 import com.kamsiob.kamai.ui.components.BrandBar
+import com.kamsiob.kamai.ui.components.ConfirmDialog
 import com.kamsiob.kamai.ui.components.KamBottomNav
 import com.kamsiob.kamai.ui.components.KamToast
 import com.kamsiob.kamai.ui.components.NavItem
@@ -224,6 +221,9 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
 
         KamToast(toast, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
     }
+
+    val confirm by app.confirm.collectAsStateWithLifecycle()
+    ConfirmDialog(request = confirm, onDismiss = app::dismissConfirm)
 }
 
 private const val NEW_CONVERSATION = ""
@@ -246,7 +246,10 @@ private fun TabContent(
                 onNewChat = { stack.add(Pushed.Conversation(NEW_CONVERSATION)) },
                 onPin = app::setPinned,
                 onArchive = app::archive,
-                onDelete = app::deleteConversation,
+                onDelete = { id ->
+                    app.deleteConversation(id, conversations.firstOrNull { it.id == id }?.title)
+                },
+                onDeleteMany = app::deleteConversations,
             )
         }
 
@@ -354,7 +357,7 @@ private fun SettingsHost(
 ) {
     val artifacts by app.artifacts.collectAsStateWithLifecycle()
     val activeModel by app.activeModel.collectAsStateWithLifecycle()
-    var confirmDelete by remember { mutableStateOf(false) }
+    val confirmChatDelete by app.confirmChatDelete.collectAsStateWithLifecycle()
 
     SettingsScreen(
         activeModel = activeModel,
@@ -369,7 +372,9 @@ private fun SettingsHost(
         onStorage = { stack.add(Pushed.Storage) },
         onWebSearch = { },
         onBackup = { },
-        onDeleteEverything = { confirmDelete = true },
+        onDeleteEverything = { app.requestDeleteEverything(includeDownloads = false) },
+        confirmChatDelete = confirmChatDelete,
+        onConfirmChatDelete = app::setConfirmChatDelete,
         onReplayOnboarding = app::replayOnboarding,
         onAppearance = { stack.add(Pushed.Appearance) },
         onSafety = { stack.add(Pushed.Safety) },
@@ -380,85 +385,6 @@ private fun SettingsHost(
             openUrl(Links.SUPPORT)
             // The support button also closes the Settings page.
             stack.clear()
-        },
-    )
-
-    // AlertDialog routes the back event to onDismissRequest itself, so this
-    // handler exists only to guarantee the dialog is what consumes it rather
-    // than the navigation stack underneath.
-    BackHandler(enabled = confirmDelete) { confirmDelete = false }
-
-    if (confirmDelete) {
-        DeleteEverythingDialog(
-            onDismiss = { confirmDelete = false },
-            onConfirm = { includeDownloads ->
-                confirmDelete = false
-                app.deleteEverything(includeDownloads)
-            },
-        )
-    }
-}
-
-@Composable
-private fun DeleteEverythingDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (Boolean) -> Unit,
-) {
-    val colors = KamTheme.colors
-    // Re-downloading several gigabytes is a real cost, and not everyone means
-    // that by "delete my data", so the models are a separate, explicit choice.
-    var includeDownloads by remember { mutableStateOf(false) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = colors.surface,
-        title = {
-            Text("Delete everything?", style = KamTheme.type.cardTitle, color = colors.textPrimary)
-        },
-        text = {
-            Column {
-                Text(
-                    "This removes every conversation, everything remembered, every " +
-                        "project, and every follow-up. It cannot be undone.",
-                    style = KamTheme.type.body,
-                    color = colors.textSecondary,
-                )
-                Spacer(Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { includeDownloads = !includeDownloads }
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(
-                        checked = includeDownloads,
-                        onCheckedChange = { includeDownloads = it },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = colors.flagAmber,
-                            uncheckedColor = colors.textTertiary,
-                            checkmarkColor = colors.onAccent,
-                        ),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "Also delete downloaded models",
-                        style = KamTheme.type.body,
-                        color = colors.textSecondary,
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(includeDownloads) }) {
-                Text("Delete everything", style = KamTheme.type.label, color = colors.flagAmber)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Keep it", style = KamTheme.type.label, color = colors.textSecondary)
-            }
         },
     )
 }

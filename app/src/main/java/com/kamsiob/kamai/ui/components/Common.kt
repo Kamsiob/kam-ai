@@ -408,3 +408,49 @@ fun KamToast(
         }
     }
 }
+
+/** A settings row with a trailing switch, sharing the group card styling. */
+@Composable
+fun SettingsToggleRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    showDivider: Boolean = true,
+) {
+    val colors = KamTheme.colors
+    Column {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .clickable { onCheckedChange(!checked) }
+                .defaultMinSize(minHeight = KamTheme.dimens.minTouchTarget)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = KamTheme.type.bodyEmphasis, color = colors.textPrimary)
+                if (subtitle != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(subtitle, style = KamTheme.type.secondary, color = colors.textSecondary)
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            androidx.compose.material3.Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                colors = androidx.compose.material3.SwitchDefaults.colors(
+                    checkedThumbColor = colors.onAccent,
+                    checkedTrackColor = colors.accent,
+                    uncheckedThumbColor = colors.textTertiary,
+                    uncheckedTrackColor = colors.surfaceSecondary,
+                    uncheckedBorderColor = colors.border,
+                ),
+            )
+        }
+        if (showDivider) {
+            HorizontalDivider(color = colors.border, thickness = 1.dp, modifier = Modifier.padding(start = 16.dp))
+        }
+    }
+}

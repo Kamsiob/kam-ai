@@ -91,6 +91,7 @@ fun ChatsScreen(
     onPin: (String, Boolean) -> Unit,
     onArchive: (String) -> Unit,
     onDelete: (String) -> Unit,
+    onDeleteMany: (List<String>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
