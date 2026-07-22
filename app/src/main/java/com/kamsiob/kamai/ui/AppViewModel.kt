@@ -54,7 +54,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val download: StateFlow<Downloader.Progress?> = _download.asStateFlow()
 
     val totalRamGb: Int = repository.totalRamGb()
-    val tiers: List<TierModel> = ModelCatalog.all
+    val tiers: List<TierModel> = ModelCatalog.defaults
     val recommendedTier = TierRecommendation.recommended(totalRamGb)
 
     val conversations: StateFlow<List<ConversationSummary>> =

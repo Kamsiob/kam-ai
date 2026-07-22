@@ -88,7 +88,7 @@ fun FollowUpsScreen(
         if (open.isEmpty() && completed.isEmpty()) {
             EmptyState(
                 title = "Nothing flagged yet",
-                body = "Tap the flag under any answer you want to check properly " +
+                body = "Tap the bookmark under any answer you want to check properly " +
                     "later. It lands here so it does not get lost.",
                 modifier = Modifier.fillMaxWidth(),
             )

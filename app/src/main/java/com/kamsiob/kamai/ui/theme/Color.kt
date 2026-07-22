@@ -66,36 +66,46 @@ data class KamColors(
     val isDark: Boolean,
 )
 
-val LightKamColors = KamColors(
+// The neutral palettes are fixed. The accent-driven fields (accent, on-accent,
+// and the two tonal shades) come from whichever Accent the user has chosen, so
+// building a theme means combining a fixed neutral base with a chosen accent.
+// The amber fields never move, whatever the accent.
+
+fun lightKamColors(accent: Accent) = KamColors(
     background = LightBackground,
     surface = LightSurface,
     surfaceSecondary = LightSurfaceSecondary,
-    tonalFill = LightTonalFill,
-    tonalText = LightTonalText,
+    tonalFill = accent.lightTonalFill,
+    tonalText = accent.lightTonalText,
     textPrimary = LightTextPrimary,
     textSecondary = LightTextSecondary,
     textTertiary = LightTextTertiary,
-    accent = LightAccent,
-    onAccent = LightOnAccent,
+    accent = accent.lightAccent,
+    onAccent = accent.lightOnAccent,
     flagAmber = LightFlagAmber,
     amberFill = LightAmberFill,
     border = LightBorder,
     isDark = false,
 )
 
-val DarkKamColors = KamColors(
+fun darkKamColors(accent: Accent) = KamColors(
     background = DarkBackground,
     surface = DarkSurface,
     surfaceSecondary = DarkSurfaceSecondary,
-    tonalFill = DarkTonalFill,
-    tonalText = DarkTonalText,
+    tonalFill = accent.darkTonalFill,
+    tonalText = accent.darkTonalText,
     textPrimary = DarkTextPrimary,
     textSecondary = DarkTextSecondary,
     textTertiary = DarkTextTertiary,
-    accent = DarkAccent,
-    onAccent = DarkOnAccent,
+    accent = accent.darkAccent,
+    onAccent = accent.darkOnAccent,
     flagAmber = DarkFlagAmber,
     amberFill = DarkAmberFill,
     border = DarkBorder,
     isDark = true,
 )
+
+// The default green, for previews and any caller that does not care about the
+// chosen accent.
+val LightKamColors = lightKamColors(Accents.default)
+val DarkKamColors = darkKamColors(Accents.default)

@@ -322,6 +322,82 @@ on disk via the existing Range request, with backoff, and only surfaces as a
 failure once the retries are genuinely spent. A blip the user did not cause and
 cannot act on is no longer shown to them at all.
 
+## Combined update, part 1: Gemma 4, accents, theme, and polish
+
+This large combined update lands across several parts. The contained,
+independently testable pieces are done and verified first; the larger items
+(at-rest encryption and app lock, the shared confirmation and bulk-select
+system, memory modes, sharing, the Workbench surface) are substantial and are
+being built in sequence after this checkpoint, in phase order where they belong.
+
+### Gemma 4 across every tier (PART 1)
+
+Gemma 4 is real and current, released 2 April 2026, and was verified directly
+against the live Hugging Face API rather than taken on faith: it is Apache 2.0
+(not the older Gemma Terms of Use), ships instruction-tuned GGUF, and its size
+range finally covers the whole envelope. The lineup is now Gemma 4 only:
+
+- Basic, 8 GB: Gemma 4 E2B, 3.1 GB at Q4_K_M.
+- Balanced, 12 GB: Gemma 4 E4B, 5.0 GB at Q4_K_M.
+- Best Available, 16 GB: Gemma 4 12B, 7.1 GB at Q4_K_M.
+
+There is no Qwen anywhere any more. Gemma 4's range fills the 7 to 8 billion
+band that once forced Qwen at the top, so the app is one family, one licence
+(Apache 2.0, no asterisk on any tier), and one prompt format. Sizes and SHA-256
+hashes were read from the API, not documentation. E2B was downloaded onto the
+Pixel, hash-verified to the exact byte, and an instrumented test loaded it
+through the bridge and confirmed it answers "name three primary colours" with a
+real primary colour, which is the difference between tokens coming out and the
+model actually understanding the Gemma 4 prompt format.
+
+The prompt format stays the Gemma `<start_of_turn>` layout, which Gemma 4 shares
+with 2 and 3. The ChatFormat enum keeps the per-model design so a future family
+still drops in cleanly.
+
+An Advanced model list (PART 2) is seeded in the catalogue (a higher-quality E4B
+quantisation, verified) and will be surfaced in Settings alongside the rest of
+PART 2 (multiple installed models, switching, safe deletion of the active one).
+
+### Sixteen accent colours, verified in both themes (PART 8)
+
+The accent is now user-chosen from sixteen colours, eight bright and eight
+earthy, green the default. Every colour was designed and checked by a contrast
+script before it was allowed into the code, and each has a separately tuned
+light-theme and dark-theme shade plus its own on-accent text colour. Every one
+clears the same bar in BOTH themes: on-accent text at 4.5:1, and the accent
+against the background at 3:1. None had to be dropped; the first search maximised
+contrast and made them all dark and samey, so it was retuned to prefer vividness
+subject to passing, which is why bright colours are saturated and earthy ones
+muted while all still pass. The default green keeps the exact DESIGN.md section 3
+values, tonal shades included. AccentContrastTest pins all of this so a future
+tweak that breaks a colour in one theme fails the build.
+
+Theme mode is System, Light, or Dark, and both theme and accent live in a small
+SharedPreferences file read synchronously before the first frame, so there is no
+flash of the wrong appearance at launch. They are device-local display
+preferences, not user content, and the backup will include them by reading this
+store at export time.
+
+The accent never touches the reserved amber, which stays fixed for bookmarks,
+locked tiers, and the support button whatever the accent.
+
+### The bookmark, not the flag (PART 5, first piece)
+
+The follow-up action under an AI response was a flag, sitting a few icons from
+Report, and the two were too easily confused. It is now a bookmark, filled and
+amber when set, outline when not. The meaning is unchanged. The Follow-ups nav
+tab uses the same bookmark for consistency. Report keeps its own distinct place
+in the overflow.
+
+### A safety notice (PART 9) and wider bubbles (PART 4, first piece)
+
+Settings gains a plain, non-alarmist "Kam AI can be wrong" notice in the app
+voice: the model is small and gets things wrong, check what matters with the
+bookmark and Follow-ups, and it is not a substitute for a professional. Chat
+bubbles widened from a fixed 320dp to about 80 percent of screen width, so a
+long answer reads like prose while the messaging shape and left/right asymmetry
+stay.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

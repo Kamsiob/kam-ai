@@ -63,11 +63,15 @@ import com.kamsiob.kamai.ui.settings.LicensesScreen
 import com.kamsiob.kamai.ui.settings.MemoryScreen
 import com.kamsiob.kamai.ui.settings.ModelScreen
 import com.kamsiob.kamai.ui.settings.QuestionsScreen
+import com.kamsiob.kamai.ui.settings.AppearanceScreen
 import com.kamsiob.kamai.ui.settings.RoadmapScreen
+import com.kamsiob.kamai.ui.settings.SafetyScreen
 import com.kamsiob.kamai.ui.settings.SettingsScreen
 import com.kamsiob.kamai.ui.settings.StorageScreen
 import com.kamsiob.kamai.ui.theme.KamMotion
 import com.kamsiob.kamai.ui.theme.KamTheme
+import com.kamsiob.kamai.ui.theme.Appearance
+import com.kamsiob.kamai.ui.theme.ThemeMode
 import com.kamsiob.kamai.ui.theme.reducedMotion
 import kotlinx.coroutines.delay
 
@@ -81,6 +85,8 @@ private sealed interface Pushed {
     data object About : Pushed
     data object Roadmap : Pushed
     data object Licenses : Pushed
+    data object Appearance : Pushed
+    data object Safety : Pushed
     data class Conversation(val id: String) : Pushed
 }
 
@@ -192,6 +198,8 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.About -> AboutHost(app, stack, openUrl)
                     Pushed.Roadmap -> RoadmapScreen()
                     Pushed.Licenses -> LicensesScreen(models = app.tiers)
+                    Pushed.Appearance -> AppearanceHost(app)
+                    Pushed.Safety -> SafetyScreen()
                 }
             }
 
@@ -363,6 +371,8 @@ private fun SettingsHost(
         onBackup = { },
         onDeleteEverything = { confirmDelete = true },
         onReplayOnboarding = app::replayOnboarding,
+        onAppearance = { stack.add(Pushed.Appearance) },
+        onSafety = { stack.add(Pushed.Safety) },
         onQuestions = { stack.add(Pushed.Questions) },
         onAbout = { stack.add(Pushed.About) },
         onMemory = { stack.add(Pushed.Memory) },
@@ -450,6 +460,22 @@ private fun DeleteEverythingDialog(
                 Text("Keep it", style = KamTheme.type.label, color = colors.textSecondary)
             }
         },
+    )
+}
+
+@Composable
+private fun AppearanceHost(app: AppViewModel) {
+    val dark = when (Appearance.themeMode) {
+        ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+    AppearanceScreen(
+        themeMode = Appearance.themeMode,
+        accentId = Appearance.accentId,
+        isDark = dark,
+        onThemeMode = { Appearance.chooseThemeMode(it) },
+        onAccent = { Appearance.chooseAccent(it) },
     )
 }
 

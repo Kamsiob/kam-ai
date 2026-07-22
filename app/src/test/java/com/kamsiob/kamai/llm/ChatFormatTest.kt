@@ -115,18 +115,26 @@ class ChatFormatTest {
     }
 
     @Test
-    fun `each tier carries the format its family needs`() {
+    fun `every tier ships Gemma 4, which covers the whole range`() {
+        // Gemma 4's size range fills the band that once forced Qwen at the top,
+        // so the app is one family, one licence, one prompt format.
         assertThat(ModelCatalog.forTier(Tier.BASIC).format).isEqualTo(ChatFormat.GEMMA)
         assertThat(ModelCatalog.forTier(Tier.BALANCED).format).isEqualTo(ChatFormat.GEMMA)
-        assertThat(ModelCatalog.forTier(Tier.BEST).format).isEqualTo(ChatFormat.QWEN)
+        assertThat(ModelCatalog.forTier(Tier.BEST).format).isEqualTo(ChatFormat.GEMMA)
     }
 
     @Test
-    fun `every tier model sits in the parameter band its tier promises`() {
-        // Basic 1 to 2B, Balanced 3 to 4B, Best 7 to 8B.
-        assertThat(ModelCatalog.forTier(Tier.BASIC).parameterLabel).isEqualTo("1B")
-        assertThat(ModelCatalog.forTier(Tier.BALANCED).parameterLabel).isEqualTo("4B")
-        assertThat(ModelCatalog.forTier(Tier.BEST).parameterLabel).isEqualTo("8B")
+    fun `each tier names the Gemma 4 variant sized for it`() {
+        assertThat(ModelCatalog.forTier(Tier.BASIC).parameterLabel).isEqualTo("E2B")
+        assertThat(ModelCatalog.forTier(Tier.BALANCED).parameterLabel).isEqualTo("E4B")
+        assertThat(ModelCatalog.forTier(Tier.BEST).parameterLabel).isEqualTo("12B")
+    }
+
+    @Test
+    fun `every default tier model is Apache licensed with no asterisk`() {
+        ModelCatalog.defaults.forEach {
+            assertThat(it.licence).isEqualTo("Apache-2.0")
+        }
     }
 
     @Test

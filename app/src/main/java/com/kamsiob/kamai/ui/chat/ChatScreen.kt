@@ -36,7 +36,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
@@ -55,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -258,6 +260,11 @@ private fun MessageRow(
 
     var editing by remember { mutableStateOf(false) }
 
+    // Roughly three-quarters of the screen. Wide enough that a long answer reads
+    // like prose rather than a thin column, while the messaging shape and the
+    // left/right asymmetry from DESIGN.md stay intact.
+    val maxBubble = (LocalConfiguration.current.screenWidthDp * 0.80f).dp
+
     AnimatedVisibility(
         visible = appeared,
         enter = if (reduced) fadeIn(tween(0)) else {
@@ -274,6 +281,7 @@ private fun MessageRow(
             if (message.role == Role.USER && editing) {
                 EditBubble(
                     initial = message.content,
+                    maxBubble = maxBubble,
                     onCancel = { editing = false },
                     onConfirm = {
                         editing = false
@@ -283,7 +291,7 @@ private fun MessageRow(
             } else {
                 Box(
                     modifier = Modifier
-                        .widthIn(max = 320.dp)
+                        .widthIn(max = maxBubble)
                         .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
                         .background(if (message.role == Role.USER) colors.tonalFill else colors.surface)
                         .then(
@@ -314,7 +322,7 @@ private fun MessageRow(
                     reason,
                     style = KamTheme.type.secondary,
                     color = colors.textTertiary,
-                    modifier = Modifier.widthIn(max = 320.dp),
+                    modifier = Modifier.widthIn(max = maxBubble),
                 )
             }
 
@@ -338,6 +346,7 @@ private fun MessageRow(
 @Composable
 private fun EditBubble(
     initial: String,
+    maxBubble: androidx.compose.ui.unit.Dp,
     onCancel: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
@@ -346,7 +355,7 @@ private fun EditBubble(
 
     Column(
         modifier = Modifier
-            .widthIn(max = 320.dp)
+            .widthIn(max = maxBubble)
             .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
             .background(colors.tonalFill)
             .border(2.dp, colors.accent, RoundedCornerShape(KamTheme.dimens.cardRadius))
@@ -423,8 +432,12 @@ private fun ActionRow(
             },
         ) {
             IconAction(
-                icon = Icons.Rounded.Flag,
-                description = if (flagged) "Flagged for follow-up" else "Flag for follow-up",
+                // A bookmark, deliberately not a flag: the flag was too easily
+                // mistaken for Report sitting a few icons over. The meaning is
+                // unchanged, mark this for a closer look later, and it keeps the
+                // reserved amber. Report has its own icon in the overflow.
+                icon = if (flagged) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                description = if (flagged) "Bookmarked for follow-up" else "Bookmark for follow-up",
                 onClick = onFlag,
                 tint = if (flagged) colors.flagAmber else colors.textTertiary,
             )

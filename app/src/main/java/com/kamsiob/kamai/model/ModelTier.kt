@@ -35,6 +35,8 @@ data class TierModel(
     val sha256: String,
     /** Models come from two families, so the prompt layout travels with them. */
     val format: com.kamsiob.kamai.llm.ChatFormat,
+    /** One plain line for the Advanced model list. Empty for the tier defaults. */
+    val description: String = "",
 ) {
     /** "1.2 GB", for the mono size labels. */
     val downloadLabel: String get() = formatBytes(downloadBytes)

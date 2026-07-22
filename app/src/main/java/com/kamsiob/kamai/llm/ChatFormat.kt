@@ -5,8 +5,9 @@ import com.kamsiob.kamai.data.Role
 /**
  * How a model wants its conversation laid out.
  *
- * Kam AI ships models from two families, so the format cannot be hardcoded.
- * Each is written out here rather than run through llama.cpp's Jinja template
+ * Kam AI ships Gemma 4 across every tier today, but the format is kept per
+ * model rather than hardcoded so a future Qwen or other family drops in cleanly.
+ * Each format is written out here rather than run through llama.cpp's Jinja template
  * engine, because the app needs to budget tokens, drop old turns, and re-inject
  * the system prompt on every request, all of which are far easier when the
  * string is built in Kotlin.

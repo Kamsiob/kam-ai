@@ -132,12 +132,21 @@ private fun KamColors.animated(reduced: Boolean): KamColors {
 
 @Composable
 fun KamTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    /** SYSTEM follows the OS; LIGHT and DARK force it. */
+    themeMode: ThemeMode = Appearance.themeMode,
+    accent: Accent = Appearance.accent,
     /** Overridden in tests and previews. Defaults to the system setting. */
     reducedMotion: Boolean = systemReducedMotion(),
     content: @Composable () -> Unit,
 ) {
-    val target = if (darkTheme) DarkKamColors else LightKamColors
+    val darkTheme = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+    // Both the theme flip and an accent change crossfade through the same
+    // animated colours, so switching accent glides rather than snapping.
+    val target = if (darkTheme) darkKamColors(accent) else lightKamColors(accent)
     val colors = target.animated(reducedMotion)
 
     CompositionLocalProvider(

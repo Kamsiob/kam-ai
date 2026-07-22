@@ -83,6 +83,8 @@ fun SettingsScreen(
     onBackup: () -> Unit,
     onDeleteEverything: () -> Unit,
     onReplayOnboarding: () -> Unit,
+    onAppearance: () -> Unit,
+    onSafety: () -> Unit,
     onQuestions: () -> Unit,
     onAbout: () -> Unit,
     onMemory: () -> Unit,
@@ -145,8 +147,10 @@ fun SettingsScreen(
         Spacer(Modifier.height(22.dp))
 
         SettingsGroup("The app") {
+            SettingsRow(title = "Appearance", subtitle = "Theme and accent colour", onClick = onAppearance)
             SettingsRow(title = "What Kam AI is for", onClick = onReplayOnboarding)
             SettingsRow(title = "Questions and answers", onClick = onQuestions)
+            SettingsRow(title = "Kam AI can be wrong", subtitle = "What to double-check", onClick = onSafety)
             SettingsRow(title = "About", onClick = onAbout, showDivider = false)
         }
 
@@ -591,5 +595,41 @@ fun LicensesScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * PART 9. A plain, non-alarmist notice that the AI can be wrong. Honest voice:
+ * no hype, no fear, just what to do about it.
+ */
+@Composable
+fun SafetyScreen(modifier: Modifier = Modifier) {
+    val colors = KamTheme.colors
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = screenPad),
+    ) {
+        Text("Kam AI can be wrong", style = KamTheme.type.screenTitle, color = colors.textPrimary)
+        Spacer(Modifier.height(16.dp))
+
+        val paragraphs = listOf(
+            "The model runs on your phone, which means it is small. It knows less " +
+                "than the big cloud AIs and it gets things wrong, especially dates, " +
+                "names, numbers, and anything it would need to have memorised exactly.",
+            "Treat its answers as a starting point, not a final word. When something " +
+                "matters, check it against a source you trust. That is what the " +
+                "bookmark and the Follow-ups tab are for: mark it, move on, and come " +
+                "back to verify it properly.",
+            "Kam AI is not a substitute for a qualified professional. Do not rely on " +
+                "it for legal, medical, financial, or other expert advice. For those, " +
+                "talk to someone who does it for a living.",
+        )
+        paragraphs.forEach { p ->
+            Text(p, style = KamTheme.type.bodyLarge, color = colors.textSecondary)
+            Spacer(Modifier.height(14.dp))
+        }
+        Spacer(Modifier.height(14.dp))
     }
 }

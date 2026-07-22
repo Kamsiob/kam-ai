@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Explore
-import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
@@ -125,7 +125,7 @@ enum class NavItem(val label: String, val icon: ImageVector) {
     CHATS("Chats", Icons.Rounded.Forum),
     NEW("New", Icons.Rounded.Add),
     DISCOVER("Discover", Icons.Rounded.Explore),
-    FOLLOW_UPS("Follow-ups", Icons.Rounded.Flag),
+    FOLLOW_UPS("Follow-ups", Icons.Rounded.BookmarkBorder),
 }
 
 /**

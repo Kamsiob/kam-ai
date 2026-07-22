@@ -3,80 +3,109 @@ package com.kamsiob.kamai.model
 import com.kamsiob.kamai.llm.ChatFormat
 
 /**
- * The models Kam AI offers, one per tier.
+ * The models Kam AI offers.
  *
- * Family preference is Gemma first, then Qwen, taking whichever current variant
- * actually fits the tier's parameter band. That works out as:
+ * The default lineup is Gemma 4 across every tier, which is the family this app
+ * is built around. Gemma 4 was released on 2 April 2026, and unlike the older
+ * Gemma Terms of Use it is Apache 2.0, so redistribution and in-app download are
+ * straightforward with no licence asterisk on any tier. It is purpose-built for
+ * on-device use, ships instruction-tuned GGUF variants, and its size range fills
+ * the 7 to 8 billion band that previously forced a different family at the top
+ * tier. All of this was verified against the live Hugging Face API at build
+ * time, not taken on faith. See DECISIONS.md.
  *
- * - **Basic**, 1 to 2B: Gemma 3 1B Instruct.
- * - **Balanced**, 3 to 4B: Gemma 3 4B Instruct.
- * - **Best Available**, 7 to 8B: Qwen3 8B. Gemma 3 is published at 1B, 4B, 12B
- *   and 27B with nothing in between, so there is no Gemma variant in the 7 to 8B
- *   band at all. Reaching up to 12B was rejected: at Q4_K_M it is around 7.3 GB,
- *   which on the 16 GB phone this tier targets leaves nothing like the headroom
- *   the tier logic insists on, and the app would get killed in the background
- *   constantly. Qwen3 8B sits exactly in the band.
+ * - **Basic**, 8 GB phones: Gemma 4 E2B Instruct, 3.1 GB at Q4_K_M.
+ * - **Balanced**, 12 GB phones: Gemma 4 E4B Instruct, 5.0 GB at Q4_K_M.
+ * - **Best Available**, 16 GB phones: Gemma 4 12B Instruct, 7.1 GB at Q4_K_M.
  *
- * Licences differ across the tiers and that is worth being straight about.
- * Gemma models are under the Gemma Terms of Use, which permit redistribution
- * and commercial use but attach conditions including a use policy, so the terms
- * travel with the model. Qwen3 is Apache-2.0 outright. Nothing is bundled into
- * the app; every model is downloaded by the user from its official repository,
- * and both licences allow that plainly. Both appear on the Licenses screen.
+ * There is no Qwen anywhere any more. Gemma 4 covers all three tiers cleanly, so
+ * the app ships one family, one licence, and one prompt format.
  *
- * Q4_K_M throughout. Below Q4 these models start losing the thing this app
- * leans on hardest, which is following instructions carefully, and the
- * guardrails in SystemPrompts are instructions.
+ * Q4_K_M throughout. Below Q4 these models start losing the thing this app leans
+ * on hardest, which is following instructions carefully, and the guardrails in
+ * SystemPrompts are instructions.
  *
- * Sizes and SHA-256 hashes were read from the Hugging Face API at build time,
- * not copied from documentation, and the hash is verified before a download is
- * ever activated.
+ * The [defaults] are what onboarding and the tier picker offer. The wider
+ * [advanced] set is browsable from Settings for people who want to reason about
+ * models themselves, but nothing about it is required reading. Every entry, in
+ * either list, is a genuine instruction-tuned GGUF with a verified size and
+ * hash.
  */
 object ModelCatalog {
 
     val basic = TierModel(
-        id = "gemma-3-1b-it-q4km",
+        id = "gemma-4-e2b-it-q4km",
         tier = Tier.BASIC,
-        displayName = "Gemma 3 1B",
-        parameterLabel = "1B",
+        displayName = "Gemma 4 E2B",
+        parameterLabel = "E2B",
         quantisation = "Q4_K_M",
-        downloadBytes = 806_058_272L,
+        downloadBytes = 3_106_738_272L,
         contextTokens = 4096,
-        licence = "Gemma Terms of Use",
-        sourceUrl = "https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf",
-        sha256 = "8270790f3ab69fdfe860b7b64008d9a19986d8df7e407bb018184caa08798ebd",
+        licence = "Apache-2.0",
+        sourceUrl = "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf",
+        sha256 = "740185b21d22ceb83a11c3aa62ad5842ef32c70f6096d756bbee85a1e4ec34b8",
         format = ChatFormat.GEMMA,
+        description = "The lightest Gemma 4. Runs well on an 8 GB phone.",
     )
 
     val balanced = TierModel(
-        id = "gemma-3-4b-it-q4km",
+        id = "gemma-4-e4b-it-q4km",
         tier = Tier.BALANCED,
-        displayName = "Gemma 3 4B",
-        parameterLabel = "4B",
+        displayName = "Gemma 4 E4B",
+        parameterLabel = "E4B",
         quantisation = "Q4_K_M",
-        downloadBytes = 2_489_894_016L,
+        downloadBytes = 4_977_171_584L,
         contextTokens = 6144,
-        licence = "Gemma Terms of Use",
-        sourceUrl = "https://huggingface.co/unsloth/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q4_K_M.gguf",
-        sha256 = "04a43a22e8d2003deda5acc262f68ec1005fa76c735a9962a8c77042a74a7d19",
+        licence = "Apache-2.0",
+        sourceUrl = "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_K_M.gguf",
+        sha256 = "85a896a047553e842f25297ee5b031d64ff30147d9c4af17b1e4b394cd1fab87",
         format = ChatFormat.GEMMA,
+        description = "The sweet spot for a 12 GB phone. Noticeably sharper than E2B.",
     )
 
     val best = TierModel(
-        id = "qwen3-8b-q4km",
+        id = "gemma-4-12b-it-q4km",
         tier = Tier.BEST,
-        displayName = "Qwen3 8B",
-        parameterLabel = "8B",
+        displayName = "Gemma 4 12B",
+        parameterLabel = "12B",
         quantisation = "Q4_K_M",
-        downloadBytes = 5_027_784_512L,
+        downloadBytes = 7_121_861_440L,
         contextTokens = 8192,
         licence = "Apache-2.0",
-        sourceUrl = "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf",
-        sha256 = "120307ba529eb2439d6c430d94104dabd578497bc7bfe7e322b5d9933b449bd4",
-        format = ChatFormat.QWEN,
+        sourceUrl = "https://huggingface.co/unsloth/gemma-4-12b-it-GGUF/resolve/main/gemma-4-12b-it-Q4_K_M.gguf",
+        sha256 = "0a270ec9fe6b34f4a0d33992b6135117b484ebc4766ab76b51d4ae8c457e4c42",
+        format = ChatFormat.GEMMA,
+        description = "The strongest model that fits comfortably on a 16 GB phone.",
     )
 
-    val all = listOf(basic, balanced, best)
+    /** One per tier. What onboarding and the tier picker offer. */
+    val defaults = listOf(basic, balanced, best)
+
+    /**
+     * The Advanced section: other compatible models a curious user can browse
+     * and switch between. Kept small and high-signal rather than a dump of every
+     * quantisation. Each says its size plainly and is gated by the same RAM
+     * logic as the tiers.
+     */
+    val advanced = listOf(
+        TierModel(
+            id = "gemma-4-e4b-it-q5km",
+            tier = Tier.BALANCED,
+            displayName = "Gemma 4 E4B, higher quality",
+            parameterLabel = "E4B",
+            quantisation = "Q5_K_M",
+            downloadBytes = 5_481_798_784L,
+            contextTokens = 6144,
+            licence = "Apache-2.0",
+            sourceUrl = "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q5_K_M.gguf",
+            sha256 = "a5d6e634db151368d2caa4270fd32ab604d96c2d1291950586989f46d8e17d36",
+            format = ChatFormat.GEMMA,
+            description = "The same E4B at a heavier quantisation. A little sharper, a little larger.",
+        ),
+    )
+
+    /** Everything the app knows about, defaults first. */
+    val all: List<TierModel> = defaults + advanced
 
     fun forTier(tier: Tier): TierModel = when (tier) {
         Tier.BASIC -> basic
