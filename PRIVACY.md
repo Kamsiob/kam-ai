@@ -1,12 +1,14 @@
 # Kam AI Privacy Policy
 
-**Effective date: [set on publication]**
+The canonical version of this policy is at <https://kamsiob.com/kam-ai-privacy.html>.
+That page is what the app links to and what Google Play points at. This file is
+kept word for word identical to it.
+
+**Effective date: July 22, 2026**
 
 Kam AI is built so that this policy can be short.
 
-## The short version
-
-Kam AI does not collect your data. Not "collects but anonymizes," not "collects but doesn't sell." It does not collect it. Everything you type, say, or store in Kam AI stays on your phone.
+The short version: Kam AI does not collect your data. Not "collects but anonymizes," not "collects but doesn't sell." It does not collect it. Everything you type, say, or store in Kam AI stays on your phone.
 
 ## What happens on your device
 

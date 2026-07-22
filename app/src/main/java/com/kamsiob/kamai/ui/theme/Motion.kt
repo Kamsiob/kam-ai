@@ -2,6 +2,7 @@ package com.kamsiob.kamai.ui.theme
 
 import android.provider.Settings
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
@@ -38,7 +39,7 @@ object KamMotion {
      * Navigation transitions, theme changes, list and layout changes, sheet
      * dismissal, and everything else by default.
      */
-    fun <T> standard(): AnimationSpec<T> = spring(
+    fun <T> standard(): FiniteAnimationSpec<T> = spring(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessMediumLow,
     )
@@ -48,12 +49,12 @@ object KamMotion {
      * signature moments only: the flag pop, the follow-up check filling in, the
      * Discover card landing, the nav pill activating, the sheet arriving.
      */
-    fun <T> expressive(): AnimationSpec<T> = spring(
+    fun <T> expressive(): FiniteAnimationSpec<T> = spring(
         dampingRatio = 0.55f,
         stiffness = Spring.StiffnessMedium,
     )
 
-    fun <T> fade(durationMs: Int = MEDIUM_MS): AnimationSpec<T> =
+    fun <T> fade(durationMs: Int = MEDIUM_MS): FiniteAnimationSpec<T> =
         tween(durationMillis = durationMs)
 }
 
@@ -69,16 +70,16 @@ fun reducedMotion(): Boolean = LocalReducedMotion.current
 
 /** [KamMotion.standard], or an instant snap when reduced motion is on. */
 @Composable
-fun <T> standardSpec(): AnimationSpec<T> =
+fun <T> standardSpec(): FiniteAnimationSpec<T> =
     if (reducedMotion()) snap() else KamMotion.standard()
 
 /** [KamMotion.expressive], or an instant snap when reduced motion is on. */
 @Composable
-fun <T> expressiveSpec(): AnimationSpec<T> =
+fun <T> expressiveSpec(): FiniteAnimationSpec<T> =
     if (reducedMotion()) snap() else KamMotion.expressive()
 
 @Composable
-fun <T> fadeSpec(durationMs: Int = KamMotion.MEDIUM_MS): AnimationSpec<T> =
+fun <T> fadeSpec(durationMs: Int = KamMotion.MEDIUM_MS): FiniteAnimationSpec<T> =
     if (reducedMotion()) snap() else KamMotion.fade(durationMs)
 
 /** Reads the platform's animator duration scale. Zero means reduced motion. */

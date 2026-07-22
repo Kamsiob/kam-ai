@@ -141,14 +141,169 @@ This was added as a standing instruction partway through the build and applies
 from the first release onward. It is automated in `tools/cut_release.sh`, which
 is written in Phase 8 when the release keystore first exists.
 
+## Model family: Gemma first, then Qwen
+
+The owner asked for Gemma preferred, then Qwen, taking whichever current variant
+fits each tier's parameter band. Checked against the live Hugging Face API
+rather than assumed. Gemma 3 is published at 1B, 4B, 12B and 27B, with nothing
+between 4B and 12B, so:
+
+- Basic, 1 to 2B: Gemma 3 1B Instruct, 806 MB at Q4_K_M.
+- Balanced, 3 to 4B: Gemma 3 4B Instruct, 2.5 GB at Q4_K_M.
+- Best Available, 7 to 8B: Qwen3 8B, 5.0 GB at Q4_K_M.
+
+Best Available stays on Qwen because there is no Gemma in the 7 to 8B band at
+all. Reaching up to Gemma 3 12B was considered and rejected: at Q4_K_M it is
+about 7.3 GB, and on the 16 GB phone this tier targets that leaves nothing like
+the 4 GB of headroom the tier logic insists on, so the app would be killed in
+the background constantly. Falling back to Gemma 3 4B for the top tier was also
+rejected, because then Balanced and Best Available would ship the same model and
+the tier would be a lie.
+
+Licences now differ across tiers, which is worth being straight about. Gemma is
+under the Gemma Terms of Use: redistribution and commercial use are permitted,
+but conditions including a use policy travel with the model. Qwen3 is Apache-2.0
+outright. Nothing is bundled into the app. Every model is downloaded by the user
+from its official repository, which both licences allow plainly. Both appear on
+the Licenses screen.
+
+### Two prompt formats
+
+Shipping two families means the prompt layout can no longer be hardcoded, so it
+moved into a `ChatFormat` enum that travels on each `TierModel`.
+
+Gemma and Qwen differ more than cosmetically. Gemma has no system role at all,
+so the guardrails have to be folded into the first user turn, which is what its
+own template does. Qwen has a real system role but will reason at length before
+answering unless the thinking block is closed before it opens, which on a phone
+means a long wait staring at a typing indicator instead of a streaming reply.
+
+This is the kind of bug that never crashes. A wrong layout produces quietly
+worse answers and lets the guardrails slide off, so it is pinned by tests rather
+than left to inspection.
+
+## The privacy policy has one home
+
+The policy is now live at its canonical address, <https://kamsiob.com/kam-ai-privacy.html>,
+and that is what Google Play points at.
+
+- `PRIVACY.md` was aligned to it word for word, verified by diffing the two
+  texts token by token rather than by reading them. The only difference left is
+  the website's own header and footer chrome, which is not policy text. The
+  effective date is 22 July 2026 in both.
+- The GitHub Pages copy at <https://kamsiob.github.io/kam-ai/> was reduced to a
+  pointer at the canonical address. It had been a full second copy, which is
+  exactly how two versions of a privacy policy end up quietly disagreeing.
+- The app has a single `Links.PRIVACY` constant so the About row and the store
+  listing cannot drift apart.
+
+## Network discipline, audited
+
+The policy's strongest claim is that the app makes no network request unless the
+user asks for one. That was audited rather than assumed, statically and at
+runtime.
+
+**Static.** The whole app has exactly one network call site: `Downloader.kt`,
+reached only from an explicit download action. There are no analytics, crash
+reporting, ad, or tracking dependencies, direct or transitive; the resolved
+release classpath was searched for Play Services, Firebase, Crashlytics and ad
+libraries and is clean. There is no update check and no prefetch at launch.
+
+**A real finding.** The merged manifest was carrying `RECEIVE_BOOT_COMPLETED`,
+`WAKE_LOCK` and `FOREGROUND_SERVICE`. None of those were declared by hand. They
+came from WorkManager, which had been added to the dependency list speculatively
+and was never used by a single line of code. An app that promises it only
+touches the network when asked has no business also asking to start itself at
+boot. WorkManager was removed, along with `ACCESS_NETWORK_STATE`, which nothing
+read either. The release manifest now requests exactly one permission: INTERNET.
+
+**Runtime.** Verified on the Pixel 10 Pro XL over a cold start followed by
+ordinary navigation, with nothing tapped that implies a download:
+
+- socket file descriptors held by the app process: 0
+- rows in the kernel TCP and UDP tables owned by the app's uid: 0
+- bytes attributed to the app's uid by the platform network stack: 0 received,
+  0 sent
+
+**What this audit does and does not cover.** It covers the build as it stands.
+The Discover packs sheet, which is the one surface designed to fetch a manifest,
+does not exist yet, so the rule that its manifest is fetched only when the sheet
+is opened is currently a design commitment rather than a verified fact. This
+audit has to be repeated at Phase 8 with every surface present. The permission
+side is now guarded permanently by `PrivacyClaimsTest`, which runs on device and
+fails if a dependency ever reintroduces a background or advertising permission.
+
+One wrinkle worth recording: the installed package also reports
+`ACCESS_LOCAL_NETWORK`, which appears in neither merged manifest. Android
+injects it from version 16 onward for apps holding INTERNET that have not opted
+into the new local-network model. It is allowlisted explicitly in the test, with
+a note, rather than filtered silently, so that the day it stops being platform
+noise the test starts failing again.
+
+## Store assets
+
+`tools/make_store_assets.py` renders the 512 by 512 icon and the 1024 by 500
+feature graphic directly from the DESIGN.md section 2 geometry and the section 3
+palette, into `store-assets/`. Nothing is traced by hand and nothing is a
+mockup, so the store graphics cannot drift from the app.
+
+Two rendering bugs were found by looking at the output rather than trusting the
+arithmetic, which is the second time in this build that has paid off. Pillow
+grows an arc's stroke inward from its bounding box rather than centring it on
+the radius, so the rounded end caps had to move to the stroke centreline instead
+of the nominal radius, where they had been bulging outside the ring. And drawing
+the core as stacked ellipses produced a soft halo past the core radius, which
+reads as a glow; DESIGN.md permits no glow beyond the mark's breathing shadow
+and the onboarding ripples, so the core is now rasterised per pixel and keeps a
+hard edge.
+
 ## BLOCKED
 
-Items that genuinely cannot be completed without the owner. Each says exactly
-what he needs to do.
+Items that cannot be completed yet, and exactly what unblocks each.
 
-Nothing at present.
+### The Play submission tasks are ahead of the build, not blocked by the owner
 
-The Pixel initially reported as `unauthorized` over ADB, which would have blocked
-every on-device step. It authorised itself once the ADB daemon restarted, and the
-phone (Pixel 10 Pro XL, Android 17, 16 GB) has been running builds and tests
-since. No action needed.
+The owner has finished every Play Console step needing human judgment, and asked
+for the remaining launch work: store screenshots of six surfaces, a signed
+release bundle, an Android Publisher API upload, and a LAUNCH.md with his final
+clicks.
+
+None of that is blocked by him. It is blocked by the app. The build is partway
+through Phase 1 of the eight phases in MASTER_SPEC.md. What exists and runs on
+the phone today is the scaffolding, the native layer, the database, the tier and
+model logic, the guardrails, and the onboarding and chat screens. What does not
+exist yet is Discover, Workbench, Follow-ups, Settings, About, Questions and
+answers, Voice, the assistant overlay, file attachments, and backup and restore.
+
+So the following were deliberately not done, because doing them would have meant
+producing something false:
+
+- **Six store screenshots.** Four of the six requested surfaces (Discover with a
+  dealt card, Workbench, Follow-ups, Settings) have no screen to photograph. The
+  spec requires real captures over ADB, not mockups, and it is right to. These
+  wait for Phases 1, 3 and 5.
+- **The signed release bundle.** The release keystore is generated in Phase 8
+  and does not exist. Generating it early to sign a half-built app would put a
+  version of Kam AI into the world under the identity the real one will use.
+- **The Android Publisher API upload.** There is no bundle to upload, and
+  attaching a feature graphic and screenshots to a live listing for an app that
+  cannot yet hold a conversation is worse than attaching nothing.
+- **LAUNCH.md.** A file whose whole job is to say "everything else is done"
+  would be untrue today, and it is the one document the owner would act on
+  without re-reading. It gets written when it is true.
+
+What was done instead, because none of it depends on the app being finished: the
+privacy policy alignment, the network and permission audit including the
+WorkManager removal, the icon and feature graphic rendered from the design
+system, and the Gemma model switch. Those are all real and are in the repository.
+
+**What the owner needs to do: nothing.** This is a sequencing problem, not a
+permission problem. The launch work resumes at Phase 8 exactly as specified,
+against an app that actually has the six surfaces.
+
+### Nothing else is blocked
+
+The Pixel initially reported as `unauthorized` over ADB, which would have
+blocked every on-device step. It authorised itself once the ADB daemon
+restarted, and the phone (Pixel 10 Pro XL, Android 17, 16 GB) has been running
+builds and tests throughout. No action needed.

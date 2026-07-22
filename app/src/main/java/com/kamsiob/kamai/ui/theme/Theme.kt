@@ -103,10 +103,10 @@ private fun KamColors.toMaterialScheme() = if (isDark) {
  */
 @Composable
 private fun KamColors.animated(reduced: Boolean): KamColors {
-    val spec = if (reduced) {
-        androidx.compose.animation.core.snap<Color>()
+    val spec: androidx.compose.animation.core.FiniteAnimationSpec<Color> = if (reduced) {
+        androidx.compose.animation.core.snap()
     } else {
-        KamMotion.fade<Color>(KamMotion.SLOW_MS)
+        KamMotion.fade(KamMotion.SLOW_MS)
     }
 
     @Composable

@@ -3,64 +3,41 @@ package com.kamsiob.kamai.llm
 import com.kamsiob.kamai.data.Role
 
 /**
- * Formats a conversation the way Qwen3 was trained to receive it.
+ * Turns a conversation into a prompt, and cleans what comes back.
  *
- * The format is written out here rather than run through llama.cpp's Jinja
- * template engine because the app needs to budget tokens, drop old turns, and
- * re-inject the system prompt on every request, all of which are far easier
- * when the string is built in Kotlin.
- *
- * Thinking is closed immediately with an empty block. Qwen3 will otherwise
- * reason at length before saying anything, which on a phone means a long wait
- * looking at a typing indicator. See [ModelCatalog] for the full reasoning.
+ * The layout itself belongs to [ChatFormat], because Kam AI ships models from
+ * two families and Gemma and Qwen want quite different things. What lives here
+ * is everything that is the same either way: fitting history to a token budget,
+ * and scrubbing control tokens out of streamed output.
  */
 object PromptBuilder {
-
-    private const val IM_START = "<|im_start|>"
-    private const val IM_END = "<|im_end|>"
-
-    /** Closes the reasoning block before it opens, so answers start straight away. */
-    private const val EMPTY_THINKING = "<think>\n\n</think>\n\n"
 
     data class Turn(val role: Role, val content: String)
 
     /**
-     * Builds the full prompt.
+     * Builds the full prompt in the layout the given model expects.
      *
      * @param history oldest first. Callers trim this to fit the context budget
      *   before calling; see [fitToBudget].
      */
     fun build(
+        format: ChatFormat,
         systemPrompt: String,
         history: List<Turn>,
         pendingUserMessage: String? = null,
-    ): String = buildString {
-        append(IM_START).append("system\n").append(systemPrompt).append(IM_END).append('\n')
-
-        history.forEach { turn ->
-            val role = if (turn.role == Role.USER) "user" else "assistant"
-            append(IM_START).append(role).append('\n')
-            if (turn.role == Role.ASSISTANT) append(EMPTY_THINKING)
-            append(turn.content).append(IM_END).append('\n')
-        }
-
-        if (pendingUserMessage != null) {
-            append(IM_START).append("user\n").append(pendingUserMessage).append(IM_END).append('\n')
-        }
-
-        // Open the assistant turn and close its thinking block for it.
-        append(IM_START).append("assistant\n").append(EMPTY_THINKING)
-    }
+    ): String = format.build(systemPrompt, history, pendingUserMessage)
 
     /** A one-shot request that is not part of any conversation. */
-    fun oneShot(instruction: String, input: String): String = buildString {
-        append(IM_START).append("system\n").append(instruction).append(IM_END).append('\n')
-        append(IM_START).append("user\n").append(input).append(IM_END).append('\n')
-        append(IM_START).append("assistant\n").append(EMPTY_THINKING)
-    }
+    fun oneShot(format: ChatFormat, instruction: String, input: String): String =
+        format.oneShot(instruction, input)
 
-    /** Text the model may emit that should never reach the user. */
-    private val STOP_MARKERS = listOf(IM_END, IM_START, "<|endoftext|>")
+    /**
+     * Every control token either family can emit. Both lists are scrubbed
+     * regardless of which model is loaded, because a stray marker leaking into
+     * a bubble is worse than a redundant check.
+     */
+    private val ALL_STOP_MARKERS: List<String> =
+        ChatFormat.entries.flatMap { it.stopMarkers }.distinct()
 
     /**
      * Strips control tokens and any stray thinking block from streamed output.
@@ -72,7 +49,7 @@ object PromptBuilder {
         if (thinkEnd >= 0) {
             text = text.substring(thinkEnd + "</think>".length)
         }
-        STOP_MARKERS.forEach { marker ->
+        ALL_STOP_MARKERS.forEach { marker ->
             val at = text.indexOf(marker)
             if (at >= 0) text = text.substring(0, at)
         }
@@ -81,7 +58,7 @@ object PromptBuilder {
 
     /** True when a streamed chunk means generation should stop now. */
     fun isStopMarker(piece: String): Boolean =
-        STOP_MARKERS.any { piece.contains(it) }
+        ALL_STOP_MARKERS.any { piece.contains(it) }
 
     /**
      * Drops the oldest turns until the history fits the budget, always keeping

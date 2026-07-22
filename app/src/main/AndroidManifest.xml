@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- The only permission in the app at this phase. It is needed to download
-         a model, a voice, or a content pack, and for opt-in web search. Nothing
-         is sent anywhere on its own. -->
+    <!-- The only permission in the app. It is needed to download a model, a
+         voice, or a content pack, and for opt-in web search. Nothing is sent
+         anywhere on its own, and nothing is fetched in the background.
+
+         Every permission here has to be earned by a feature that exists.
+         WorkManager was removed for exactly this reason: nothing used it, and
+         it silently added RECEIVE_BOOT_COMPLETED, WAKE_LOCK and
+         FOREGROUND_SERVICE to the merged manifest. An app that promises it only
+         touches the network when asked should not also be asking to start
+         itself at boot. See DECISIONS.md. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- arm64 with the NEON extensions the model runtime is built against. -->
     <uses-feature android:name="android.hardware.ram.normal" android:required="false" />
