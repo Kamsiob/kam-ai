@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mirrors DESIGN.md section 3. Kept in sync with Color.kt by hand; these
+         are only used before Compose takes over the window. -->
+    <color name="window_background">#F6F4EC</color>
+    <color name="splash_background">#F6F4EC</color>
+    <color name="icon_background">#F6F4EC</color>
+</resources>

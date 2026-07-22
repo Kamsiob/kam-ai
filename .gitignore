@@ -1,0 +1,61 @@
+# Secrets. Nothing in these patterns may ever be committed. This repo is public.
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+local.properties
+secrets/
+**/service-account*.json
+**/*-service-account.json
+kamsiob-*.json
+play-service-account.json
+google-services.json
+
+# Gradle and build output
+.gradle/
+build/
+captures/
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+*.class
+release/
+out/
+
+# Native build
+.cxx/
+tools/llama.cpp/
+**/jniLibs/**/*.so
+
+# Android Studio and IDE
+.idea/
+*.iml
+.navigation/
+.externalNativeBuild/
+
+# OS junk
+.DS_Store
+Thumbs.db
+*~
+
+# Pipeline caches and generated packs
+tools/wikipack/.cache/
+tools/wikipack/out/
+*.kampack
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# llama.cpp is fetched by tools/fetch_llama.sh at a pinned tag
+app/src/main/cpp/llama.cpp/
+
+# Smoke test model cache
+.smoke-cache/
+
+# Smoke test model, fetched by tools/fetch_smoke_model.sh
+app/src/androidTest/assets/*.gguf
