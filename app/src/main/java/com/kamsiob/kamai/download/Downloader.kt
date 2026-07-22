@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.StatFs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -26,10 +27,21 @@ class Downloader(private val context: Context) {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        // No read timeout: a slow phone on a slow connection pulling five
-        // gigabytes is not an error, and killing it at an arbitrary minute
-        // count is the most annoying possible failure.
-        .readTimeout(0, TimeUnit.SECONDS)
+        // Read timeout is the gap allowed between two reads, not a budget for
+        // the whole transfer, so a generous value here does not punish a slow
+        // connection: as long as bytes keep arriving, the download keeps going.
+        // What it does catch is a connection that has silently died, which on
+        // mobile happens constantly when a phone changes network.
+        //
+        // This was originally set to zero, meaning wait forever, on the
+        // reasoning that a multi-gigabyte download is not an error. That
+        // conflated the two ideas and produced the worst possible failure: a
+        // real 2.5 GB download died at 1.1 GB and then sat at 45 percent
+        // indefinitely, showing no progress, no error, and no way forward.
+        .readTimeout(60, TimeUnit.SECONDS)
+        // No cap on the total call, which is the value that would punish a
+        // genuinely slow connection.
+        .callTimeout(0, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .build()
 
@@ -57,14 +69,51 @@ class Downloader(private val context: Context) {
         File(context.filesDir, kind).apply { mkdirs() }
 
     /**
-     * Downloads [url] to [destination], resuming if a partial file is there.
+     * Downloads with progress, resuming automatically across a dropped
+     * connection.
+     *
+     * A phone loses its connection constantly, and a 2.5 GB model is twenty
+     * minutes of chances for that to happen. Making the user notice a stall and
+     * press retry each time is not a real download experience, so a broken
+     * connection is retried here, resuming from the bytes already on disk, and
+     * only surfaces as a failure once the retries are genuinely spent.
+     */
+    fun download(
+        url: String,
+        destination: File,
+        expectedSizeBytes: Long,
+        expectedSha256: String,
+    ): Flow<Progress> = flow {
+        var attempt = 0
+        while (true) {
+            var retryable = false
+
+            attemptDownload(url, destination, expectedSizeBytes, expectedSha256).collect { progress ->
+                if (progress is Progress.Failed && progress.canRetry && attempt < MAX_ATTEMPTS) {
+                    // Swallowed rather than emitted: the user does not need to
+                    // see a connection blip they did not cause and cannot act on.
+                    retryable = true
+                } else {
+                    emit(progress)
+                }
+            }
+
+            if (!retryable) return@flow
+
+            attempt++
+            delay(RETRY_BACKOFF_MS * attempt)
+        }
+    }
+
+    /**
+     * One attempt. Resumes from a partial file if one is there.
      *
      * @param expectedSha256 verified before the file is moved into place. A
      *   download that fails verification is deleted rather than left to be
      *   picked up as a resumable partial, because a corrupt file that keeps
      *   resuming will never become correct.
      */
-    fun download(
+    private fun attemptDownload(
         url: String,
         destination: File,
         expectedSizeBytes: Long,
@@ -206,6 +255,8 @@ class Downloader(private val context: Context) {
         private const val EMIT_EVERY_BYTES = 512L * 1024L
         private const val HTTP_PARTIAL = 206
         private const val FREE_SPACE_MARGIN = 300L * 1024L * 1024L
+        private const val MAX_ATTEMPTS = 6
+        private const val RETRY_BACKOFF_MS = 2_000L
 
         /**
          * Identifies the project and gives a contact address, which is ordinary

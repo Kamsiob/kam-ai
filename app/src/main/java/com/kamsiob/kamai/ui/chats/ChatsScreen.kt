@@ -1,5 +1,6 @@
 package com.kamsiob.kamai.ui.chats
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -341,6 +342,10 @@ private fun SwipeRow(
     val revealed = abs(animatedOffset) > 1f
 
     val close = { offset = 0f }
+
+    // An open action rail is the innermost dismissible thing on this screen, so
+    // it takes the back event before the navigation stack sees it.
+    BackHandler(enabled = revealed, onBack = close)
 
     Box(Modifier.fillMaxWidth()) {
         if (revealed) {

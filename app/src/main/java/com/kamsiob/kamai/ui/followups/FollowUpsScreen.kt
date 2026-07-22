@@ -1,5 +1,6 @@
 package com.kamsiob.kamai.ui.followups
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -187,6 +188,8 @@ private fun FollowUpCard(
         label = "swipe",
     )
     val revealed = abs(animatedOffset) > 1f
+
+    BackHandler(enabled = revealed) { offset = 0f }
 
     Box(Modifier.fillMaxWidth()) {
         // Completed items swipe left to remove.

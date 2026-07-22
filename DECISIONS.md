@@ -257,6 +257,71 @@ reads as a glow; DESIGN.md permits no glow beyond the mark's breathing shadow
 and the onboarding ripples, so the core is now rasterised per pixel and keeps a
 hard edge.
 
+## Back navigation
+
+**The bug.** The system back gesture closed the app from every screen instead of
+stepping back one level. Nothing in the app consumed the back event, so it fell
+straight through to the activity. It was found the same way most of this build's
+real bugs have been found: by driving the actual phone, in this case swiping
+back while trying to take a screenshot and landing on the launcher.
+
+**The fix.** Handlers are registered through the AndroidX back dispatcher by
+whichever surface owns the dismissible state, rather than by one central
+interceptor. The dispatcher already resolves innermost-first, so the priority
+order falls out of where each handler is declared instead of being maintained by
+hand in a growing when-block. A central handler would have to know about every
+piece of transient state in the app and would be wrong the moment a new one
+appeared.
+
+The resulting order: an open dialog, then an open swipe row, then the navigation
+stack, then the bottom navigation tab, then the app.
+
+**Edge case, documented as required.** With an empty stack on a tab other than
+Chats, back returns to Chats rather than leaving the app. Chats is the home
+root. Somebody who wandered into Follow-ups and pressed back almost never means
+"close the app", and the cost of guessing wrong in that direction is losing
+their place; the cost of guessing wrong the other way is one extra press. Only
+Chats with an empty stack declines to consume the event, which is what lets the
+activity finish.
+
+**Predictive back.** Implemented at the same time, since the handler had to be
+registered either way. The outgoing surface scales down slightly and slides
+toward whichever edge the gesture started from, revealing the destination
+underneath, and commits with the directional slide DESIGN.md specifies. It uses
+the damped spring, not the expressive one: this is navigation, and overshoot is
+reserved for signature moments. Under reduced motion no progress is reported at
+all, so nothing moves under the finger and the change lands as a plain swap.
+
+**Verified on the phone**, not only in tests: Licenses, back to About, back to
+Settings, back to Chats, back to the launcher. Four presses, four correct
+destinations, and the app is left only from the home root.
+
+## The download that stalled at 45 percent
+
+A real 2.5 GB model download died at 1.1 GB and then sat there indefinitely
+showing no progress, no error, and no way forward.
+
+The cause was a line written earlier in this build with a confident and wrong
+comment. OkHttp's read timeout had been set to zero, meaning wait forever, on
+the reasoning that a phone pulling several gigabytes over a slow connection is
+not an error and should not be killed at an arbitrary minute count. That
+conflated two different things. Read timeout is the gap allowed between two
+successive reads, not a budget for the whole transfer, so a generous value never
+punishes a slow-but-progressing download. Setting it to zero only removes the
+one mechanism that notices a connection has silently died, which on mobile
+happens constantly as a phone moves between networks.
+
+Now: a 60 second read timeout, which catches a dead connection while leaving a
+slow one alone, and no call timeout at all, since that is the value that would
+actually punish a slow connection.
+
+The retry was also wrong in spirit. Requiring someone to notice a stall and
+press retry on a twenty minute download is not a download experience, so a
+dropped connection is now retried automatically, resuming from the bytes already
+on disk via the existing Range request, with backoff, and only surfaces as a
+failure once the retries are genuinely spent. A blip the user did not cause and
+cannot act on is no longer shown to them at all.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

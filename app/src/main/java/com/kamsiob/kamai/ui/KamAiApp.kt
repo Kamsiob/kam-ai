@@ -3,6 +3,7 @@ package com.kamsiob.kamai.ui
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
@@ -129,8 +130,34 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
         return
     }
 
+    // Back handling, outermost layer. Dialogs, sheets and swipe rows register
+    // their own handlers closer in, and the dispatcher resolves innermost
+    // first, so those consume the event before any of this runs.
+    //
+    // A pushed screen pops. With an empty stack on a tab other than Chats, back
+    // returns to Chats rather than leaving: Chats is the home root, and a person
+    // who wandered into Follow-ups and pressed back almost never means "close
+    // the app". Only Chats with an empty stack falls through and exits.
+    var backGesture by remember { mutableStateOf(BackGesture()) }
+
+    KamPredictiveBack(
+        enabled = stack.isNotEmpty() || tab != NavItem.CHATS,
+        onProgress = { backGesture = it },
+        onBack = {
+            when {
+                stack.isNotEmpty() -> stack.removeAt(stack.lastIndex)
+                tab != NavItem.CHATS -> tab = NavItem.CHATS
+            }
+        },
+    )
+
     Box(Modifier.fillMaxSize().background(colors.background)) {
-        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .predictiveBackPeek(backGesture)
+                .statusBarsPadding(),
+        ) {
             BrandBar(
                 onBack = if (stack.isNotEmpty()) {
                     { stack.removeAt(stack.lastIndex) }
@@ -345,6 +372,11 @@ private fun SettingsHost(
             stack.clear()
         },
     )
+
+    // AlertDialog routes the back event to onDismissRequest itself, so this
+    // handler exists only to guarantee the dialog is what consumes it rather
+    // than the navigation stack underneath.
+    BackHandler(enabled = confirmDelete) { confirmDelete = false }
 
     if (confirmDelete) {
         DeleteEverythingDialog(
