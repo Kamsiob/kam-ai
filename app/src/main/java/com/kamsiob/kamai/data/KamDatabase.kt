@@ -66,8 +66,17 @@ abstract class KamDatabase : RoomDatabase() {
                 instance ?: build(context.applicationContext).also { instance = it }
             }
 
-        private fun build(context: Context): KamDatabase =
-            Room.databaseBuilder(context, KamDatabase::class.java, NAME)
+        private fun build(context: Context): KamDatabase {
+            // PART 3. The database is encrypted at rest with SQLCipher, keyed
+            // from the Android Keystore. On the first launch after this shipped,
+            // any existing plaintext database is migrated across first, safely
+            // and restartably. See DatabaseEncryption and DatabaseKey.
+            val dbFile = context.getDatabasePath(NAME)
+            val passphrase = DatabaseKey.getOrCreate(context)
+            val factory = DatabaseEncryption.openHelperFactory(context, dbFile, passphrase)
+            return Room.databaseBuilder(context, KamDatabase::class.java, NAME)
+                .openHelperFactory(factory)
                 .build()
+        }
     }
 }

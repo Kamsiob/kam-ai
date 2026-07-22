@@ -447,6 +447,48 @@ The visual polish pass on the new surfaces (accent picker, appearance screen) is
 folded into the Phase 8 screen-by-screen review, which is the designated place
 for that audit.
 
+## Combined update, part 3a: at-rest database encryption (PART 3)
+
+The database is now encrypted at rest with SQLCipher community edition. The whole
+store, conversations, memory, projects, follow-ups and Discover state, is
+meaningless if the file is copied off the device at a repair counter or during a
+transfer. This is always on, transparent, and asks nothing of the user.
+
+The key. The database passphrase is 32 random bytes, generated once on the
+device and never derived from anything typed. It is wrapped by an AES-256-GCM
+key in the Android Keystore, StrongBox-backed where the phone has the chip and
+TEE-backed otherwise, which never leaves secure hardware and cannot be exported.
+The wrapped passphrase sits in a small sandbox file that is useless on its own.
+A device that advertises StrongBox but cannot honour the key spec falls back to
+a standard hardware key rather than failing to open the database at all.
+
+The migration is the part that had to be right, because an existing install has
+a real plaintext database full of someone's conversations. The safe direction,
+found the hard way, is to open the new encrypted database with the key, attach
+the old plaintext one with an empty key, and export its contents in with
+sqlcipher_export. Opening a framework-created plaintext file as a primary
+SQLCipher connection fails with "file is not a database" whether the empty key is
+given as a byte array or a string; the attach-and-export direction is what
+SQLCipher actually supports. The plaintext original is never deleted until the
+encrypted copy exists at the final path and its per-table row counts have been
+verified against the source, and a half-finished migration leaves a staging file
+that is detected and discarded on the next launch, restarting cleanly from the
+untouched plaintext.
+
+Verified on the Pixel with four instrumented tests: seeded plaintext data
+survives migration intact, the migrated file contains none of the secret content
+as readable bytes and no longer carries the SQLite header, the wrong passphrase
+cannot open it, and an interrupted migration recovers. The real app was then run
+end to end on device: it launches with no crash, the on-disk header is random
+bytes, and the Keystore-wrapped key file is present.
+
+DatabaseKey.destroy tears the key and wrapped passphrase away, which the
+forgot-code wipe will use: the encrypted data is not recovered, it is made
+permanently unopenable, and a fresh passphrase is minted next launch.
+
+Still to come in PART 3: the encrypted backup file, the optional app lock across
+every entry point, and the forgot-code wipe-and-restart flow.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.
