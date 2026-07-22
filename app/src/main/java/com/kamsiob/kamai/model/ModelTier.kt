@@ -49,6 +49,38 @@ fun formatBytes(bytes: Long): String {
     }
 }
 
+/**
+ * Turns the memory figure Android reports into the memory the phone is sold
+ * with.
+ *
+ * `ActivityManager.MemoryInfo.totalMem` is always meaningfully lower than the
+ * marketed size, because the kernel and the bootloader carve out their share
+ * before Android ever sees it. A Pixel 10 Pro XL sold as 16 GB reports about
+ * 15.2. A 12 GB phone reports about 11.3, an 8 GB phone about 7.5.
+ *
+ * Taken literally, that is not a rounding curiosity, it is a real bug: every
+ * tier boundary sits exactly on a marketed size, so a genuine 16 GB flagship
+ * reports 15, fails the 16 GB gate, has Best Available locked, and gets
+ * recommended the smallest model in the catalogue. Snapping up to the nearest
+ * size a phone is actually sold with is what makes the tier gates mean what
+ * they say.
+ *
+ * Only snaps upward, and only across a gap small enough to be the kernel's
+ * share, so a device that really does have less is never promoted past what it
+ * can hold.
+ */
+fun marketedRamGb(reportedBytes: Long): Int {
+    val reported = reportedBytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
+    val sizes = intArrayOf(2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64)
+
+    sizes.forEach { size ->
+        // Roughly 12 percent covers the reservation on every device checked,
+        // and is far narrower than the gap between any two adjacent sizes.
+        if (reported <= size && reported >= size * 0.88) return size
+    }
+    return reported.toInt()
+}
+
 object TierRecommendation {
 
     /**

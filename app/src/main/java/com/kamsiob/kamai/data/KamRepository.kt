@@ -4,12 +4,12 @@ import android.app.ActivityManager
 import android.content.Context
 import com.kamsiob.kamai.download.Downloader
 import com.kamsiob.kamai.model.ModelCatalog
+import com.kamsiob.kamai.model.marketedRamGb
 import com.kamsiob.kamai.model.TierModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.File
 import java.util.UUID
-import kotlin.math.roundToInt
 
 /**
  * The single seam between the app's screens and everything that stores or
@@ -48,18 +48,16 @@ class KamRepository(
     // Device
 
     /**
-     * Total device RAM in whole gigabytes. Read locally, never leaves the
-     * device, and needs no Data Safety disclosure.
+     * The memory this phone is sold with, in whole gigabytes. Read locally,
+     * never leaves the device, and needs no Data Safety disclosure.
      *
-     * Rounded rather than truncated because manufacturers report slightly under
-     * the advertised figure once the kernel has taken its share, and a phone
-     * sold as 8 GB reporting 7.6 should still be treated as an 8 GB phone.
+     * See [marketedRamGb] for why the reported figure cannot be used directly.
      */
     fun totalRamGb(): Int {
         val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val info = ActivityManager.MemoryInfo()
         manager.getMemoryInfo(info)
-        return (info.totalMem.toDouble() / (1024.0 * 1024.0 * 1024.0)).roundToInt()
+        return marketedRamGb(info.totalMem)
     }
 
     // Models and artifacts

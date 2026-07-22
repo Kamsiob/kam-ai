@@ -1,6 +1,9 @@
 package com.kamsiob.kamai.ui.chat
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import com.kamsiob.kamai.data.KamRepository
 import com.kamsiob.kamai.data.MessageEntity
@@ -226,7 +229,14 @@ class ChatViewModel(
         if (title.isNotBlank()) repository.setTitle(conversationId, title)
     }
 
-    private companion object {
+    companion object {
+        fun factory(
+            repository: KamRepository,
+            engine: InferenceEngine,
+        ): ViewModelProvider.Factory = viewModelFactory {
+            initializer { ChatViewModel(repository, engine) }
+        }
+
         const val MEMORY_LIMIT = 12
         const val RESERVED_FOR_REPLY = 768
         const val DEFAULT_CONTEXT = 4096

@@ -100,3 +100,50 @@ class TierRecommendationTest {
         assertThat(formatBytes(850_000_000)).isEqualTo("850 MB")
     }
 }
+
+/**
+ * Android never reports the memory a phone is sold with. Since every tier gate
+ * sits exactly on a marketed size, getting this wrong locks the top tier on
+ * hardware that plainly qualifies, which is what happened on a real Pixel 10
+ * Pro XL before this existed.
+ */
+class MarketedRamTest {
+
+    private fun gb(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
+
+    @Test
+    fun realDeviceReportsSnapUpToTheSizeTheyAreSoldAs() {
+        // Measured on the Pixel 10 Pro XL used to build this: 15948992 kB.
+        assertThat(marketedRamGb(15_948_992L * 1024)).isEqualTo(16)
+
+        assertThat(marketedRamGb(gb(15.2))).isEqualTo(16)
+        assertThat(marketedRamGb(gb(11.3))).isEqualTo(12)
+        assertThat(marketedRamGb(gb(7.5))).isEqualTo(8)
+        assertThat(marketedRamGb(gb(5.6))).isEqualTo(6)
+        assertThat(marketedRamGb(gb(3.7))).isEqualTo(4)
+    }
+
+    @Test
+    fun anExactFigureIsLeftAlone() {
+        assertThat(marketedRamGb(gb(16.0))).isEqualTo(16)
+        assertThat(marketedRamGb(gb(8.0))).isEqualTo(8)
+    }
+
+    @Test
+    fun aPhoneThatGenuinelyHasLessIsNeverPromoted() {
+        // Well below 16, so it must not be treated as a 16 GB device.
+        assertThat(marketedRamGb(gb(13.0))).isNotEqualTo(16)
+        // 13 sits between sizes and is not within reach of 16.
+        assertThat(marketedRamGb(gb(13.0))).isEqualTo(13)
+        assertThat(marketedRamGb(gb(10.0))).isEqualTo(10)
+    }
+
+    @Test
+    fun theFlagshipCaseEndToEnd() {
+        // The bug: a 16 GB phone reporting 15 had Best Available locked and was
+        // recommended the smallest model in the catalogue.
+        val ram = marketedRamGb(15_948_992L * 1024)
+        assertThat(TierRecommendation.isLocked(Tier.BEST, ram)).isFalse()
+        assertThat(TierRecommendation.recommended(ram)).isEqualTo(Tier.BALANCED)
+    }
+}
