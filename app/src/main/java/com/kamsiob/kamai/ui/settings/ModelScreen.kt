@@ -19,6 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,13 +49,19 @@ fun ModelScreen(
     advanced: List<TierModel> = emptyList(),
     installedIds: Set<String>,
     activeId: String?,
-    download: Downloader.Progress?,
+    downloads: List<com.kamsiob.kamai.download.Downloads.Item>,
     onDownload: (TierModel) -> Unit,
+    onPause: (String) -> Unit,
+    onResume: (String) -> Unit,
+    onCancel: (String) -> Unit,
     onActivate: (TierModel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
     val recommended = TierRecommendation.recommended(totalRamGb)
+    var advancedOpen by remember { mutableStateOf(false) }
+
+    fun dl(id: String) = downloads.firstOrNull { it.id == id }
 
     Column(
         modifier = modifier
@@ -69,21 +79,17 @@ fun ModelScreen(
         Spacer(Modifier.height(18.dp))
 
         tiers.forEach { model ->
-            val locked = TierRecommendation.isLocked(model.tier, totalRamGb)
-            val installed = model.id in installedIds
-            val active = model.id == activeId
-            val downloading = download is Downloader.Progress.Running &&
-                !installed && model.tier == recommended
-
             ModelCard(
                 model = model,
-                locked = locked,
-                installed = installed,
-                active = active,
+                locked = TierRecommendation.isLocked(model.tier, totalRamGb),
+                installed = model.id in installedIds,
+                active = model.id == activeId,
                 recommended = model.tier == recommended,
-                progress = (download as? Downloader.Progress.Running)
-                    ?.takeIf { downloading }?.fraction,
+                download = dl(model.id),
                 onDownload = { onDownload(model) },
+                onPause = { onPause(model.id) },
+                onResume = { onResume(model.id) },
+                onCancel = { onCancel(model.id) },
                 onActivate = { onActivate(model) },
             )
             Spacer(Modifier.height(11.dp))
@@ -92,38 +98,57 @@ fun ModelScreen(
         Spacer(Modifier.height(8.dp))
         Text(
             "Switching models keeps every conversation. Only the thing answering " +
-                "them changes.",
+                "them changes. You can download more than one at a time.",
             style = KamTheme.type.secondary,
             color = colors.textTertiary,
         )
 
-        // Advanced: other compatible models, for people who want to reason about
-        // this themselves. Nothing here is required reading. PART 2.
+        // Advanced: collapsed by default so it stays out of the way. Other models
+        // to try, including Qwen, for people who want to reason about it themselves.
         if (advanced.isNotEmpty()) {
-            Spacer(Modifier.height(26.dp))
-            com.kamsiob.kamai.ui.components.Eyebrow("Advanced")
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Other models you can try. Bigger or heavier ones need more room. You " +
-                    "can keep several and switch any time.",
-                style = KamTheme.type.secondary,
-                color = colors.textTertiary,
-            )
-            Spacer(Modifier.height(12.dp))
-            advanced.forEach { model ->
-                ModelCard(
-                    model = model,
-                    locked = TierRecommendation.isLocked(model.tier, totalRamGb),
-                    installed = model.id in installedIds,
-                    active = model.id == activeId,
-                    recommended = false,
-                    progress = (download as? Downloader.Progress.Running)
-                        ?.takeIf { installedIds.none { id -> id == model.id } && false }?.fraction,
-                    onDownload = { onDownload(model) },
-                    onActivate = { onActivate(model) },
-                    advanced = true,
+            Spacer(Modifier.height(22.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { advancedOpen = !advancedOpen }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                com.kamsiob.kamai.ui.components.Eyebrow("Advanced")
+                Spacer(Modifier.weight(1f))
+                Text(
+                    if (advancedOpen) "Hide" else "${advanced.size} more",
+                    style = KamTheme.type.secondary,
+                    color = colors.textTertiary,
                 )
-                Spacer(Modifier.height(11.dp))
+            }
+            if (advancedOpen) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Other models you can try, including Qwen. Bigger or heavier ones need " +
+                        "more room. Keep several and switch any time.",
+                    style = KamTheme.type.secondary,
+                    color = colors.textTertiary,
+                )
+                Spacer(Modifier.height(12.dp))
+                advanced.forEach { model ->
+                    ModelCard(
+                        model = model,
+                        locked = TierRecommendation.isLocked(model.tier, totalRamGb),
+                        installed = model.id in installedIds,
+                        active = model.id == activeId,
+                        recommended = false,
+                        download = dl(model.id),
+                        onDownload = { onDownload(model) },
+                        onPause = { onPause(model.id) },
+                        onResume = { onResume(model.id) },
+                        onCancel = { onCancel(model.id) },
+                        onActivate = { onActivate(model) },
+                        advanced = true,
+                    )
+                    Spacer(Modifier.height(9.dp))
+                }
             }
         }
         Spacer(Modifier.height(28.dp))
@@ -137,8 +162,11 @@ private fun ModelCard(
     installed: Boolean,
     active: Boolean,
     recommended: Boolean,
-    progress: Float?,
+    download: com.kamsiob.kamai.download.Downloads.Item?,
     onDownload: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onCancel: () -> Unit,
     onActivate: () -> Unit,
     advanced: Boolean = false,
 ) {
@@ -219,29 +247,13 @@ private fun ModelCard(
 
         Spacer(Modifier.height(13.dp))
         when {
-            progress != null -> {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(7.dp)
-                        .clip(CircleShape)
-                        .background(colors.surfaceSecondary),
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth(progress)
-                            .height(7.dp)
-                            .clip(CircleShape)
-                            .background(colors.accent),
-                    )
-                }
-                Spacer(Modifier.height(7.dp))
-                Text(
-                    "${(progress * 100).toInt()}% downloaded",
-                    style = KamTheme.type.mono,
-                    color = colors.textSecondary,
+            download != null && download.status != com.kamsiob.kamai.download.Downloads.Status.DONE ->
+                com.kamsiob.kamai.ui.components.DownloadControls(
+                    item = download,
+                    onPause = onPause,
+                    onResume = onResume,
+                    onCancel = onCancel,
                 )
-            }
 
             active -> Unit
 

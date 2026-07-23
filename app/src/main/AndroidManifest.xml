@@ -13,6 +13,14 @@
          itself at boot. See DECISIONS.md. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Downloads keep running while the app is in the background, through a
+         foreground service that shows a progress notification. Added deliberately
+         because model downloads are large and a user should not have to keep the
+         app open for twenty minutes. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Voice typing transcribes on-device with whisper.cpp. Requested only at
          first use, and the microphone is not required to install the app. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -134,6 +142,12 @@
                 android:name="android.speech"
                 android:resource="@xml/kam_recognition" />
         </service>
+
+        <!-- Keeps downloads alive in the background with a progress notification. -->
+        <service
+            android:name=".download.DownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

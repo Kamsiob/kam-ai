@@ -1376,6 +1376,36 @@ memory fix). A full release-build run is left for the first Play internal-testin
 install rather than done now, because installing the differently-signed release
 over the debug build would uninstall it and wipe the model download.
 
+## Download management: background, concurrent, pausable
+
+The owner asked for real download control: pause and cancel mid-session, several
+downloads at once, delete afterward, and downloads that keep going in the
+background. This replaced the old single-download-in-a-view-model approach (which
+died the moment the app was backgrounded, the very thing that stalled the owner's
+first Balanced download).
+
+A process-level Downloads manager now runs every download as an independent
+coroutine, tracks them all in one observable list, and controls each one: pause
+keeps the partial file and resumes from it, cancel deletes it, a failure can be
+retried. A small DownloadService foreground service keeps the process alive while
+any download runs, so a model finishes even after the user leaves the app, and
+shows one honest progress notification. It starts with the first download and
+stops with the last. This is why FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC,
+and POST_NOTIFICATIONS were added, a deliberate reversal of the earlier
+no-foreground-service stance, because background downloads are worth it.
+
+Every download surface (models, voices, packs, and onboarding) shares one
+DownloadControls row, so they behave identically. The Advanced model list is now
+collapsed by default behind a "N more" toggle so it takes less room.
+
+Verified on device: started the Basic model download (progress, Pause, Cancel),
+paused it ("Paused at 3%", Resume), resumed it, started a voice download alongside
+it (the notification read "Downloading 2 items", both partial files grew),
+cancelled the voice one (its partial file was deleted, the model download
+continued, the notification went back to one item), then cancelled the model one
+(its partial file deleted, the foreground service stopped since nothing was
+active). Balanced stayed installed and working throughout.
+
 ## Deferred within completed phases
 
 ### Kokoro premium reading voice (Phase 2)

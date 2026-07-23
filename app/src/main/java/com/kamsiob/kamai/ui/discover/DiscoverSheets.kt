@@ -179,10 +179,12 @@ fun QuizSheet(
 fun PacksSheet(
     manifest: List<PackInfo>,
     installedIds: Set<String>,
-    download: Downloader.Progress?,
-    downloadingPackId: String?,
+    downloads: List<com.kamsiob.kamai.download.Downloads.Item>,
     onGet: (PackInfo) -> Unit,
     onRemove: (String) -> Unit,
+    onPause: (String) -> Unit,
+    onResume: (String) -> Unit,
+    onCancel: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = KamTheme.colors
@@ -216,8 +218,7 @@ fun PacksSheet(
 
             manifest.forEach { pack ->
                 val installed = pack.id in installedIds
-                val progress = (download as? Downloader.Progress.Running)
-                    ?.takeIf { downloadingPackId == pack.id }?.fraction
+                val dl = downloads.firstOrNull { it.id == pack.id }
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -235,20 +236,10 @@ fun PacksSheet(
                     Text(pack.description, style = KamTheme.type.secondary, color = colors.textTertiary)
                     Spacer(Modifier.height(10.dp))
                     when {
-                        progress != null -> {
-                            Box(
-                                Modifier.fillMaxWidth().height(7.dp).clip(CircleShape)
-                                    .background(colors.surfaceSecondary),
-                            ) {
-                                Box(
-                                    Modifier.fillMaxWidth(progress).height(7.dp).clip(CircleShape)
-                                        .background(colors.accent),
-                                )
-                            }
-                            Spacer(Modifier.height(6.dp))
-                            Text("${(progress * 100).toInt()}% downloaded",
-                                style = KamTheme.type.mono, color = colors.textSecondary)
-                        }
+                        dl != null && dl.status != com.kamsiob.kamai.download.Downloads.Status.DONE ->
+                            com.kamsiob.kamai.ui.components.DownloadControls(
+                                dl, { onPause(pack.id) }, { onResume(pack.id) }, { onCancel(pack.id) },
+                            )
                         installed -> SecondaryButton("Remove", onClick = { onRemove(pack.id) })
                         else -> PrimaryButton("Get ${pack.sizeLabel}", onClick = { onGet(pack) })
                     }

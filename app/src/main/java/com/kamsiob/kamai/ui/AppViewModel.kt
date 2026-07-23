@@ -182,32 +182,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private var downloadJob: kotlinx.coroutines.Job? = null
     private var downloadingModelId: String? = null
 
+    /** Live state of every download in flight, from the background manager. */
+    val downloads: StateFlow<List<com.kamsiob.kamai.download.Downloads.Item>> =
+        com.kamsiob.kamai.download.Downloads.items
+
     fun downloadModel(model: TierModel) {
         // A download brings memory and disk pressure; free an idle resident model
-        // first. The download never triggers a load or changes the active model.
-        downloadingModelId = model.id
-        downloadJob = viewModelScope.launch {
-            modelManager.onDownloadStarting()
-            repository.downloader.download(
+        // first. It never triggers a load or changes the active model.
+        viewModelScope.launch { modelManager.onDownloadStarting() }
+        com.kamsiob.kamai.download.Downloads.start(
+            getApplication(), repository.downloader,
+            com.kamsiob.kamai.download.Downloads.Spec(
+                id = model.id,
+                displayName = model.displayName,
+                kind = "model",
                 url = model.sourceUrl,
                 destination = repository.fileFor(model),
-                expectedSizeBytes = model.downloadBytes,
-                expectedSha256 = model.sha256,
-            ).collect { progress ->
-                _download.value = progress
-                if (progress is Downloader.Progress.Done) {
-                    repository.registerModel(model, progress.file, makeActive = false)
+                sizeBytes = model.downloadBytes,
+                sha256 = model.sha256,
+                onInstalled = { file ->
+                    repository.registerModel(model, file, makeActive = false)
                     modelManager.onModelInstalled(model)
-                    downloadingModelId = null
                     showToast("${model.displayName} is ready")
-                }
-                if (progress is Downloader.Progress.Failed) {
-                    downloadingModelId = null
-                    showToast(progress.message)
-                }
-            }
-        }
+                },
+            ),
+        )
     }
+
+    fun pauseDownload(id: String) = com.kamsiob.kamai.download.Downloads.pause(getApplication(), id)
+    fun cancelDownload(id: String) = com.kamsiob.kamai.download.Downloads.cancel(getApplication(), id)
+    fun resumeDownload(id: String) =
+        com.kamsiob.kamai.download.Downloads.resume(getApplication(), repository.downloader, id)
+    fun dismissDownload(id: String) = com.kamsiob.kamai.download.Downloads.dismiss(id)
 
     fun clearDownload() {
         _download.value = null
@@ -410,34 +416,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .map { list -> list.map { it.id } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val _downloadingSttId = MutableStateFlow<String?>(null)
-    val downloadingSttId: StateFlow<String?> = _downloadingSttId.asStateFlow()
-
     fun downloadStt(model: com.kamsiob.kamai.voice.SttModel) {
-        _downloadingSttId.value = model.id
-        downloadJob = viewModelScope.launch {
-            // Voice models share the language model's budget, so free an idle
-            // resident model before a voice download takes memory and disk.
-            modelManager.onDownloadStarting()
-            repository.downloader.download(
+        com.kamsiob.kamai.download.Downloads.start(
+            getApplication(), repository.downloader,
+            com.kamsiob.kamai.download.Downloads.Spec(
+                id = model.id,
+                displayName = model.displayName,
+                kind = "voice",
                 url = model.sourceUrl,
                 destination = repository.fileForStt(model),
-                expectedSizeBytes = model.downloadBytes,
-                expectedSha256 = model.sha256,
-            ).collect { progress ->
-                _download.value = progress
-                if (progress is Downloader.Progress.Done) {
-                    // First voice model becomes active so the mic appears at once.
-                    repository.registerSttModel(model, progress.file, makeActive = true)
-                    _downloadingSttId.value = null
+                sizeBytes = model.downloadBytes,
+                sha256 = model.sha256,
+                onInstalled = { file ->
+                    repository.registerSttModel(model, file, makeActive = true)
                     showToast("${model.displayName} is ready")
-                }
-                if (progress is Downloader.Progress.Failed) {
-                    _downloadingSttId.value = null
-                    showToast(progress.message)
-                }
-            }
-        }
+                },
+            ),
+        )
     }
 
     fun activateStt(model: com.kamsiob.kamai.voice.SttModel) = viewModelScope.launch {
@@ -460,31 +455,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         repository.observeActiveTtsVoice()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private val _downloadingTtsId = MutableStateFlow<String?>(null)
-    val downloadingTtsId: StateFlow<String?> = _downloadingTtsId.asStateFlow()
-
     fun downloadTts(voice: com.kamsiob.kamai.voice.TtsVoice) {
-        _downloadingTtsId.value = voice.id
-        downloadJob = viewModelScope.launch {
-            modelManager.onDownloadStarting()
-            repository.downloader.download(
+        com.kamsiob.kamai.download.Downloads.start(
+            getApplication(), repository.downloader,
+            com.kamsiob.kamai.download.Downloads.Spec(
+                id = voice.id,
+                displayName = voice.displayName,
+                kind = "voice",
                 url = voice.sourceUrl,
                 destination = repository.fileForTts(voice),
-                expectedSizeBytes = voice.downloadBytes,
-                expectedSha256 = voice.sha256,
-            ).collect { progress ->
-                _download.value = progress
-                if (progress is Downloader.Progress.Done) {
-                    repository.registerTtsVoice(voice, progress.file, makeActive = true)
-                    _downloadingTtsId.value = null
+                sizeBytes = voice.downloadBytes,
+                sha256 = voice.sha256,
+                onInstalled = { file ->
+                    repository.registerTtsVoice(voice, file, makeActive = true)
                     showToast("${voice.displayName} is ready")
-                }
-                if (progress is Downloader.Progress.Failed) {
-                    _downloadingTtsId.value = null
-                    showToast(progress.message)
-                }
-            }
-        }
+                },
+            ),
+        )
     }
 
     fun activateTts(voice: com.kamsiob.kamai.voice.TtsVoice) = viewModelScope.launch {

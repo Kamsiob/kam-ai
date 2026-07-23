@@ -175,13 +175,17 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
     }
 
     if (!onboardingDone) {
-        val download by app.download.collectAsStateWithLifecycle()
+        val downloads by app.downloads.collectAsStateWithLifecycle()
+        // Onboarding downloads one recommended model; show its progress.
+        val onboardingDl = downloads.firstOrNull {
+            it.kind == "model" && it.status != com.kamsiob.kamai.download.Downloads.Status.PAUSED
+        }
         OnboardingScreen(
             totalRamGb = app.totalRamGb,
             tiers = app.tiers,
-            downloadProgress = (download as? com.kamsiob.kamai.download.Downloader.Progress.Running)
-                ?.fraction
-                ?: (download as? com.kamsiob.kamai.download.Downloader.Progress.Done)?.let { 1f },
+            downloadProgress = onboardingDl?.let {
+                if (it.status == com.kamsiob.kamai.download.Downloads.Status.DONE) 1f else it.fraction
+            },
             onDownload = app::downloadModel,
             onFinish = app::finishOnboarding,
             onSupport = { openUrl(Links.SUPPORT) },
@@ -587,7 +591,7 @@ private fun AppearanceHost(app: AppViewModel) {
 private fun ModelHost(app: AppViewModel) {
     val artifacts by app.artifacts.collectAsStateWithLifecycle()
     val activeModel by app.activeModel.collectAsStateWithLifecycle()
-    val download by app.download.collectAsStateWithLifecycle()
+    val downloads by app.downloads.collectAsStateWithLifecycle()
 
     ModelScreen(
         totalRamGb = app.totalRamGb,
@@ -595,8 +599,11 @@ private fun ModelHost(app: AppViewModel) {
         advanced = com.kamsiob.kamai.model.ModelCatalog.advanced,
         installedIds = artifacts.map { it.id }.toSet(),
         activeId = activeModel?.id,
-        download = download,
+        downloads = downloads,
         onDownload = app::downloadModel,
+        onPause = app::pauseDownload,
+        onResume = app::resumeDownload,
+        onCancel = app::cancelDownload,
         onActivate = app::activateModel,
     )
 }
@@ -618,8 +625,7 @@ private fun DiscoverHost(
     val saved by vm.saved.collectAsStateWithLifecycle()
     val stats by vm.stats.collectAsStateWithLifecycle()
     val manifest by vm.manifest.collectAsStateWithLifecycle()
-    val download by vm.download.collectAsStateWithLifecycle()
-    val downloadingPack by vm.downloadingPackId.collectAsStateWithLifecycle()
+    val downloads by vm.downloads.collectAsStateWithLifecycle()
     val quiz by vm.quiz.collectAsStateWithLifecycle()
     val notice by vm.notice.collectAsStateWithLifecycle()
 
@@ -666,10 +672,12 @@ private fun DiscoverHost(
         com.kamsiob.kamai.ui.discover.PacksSheet(
             manifest = manifest,
             installedIds = installedIds,
-            download = download,
-            downloadingPackId = downloadingPack,
+            downloads = downloads,
             onGet = vm::downloadPack,
             onRemove = vm::removePack,
+            onPause = vm::pauseDownload,
+            onResume = vm::resumeDownload,
+            onCancel = vm::cancelDownload,
             onDismiss = { showPacks = false },
         )
     }
@@ -766,28 +774,27 @@ private fun WorkbenchHost(app: AppViewModel) {
 private fun VoiceHost(app: AppViewModel) {
     val installedStt by app.installedStt.collectAsStateWithLifecycle()
     val activeStt by app.activeSttModel.collectAsStateWithLifecycle()
-    val download by app.download.collectAsStateWithLifecycle()
-    val downloadingStt by app.downloadingSttId.collectAsStateWithLifecycle()
+    val downloads by app.downloads.collectAsStateWithLifecycle()
     val installedTts by app.installedTts.collectAsStateWithLifecycle()
     val activeTts by app.activeTtsVoice.collectAsStateWithLifecycle()
-    val downloadingTts by app.downloadingTtsId.collectAsStateWithLifecycle()
 
     com.kamsiob.kamai.ui.settings.VoiceScreen(
         sttModels = com.kamsiob.kamai.voice.SttCatalog.ALL,
         installedSttIds = installedStt.toSet(),
         activeSttId = activeStt?.id,
         recommendedSttId = com.kamsiob.kamai.voice.SttCatalog.recommendedFor(app.totalRamGb).id,
-        download = download,
-        downloadingSttId = downloadingStt,
+        downloads = downloads,
         onDownloadStt = app::downloadStt,
         onActivateStt = app::activateStt,
         ttsVoices = com.kamsiob.kamai.voice.TtsCatalog.ALL,
         installedTtsIds = installedTts.toSet(),
         activeTtsId = activeTts?.id,
-        downloadingTtsId = downloadingTts,
         onDownloadTts = app::downloadTts,
         onActivateTts = app::activateTts,
         onPreviewTts = app::previewTts,
+        onPause = app::pauseDownload,
+        onResume = app::resumeDownload,
+        onCancel = app::cancelDownload,
     )
 }
 

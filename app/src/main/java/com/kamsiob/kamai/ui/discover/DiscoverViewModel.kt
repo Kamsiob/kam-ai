@@ -56,10 +56,8 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
     private val _notice = MutableStateFlow<String?>(null)
     val notice: StateFlow<String?> = _notice.asStateFlow()
 
-    private val _download = MutableStateFlow<Downloader.Progress?>(null)
-    val download: StateFlow<Downloader.Progress?> = _download.asStateFlow()
-    private val _downloadingPackId = MutableStateFlow<String?>(null)
-    val downloadingPackId: StateFlow<String?> = _downloadingPackId.asStateFlow()
+    val downloads: StateFlow<List<com.kamsiob.kamai.download.Downloads.Item>> =
+        com.kamsiob.kamai.download.Downloads.items
 
     val saved: StateFlow<List<SavedMomentEntity>> =
         repository.observeSavedMoments()
@@ -160,29 +158,30 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
     // Packs
 
     fun downloadPack(pack: PackInfo) {
-        _downloadingPackId.value = pack.id
-        viewModelScope.launch {
-            repository.downloader.download(
+        com.kamsiob.kamai.download.Downloads.start(
+            getApplication(), repository.downloader,
+            com.kamsiob.kamai.download.Downloads.Spec(
+                id = pack.id,
+                displayName = pack.name,
+                kind = "pack",
                 url = pack.downloadUrl,
                 destination = repository.fileForPack(pack.fileName),
-                expectedSizeBytes = pack.sizeBytes,
-                expectedSha256 = pack.sha256,
-            ).collect { progress ->
-                _download.value = progress
-                if (progress is Downloader.Progress.Done) {
-                    repository.registerPack(pack, progress.file)
-                    _downloadingPackId.value = null
+                sizeBytes = pack.sizeBytes,
+                sha256 = pack.sha256,
+                onInstalled = { file ->
+                    repository.registerPack(pack, file)
                     _installedIds.value = repository.installedPackIds().toSet()
                     if (_current.value == null) deal()
                     _notice.value = "${pack.name} is ready. ${pack.moments} moments to read."
-                }
-                if (progress is Downloader.Progress.Failed) {
-                    _downloadingPackId.value = null
-                    _notice.value = progress.message
-                }
-            }
-        }
+                },
+            ),
+        )
     }
+
+    fun pauseDownload(id: String) = com.kamsiob.kamai.download.Downloads.pause(getApplication(), id)
+    fun resumeDownload(id: String) =
+        com.kamsiob.kamai.download.Downloads.resume(getApplication(), repository.downloader, id)
+    fun cancelDownload(id: String) = com.kamsiob.kamai.download.Downloads.cancel(getApplication(), id)
 
     fun removePack(packId: String) {
         viewModelScope.launch {

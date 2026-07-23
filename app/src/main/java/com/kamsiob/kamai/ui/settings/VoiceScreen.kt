@@ -40,19 +40,21 @@ fun VoiceScreen(
     installedSttIds: Set<String>,
     activeSttId: String?,
     recommendedSttId: String,
-    download: Downloader.Progress?,
-    downloadingSttId: String?,
+    downloads: List<com.kamsiob.kamai.download.Downloads.Item> = emptyList(),
     onDownloadStt: (SttModel) -> Unit,
     onActivateStt: (SttModel) -> Unit,
     ttsVoices: List<com.kamsiob.kamai.voice.TtsVoice> = emptyList(),
     installedTtsIds: Set<String> = emptySet(),
     activeTtsId: String? = null,
-    downloadingTtsId: String? = null,
     onDownloadTts: (com.kamsiob.kamai.voice.TtsVoice) -> Unit = {},
     onActivateTts: (com.kamsiob.kamai.voice.TtsVoice) -> Unit = {},
     onPreviewTts: (com.kamsiob.kamai.voice.TtsVoice) -> Unit = {},
+    onPause: (String) -> Unit = {},
+    onResume: (String) -> Unit = {},
+    onCancel: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    fun dl(id: String) = downloads.firstOrNull { it.id == id }
     val colors = KamTheme.colors
 
     Column(
@@ -81,10 +83,12 @@ fun VoiceScreen(
                 installed = model.id in installedSttIds,
                 active = model.id == activeSttId,
                 recommended = model.id == recommendedSttId,
-                progress = (download as? Downloader.Progress.Running)
-                    ?.takeIf { downloadingSttId == model.id }?.fraction,
+                download = dl(model.id),
                 onDownload = { onDownloadStt(model) },
                 onActivate = { onActivateStt(model) },
+                onPause = { onPause(model.id) },
+                onResume = { onResume(model.id) },
+                onCancel = { onCancel(model.id) },
             )
             Spacer(Modifier.height(11.dp))
         }
@@ -115,11 +119,13 @@ fun VoiceScreen(
                 voice = voice,
                 installed = voice.id in installedTtsIds,
                 active = voice.id == activeTtsId,
-                progress = (download as? Downloader.Progress.Running)
-                    ?.takeIf { downloadingTtsId == voice.id }?.fraction,
+                download = dl(voice.id),
                 onDownload = { onDownloadTts(voice) },
                 onActivate = { onActivateTts(voice) },
                 onPreview = { onPreviewTts(voice) },
+                onPause = { onPause(voice.id) },
+                onResume = { onResume(voice.id) },
+                onCancel = { onCancel(voice.id) },
             )
             Spacer(Modifier.height(11.dp))
         }
@@ -132,10 +138,13 @@ private fun TtsCard(
     voice: com.kamsiob.kamai.voice.TtsVoice,
     installed: Boolean,
     active: Boolean,
-    progress: Float?,
+    download: com.kamsiob.kamai.download.Downloads.Item?,
     onDownload: () -> Unit,
     onActivate: () -> Unit,
     onPreview: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onCancel: () -> Unit,
 ) {
     val colors = KamTheme.colors
     val shape = RoundedCornerShape(KamTheme.dimens.cardRadius)
@@ -169,23 +178,8 @@ private fun TtsCard(
 
         Spacer(Modifier.height(13.dp))
         when {
-            progress != null -> {
-                Box(
-                    Modifier.fillMaxWidth().height(7.dp).clip(CircleShape)
-                        .background(colors.surfaceSecondary),
-                ) {
-                    Box(
-                        Modifier.fillMaxWidth(progress).height(7.dp).clip(CircleShape)
-                            .background(colors.accent),
-                    )
-                }
-                Spacer(Modifier.height(7.dp))
-                Text(
-                    "${(progress * 100).toInt()}% downloaded",
-                    style = KamTheme.type.mono,
-                    color = colors.textSecondary,
-                )
-            }
+            download != null && download.status != com.kamsiob.kamai.download.Downloads.Status.DONE ->
+                com.kamsiob.kamai.ui.components.DownloadControls(download, onPause, onResume, onCancel)
 
             installed -> Row {
                 if (!active) {
@@ -210,9 +204,12 @@ private fun SttCard(
     installed: Boolean,
     active: Boolean,
     recommended: Boolean,
-    progress: Float?,
+    download: com.kamsiob.kamai.download.Downloads.Item?,
     onDownload: () -> Unit,
     onActivate: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onCancel: () -> Unit,
 ) {
     val colors = KamTheme.colors
     val shape = RoundedCornerShape(KamTheme.dimens.cardRadius)
@@ -245,29 +242,8 @@ private fun SttCard(
 
         Spacer(Modifier.height(13.dp))
         when {
-            progress != null -> {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(7.dp)
-                        .clip(CircleShape)
-                        .background(colors.surfaceSecondary),
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth(progress)
-                            .height(7.dp)
-                            .clip(CircleShape)
-                            .background(colors.accent),
-                    )
-                }
-                Spacer(Modifier.height(7.dp))
-                Text(
-                    "${(progress * 100).toInt()}% downloaded",
-                    style = KamTheme.type.mono,
-                    color = colors.textSecondary,
-                )
-            }
+            download != null && download.status != com.kamsiob.kamai.download.Downloads.Status.DONE ->
+                com.kamsiob.kamai.ui.components.DownloadControls(download, onPause, onResume, onCancel)
 
             active -> Unit
 
