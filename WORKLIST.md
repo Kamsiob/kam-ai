@@ -58,7 +58,15 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       done." to match the Stop control shown (chat + Workbench, both audited). Device-verified.
 - [x] 8. Discover card deal animation (sweep out + rise in on expressive spring, reduced-motion aware). Done. (sweep out with tilt/fade, incoming rises via expressive spring;
       respect reduced motion). [may integrate with Discover phase]
-- [ ] 9. Follow up from a Discover card directly (bookmark action).
+- [x] 9. Follow up from a Discover card directly (bookmark action). DONE: saving is unified across
+      the whole app. The bookmark means one thing everywhere; everything saved lands in the single
+      Follow-ups list, told apart by the source filter (item 10). The separate Discover "Saved moments"
+      store (discover_saved) is removed; a saved moment is a follow-up carrying its packId/momentId so
+      it reopens as a grounded discussion, tappable from both the Discover Saved section (now a filtered
+      view of the one list) and the Follow-ups list. DB migration 3->4 moves existing saved moments into
+      follow_ups (nothing lost) and drops the old table; backup codec folds a legacy "saved" array in on
+      import. Device-verified: save -> appears in Follow-ups under DISCOVER -> reopen from either place ->
+      unsave removes it; clean migration over existing data.
 - [x] 10. Filter Follow-ups by source. Done (light chip row, All + each source). (chat, Logic, Discover); light, obvious, clear reset.
 - [ ] 11. Discover discussion uses a scoped slide-up surface, not full chat window (title, source,
       distinct look, design system, no amber).

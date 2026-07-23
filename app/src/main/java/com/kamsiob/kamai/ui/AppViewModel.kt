@@ -375,6 +375,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         showToast("Removed")
     }
 
+    /** Opens a saved Discover moment (a follow-up carrying a moment) as a grounded
+     *  discussion, so the single follow-ups list can reopen it. */
+    fun openSavedMoment(packId: String, momentId: String, onReady: (String) -> Unit) =
+        viewModelScope.launch {
+            val id = repository.openMomentDiscussion(packId, momentId)
+            if (id == null) {
+                showToast("That moment's pack is not installed")
+            } else {
+                onReady(id)
+            }
+        }
+
     // Memory and projects
 
     fun forget(id: String, text: String? = null) {

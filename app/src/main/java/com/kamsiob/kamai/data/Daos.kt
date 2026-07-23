@@ -278,6 +278,17 @@ interface FollowUpDao {
 
     @Query("SELECT COUNT(*) FROM follow_ups WHERE completed = 0")
     fun observeOpenCount(): Flow<Int>
+
+    // Saved Discover moments, unified into follow-ups (one saving action, one list).
+
+    @Query("SELECT * FROM follow_ups WHERE momentId IS NOT NULL ORDER BY createdAt DESC")
+    fun observeSavedMoments(): Flow<List<FollowUpEntity>>
+
+    @Query("SELECT COUNT(*) FROM follow_ups WHERE packId = :packId AND momentId = :momentId")
+    suspend fun countMoment(packId: String, momentId: String): Int
+
+    @Query("DELETE FROM follow_ups WHERE packId = :packId AND momentId = :momentId")
+    suspend fun deleteMoment(packId: String, momentId: String)
 }
 
 @Dao
@@ -285,9 +296,6 @@ interface DiscoverDao {
 
     @Query("SELECT * FROM discover_drawn")
     suspend fun allDrawnForBackup(): List<DrawnMomentEntity>
-
-    @Query("SELECT * FROM discover_saved")
-    suspend fun allSavedForBackup(): List<SavedMomentEntity>
 
     @Query("SELECT * FROM discover_quiz_stats")
     suspend fun allStatsForBackup(): List<QuizStatsEntity>
@@ -307,18 +315,6 @@ interface DiscoverDao {
     /** The plain reshuffle at true exhaustion. */
     @Query("DELETE FROM discover_drawn WHERE packId = :packId")
     suspend fun reshuffle(packId: String)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun save(moment: SavedMomentEntity)
-
-    @Query("DELETE FROM discover_saved WHERE packId = :packId AND momentId = :momentId")
-    suspend fun unsave(packId: String, momentId: String)
-
-    @Query("SELECT * FROM discover_saved ORDER BY savedAt DESC")
-    fun observeSaved(): Flow<List<SavedMomentEntity>>
-
-    @Query("SELECT COUNT(*) FROM discover_saved WHERE packId = :packId AND momentId = :momentId")
-    suspend fun isSaved(packId: String, momentId: String): Int
 
     @Upsert
     suspend fun upsertStats(stats: QuizStatsEntity)
@@ -343,9 +339,6 @@ interface DiscoverDao {
 
     @Query("DELETE FROM discover_drawn")
     suspend fun deleteAllDrawn()
-
-    @Query("DELETE FROM discover_saved")
-    suspend fun deleteAllSaved()
 
     @Query("DELETE FROM discover_quiz_stats")
     suspend fun deleteAllStats()

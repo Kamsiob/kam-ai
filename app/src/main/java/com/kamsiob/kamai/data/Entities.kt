@@ -142,6 +142,11 @@ data class FollowUpEntity(
     val messageId: String? = null,
     val projectId: String? = null,
     val note: String? = null,
+    /** For a saved Discover moment, which moment it is, so it can be reopened.
+     *  Null for follow-ups flagged from a chat. Part of the unified saving: one
+     *  bookmark, one Follow-ups list, distinguished by source. */
+    val packId: String? = null,
+    val momentId: String? = null,
     val completed: Boolean = false,
     val createdAt: Long,
     val completedAt: Long? = null,
@@ -157,15 +162,6 @@ data class DrawnMomentEntity(
     val drawnAt: Long,
     /** Set once the reader has been opened, which skips the pre-quiz prompt. */
     val readerOpened: Boolean = false,
-)
-
-@Entity(tableName = "discover_saved", primaryKeys = ["packId", "momentId"])
-data class SavedMomentEntity(
-    val packId: String,
-    val momentId: String,
-    val title: String,
-    val topic: String,
-    val savedAt: Long,
 )
 
 /**

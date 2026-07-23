@@ -367,6 +367,9 @@ private fun TabContent(
                 onToggle = app::setFollowUpCompleted,
                 onRemove = app::deleteFollowUp,
                 onOpenSource = { stack.add(Pushed.Conversation(it)) },
+                onOpenMoment = { packId, momentId ->
+                    app.openSavedMoment(packId, momentId) { stack.add(Pushed.Conversation(it)) }
+                },
             )
         }
     }
@@ -718,7 +721,13 @@ private fun DiscoverHost(
         onOpenPacks = { showPacks = true },
         onOpenSaved = { s ->
             // Tapping a saved moment opens a grounded discussion of its passage.
-            vm.openSaved(s.packId, s.momentId) { id -> stack.add(Pushed.Conversation(id)) }
+            // Saved moments always carry both ids; the null-guard is only for the
+            // shared follow-up shape.
+            val packId = s.packId
+            val momentId = s.momentId
+            if (packId != null && momentId != null) {
+                vm.openSaved(packId, momentId) { id -> stack.add(Pushed.Conversation(id)) }
+            }
         },
     )
 

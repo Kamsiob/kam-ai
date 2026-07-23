@@ -29,9 +29,19 @@ class BackupRoundTripTest {
         ),
         projects = listOf(ProjectEntity("p1", "Proj", "instructions", 1, 2)),
         memory = listOf(MemoryEntity("mem1", "remembers this", 1, 2, "c1", auto = true)),
-        followUps = listOf(FollowUpEntity("f1", "snippet", Mode.LOGIC, "c1", "m2", null, "note", false, 1, null)),
+        followUps = listOf(
+            FollowUpEntity(
+                id = "f1", snippet = "snippet", sourceMode = Mode.LOGIC,
+                conversationId = "c1", messageId = "m2", note = "note", createdAt = 1,
+            ),
+            // A saved Discover moment is a follow-up too now: it carries the moment
+            // so it can be reopened, and its source tells it apart in the one list.
+            FollowUpEntity(
+                id = "f2", snippet = "Title", sourceMode = Mode.DISCOVER,
+                packId = "history", momentId = "moment-2", createdAt = 5,
+            ),
+        ),
         drawn = listOf(DrawnMomentEntity("history", "moment-1", 1, readerOpened = true)),
-        saved = listOf(SavedMomentEntity("history", "moment-2", "Title", "History", 5)),
         quizStats = listOf(QuizStatsEntity("history", 3, 12, 9)),
         artifacts = listOf(ArtifactEntity("basic", ArtifactKind.LLM, "Gemma", "basic.gguf", 100, "abc", "1", 1, active = true)),
         settings = listOf(SettingEntity("theme", "dark"), SettingEntity("chats.view", "COMPACT")),
@@ -49,10 +59,34 @@ class BackupRoundTripTest {
         assertEquals(original.memory, restored.memory)
         assertEquals(original.followUps, restored.followUps)
         assertEquals(original.drawn, restored.drawn)
-        assertEquals(original.saved, restored.saved)
         assertEquals(original.quizStats, restored.quizStats)
         assertEquals(original.artifacts, restored.artifacts)
         assertEquals(original.settings, restored.settings)
+    }
+
+    @Test
+    fun legacySavedMomentsBecomeFollowUps() {
+        // A backup written before saving was unified keeps moments in a separate
+        // "saved" array. Importing it must lose nothing: each becomes a DISCOVER
+        // follow-up carrying its pack and moment so it can be reopened.
+        val legacy = JSONObject(
+            """
+            {
+              "formatVersion": 1,
+              "saved": [
+                {"packId": "history", "momentId": "m9", "title": "An old save", "topic": "History", "savedAt": 42}
+              ]
+            }
+            """.trimIndent(),
+        )
+        val restored = BackupCodec.decode(legacy)
+        assertEquals(1, restored.followUps.size)
+        val fu = restored.followUps.first()
+        assertEquals(Mode.DISCOVER, fu.sourceMode)
+        assertEquals("An old save", fu.snippet)
+        assertEquals("history", fu.packId)
+        assertEquals("m9", fu.momentId)
+        assertEquals(42L, fu.createdAt)
     }
 
     @Test

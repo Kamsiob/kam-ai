@@ -37,12 +37,11 @@ class Converters {
         MemoryEntity::class,
         FollowUpEntity::class,
         DrawnMomentEntity::class,
-        SavedMomentEntity::class,
         QuizStatsEntity::class,
         ArtifactEntity::class,
         SettingEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -79,6 +78,37 @@ abstract class KamDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Unifies saving. There is now one saving action and one destination: the
+         * bookmark means the same thing everywhere and everything saved lands in
+         * the single follow-ups list, told apart by its source. A saved Discover
+         * moment carries packId and momentId so it can still be reopened. This
+         * migration adds those columns, moves every existing saved moment into
+         * follow_ups so nothing is lost, then removes the separate table.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE follow_ups ADD COLUMN packId TEXT")
+                db.execSQL("ALTER TABLE follow_ups ADD COLUMN momentId TEXT")
+                // Move saved moments into follow-ups. The moment title becomes the
+                // snippet, the source is DISCOVER, and savedAt becomes createdAt.
+                // hex(randomblob(16)) gives each a stable id in the same shape the
+                // app writes elsewhere; it does not need to be a UUID.
+                db.execSQL(
+                    """
+                    INSERT INTO follow_ups
+                        (id, snippet, sourceMode, conversationId, messageId, projectId,
+                         note, packId, momentId, completed, createdAt, completedAt)
+                    SELECT
+                        lower(hex(randomblob(16))), title, 'DISCOVER', NULL, NULL, NULL,
+                        NULL, packId, momentId, 0, savedAt, NULL
+                    FROM discover_saved
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE discover_saved")
+            }
+        }
+
         @Volatile
         private var instance: KamDatabase? = null
 
@@ -112,7 +142,7 @@ abstract class KamDatabase : RoomDatabase() {
             val factory = DatabaseEncryption.openHelperFactory(context, dbFile, passphrase)
             return Room.databaseBuilder(context, KamDatabase::class.java, NAME)
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
         }
     }

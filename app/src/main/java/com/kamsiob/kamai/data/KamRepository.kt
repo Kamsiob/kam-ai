@@ -361,12 +361,36 @@ class KamRepository(
         db.discover().wasReaderOpened(packId, momentId) ?: false
     suspend fun reshuffle(packId: String) = db.discover().reshuffle(packId)
     suspend fun reshuffleAll() = installedPackIds().forEach { db.discover().reshuffle(it) }
-    suspend fun saveMoment(m: com.kamsiob.kamai.discover.Moment) =
-        db.discover().save(SavedMomentEntity(m.packId, m.id, m.title, m.topic, System.currentTimeMillis()))
-    suspend fun unsaveMoment(packId: String, momentId: String) = db.discover().unsave(packId, momentId)
-    fun observeSavedMoments(): Flow<List<SavedMomentEntity>> = db.discover().observeSaved()
+    /** Saving a moment is the same bookmark action as flagging anything else: it
+     *  lands in the single follow-ups list, carrying the moment so it can be
+     *  reopened. The title is the snippet; the source is DISCOVER. */
+    suspend fun saveMoment(m: com.kamsiob.kamai.discover.Moment) {
+        if (isMomentSaved(m.packId, m.id)) return
+        flag(m.title, Mode.DISCOVER, conversationId = null, messageId = null, packId = m.packId, momentId = m.id)
+    }
+    suspend fun unsaveMoment(packId: String, momentId: String) =
+        db.followUps().deleteMoment(packId, momentId)
+
+    /**
+     * Opens a saved Discover moment as a grounded discussion, the same handoff the
+     * Discover reader uses. Returns the new conversation id, or null when the pack
+     * that holds the moment is no longer installed. Lives here so the Follow-ups
+     * list can open a saved moment without pulling in the Discover view model.
+     */
+    suspend fun openMomentDiscussion(packId: String, momentId: String): String? {
+        val m = momentById(packId, momentId) ?: return null
+        val id = createConversation(Mode.DISCOVER)
+        addMessage(
+            id, Role.ASSISTANT,
+            "Let's talk about \"${m.title}\". Ask me anything about this passage.",
+            incomplete = false,
+        )
+        setDiscoverGrounding(id, m.passage)
+        return id
+    }
+    fun observeSavedMoments(): Flow<List<FollowUpEntity>> = db.followUps().observeSavedMoments()
     suspend fun isMomentSaved(packId: String, momentId: String): Boolean =
-        db.discover().isSaved(packId, momentId) > 0
+        db.followUps().countMoment(packId, momentId) > 0
     suspend fun recordQuiz(packId: String, asked: Int, right: Int) =
         db.discover().recordQuiz(packId, asked, right)
     fun observeQuizStats(): Flow<List<QuizStatsEntity>> = db.discover().observeAllStats()
@@ -396,7 +420,6 @@ class KamRepository(
         memory = db.memory().allForBackup(),
         followUps = db.followUps().allForBackup(),
         drawn = db.discover().allDrawnForBackup(),
-        saved = db.discover().allSavedForBackup(),
         quizStats = db.discover().allStatsForBackup(),
         artifacts = db.artifacts().allForBackup(),
         settings = db.settings().all(),
@@ -417,16 +440,17 @@ class KamRepository(
             db.memory().deleteAllMemory()
             db.followUps().deleteAllFollowUps()
             db.discover().deleteAllDrawn()
-            db.discover().deleteAllSaved()
             db.discover().deleteAllStats()
         }
         s.projects.forEach { db.projects().upsert(it) }
         s.conversations.forEach { db.conversations().upsert(it) }
         s.messages.forEach { db.messages().insert(it) }
         s.memory.forEach { db.memory().upsert(it) }
+        // Follow-ups carry saved Discover moments too, since saving is unified. A
+        // legacy backup's separate saved moments are folded into this list by the
+        // codec, so importing an old file loses nothing.
         s.followUps.forEach { db.followUps().upsert(it) }
         s.drawn.forEach { db.discover().markDrawn(it) }
-        s.saved.forEach { db.discover().save(it) }
         s.quizStats.forEach { db.discover().upsertStats(it) }
         // Settings merge in both modes so the restored preferences take effect.
         s.settings.forEach { db.settings().put(it) }
@@ -532,12 +556,15 @@ class KamRepository(
         mode: Mode,
         conversationId: String?,
         messageId: String?,
+        packId: String? = null,
+        momentId: String? = null,
     ): String {
         val id = UUID.randomUUID().toString()
         db.followUps().upsert(
             FollowUpEntity(
                 id = id, snippet = snippet, sourceMode = mode,
                 conversationId = conversationId, messageId = messageId,
+                packId = packId, momentId = momentId,
                 createdAt = System.currentTimeMillis(),
             ),
         )
@@ -677,7 +704,6 @@ class KamRepository(
         db.memory().deleteAll()
         db.followUps().deleteAll()
         db.discover().deleteAllDrawn()
-        db.discover().deleteAllSaved()
         db.discover().deleteAllStats()
 
         if (includeDownloads) {

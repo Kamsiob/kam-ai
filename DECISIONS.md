@@ -1784,3 +1784,34 @@ answered "Shellfish" to "name one food I must avoid", proving extraction, retrie
 injection. Remaining refinements (issue #16 stays open): full contradiction supersession (today the
 recency component simply ranks a newer conflicting fact above the older one) and an optional indicator
 that a given response was influenced by memory.
+
+## Item 9 — Unified saving (one bookmark, one destination)
+
+Owner decision: there should be one saving action and one destination across the whole app. The
+bookmark icon means the same thing everywhere, and everything saved lands in the single Follow-ups
+list, distinguished by the source filter (item 10). Remove the separate Discover "Saved moments"
+feature rather than keeping two lists doing nearly the same job. Keep the Discover page's own saved
+section, but as a filtered view of the one list, reading the same data rather than a parallel store.
+Migrate any existing saved moments so nothing is lost. This also keeps the future Today design (which
+assumes a single saved destination with source filtering) consistent instead of adding a third pattern.
+
+How it was built:
+- FollowUpEntity gains packId/momentId. A saved Discover moment is an ordinary follow-up whose source
+  is DISCOVER and whose snippet is the moment title; the two ids let it reopen as a grounded discussion.
+- saveMoment/unsaveMoment/isMomentSaved/observeSavedMoments now read and write follow_ups (via
+  countMoment/deleteMoment/observeSavedMoments on FollowUpDao). The whole discover_saved table, its
+  SavedMomentEntity, and the DiscoverDao save/unsave/observeSaved/isSaved methods are deleted.
+- DB version 3 -> 4, MIGRATION_3_4: add packId/momentId columns to follow_ups, INSERT ... SELECT the
+  existing discover_saved rows into follow_ups (title -> snippet, savedAt -> createdAt), then DROP the
+  old table. A real migration, never a destructive fallback.
+- BackupCodec: follow-up encode/decode carry packId/momentId; the Snapshot's separate `saved` list is
+  removed. On import, a legacy backup's "saved" array is folded into follow_ups (legacySavedAsFollowUp)
+  so importing an older file loses nothing. FORMAT_VERSION bumped 1 -> 2.
+- Repository gains openMomentDiscussion(packId, momentId), shared by the Discover view model and a new
+  AppViewModel.openSavedMoment, so the Follow-ups list can reopen a saved moment without pulling in the
+  Discover view model. FollowUpsScreen routes a tap on a moment-bearing follow-up to onOpenMoment.
+
+Verified on device: dealt a Discover moment, bookmarked it, saw it appear in the single Follow-ups list
+under the DISCOVER source chip and in Discover's own Saved section (same data); reopened the grounded
+discussion from both the Follow-ups list and the Discover Saved section; toggled the bookmark off and
+it left the one list. The 3->4 migration ran cleanly over the phone's existing data with no crash.

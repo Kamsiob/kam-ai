@@ -15,7 +15,7 @@ import org.json.JSONObject
  */
 object BackupCodec {
 
-    const val FORMAT_VERSION = 1
+    const val FORMAT_VERSION = 2
 
     // ---- helpers ----
     private fun JSONObject.s(k: String) = if (isNull(k)) null else optString(k, null)
@@ -66,13 +66,18 @@ object BackupCodec {
     private fun fu(e: FollowUpEntity) = JSONObject().apply {
         put("id", e.id); put("snippet", e.snippet); put("sourceMode", e.sourceMode.name)
         put("conversationId", e.conversationId); put("messageId", e.messageId); put("projectId", e.projectId)
-        put("note", e.note); put("completed", e.completed); put("createdAt", e.createdAt)
+        put("note", e.note); put("packId", e.packId); put("momentId", e.momentId)
+        put("completed", e.completed); put("createdAt", e.createdAt)
         put("completedAt", e.completedAt)
     }
     private fun fu(o: JSONObject) = FollowUpEntity(
-        o.getString("id"), o.getString("snippet"), Mode.valueOf(o.getString("sourceMode")),
-        o.s("conversationId"), o.s("messageId"), o.s("projectId"), o.s("note"),
-        o.b("completed"), o.l("createdAt"), if (o.isNull("completedAt")) null else o.l("completedAt"),
+        id = o.getString("id"), snippet = o.getString("snippet"),
+        sourceMode = Mode.valueOf(o.getString("sourceMode")),
+        conversationId = o.s("conversationId"), messageId = o.s("messageId"),
+        projectId = o.s("projectId"), note = o.s("note"),
+        packId = o.s("packId"), momentId = o.s("momentId"),
+        completed = o.b("completed"), createdAt = o.l("createdAt"),
+        completedAt = if (o.isNull("completedAt")) null else o.l("completedAt"),
     )
 
     private fun drawn(e: DrawnMomentEntity) = JSONObject().apply {
@@ -80,10 +85,15 @@ object BackupCodec {
     }
     private fun drawn(o: JSONObject) = DrawnMomentEntity(o.getString("packId"), o.getString("momentId"), o.l("drawnAt"), o.b("readerOpened"))
 
-    private fun saved(e: SavedMomentEntity) = JSONObject().apply {
-        put("packId", e.packId); put("momentId", e.momentId); put("title", e.title); put("topic", e.topic); put("savedAt", e.savedAt)
-    }
-    private fun saved(o: JSONObject) = SavedMomentEntity(o.getString("packId"), o.getString("momentId"), o.getString("title"), o.getString("topic"), o.l("savedAt"))
+    /** Legacy saved-moment row from a pre-unification backup, folded into the
+     *  single follow-ups list on import so nothing is lost. */
+    private fun legacySavedAsFollowUp(o: JSONObject) = FollowUpEntity(
+        id = "saved-" + o.getString("packId") + "-" + o.getString("momentId"),
+        snippet = o.getString("title"),
+        sourceMode = Mode.DISCOVER,
+        packId = o.getString("packId"), momentId = o.getString("momentId"),
+        createdAt = o.l("savedAt"),
+    )
 
     private fun stats(e: QuizStatsEntity) = JSONObject().apply {
         put("packId", e.packId); put("momentsQuizzed", e.momentsQuizzed); put("questionsAsked", e.questionsAsked); put("questionsRight", e.questionsRight)
@@ -115,7 +125,6 @@ object BackupCodec {
         val memory: List<MemoryEntity>,
         val followUps: List<FollowUpEntity>,
         val drawn: List<DrawnMomentEntity>,
-        val saved: List<SavedMomentEntity>,
         val quizStats: List<QuizStatsEntity>,
         val artifacts: List<ArtifactEntity>,
         val settings: List<SettingEntity>,
@@ -131,7 +140,6 @@ object BackupCodec {
         put("memory", JSONArray(snapshot.memory.map { mem(it) }))
         put("followUps", JSONArray(snapshot.followUps.map { fu(it) }))
         put("drawn", JSONArray(snapshot.drawn.map { drawn(it) }))
-        put("saved", JSONArray(snapshot.saved.map { saved(it) }))
         put("quizStats", JSONArray(snapshot.quizStats.map { stats(it) }))
         put("artifacts", JSONArray(snapshot.artifacts.map { art(it) }))
         put("settings", JSONArray(snapshot.settings.map { setting(it) }))
@@ -142,9 +150,12 @@ object BackupCodec {
         messages = root.optJSONArray("messages")?.map { msg(it) } ?: emptyList(),
         projects = root.optJSONArray("projects")?.map { proj(it) } ?: emptyList(),
         memory = root.optJSONArray("memory")?.map { mem(it) } ?: emptyList(),
-        followUps = root.optJSONArray("followUps")?.map { fu(it) } ?: emptyList(),
+        // Follow-ups now hold saved Discover moments too. A legacy backup keeps its
+        // moments in a separate "saved" array; fold those in so importing an older
+        // file loses nothing.
+        followUps = (root.optJSONArray("followUps")?.map { fu(it) } ?: emptyList()) +
+            (root.optJSONArray("saved")?.map { legacySavedAsFollowUp(it) } ?: emptyList()),
         drawn = root.optJSONArray("drawn")?.map { drawn(it) } ?: emptyList(),
-        saved = root.optJSONArray("saved")?.map { saved(it) } ?: emptyList(),
         quizStats = root.optJSONArray("quizStats")?.map { stats(it) } ?: emptyList(),
         artifacts = root.optJSONArray("artifacts")?.map { art(it) } ?: emptyList(),
         settings = root.optJSONArray("settings")?.map { setting(it) } ?: emptyList(),

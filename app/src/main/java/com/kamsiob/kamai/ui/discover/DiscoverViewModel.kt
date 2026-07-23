@@ -5,8 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kamsiob.kamai.data.KamRepository
 import com.kamsiob.kamai.data.Mode
+import com.kamsiob.kamai.data.FollowUpEntity
 import com.kamsiob.kamai.data.Role
-import com.kamsiob.kamai.data.SavedMomentEntity
 import com.kamsiob.kamai.data.QuizStatsEntity
 import com.kamsiob.kamai.discover.Moment
 import com.kamsiob.kamai.discover.PackInfo
@@ -59,7 +59,7 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
     val downloads: StateFlow<List<com.kamsiob.kamai.download.Downloads.Item>> =
         com.kamsiob.kamai.download.Downloads.items
 
-    val saved: StateFlow<List<SavedMomentEntity>> =
+    val saved: StateFlow<List<FollowUpEntity>> =
         repository.observeSavedMoments()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -120,18 +120,11 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
      *  may no longer be the dealt one. */
     fun openSaved(packId: String, momentId: String, onReady: (String) -> Unit) {
         viewModelScope.launch {
-            val m = repository.momentById(packId, momentId)
-            if (m == null) {
+            val id = repository.openMomentDiscussion(packId, momentId)
+            if (id == null) {
                 _notice.value = "That moment's pack is not installed. Get it again from Packs."
                 return@launch
             }
-            val id = repository.createConversation(Mode.DISCOVER)
-            repository.addMessage(
-                id, Role.ASSISTANT,
-                "Let's talk about \"${m.title}\". Ask me anything about this passage.",
-                incomplete = false,
-            )
-            repository.setDiscoverGrounding(id, m.passage)
             onReady(id)
         }
     }

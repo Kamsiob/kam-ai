@@ -74,6 +74,7 @@ fun FollowUpsScreen(
     onToggle: (String, Boolean) -> Unit,
     onRemove: (String) -> Unit,
     onOpenSource: (String) -> Unit,
+    onOpenMoment: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -136,7 +137,14 @@ fun FollowUpsScreen(
                     completed = false,
                     onToggle = { onToggle(item.id, true) },
                     onRemove = { onRemove(item.id) },
-                    onOpenSource = { item.conversationId?.let(onOpenSource) },
+                    onOpenSource = {
+                        val pack = item.packId
+                        val moment = item.momentId
+                        when {
+                            pack != null && moment != null -> onOpenMoment(pack, moment)
+                            else -> item.conversationId?.let(onOpenSource)
+                        }
+                    },
                 )
             }
 
@@ -155,7 +163,14 @@ fun FollowUpsScreen(
                             completed = true,
                             onToggle = { onToggle(item.id, false) },
                             onRemove = { onRemove(item.id) },
-                            onOpenSource = { item.conversationId?.let(onOpenSource) },
+                            onOpenSource = {
+                        val pack = item.packId
+                        val moment = item.momentId
+                        when {
+                            pack != null && moment != null -> onOpenMoment(pack, moment)
+                            else -> item.conversationId?.let(onOpenSource)
+                        }
+                    },
                         )
                     }
                 }

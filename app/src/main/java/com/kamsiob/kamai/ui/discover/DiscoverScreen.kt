@@ -42,8 +42,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kamsiob.kamai.data.FollowUpEntity
 import com.kamsiob.kamai.data.QuizStatsEntity
-import com.kamsiob.kamai.data.SavedMomentEntity
 import com.kamsiob.kamai.discover.Moment
 import com.kamsiob.kamai.ui.components.Eyebrow
 import com.kamsiob.kamai.ui.components.PrimaryButton
@@ -56,7 +56,7 @@ fun DiscoverScreen(
     exhausted: Boolean,
     hasPacks: Boolean,
     currentSaved: Boolean,
-    saved: List<SavedMomentEntity>,
+    saved: List<FollowUpEntity>,
     stats: List<QuizStatsEntity>,
     installedCount: Int,
     onDeal: () -> Unit,
@@ -65,7 +65,7 @@ fun DiscoverScreen(
     onQuiz: () -> Unit,
     onReshuffle: () -> Unit,
     onOpenPacks: () -> Unit,
-    onOpenSaved: (SavedMomentEntity) -> Unit,
+    onOpenSaved: (FollowUpEntity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -163,8 +163,8 @@ fun DiscoverScreen(
                         .clickable { onOpenSaved(s) }
                         .padding(vertical = 10.dp),
                 ) {
-                    Text(s.title, style = KamTheme.type.body, color = colors.textPrimary)
-                    Text(s.topic.uppercase(), style = KamTheme.type.mono, color = colors.textTertiary)
+                    Text(s.snippet, style = KamTheme.type.body, color = colors.textPrimary)
+                    Text("SAVED MOMENT", style = KamTheme.type.mono, color = colors.textTertiary)
                 }
             }
         }
