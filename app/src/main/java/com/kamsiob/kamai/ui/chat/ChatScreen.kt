@@ -60,6 +60,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
@@ -93,6 +94,11 @@ fun ChatScreen(
     modelLabel: String?,
     flaggedMessageIds: Set<String>,
     ttsAvailable: Boolean,
+    speakingMessageId: String? = null,
+    conversationTitle: String? = null,
+    onRenameConversation: (String) -> Unit = {},
+    onArchiveConversation: () -> Unit = {},
+    onDeleteConversation: () -> Unit = {},
     onModeChange: (Mode) -> Unit,
     onSend: (String) -> Unit,
     onStop: () -> Unit,
@@ -128,12 +134,46 @@ fun ChatScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
+        // The open conversation's title sits at the top so it is always clear
+        // which chat this is, with rename, archive, and delete beside it. Shown
+        // once the conversation exists (has content), not on a blank new chat.
+        if (messages.isNotEmpty()) {
+            ConversationHeader(
+                title = conversationTitle,
+                onRename = onRenameConversation,
+                onArchive = onArchiveConversation,
+                onDelete = onDeleteConversation,
+                modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
+            )
+        }
+
         ModeSwitcher(
             current = mode,
             modelLabel = modelLabel,
             onSelect = onModeChange,
             modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
         )
+
+        // While Logic Partner is active it stays visually unmistakable.
+        if (mode == Mode.LOGIC) {
+            Box(Modifier.padding(horizontal = KamTheme.dimens.screenPadding, vertical = 4.dp)) {
+                LogicBanner()
+            }
+        }
+
+        // A hairline separates the header zone (title and mode) from the
+        // conversation, so the title clearly belongs to the bar above, not the
+        // messages below.
+        if (messages.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = KamTheme.dimens.screenPadding)
+                    .height(1.dp)
+                    .background(colors.border),
+            )
+        }
 
         Box(Modifier.weight(1f)) {
             if (messages.isEmpty()) {
@@ -155,10 +195,15 @@ fun ChatScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(messages, key = { it.id }) { message ->
+                        if (message.role == Role.SYSTEM) {
+                            ModeSwitchNote(message.content)
+                            return@items
+                        }
                         MessageRow(
                             message = message,
                             flagged = message.id in flaggedMessageIds,
                             ttsAvailable = ttsAvailable,
+                            speaking = message.id == speakingMessageId,
                             isLast = message.id == messages.lastOrNull()?.id,
                             onFlag = { onFlag(message) },
                             onRegenerate = onRegenerate,
@@ -172,7 +217,11 @@ fun ChatScreen(
                             onEdit = { onEdit(message, it) },
                         )
                     }
-                    if (streaming && messages.lastOrNull()?.content.isNullOrEmpty()) {
+                    // Show the thinking indicator the instant work starts, through
+                    // model load and prompt ingestion, not only once the empty answer
+                    // bubble exists.
+                    val lastMsg = messages.lastOrNull()
+                    if (showThinkingIndicator(streaming, lastMsg?.role, lastMsg?.content)) {
                         item { TypingIndicator() }
                     }
                 }
@@ -213,6 +262,144 @@ private fun whenEmptyBody(mode: Mode) = when (mode) {
         "looking for the weak parts."
     Mode.BENCH -> "Drop in text you want tightened, rewritten, or reorganized."
     else -> "Anything on your mind. It runs on this phone, so nothing you type leaves it."
+}
+
+/**
+ * The open conversation's title and its actions. The title is always visible so
+ * the user knows which chat they are in; the overflow holds Rename, Archive, and
+ * Delete, matching the chat list's behaviour and confirmation tiers. A manual
+ * rename here stops auto-titling, the same rule as the list.
+ */
+@Composable
+private fun ConversationHeader(
+    title: String?,
+    onRename: (String) -> Unit,
+    onArchive: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = KamTheme.colors
+    var menuOpen by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = modifier.fillMaxWidth().padding(top = 6.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // A short accent bar marks this as the conversation's title, so it reads
+        // as a heading rather than as the first line of the chat.
+        Box(
+            Modifier
+                .height(18.dp)
+                .width(3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(colors.accent),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            title ?: "New chat",
+            style = KamTheme.type.cardTitle,
+            color = colors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Box {
+            IconAction(
+                icon = Icons.Rounded.MoreHoriz,
+                description = "Chat options",
+                onClick = { menuOpen = true },
+            )
+            androidx.compose.material3.DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                containerColor = colors.surface,
+            ) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text("Rename", style = KamTheme.type.body, color = colors.textPrimary) },
+                    onClick = { menuOpen = false; renaming = true },
+                )
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text("Archive", style = KamTheme.type.body, color = colors.textPrimary) },
+                    onClick = { menuOpen = false; onArchive() },
+                )
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text("Delete", style = KamTheme.type.body, color = colors.flagAmber) },
+                    onClick = { menuOpen = false; onDelete() },
+                )
+            }
+        }
+    }
+
+    if (renaming) {
+        ConversationRenameDialog(
+            initial = title.orEmpty(),
+            onConfirm = { onRename(it); renaming = false },
+            onDismiss = { renaming = false },
+        )
+    }
+}
+
+/** A plain rename dialog for the open conversation, matching the list's style. */
+@Composable
+private fun ConversationRenameDialog(
+    initial: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    var text by remember {
+        mutableStateOf(
+            androidx.compose.ui.text.input.TextFieldValue(
+                initial, androidx.compose.ui.text.TextRange(initial.length),
+            ),
+        )
+    }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                .padding(22.dp),
+        ) {
+            Text("Rename chat", style = KamTheme.type.cardTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(14.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.surfaceSecondary)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            ) {
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
+                    cursorBrush = SolidColor(colors.accent),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Text(
+                    "Cancel", style = KamTheme.type.label, color = colors.textSecondary,
+                    modifier = Modifier.clip(CircleShape).clickable(onClick = onDismiss)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Save", style = KamTheme.type.label,
+                    color = if (text.text.isNotBlank()) colors.accent else colors.textTertiary,
+                    modifier = Modifier.clip(CircleShape)
+                        .then(if (text.text.isNotBlank()) Modifier.clickable { onConfirm(text.text.trim()) } else Modifier)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            }
+        }
+    }
 }
 
 /**
@@ -283,6 +470,7 @@ private fun MessageRow(
     message: MessageEntity,
     flagged: Boolean,
     ttsAvailable: Boolean,
+    speaking: Boolean,
     isLast: Boolean,
     onFlag: () -> Unit,
     onRegenerate: () -> Unit,
@@ -296,6 +484,10 @@ private fun MessageRow(
     onEdit: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // An answer that has not produced any text yet is represented by the thinking
+    // indicator, so its empty bubble is not drawn (it would show as a bare pill).
+    if (message.role == Role.ASSISTANT && message.content.isEmpty() && message.incomplete) return
+
     val colors = KamTheme.colors
     val reduced = reducedMotion()
     var appeared by remember { mutableStateOf(reduced) }
@@ -358,9 +550,10 @@ private fun MessageRow(
                             onFollowUp = { if (it.isNotBlank()) onFollowUpSelection(it) },
                             onShare = { if (it.isNotBlank()) onShareText(it) },
                         ) {
-                            Text(
-                                message.content,
-                                style = KamTheme.type.body,
+                            // Assistant text is Markdown, rendered in the app's own
+                            // type scale and colours (item 14).
+                            com.kamsiob.kamai.ui.components.MarkdownText(
+                                text = message.content,
                                 color = colors.textPrimary,
                             )
                         }
@@ -390,6 +583,7 @@ private fun MessageRow(
                 ActionRow(
                     flagged = flagged,
                     ttsAvailable = ttsAvailable,
+                    speaking = speaking,
                     canRegenerate = isLast,
                     text = message.content,
                     onFlag = onFlag,
@@ -462,6 +656,7 @@ private fun EditBubble(
 private fun ActionRow(
     flagged: Boolean,
     ttsAvailable: Boolean,
+    speaking: Boolean,
     canRegenerate: Boolean,
     text: String,
     onFlag: () -> Unit,
@@ -520,13 +715,14 @@ private fun ActionRow(
             tint = colors.textTertiary,
         )
         // Play is hidden entirely when no voice is installed, rather than shown
-        // as a button that does nothing.
+        // as a button that does nothing. While this response is being read, it
+        // becomes a Stop control so playback can be interrupted at any point.
         if (ttsAvailable) {
             IconAction(
-                icon = Icons.Rounded.PlayArrow,
-                description = "Read aloud",
+                icon = if (speaking) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                description = if (speaking) "Stop reading" else "Read aloud",
                 onClick = onPlay,
-                tint = colors.textTertiary,
+                tint = if (speaking) colors.accent else colors.textTertiary,
             )
         }
         if (canRegenerate) {
@@ -576,6 +772,69 @@ private fun ActionRow(
         }
     }
 }
+
+/**
+ * The quiet centered note that records a mode switch in the transcript. Not a
+ * bubble from either side: it is a plain system line, so the history shows exactly
+ * where behaviour changed. Uses the design system, never the reserved amber.
+ */
+@Composable
+private fun ModeSwitchNote(text: String) {
+    val colors = KamTheme.colors
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.Center) {
+        Text(
+            text,
+            style = KamTheme.type.secondary,
+            color = colors.textTertiary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(colors.surfaceSecondary)
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+        )
+    }
+}
+
+/**
+ * A calm, persistent marker shown while Logic Partner is active, so it is obvious
+ * at a glance which mode is answering without shouting. Tonal fill and text from
+ * the design system, no amber.
+ */
+@Composable
+private fun LogicBanner() {
+    val colors = KamTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(colors.tonalFill)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Rounded.SwapHoriz,
+            contentDescription = null,
+            tint = colors.tonalText,
+            modifier = Modifier.size(15.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "Logic Partner is testing your reasoning, not agreeing with it.",
+            style = KamTheme.type.secondary,
+            color = colors.tonalText,
+        )
+    }
+}
+
+/**
+ * Whether to show the thinking indicator: work is under way and the answer has
+ * produced no text yet. That covers the whole window a user waits through, model
+ * load and prompt ingestion included, when the last turn is still theirs (or an
+ * empty placeholder, or a brand-new empty chat), not only once tokens arrive.
+ */
+internal fun showThinkingIndicator(streaming: Boolean, lastRole: Role?, lastContent: String?): Boolean =
+    streaming && (lastRole == null || lastRole == Role.USER || lastContent.isNullOrEmpty())
 
 /** Three dots, preceding a response. */
 @Composable
@@ -705,7 +964,7 @@ private fun Composer(
             if (value.isEmpty()) {
                 Text(
                     when {
-                        recording -> "Listening. Tap the mic when you are done."
+                        recording -> "Listening. Tap stop when you are done."
                         transcribing -> "Turning your voice into text..."
                         else -> "Ask, paste, or talk it out"
                     },

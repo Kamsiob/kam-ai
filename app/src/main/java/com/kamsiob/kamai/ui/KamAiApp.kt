@@ -98,12 +98,33 @@ private sealed interface Pushed {
     data object Appearance : Pushed
     data object Safety : Pushed
     data object AppLock : Pushed
+    data object Archived : Pushed
+    data object CustomInstructions : Pushed
     data class Conversation(
         val id: String,
         val startMode: Mode? = null,
         val initialText: String? = null,
+        // The view model key for this screen. Existing conversations key by id, so
+        // reopening one reuses its state. A new chat has an empty id and gets a
+        // unique token instead: without this, every new chat shared the one key
+        // "chat-" and the second new chat reopened the first one's conversation,
+        // because the cached view model kept the earlier conversation's id. The
+        // token is computed once here, at push time, so it stays stable across
+        // recompositions of this screen. See item 1 in DECISIONS.md.
+        val vmKey: String = conversationVmKey(id),
     ) : Pushed
 }
+
+/**
+ * The view-model key for a conversation screen. A real conversation id is stable
+ * and reused so its state survives navigating away and back; a new chat (empty
+ * id) gets a fresh unique token so it can never reuse a previous new chat's view
+ * model. [nonce] is injected for testing.
+ */
+internal fun conversationVmKey(
+    id: String,
+    nonce: () -> String = { java.util.UUID.randomUUID().toString() },
+): String = if (id.isNotEmpty()) id else "new-${nonce()}"
 
 @Composable
 fun KamAiApp(app: AppViewModel = viewModel()) {
@@ -246,7 +267,10 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
             ) { pushed ->
                 when (pushed) {
                     null -> TabContent(app, tab, stack)
-                    is Pushed.Conversation -> ConversationScreen(app, pushed.id, pushed.startMode, pushed.initialText)
+                    is Pushed.Conversation -> ConversationScreen(
+                        app, pushed.id, pushed.startMode, pushed.initialText, pushed.vmKey,
+                        onExit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) },
+                    )
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
                     Pushed.Voice -> VoiceHost(app)
@@ -262,6 +286,8 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.Appearance -> AppearanceHost(app)
                     Pushed.Safety -> SafetyScreen()
                     Pushed.AppLock -> LockSettingsHost(app)
+                    Pushed.Archived -> ArchivedHost(app, stack)
+                    Pushed.CustomInstructions -> CustomInstructionsHost(app, stack)
                 }
             }
 
@@ -302,9 +328,12 @@ private fun TabContent(
     when (tab) {
         NavItem.CHATS -> {
             val conversations by app.conversations.collectAsStateWithLifecycle()
+            val archived by app.archivedConversations.collectAsStateWithLifecycle()
             val view by app.chatsView.collectAsStateWithLifecycle()
             ChatsScreen(
                 conversations = conversations,
+                archivedCount = archived.size,
+                onOpenArchived = { stack.add(Pushed.Archived) },
                 view = view,
                 onViewChange = app::setChatsView,
                 onOpen = { stack.add(Pushed.Conversation(it)) },
@@ -346,10 +375,12 @@ private fun ConversationScreen(
     conversationId: String,
     startMode: Mode? = null,
     initialText: String? = null,
+    vmKey: String = conversationId,
+    onExit: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val chat: ChatViewModel = viewModel(
-        key = "chat-$conversationId",
+        key = "chat-$vmKey",
         factory = ChatViewModel.factory(app.repository, app.engine, app.modelManager),
     )
 
@@ -372,6 +403,8 @@ private fun ConversationScreen(
     val ttsVoice by app.activeTtsVoice.collectAsStateWithLifecycle()
     val voiceAvailable = sttModel != null
     val attachedName by chat.attachedName.collectAsStateWithLifecycle()
+    val speakingId by app.speakingMessageId.collectAsStateWithLifecycle()
+    val conversationTitle by chat.title.collectAsStateWithLifecycle()
 
     val pickFile = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -433,8 +466,10 @@ private fun ConversationScreen(
         // Play is hidden until a reading voice exists, rather than shown doing nothing.
         ttsAvailable = ttsVoice != null,
         onModeChange = chat::setMode,
-        onSend = chat::send,
+        // A new message stops any answer that is being read aloud.
+        onSend = { text -> app.stopSpeaking(); chat.send(text) },
         onStop = chat::stop,
+        speakingMessageId = speakingId,
         onFlag = { message ->
             flagged.add(message.id)
             app.flag(message.content, mode, chat.conversationId.value, message.id)
@@ -454,9 +489,21 @@ private fun ConversationScreen(
             // the full source response. PART 5.
             app.flag(text, mode, chat.conversationId.value, message.id)
         },
-        onPlay = { message -> app.speak(message.content) },
+        onPlay = { message -> app.toggleSpeak(message.id, message.content) },
         onEdit = chat::editAndResend,
         onDismissNotice = chat::dismissNotice,
+        conversationTitle = conversationTitle,
+        onRenameConversation = { newTitle ->
+            chat.conversationId.value?.let { app.renameConversation(it, newTitle) }
+        },
+        onArchiveConversation = {
+            chat.conversationId.value?.let { app.archive(it) { onExit() } }
+        },
+        onDeleteConversation = {
+            chat.conversationId.value?.let { id ->
+                app.deleteConversation(id, conversationTitle) { onExit() }
+            }
+        },
     )
 }
 
@@ -533,6 +580,7 @@ private fun SettingsHost(
         onQuestions = { stack.add(Pushed.Questions) },
         onAbout = { stack.add(Pushed.About) },
         onMemory = { stack.add(Pushed.Memory) },
+        onCustomInstructions = { stack.add(Pushed.CustomInstructions) },
         onSupport = {
             openUrl(Links.SUPPORT)
             // The support button also closes the Settings page.
@@ -866,7 +914,41 @@ private fun BackupHost(app: AppViewModel) {
 @Composable
 private fun StorageHost(app: AppViewModel) {
     val artifacts by app.artifacts.collectAsStateWithLifecycle()
-    StorageScreen(artifacts = artifacts, onDelete = app::deleteArtifact)
+    StorageScreen(
+        artifacts = artifacts,
+        onDelete = app::deleteArtifact,
+        onDeleteMany = app::deleteArtifacts,
+    )
+}
+
+@Composable
+private fun CustomInstructionsHost(
+    app: AppViewModel,
+    stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+) {
+    val current by app.userInstructions.collectAsStateWithLifecycle()
+    com.kamsiob.kamai.ui.settings.CustomInstructionsScreen(
+        initial = current,
+        maxChars = app.systemInstructionsMax,
+        onSave = { text ->
+            app.saveUserInstructions(text)
+            if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex)
+        },
+    )
+}
+
+@Composable
+private fun ArchivedHost(
+    app: AppViewModel,
+    stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+) {
+    val archived by app.archivedConversations.collectAsStateWithLifecycle()
+    com.kamsiob.kamai.ui.chats.ArchivedScreen(
+        conversations = archived,
+        onOpen = { stack.add(Pushed.Conversation(it)) },
+        onUnarchive = app::unarchive,
+        onDelete = { id -> app.deleteConversation(id, archived.firstOrNull { it.id == id }?.title) },
+    )
 }
 
 @Composable

@@ -99,6 +99,7 @@ fun SettingsScreen(
     onQuestions: () -> Unit,
     onAbout: () -> Unit,
     onMemory: () -> Unit,
+    onCustomInstructions: () -> Unit = {},
     onSupport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -124,6 +125,11 @@ fun SettingsScreen(
                 title = "Memory",
                 subtitle = "What Kam AI remembers about you",
                 onClick = onMemory,
+            )
+            SettingsRow(
+                title = "Custom instructions",
+                subtitle = "Standing instructions for every chat",
+                onClick = onCustomInstructions,
             )
             SettingsRow(
                 title = "Voice",
@@ -378,25 +384,66 @@ fun AboutScreen(
     }
 }
 
-/** Storage: every downloaded artifact, with its size and a delete action. */
+/**
+ * Storage: every downloaded artifact, with its size and a delete action.
+ *
+ * A single download deletes from its own card. To remove several — or all — at
+ * once, long-press any card to enter selection mode, tick what you want gone,
+ * and delete the lot in one confirmation.
+ */
 @Composable
 fun StorageScreen(
     artifacts: List<ArtifactEntity>,
     onDelete: (String) -> Unit,
+    onDeleteMany: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
     val total = artifacts.sumOf { it.sizeBytes }
+    val selectedIds = remember { mutableStateListOf<String>() }
+    var selecting by remember { mutableStateOf(false) }
+    fun exit() { selecting = false; selectedIds.clear() }
+    androidx.activity.compose.BackHandler(enabled = selecting) { exit() }
+
+    // A card that vanishes (deleted from under us) should never linger as a
+    // ghost selection.
+    val liveIds = artifacts.map { it.id }.toSet()
+    selectedIds.retainAll(liveIds)
 
     Column(modifier = modifier.fillMaxSize().padding(horizontal = screenPad)) {
-        Text("Storage", style = KamTheme.type.screenTitle, color = colors.textPrimary)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "${formatBytes(total)} used by things you have downloaded.",
-            style = KamTheme.type.body,
-            color = colors.textSecondary,
-        )
-        Spacer(Modifier.height(16.dp))
+        if (selecting) {
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${selectedIds.size} selected", style = KamTheme.type.sectionTitle, color = colors.textPrimary)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    if (selectedIds.size == artifacts.size) "Select none" else "Select all",
+                    style = KamTheme.type.label, color = colors.accent,
+                    modifier = Modifier.clip(CircleShape).clickable {
+                        if (selectedIds.size == artifacts.size) selectedIds.clear()
+                        else { selectedIds.clear(); selectedIds.addAll(artifacts.map { it.id }) }
+                    }.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+                Text(
+                    "Delete", style = KamTheme.type.label,
+                    color = if (selectedIds.isNotEmpty()) colors.flagAmber else colors.textTertiary,
+                    modifier = Modifier.clip(CircleShape)
+                        .then(if (selectedIds.isNotEmpty()) Modifier.clickable { onDeleteMany(selectedIds.toList()); exit() } else Modifier)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+                Text("Cancel", style = KamTheme.type.label, color = colors.textSecondary,
+                    modifier = Modifier.clip(CircleShape).clickable { exit() }.padding(horizontal = 12.dp, vertical = 8.dp))
+            }
+        } else {
+            Text("Storage", style = KamTheme.type.screenTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "${formatBytes(total)} used by things you have downloaded." +
+                    if (artifacts.size > 1) " Long-press to select several." else "",
+                style = KamTheme.type.body,
+                color = colors.textSecondary,
+            )
+            Spacer(Modifier.height(16.dp))
+        }
 
         if (artifacts.isEmpty()) {
             EmptyState(
@@ -412,11 +459,46 @@ fun StorageScreen(
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             items(artifacts, key = { it.id }) { artifact ->
-                KamCard(Modifier.fillMaxWidth()) {
+                val isSel = selectedIds.contains(artifact.id)
+                KamCard(
+                    Modifier.fillMaxWidth().then(
+                        if (selecting) Modifier.semantics {
+                            selected = isSel
+                            contentDescription = "${artifact.displayName}, ${formatBytes(artifact.sizeBytes)}"
+                        } else Modifier,
+                    ),
+                    onClick = if (selecting) {
+                        { if (isSel) selectedIds.remove(artifact.id) else selectedIds.add(artifact.id) }
+                    } else {
+                        null
+                    },
+                ) {
                     Row(
-                        Modifier.padding(15.dp),
+                        Modifier
+                            .padding(15.dp)
+                            .then(
+                                if (!selecting) {
+                                    Modifier.combinedClickable(
+                                        onClick = {},
+                                        onLongClick = { selecting = true; selectedIds.add(artifact.id) },
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        if (selecting) {
+                            Box(
+                                Modifier.size(22.dp).clip(CircleShape)
+                                    .background(if (isSel) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
+                                    .border(if (isSel) 0.dp else 2.dp, colors.border, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (isSel) Icon(Icons.Rounded.Check, null, tint = colors.onAccent, modifier = Modifier.size(14.dp))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                        }
                         Column(Modifier.weight(1f)) {
                             Text(
                                 artifact.displayName,
@@ -433,15 +515,18 @@ fun StorageScreen(
                                 if (artifact.active) KamChip("In use", tonal = true)
                             }
                         }
-                        Text(
-                            "Delete",
-                            style = KamTheme.type.label,
-                            color = colors.flagAmber,
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .clickable { onDelete(artifact.id) }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                        )
+                        if (!selecting) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Delete",
+                                style = KamTheme.type.label,
+                                color = colors.flagAmber,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .clickable { onDelete(artifact.id) }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -858,5 +943,78 @@ fun SafetyScreen(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(14.dp))
         }
         Spacer(Modifier.height(14.dp))
+    }
+}
+
+/**
+ * System-wide custom instructions (item 15). A single field applied to every
+ * conversation, in addition to any project instructions. It is re-injected with
+ * every turn (small models drift), and the app's own safety and identity rules
+ * always win over it. Capped at a sensible length, with the remaining room shown
+ * so the user is never silently truncated.
+ */
+@Composable
+fun CustomInstructionsScreen(
+    initial: String,
+    maxChars: Int,
+    onSave: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = KamTheme.colors
+    var text by remember {
+        mutableStateOf(
+            androidx.compose.ui.text.input.TextFieldValue(
+                initial, androidx.compose.ui.text.TextRange(initial.length),
+            ),
+        )
+    }
+
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = screenPad)) {
+        Text("Custom instructions", style = KamTheme.type.screenTitle, color = colors.textPrimary)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Standing instructions Kam AI follows in every conversation, for example " +
+                "how you like answers structured or what you are working on. Kept on this " +
+                "phone. Its safety and identity rules always come first and cannot be " +
+                "overridden here.",
+            style = KamTheme.type.body,
+            color = colors.textSecondary,
+        )
+        Spacer(Modifier.height(16.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                .padding(16.dp),
+        ) {
+            if (text.text.isEmpty()) {
+                Text(
+                    "For example: keep answers short and skip the preamble.",
+                    style = KamTheme.type.body,
+                    color = colors.textTertiary,
+                )
+            }
+            BasicTextField(
+                value = text,
+                onValueChange = { if (it.text.length <= maxChars) text = it },
+                textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
+                cursorBrush = SolidColor(colors.accent),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+        val remaining = maxChars - text.text.length
+        Text(
+            if (remaining <= 200) "$remaining characters left" else "Saved on this phone",
+            style = KamTheme.type.secondary,
+            color = if (remaining <= 0) colors.flagAmber else colors.textTertiary,
+        )
+
+        Spacer(Modifier.height(18.dp))
+        PrimaryButton("Save", onClick = { onSave(text.text.trim()) }, modifier = Modifier.fillMaxWidth())
     }
 }

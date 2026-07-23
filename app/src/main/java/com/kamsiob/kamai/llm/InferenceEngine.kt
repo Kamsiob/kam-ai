@@ -2,6 +2,7 @@ package com.kamsiob.kamai.llm
 
 import android.content.Context
 import android.os.PowerManager
+import android.util.Log
 import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.model.TierModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -150,7 +151,9 @@ class InferenceEngine(
             seed = SEED_ANY,
         )
 
+        val prefillStart = System.nanoTime()
         val ingested = LlamaBridge.nativeIngest(prompt, addSpecial = false)
+        val prefillMs = (System.nanoTime() - prefillStart) / 1_000_000.0
         if (ingested == OVER_LENGTH) {
             onStop(
                 StopReason.OutOfRoom(
@@ -169,6 +172,7 @@ class InferenceEngine(
 
         var produced = 0
         var reason: StopReason = StopReason.Finished
+        val decodeStart = System.nanoTime()
 
         while (isActive && produced < maxTokens) {
             // Checked every few tokens rather than every token, because reading
@@ -196,6 +200,20 @@ class InferenceEngine(
 
         if (produced >= maxTokens) reason = StopReason.Finished
         if (!isActive) reason = StopReason.UserStopped
+
+        // Measured performance for this generation. Read with:
+        //   adb logcat -s KamPerf
+        // Prefill is prompt ingestion (tokens/s over the whole prompt); decode is
+        // generation (tokens/s), which is the number a user actually feels.
+        val decodeMs = (System.nanoTime() - decodeStart) / 1_000_000.0
+        val decodeTps = if (decodeMs > 0) produced * 1000.0 / decodeMs else 0.0
+        val prefillTps = if (prefillMs > 0 && ingested > 0) ingested * 1000.0 / prefillMs else 0.0
+        Log.i(
+            "KamPerf",
+            "threads=${threadCount()} ctx=${contextSize} prefill=${ingested}tok/${"%.0f".format(prefillMs)}ms" +
+                " (${"%.1f".format(prefillTps)} tok/s) decode=${produced}tok/${"%.0f".format(decodeMs)}ms" +
+                " (${"%.1f".format(decodeTps)} tok/s)",
+        )
 
         onStop(reason)
         close()
@@ -228,14 +246,50 @@ class InferenceEngine(
         get() = LlamaBridge.ensureLibraryLoaded() == null && LlamaBridge.nativeIsModelLoaded()
 
     /**
-     * Leaves at least two cores for the rest of the phone. Using every core
-     * makes the UI stutter while a response streams, which reads as the app
-     * being broken rather than the model being busy.
+     * How many threads to decode with. On a big.LITTLE phone, spilling onto the
+     * slow efficiency cores makes them stragglers at every layer barrier, so this
+     * counts only the performance cores (the fastest frequency cluster) rather
+     * than all cores. It still leaves headroom so the UI does not stutter.
+     *
+     * `debug.kamai.threads` overrides it for on-device measurement:
+     *   adb shell setprop debug.kamai.threads 4
      */
     private fun threadCount(): Int {
-        val cores = Runtime.getRuntime().availableProcessors()
-        return (cores - 2).coerceIn(2, 6)
+        sysPropInt("debug.kamai.threads")?.let { return it.coerceIn(1, 8) }
+        // Decode is memory-bandwidth bound, so past about four threads extra cores
+        // do not read weights any faster; they just contend for bandwidth, stall
+        // on the layer barrier, and heat the phone. Measured on a Tensor G5 (2 +
+        // 5 + 1 clusters): four threads decoded ~30 percent faster than six and
+        // far faster than eight. So use the performance cores but cap at four.
+        // See DECISIONS.md for the figures.
+        return performanceCoreCount().coerceIn(2, 4)
     }
+
+    /**
+     * The number of performance cores: cores whose maximum frequency is in the
+     * top cluster, i.e. everything faster than the slowest (efficiency) cluster.
+     * Reads cpufreq; falls back to availableProcessors minus two little cores.
+     */
+    private fun performanceCoreCount(): Int {
+        val freqs = (0 until Runtime.getRuntime().availableProcessors()).mapNotNull { cpu ->
+            runCatching {
+                File("/sys/devices/system/cpu/cpu$cpu/cpufreq/cpuinfo_max_freq")
+                    .readText().trim().toLong()
+            }.getOrNull()
+        }
+        if (freqs.isEmpty()) return (Runtime.getRuntime().availableProcessors() - 2).coerceAtLeast(2)
+        val slowest = freqs.min()
+        // Cores above the slowest cluster are the performance cores. When every
+        // core is the same speed (a uniform SoC) they all count.
+        val perf = freqs.count { it > slowest }
+        return if (perf > 0) perf else freqs.size
+    }
+
+    private fun sysPropInt(key: String): Int? = runCatching {
+        val c = Class.forName("android.os.SystemProperties")
+        val m = c.getMethod("get", String::class.java)
+        (m.invoke(null, key) as String).takeIf { it.isNotBlank() }?.trim()?.toInt()
+    }.getOrNull()
 
     private companion object {
         const val OVER_LENGTH = -3

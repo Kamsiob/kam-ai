@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -91,6 +92,8 @@ fun ChatsScreen(
     conversations: List<ConversationSummary>,
     view: ChatsView,
     onViewChange: (ChatsView) -> Unit,
+    archivedCount: Int = 0,
+    onOpenArchived: () -> Unit = {},
     onOpen: (String) -> Unit,
     onPin: (String, Boolean) -> Unit,
     onArchive: (String) -> Unit,
@@ -162,94 +165,115 @@ fun ChatsScreen(
                 Spacer(Modifier.weight(1f))
                 ViewSwitcher(view, onViewChange)
             }
+            SearchField(query, { query = it }, Modifier.padding(horizontal = KamTheme.dimens.screenPadding))
+        }
+
+        // The list fills the middle so the new-chat bar can live at the bottom,
+        // within thumb reach, instead of at the top of a tall screen.
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            when {
+                conversations.isEmpty() -> EmptyState(
+                    title = "Nothing here yet",
+                    body = "Ask it something. Whatever is on your mind, it runs on this " +
+                        "phone, so nothing you type leaves it.",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                filtered.isEmpty() -> EmptyState(
+                    title = "Nothing matches",
+                    body = "Try fewer words.",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                view == ChatsView.GRID -> LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize().edgeFade(),
+                    contentPadding = PaddingValues(KamTheme.dimens.screenPadding),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(filtered, key = { it.id }) { row ->
+                        // Swipe is replaced by a long-press menu in grid view.
+                        GridCell(
+                            row = row,
+                            selecting = selecting,
+                            selected = selected.contains(row.id),
+                            onOpen = { if (selecting) toggleSelect(row.id) else onOpen(row.id) },
+                            onEnterSelection = { enterSelection(row.id) },
+                            onPin = onPin,
+                            onArchive = onArchive,
+                            onDelete = onDelete,
+                            onRename = { renaming = row },
+                        )
+                    }
+                }
+
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize().edgeFade(),
+                    contentPadding = PaddingValues(
+                        horizontal = KamTheme.dimens.screenPadding,
+                        vertical = 6.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    // The Pinned section is hidden entirely when nothing is pinned.
+                    if (pinned.isNotEmpty() && !selecting) {
+                        item(key = "pinned-header") {
+                            SectionHeader(
+                                label = "Pinned",
+                                count = pinned.size,
+                                expanded = pinnedExpanded,
+                                onToggle = { pinnedExpanded = !pinnedExpanded },
+                            )
+                        }
+                        if (pinnedExpanded) {
+                            items(pinned, key = { "p-${it.id}" }) { row ->
+                                ChatRow(row, view, selecting, selected.contains(row.id),
+                                    toggleSelect, enterSelection, onOpen, onPin, onArchive, onDelete) { renaming = row }
+                            }
+                        }
+                        item(key = "recent-label") {
+                            Eyebrow("Recent", Modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp))
+                        }
+                    }
+
+                    val listRows = if (selecting) filtered else recent
+                    items(listRows, key = { it.id }) { row ->
+                        ChatRow(row, view, selecting, selected.contains(row.id),
+                            toggleSelect, enterSelection, onOpen, onPin, onArchive, onDelete) { renaming = row }
+                    }
+
+                    // A quiet way to the archived chats, shown only when some
+                    // exist, so it never clutters the main list (item 20).
+                    if (archivedCount > 0 && !selecting) {
+                        item(key = "archived-link") {
+                            Text(
+                                "Archived ($archivedCount)",
+                                style = KamTheme.type.label,
+                                color = colors.textSecondary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable(onClick = onOpenArchived)
+                                    .padding(vertical = 14.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // New chat and its mode picker, pinned at the bottom for easy reach.
+        if (!selecting) {
             NewChatBar(
                 mode = newChatMode,
                 onModeChange = { newChatMode = it },
                 onNewChat = { onNewChat(newChatMode) },
-                modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
+                modifier = Modifier
+                    .padding(horizontal = KamTheme.dimens.screenPadding)
+                    .padding(bottom = 6.dp),
             )
-            SearchField(query, { query = it }, Modifier.padding(horizontal = KamTheme.dimens.screenPadding))
-        }
-
-        if (conversations.isEmpty()) {
-            EmptyState(
-                title = "Nothing here yet",
-                body = "Ask it something. Whatever is on your mind, it runs on this " +
-                    "phone, so nothing you type leaves it.",
-                modifier = Modifier.fillMaxWidth(),
-            )
-            renaming?.let { RenameDialog(it, onRename) { renaming = null } }
-            return@Column
-        }
-
-        if (filtered.isEmpty()) {
-            EmptyState(
-                title = "Nothing matches",
-                body = "Try fewer words.",
-                modifier = Modifier.fillMaxWidth(),
-            )
-            return@Column
-        }
-
-        if (view == ChatsView.GRID) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize().edgeFade(),
-                contentPadding = PaddingValues(KamTheme.dimens.screenPadding),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                items(filtered, key = { it.id }) { row ->
-                    // Swipe is replaced by a long-press menu in grid view.
-                    GridCell(
-                        row = row,
-                        selecting = selecting,
-                        selected = selected.contains(row.id),
-                        onOpen = { if (selecting) toggleSelect(row.id) else onOpen(row.id) },
-                        onEnterSelection = { enterSelection(row.id) },
-                        onPin = onPin,
-                        onArchive = onArchive,
-                        onDelete = onDelete,
-                        onRename = { renaming = row },
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().edgeFade(),
-                contentPadding = PaddingValues(
-                    horizontal = KamTheme.dimens.screenPadding,
-                    vertical = 6.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                // The Pinned section is hidden entirely when nothing is pinned.
-                if (pinned.isNotEmpty() && !selecting) {
-                    item(key = "pinned-header") {
-                        SectionHeader(
-                            label = "Pinned",
-                            count = pinned.size,
-                            expanded = pinnedExpanded,
-                            onToggle = { pinnedExpanded = !pinnedExpanded },
-                        )
-                    }
-                    if (pinnedExpanded) {
-                        items(pinned, key = { "p-${it.id}" }) { row ->
-                            ChatRow(row, view, selecting, selected.contains(row.id),
-                                toggleSelect, enterSelection, onOpen, onPin, onArchive, onDelete) { renaming = row }
-                        }
-                    }
-                    item(key = "recent-label") {
-                        Eyebrow("Recent", Modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp))
-                    }
-                }
-
-                val listRows = if (selecting) filtered else recent
-                items(listRows, key = { it.id }) { row ->
-                    ChatRow(row, view, selecting, selected.contains(row.id),
-                        toggleSelect, enterSelection, onOpen, onPin, onArchive, onDelete) { renaming = row }
-                }
-            }
         }
     }
 
@@ -436,36 +460,50 @@ private fun SwipeRow(
 
     Box(Modifier.fillMaxWidth()) {
         if (revealed) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .height(ROW_HEIGHT),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RailButton(
-                    icon = Icons.Rounded.DriveFileRenameOutline,
-                    label = "Rename",
-                    tint = colors.textSecondary,
-                    background = colors.surfaceSecondary,
-                ) { close(); onRename() }
-                RailButton(
-                    icon = Icons.Rounded.PushPin,
-                    label = if (row.pinned) "Unpin" else "Pin",
-                    tint = colors.tonalText,
-                    background = colors.tonalFill,
-                ) { close(); onPin(row.id, !row.pinned) }
-                RailButton(
-                    icon = Icons.Rounded.Archive,
-                    label = "Archive",
-                    tint = colors.textSecondary,
-                    background = colors.surfaceSecondary,
-                ) { close(); onArchive(row.id) }
-                RailButton(
-                    icon = Icons.Rounded.Delete,
-                    label = "Delete",
-                    tint = colors.flagAmber,
-                    background = colors.amberFill,
-                ) { close(); onDelete(row.id) }
+            // The rail is matched to the row's exact height (item 4: the buttons
+            // never stand taller than the row, in any view) and spans the full
+            // RAIL_WIDTH, sized to fit all four actions so none is left hidden
+            // under the row when it is open (item 19). Each button takes an equal
+            // share of the width and the full height, with the row's corner radius.
+            Box(Modifier.matchParentSize()) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .width(RAIL_WIDTH)
+                        .padding(start = RAIL_GAP),
+                    horizontalArrangement = Arrangement.spacedBy(RAIL_GAP),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RailButton(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Rounded.DriveFileRenameOutline,
+                        label = "Rename",
+                        tint = colors.textSecondary,
+                        background = colors.surfaceSecondary,
+                    ) { close(); onRename() }
+                    RailButton(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Rounded.PushPin,
+                        label = if (row.pinned) "Unpin" else "Pin",
+                        tint = colors.tonalText,
+                        background = colors.tonalFill,
+                    ) { close(); onPin(row.id, !row.pinned) }
+                    RailButton(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Rounded.Archive,
+                        label = "Archive",
+                        tint = colors.textSecondary,
+                        background = colors.surfaceSecondary,
+                    ) { close(); onArchive(row.id) }
+                    RailButton(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Rounded.Delete,
+                        label = "Delete",
+                        tint = colors.flagAmber,
+                        background = colors.amberFill,
+                    ) { close(); onDelete(row.id) }
+                }
             }
         }
 
@@ -675,7 +713,7 @@ private fun SelectableRow(
         }
         Spacer(Modifier.width(12.dp))
         Text(
-            row.title ?: "New conversation",
+            row.displayTitle(),
             style = KamTheme.type.cardTitle,
             color = colors.textPrimary,
             maxLines = 1,
@@ -760,13 +798,13 @@ private fun RailButton(
     label: String,
     tint: androidx.compose.ui.graphics.Color,
     background: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .padding(start = 5.dp)
-            .size(width = 52.dp, height = 52.dp)
-            .clip(RoundedCornerShape(16.dp))
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
             .background(background)
             .clickable(onClick = onClick)
             .semantics { contentDescription = label },
@@ -816,7 +854,7 @@ private fun ConversationRow(
 
         Column(Modifier.weight(1f)) {
             Text(
-                row.title ?: "New conversation",
+                row.displayTitle(),
                 style = KamTheme.type.cardTitle,
                 color = colors.textPrimary,
                 maxLines = 1,
@@ -885,7 +923,7 @@ private fun GridCell(
             }
             Spacer(Modifier.height(9.dp))
             Text(
-                row.title ?: "New conversation",
+                row.displayTitle(),
                 style = KamTheme.type.cardTitle,
                 color = colors.textPrimary,
                 maxLines = 2,
@@ -928,8 +966,10 @@ private fun GridCell(
     }
 }
 
-private val RAIL_WIDTH = 175.dp
-private val ROW_HEIGHT = 62.dp
+// Wide enough to reveal all four rail actions (Rename, Pin, Archive, Delete) with
+// none hidden under the row. Buttons split this width evenly. See items 4 and 19.
+private val RAIL_WIDTH = 232.dp
+private val RAIL_GAP = 6.dp
 
 /** Short, plain relative time for the mono timestamp column. */
 fun relativeTime(epochMillis: Long, now: Long = System.currentTimeMillis()): String {
@@ -944,5 +984,91 @@ fun relativeTime(epochMillis: Long, now: Long = System.currentTimeMillis()): Str
         days < 7 -> "${days}d"
         days < 365 -> "${days / 7}w"
         else -> "${days / 365}y"
+    }
+}
+
+
+/**
+ * The title to show in the list. A real title wins; otherwise a short excerpt of
+ * the conversation stands in, which is specific and honest, rather than a generic
+ * "New conversation" placeholder (item 17).
+ */
+private fun com.kamsiob.kamai.data.ConversationSummary.displayTitle(): String =
+    title ?: snippet?.trim()?.take(48)?.takeIf { it.isNotBlank() } ?: "Untitled chat"
+
+/**
+ * The archived chats view (item 20). Archived conversations live here, off the
+ * main list. Each can be opened, moved back to Chats (archiving is reversible),
+ * or deleted (which is not). Reached from the quiet "Archived" link on Chats.
+ */
+@Composable
+fun ArchivedScreen(
+    conversations: List<ConversationSummary>,
+    onOpen: (String) -> Unit,
+    onUnarchive: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = KamTheme.colors
+    val pad = KamTheme.dimens.screenPadding
+
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = pad)) {
+        Text("Archived", style = KamTheme.type.screenTitle, color = colors.textPrimary)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Chats you moved out of the way. Open one, move it back to Chats, or delete it. " +
+                "Archiving is reversible; deleting is not.",
+            style = KamTheme.type.body,
+            color = colors.textSecondary,
+        )
+        Spacer(Modifier.height(16.dp))
+
+        if (conversations.isEmpty()) {
+            EmptyState(
+                title = "Nothing archived",
+                body = "When you archive a chat it moves here, out of your main list, and stays " +
+                    "until you bring it back or delete it.",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            return@Column
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().edgeFade(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
+        ) {
+            items(conversations, key = { it.id }) { row ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, RoundedCornerShape(KamTheme.dimens.cardRadius))
+                        .clickable { onOpen(row.id) }
+                        .padding(15.dp),
+                ) {
+                    Text(row.displayTitle(), style = KamTheme.type.cardTitle, color = colors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    row.snippet?.takeIf { it.isNotBlank() }?.let {
+                        Spacer(Modifier.height(4.dp))
+                        Text(it, style = KamTheme.type.secondary, color = colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row {
+                        Text(
+                            "Move to Chats", style = KamTheme.type.label, color = colors.accent,
+                            modifier = Modifier.clip(CircleShape).clickable { onUnarchive(row.id) }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "Delete", style = KamTheme.type.label, color = colors.flagAmber,
+                            modifier = Modifier.clip(CircleShape).clickable { onDelete(row.id) }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+            }
+        }
     }
 }

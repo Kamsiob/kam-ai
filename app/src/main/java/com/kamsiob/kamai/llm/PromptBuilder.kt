@@ -61,6 +61,16 @@ object PromptBuilder {
         ALL_STOP_MARKERS.any { piece.contains(it) }
 
     /**
+     * The turns that fit the budget, plus how many were dropped because they did
+     * not fit. [droppedForBudget] counts only budget drops — it deliberately
+     * excludes the leading-assistant trim below, which removes a turn that fit
+     * for a purely structural reason. Callers use it to decide whether to warn
+     * that the conversation has outgrown the model's memory; warning when only a
+     * greeting was trimmed would be a lie on the very first message.
+     */
+    data class Fitted(val turns: List<Turn>, val droppedForBudget: Int)
+
+    /**
      * Drops the oldest turns until the history fits the budget, always keeping
      * whole turns so the model never sees half an exchange.
      *
@@ -71,8 +81,8 @@ object PromptBuilder {
         history: List<Turn>,
         budgetTokens: Int,
         estimateTokens: (String) -> Int,
-    ): List<Turn> {
-        if (history.isEmpty()) return history
+    ): Fitted {
+        if (history.isEmpty()) return Fitted(history, 0)
 
         var used = 0
         val kept = ArrayDeque<Turn>()
@@ -85,13 +95,19 @@ object PromptBuilder {
             kept.addFirst(turn)
         }
 
+        // Turns the budget could not hold. Counted here, before the structural
+        // trim below, so a stripped greeting is never mistaken for an overflow.
+        val droppedForBudget = history.size - kept.size
+
         // Never start the history on an assistant turn: an answer with no
-        // question in front of it reads as if the model said it unprompted.
+        // question in front of it reads as if the model said it unprompted. A
+        // Discover chat opens with an assistant greeting, so this fires on the
+        // first question — which is exactly why it must not count as a drop.
         while (kept.isNotEmpty() && kept.first().role == Role.ASSISTANT) {
             kept.removeFirst()
         }
 
-        return kept.toList()
+        return Fitted(kept.toList(), droppedForBudget)
     }
 
     /** Role tags and separators cost a few tokens per turn. */

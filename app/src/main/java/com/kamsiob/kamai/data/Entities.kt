@@ -64,7 +64,11 @@ data class ConversationEntity(
     val groundingMomentId: String? = null,
 )
 
-enum class Role { USER, ASSISTANT }
+/**
+ * SYSTEM is a display-only marker in the transcript, used for the quiet centered
+ * note that records a mode switch. It is never sent to the model as a turn.
+ */
+enum class Role { USER, ASSISTANT, SYSTEM }
 
 @Entity(
     tableName = "messages",

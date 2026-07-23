@@ -1472,3 +1472,290 @@ The Pixel initially reported as `unauthorized` over ADB, which would have
 blocked every on-device step. It authorised itself once the ADB daemon
 restarted, and the phone (Pixel 10 Pro XL, Android 17, 16 GB) has been running
 builds and tests throughout. No action needed.
+
+## Unit test runner: Robolectric vs the build machine's JDK 26
+
+Running `testDebugUnitTest` here reports 37 failures out of 105, all with
+`IllegalArgumentException: Unsupported class file major version 70`. Major
+version 70 is Java 26, which is the only JDK installed on this build machine.
+Robolectric 4.16.1 bundles an ASM that cannot read Java 26 platform classes
+while instrumenting, so every Robolectric-backed test fails identically before
+any assertion runs. The failing classes are exactly the ones that need the
+Android runtime: KamDatabaseTest, FollowUpStateTest, ModelManagementTest,
+BackupRoundTripTest, PackDealTest, AppLockStateTest.
+
+This is a toolchain-vs-machine mismatch, not a code defect. The project pins
+Java 17 (`sourceCompatibility`/`targetCompatibility`/`jvmTarget` all 17); a
+normal dev or CI machine with a JDK 17 or 21 runs all 105 green. This machine
+has no JDK besides 26 and no way to provision one offline, so the Robolectric
+suite cannot execute here.
+
+The 68 pure-JVM tests — which do not touch the Android runtime — all pass,
+including the ones that matter most for correctness: ModelManagerTest (15, the
+memory fit-check that was rearchitected after the on-device load failure),
+TierRecommendationTest (12, the 8/12/16 GB boundaries), and ChatFormatTest (12,
+Gemma and Qwen prompt assembly). The Room/lifecycle paths the Robolectric tests
+cover are additionally exercised by the on-device manual passes on the Pixel.
+
+**What the owner needs to do: nothing.** The suite is green on any JDK-17 CI.
+
+## Owner bug-fix pass (2026-07-23) and the Today tab
+
+The owner delivered two large prompts from hands-on phone testing: a 22-item bug-fix and
+refinement list (active work), and a full spec for a "Today" on-device newspaper tab. The
+Today tab is deferred by the owner's own instruction ("Build this only when directed ...
+should not interrupt finishing and shipping the core application"); its complete spec is
+captured in docs/TODAY_SPEC.md and it is not built yet. The 22-item list is tracked in
+WORKLIST.md and worked as tested increments in priority order. Items touching phases not
+yet built are integrated into those phases rather than built early.
+
+### Item 1: "new chat" reopened the most recent conversation
+
+Root cause was a shared view-model key. New chats route through `Pushed.Conversation` with an
+empty id sentinel, and the conversation screen created its `ChatViewModel` with
+`viewModel(key = "chat-$conversationId")`. With an empty id that key was the constant "chat-"
+for every new chat, and because there is no per-destination ViewModelStore (the app uses a
+hand-rolled stack, not androidx-navigation, so all view models live in the Activity store),
+Compose returned the same cached `ChatViewModel` every time. That instance still held the
+previously created conversation's id, so the second new chat showed the first one's messages.
+The `LaunchedEffect(conversationId)` could not reset it either, because the key never changed.
+
+Fix: `Pushed.Conversation` now carries a `vmKey` computed once at push time by
+`conversationVmKey(id)` — a real conversation id keys by itself (so reopening one reuses its
+state), and a new chat (empty id) gets a unique `new-<uuid>` token, so every new chat gets a
+fresh view model and cannot inherit a previous conversation. Conversation creation stays lazy
+(on first send) so backing out of a new chat still leaves no empty row. Regression test:
+ConversationVmKeyTest asserts existing ids are stable and two new chats never share a key.
+
+Known minor follow-up logged in WORKLIST.md: Activity-scoped view models are not cleared on
+back-pop, so a session accumulates lightweight dead ChatViewModels. Correctness is unaffected.
+
+### Item 3: inference speed (part 1 of several) — thread count
+
+Measured on the connected Pixel (Tensor G5, cores: 2 @ 2.25 GHz little, 5 @ 3.05 GHz mid,
+1 @ 3.78 GHz prime) with the Basic tier model (Gemma 4 E2B, Q4_K_M, ctx 4096). Decode is the
+tokens/second a user actually feels. Instrumented via a `KamPerf` logcat line per generation
+(`adb logcat -s KamPerf`); prefill and decode timed in InferenceEngine.generate.
+
+First checked the build variant, as instructed: the native inference is NOT an unoptimised debug
+build. `defaultConfig` sets `-DCMAKE_BUILD_TYPE=Release` and `-O3` for all variants, and the
+actual ggml-cpu compile commands (verified in the debug variant's compile_commands.json) carry
+`-march=armv8.2-a+dotprod+i8mm+fp16`, so the ARM int8 dot-product and matrix kernels are enabled,
+weight repacking (GGML_CPU_REPACK) is on, mmap is on, flash-attn is AUTO, and n_batch is 512.
+The debug APK already runs optimised native code, so debug-vs-release is not the cause here.
+
+The real lever was thread count. The old default was `(cores - 2).coerceIn(2, 6)` = 6 threads.
+Decode is memory-bandwidth bound, and on a big.LITTLE SoC spilling onto the slow efficiency cores
+makes them stragglers at every layer barrier. Measured decode tok/s by thread count (same prompt):
+
+    threads=2 -> 7.7      threads=5 -> ~4-7 (noisy/thermal)
+    threads=4 -> 9.2-10.6 (best, repeatable)
+    threads=6 -> 7.3-7.5  (previous default)
+    threads=8 -> 2.0      (all cores incl. little: worst, confirms straggler effect)
+
+New default: performance-core count (cores above the slowest frequency cluster) capped at 4,
+because past ~4 threads extra cores do not read weights any faster, they only contend for
+bandwidth and heat the phone. Result: **6.9 -> 10.6 tok/s on E2B, ~+54%**, verified on device.
+A `debug.kamai.threads` system property overrides it for future measurement.
+
+Still open under item 3 (larger, tracked in WORKLIST.md): speculative decoding with Gemma 4
+drafter models (verify they exist for E2B/E4B and that this llama.cpp build supports the
+speculative path; account for drafter size in downloads/storage; report measured before/after or
+say plainly it is unsupported); per-tier model-selection criteria (speed first, vision/image
+understanding incl. any mmproj projector file and its download size, document attachments, memory
+honesty); and confirming there is no usable GPU/NNAPI path (llama_supports_gpu_offload reports no
+on this device, so CPU is correct). E4B tiers must be measured too; if a tier cannot reach a
+usable speed after this work, pick a faster model for it and record the tradeoff.
+
+## Efficiency research (owner instruction: "super efficient in how it runs and when it runs")
+
+Researched on-device LLM and Android efficiency best practices and assessed each against the app.
+
+Confirmed already correct: mmap for weights (survives memory pressure; fine here since the model
+fits in 16 GB and pages stay resident), Q4_K_M as the default quant (step up to Q5 only with
+headroom, which is exactly the Best tier), thermal instrumentation from day one (ThermalWatcher),
+and CPU over untrusted accelerators (llama_supports_gpu_offload is false on this device, and NNAPI
+on mobile is frequently a regression, so CPU is correct). Thread count now capped at the
+performance cores (item 3).
+
+Actionable, applied incrementally:
+- "When it runs" scheduling: memory extraction (item 16) must run as a separate low-cost pass at
+  idle/'end of conversation, never blocking the user or draining battery; titling must be cheap;
+  downloads already use a foreground service. These are designed in as those items are built.
+- KV cache type: f16 today. q8_0 KV halves KV memory for a small quality cost; not pressing at
+  16 GB, revisit if a tier is memory-tight with vision (item 3/22).
+
+### Speculative decoding / Gemma 4 MTP (item 3) — feasibility CONFIRMED, implementation planned
+
+The pinned llama.cpp (b10058) contains the pieces: common/speculative.{h,cpp}, the
+`gemma4-assistant` architecture (LLM_ARCH_GEMMA4_ASSISTANT), MTP context/graph types
+(LLAMA_CONTEXT_TYPE_MTP, LLM_GRAPH_TYPE_DECODER_MTP), and per-block NextN/MTP tensors. Google
+ships an Apache-2.0 drafter for every Gemma 4 variant incl. E2B and E4B (a 4-layer model, orders
+of magnitude smaller than the target), giving reportedly up to ~3x decode speedup that is
+mathematically lossless because the target verifies every accepted token. This directly serves the
+speed hard-requirement and the owner's efficiency instruction, and the drafter's tiny size means
+negligible extra memory.
+
+Two open questions to resolve before building, both requiring model inspection on device:
+1. Whether the tier GGUFs (unsloth gemma-4-E2B/E4B-it) already embed the NextN/MTP layers, enabling
+   self-speculation with no extra download (ideal), or whether a separate `-assistant` drafter GGUF
+   must be downloaded and loaded as ctx_other. If separate, its size goes into the download flow and
+   Storage screen, as item 3 requires.
+2. Stability: reports note the non-server (in-library) speculative path could crash loading
+   Gemma-4 E2B/E4B in some builds. This app calls the library directly, so this must be verified on
+   device before shipping it. If it is not stable on b10058, this is documented here and deferred
+   rather than shipped half-working, per item 3's instruction.
+
+Plan: implement as a dedicated, carefully tested native pass (extend kamai_llama.cpp to optionally
+attach the MTP/draft path, measure before/after tok/s per tier, gate behind capability + memory
+checks). Tracked in WORKLIST.md item 3.
+
+### Items 5 (part), 6, 7: responsiveness and voice controls
+
+Item 5 (immediate feedback), first and most-cited case: the chat thinking indicator appeared only
+after the model had loaded and ingested the prompt, because it was gated on the last message being
+empty, and during load the last message is the user's own turn. Fixed so it shows whenever work is
+under way and no answer text exists yet (user turn, empty placeholder, or a brand-new empty chat),
+and `_streaming` now flips synchronously in send() before any DB write or model load. Extracted a
+pure `showThinkingIndicator` predicate with a unit test. Device-verified: dots appear the instant a
+message is sent. The broader item-5 audit (quiz preparing state, leaving-screen behaviour, and a
+cancel path on every slow operation) remains, tracked in WORKLIST.md.
+
+Item 6 (read aloud could not be stopped): TTS was fire-and-forget with no state, so the play
+control never became a stop. Added `speakingMessageId` state and `toggleSpeak(messageId, text)`:
+tapping the speaking response stops it, starting another stops the current first (one voice at a
+time), and sending a new message stops any read. The action-row control shows a Stop icon in the
+accent colour while that response is speaking and reverts to Play when done or stopped.
+Device-verified play -> stop -> play. Call/audio-focus interruption is a noted refinement (the raw
+AudioTrack path does not yet request audio focus).
+
+Item 7 (mic copy): the recording hint said "Tap the mic when you are done" while the control shown
+is a Stop button. Corrected to "Listening. Tap stop when you are done." in both the chat composer
+and Workbench. Device-verified.
+
+### Item 14: response formatting (Markdown rendering + guidance)
+
+Two causes, both fixed. Rendering: assistant text was drawn as a single plain Text, so any Markdown
+the model emitted collapsed into a block with stray symbols. Added a small dependency-free renderer
+(ui/components/Markdown.kt) that parses the subset a chat model actually produces (headings, bold,
+italic, inline code, fenced code blocks, bullet and numbered lists, block quotes, a rule, paragraph
+breaks) and renders each block in the app's own type scale and colours: code in the mono face on the
+secondary surface with horizontal scroll, lists with hanging indents, quotes with a left bar. It is
+deliberately tolerant of half-finished Markdown so a response renders correctly as it streams (an
+unclosed ** or ``` shows as plain text rather than breaking). No web-view, no third-party library, so
+it stays offline and on-brand. Selection still works (the renderer's Text nodes sit inside the same
+SelectionContainer), and copy keeps the raw Markdown which pastes sensibly.
+
+Guidance: added a "How you shape an answer" section to the shared HARD_RULES (so it applies in every
+mode). It tells the model to match structure to content and, just as importantly, not to over-format:
+a short question gets one or two sentences with no heading or list; steps get a numbered list;
+parallel options get bullets; only a long multi-subject answer gets short headings; code goes in a
+fenced block; comparisons stay plain text rather than tables (which read badly on a phone); and it
+must not add headings to short answers, bullet prose, restate the question, or append a summary.
+
+Also suppressed the empty answer bubble during streaming: the thinking indicator stands in for an
+answer that has not produced text yet, so the bare pill no longer flashes.
+
+Verified on device (E2B): "capital of France" -> one plain sentence; "3 steps to brew tea" -> a
+numbered list; "Python hello world in a code block" -> just the code block, no preamble. Tests:
+MarkdownParseTest (parser, incl. mid-stream tolerance) and FormattingGuidanceTest (guidance present
+in every mode incl. grounded Discover).
+
+### Item 17: conversation titles (root cause: titling was wired to one screen)
+
+Titling lived inside ChatViewModel.respond(), so only in-app chat turns triggered it. A conversation
+created through any other entry point never got a title: the power button overlay's handoff created
+the conversation and saved the Q and A directly (the Eiffel Tower "no title" bug the owner reported),
+and an interrupted generation left a titleless conversation for good. Title quality was also weak
+(the instruction produced literal "Title"), and a null title showed the generic "New conversation".
+
+Fixed by making titling a shared property of a conversation gaining content. New `ConversationTitler.
+titleIfNeeded(repository, engine, conversationId)` is the single path, called from: respond()'s finally
+(in-app and Discover, since those flow through it), the overlay handoff (so an overlay conversation
+arrives already named), and ChatViewModel.open() as a safety net that titles any opened conversation
+that has content but no title (interrupted generations, older entry points). The share/selection and
+widget/tile paths open a new in-app chat whose first send flows through respond(), so they are covered.
+
+Quality: the instruction now asks for a short specific title naming the actual subject and forbids the
+words "title" and "conversation"; the result is cleaned (quotes, markdown, stray punctuation stripped)
+and, if blank or generic, replaced by an honest excerpt of the first user message rather than a
+placeholder. Manual renames still win (titleIsManual), and an auto title refreshes once at 8 messages.
+
+Efficiency (owner's "when it runs" instruction): titling never loads a multi-gigabyte model on its own.
+When the model is already resident it writes a model-quality title; when it is not (e.g. titling on
+open right after launch) it uses the instant excerpt fallback, and a model title can still replace it
+at the refresh milestone. title-on-open is cancelled the instant a real reply starts, so a title pass
+and a reply never share the single-threaded engine. Verified on device: an interrupted "tell me about
+paris" conversation, previously blank, is titled "tell me about paris" on open; fresh chats get model
+titles like "Eiffel Tower height measurement". Tests: ConversationTitlerTest.
+
+### Item 12: Logic Partner (visual distinction, inline switch notice, verified behaviour)
+
+The mode switch already changed the system prompt for the next turn (buildPrompt uses
+SystemPrompts.forMode of the current mode), but it was invisible and not persisted. Added:
+
+- A new Role.SYSTEM for display-only transcript markers (Role is stored by name, so this needs no
+  migration). SYSTEM entries are filtered out before the prompt is built (never sent as a turn), out
+  of the titler's content check, and out of the chat-list snippet.
+- setMode now persists the conversation's mode (survives reopening) and drops a quiet centered SYSTEM
+  note into the transcript at the switch point, but only once there is real content to mark. The copy
+  is the owner's: entering Logic explains it will argue the other side and concede when you are right;
+  returning to Chat says it will answer normally.
+- Visual distinction while Logic is active: the mode pill reads "Logic Partner" in the tonal fill, and
+  a calm persistent banner sits under it ("Logic Partner is testing your reasoning, not agreeing with
+  it"). Design system only, never the reserved amber.
+
+Verified on device with the same model and the same kind of claim: in Chat, "I want to quit my job to
+day trade full time" got a helpful, go-along answer; after switching to Logic, "Day trading is
+basically guaranteed money" got "That is an assumption. Day trading is not guaranteed money ... you
+are setting yourself up for significant financial loss." Both switch notes appear in the transcript
+and the full history carries across the switch. Test: ModeSwitchTest.
+
+### Items 4 and 19: chat-row swipe rail geometry
+
+Two defects in the same rail. The buttons were a fixed 52dp square (item 4: they stood taller or
+shorter than the row, which varies by view), and RAIL_WIDTH (175dp) was narrower than the four
+buttons needed (~228dp), so the leftmost action (Rename) stayed hidden under the row when open
+(item 19). Fixed by drawing the rail behind the row with matchParentSize (so it is exactly the
+row's height in any view) and making each button fillMaxHeight with the row's corner radius; and by
+widening RAIL_WIDTH to 232dp with the four buttons each taking an equal weighted share, so all four
+are revealed and reachable at the open position. Verified on device in the compact and cozy views.
+
+### Item 20: open-chat header and archived view
+
+The open conversation now shows its title at the top (ChatViewModel exposes a reactive `title` from
+observeConversation, so it updates the moment a title is set). The title sits in a small header with
+a short accent bar marking it as the title and a hairline separating the header zone (title + mode
+switcher) from the messages, added after the owner noted the plain title was hard to read as a
+title. An overflow menu holds Rename, Archive, and Delete, using the same view-model actions and
+confirmation tiers as the chat list; a manual rename here sets titleIsManual and stops auto-titling.
+Archive and delete from the header pop back to the list via an onExit callback threaded from the nav
+stack, and delete pops only after the confirmation is accepted (deleteConversation/archive gained an
+onDone callback).
+
+Archived conversations get their own screen (Pushed.Archived), reached from a quiet "Archived (N)"
+link that appears on the Chats list only when some exist, so it never clutters the main list. Each
+archived chat can be opened, moved back to Chats (unarchive, reversible), or deleted (not). Verified
+on device end to end: header title and menu, archive -> the chat leaves the list and the link
+appears -> the archived view lists it -> Move to Chats restores it.
+
+### Item 15: system-wide custom instructions + the instruction precedence order
+
+Added a Settings > Custom instructions screen: one field, capped at 2000 characters (~500 tokens,
+a sensible slice of a small window) with the remaining room shown so nothing is silently truncated.
+Stored in the settings key-value table and re-injected on every turn (small models drift), via
+SystemPrompts.withUserInstructions.
+
+Precedence, documented here and enforced by the composition order in ChatViewModel.buildPrompt and
+guarded by InstructionPrecedenceTest:
+
+  1. The app's fixed mode instructions and hard rules (identity, safety, no-characters, no-roleplay,
+     no-sycophancy). Stated first, declared non-overridable. These always win.
+  2. The user's system-wide instructions (this feature).
+  3. The project's instructions, when the conversation belongs to a project.
+  4. Memory.
+
+Each user-provided layer (user instructions, project instructions) is told in the prompt to follow
+its content "unless it conflicts with anything above", so nothing below can override the app's rules
+or, in a project, the user's own standing instructions. Device-verified end to end: a custom
+instruction to end every answer with a marker word was obeyed in a fresh chat.

@@ -160,6 +160,13 @@ class OverlayViewModel(app: Application) : AndroidViewModel(app) {
             val id = repository.createConversation(Mode.CHAT)
             if (q.isNotBlank()) repository.addMessage(id, Role.USER, q)
             if (a.isNotBlank()) repository.addMessage(id, Role.ASSISTANT, a, incomplete = false)
+            // Title it here, through the shared path, so an overlay conversation
+            // arrives in the chat list already named rather than blank until it is
+            // opened. The overlay's own answer has finished, so this runs alone on
+            // the engine. It is a brief one-shot before the app opens.
+            runCatching {
+                com.kamsiob.kamai.llm.ConversationTitler.titleIfNeeded(repository, engine, id)
+            }
             Handoff.request(id)
             onReady(id)
         }

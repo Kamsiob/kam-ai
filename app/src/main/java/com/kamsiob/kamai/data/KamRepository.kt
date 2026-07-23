@@ -33,7 +33,12 @@ class KamRepository(
         const val MEMORY_MODE = "memory.mode"
         const val WORKBENCH_INPUT = "workbench.input"
         const val WORKBENCH_OUTPUT = "workbench.output"
+        const val SYSTEM_INSTRUCTIONS = "system.instructions"
     }
+
+    /** The cap on the user's system-wide instructions, in characters. Roughly
+     *  500 tokens, a sensible slice of a small model's window. */
+    val systemInstructionsMax: Int get() = 2000
 
     // Settings
 
@@ -43,6 +48,14 @@ class KamRepository(
 
     suspend fun putSetting(key: String, value: String) =
         db.settings().put(SettingEntity(key, value))
+
+    /** The user's system-wide instructions, applied to every conversation. */
+    suspend fun userInstructions(): String = setting(Keys.SYSTEM_INSTRUCTIONS).orEmpty()
+
+    fun observeUserInstructions(): Flow<String?> = observeSetting(Keys.SYSTEM_INSTRUCTIONS)
+
+    suspend fun setUserInstructions(text: String) =
+        putSetting(Keys.SYSTEM_INSTRUCTIONS, text.take(systemInstructionsMax))
 
     suspend fun isOnboardingDone(): Boolean = setting(Keys.ONBOARDING_DONE) == "true"
 
@@ -423,6 +436,14 @@ class KamRepository(
     fun observeConversations(): Flow<List<ConversationSummary>> =
         db.conversations().observeActive()
 
+    /** Archived conversations, for the separate archived view. */
+    fun observeArchived(): Flow<List<ConversationSummary>> =
+        db.conversations().observeArchived()
+
+    /** Reactive single conversation, so an open chat's title updates live. */
+    fun observeConversation(id: String): Flow<ConversationEntity?> =
+        db.conversations().observe(id)
+
     fun searchConversations(query: String): Flow<List<ConversationSummary>> =
         db.conversations().search(query)
 
@@ -460,6 +481,10 @@ class KamRepository(
         db.conversations().touch(conversationId, now)
         return id
     }
+
+    /** Persists a conversation's mode so an in-chat switch survives reopening. */
+    suspend fun setConversationMode(id: String, mode: Mode) =
+        db.conversations().setMode(id, mode, System.currentTimeMillis())
 
     suspend fun updateMessage(id: String, content: String, incomplete: Boolean) =
         db.messages().setContent(id, content, incomplete)

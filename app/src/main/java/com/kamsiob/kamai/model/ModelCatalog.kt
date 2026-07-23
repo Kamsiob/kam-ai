@@ -113,6 +113,37 @@ object ModelCatalog {
             description = "A much larger model. Desktop-class.",
             warning = "Measured to need more memory than a 16 GB phone can reliably spare, and it may refuse to load. For very high memory devices only.",
         ),
+        // Qwen, a different model family, for people who want to compare. These
+        // use the ChatML layout and run in Qwen3's non-thinking mode.
+        TierModel(
+            id = "qwen3-4b-q4km",
+            tier = Tier.BALANCED,
+            displayName = "Qwen3 4B",
+            parameterLabel = "4B",
+            quantisation = "Q4_K_M",
+            downloadBytes = 2_497_280_256L,
+            contextTokens = 8192,
+            licence = "Apache-2.0",
+            sourceUrl = "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf",
+            sha256 = "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+            format = ChatFormat.QWEN,
+            description = "A different family from Gemma. Light and quick to try.",
+        ),
+        TierModel(
+            id = "qwen3-8b-q4km",
+            tier = Tier.BEST,
+            displayName = "Qwen3 8B",
+            parameterLabel = "8B",
+            quantisation = "Q4_K_M",
+            downloadBytes = 5_027_783_488L,
+            contextTokens = 8192,
+            licence = "Apache-2.0",
+            sourceUrl = "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf",
+            sha256 = "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+            format = ChatFormat.QWEN,
+            description = "A larger Qwen, in the same class as the best Gemma tier.",
+            warning = "About 5 GB. Best on a 16 GB phone with room to spare.",
+        ),
     )
 
     /** Everything the app knows about, defaults first. */

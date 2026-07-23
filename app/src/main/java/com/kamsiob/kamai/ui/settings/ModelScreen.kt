@@ -196,8 +196,9 @@ private fun ModelCard(
             },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // Advanced cards name the model itself; the tier cards name the tier.
             Text(
-                model.tier.displayName,
+                if (advanced) model.displayName else model.tier.displayName,
                 style = KamTheme.type.cardTitle,
                 color = if (locked) colors.textTertiary else colors.textPrimary,
             )
@@ -217,7 +218,8 @@ private fun ModelCard(
         Spacer(Modifier.height(5.dp))
         Row {
             Text(
-                "${model.displayName}  ${model.quantisation}",
+                if (advanced) "${model.parameterLabel}  ${model.quantisation}"
+                else "${model.displayName}  ${model.quantisation}",
                 style = KamTheme.type.secondary,
                 color = colors.textTertiary,
             )
@@ -228,9 +230,22 @@ private fun ModelCard(
             Spacer(Modifier.height(4.dp))
             Text(model.description, style = KamTheme.type.secondary, color = colors.textSecondary)
         }
-        if (advanced && model.warning.isNotEmpty()) {
+        // Every advanced model states plainly whether it is likely to run here.
+        if (advanced) {
             Spacer(Modifier.height(6.dp))
-            Text(model.warning, style = KamTheme.type.secondary, color = colors.flagAmber)
+            when {
+                locked -> Text(
+                    "Unlikely to run on this phone. It needs more memory than this phone has.",
+                    style = KamTheme.type.secondary, color = colors.flagAmber,
+                )
+                model.warning.isNotEmpty() -> Text(
+                    model.warning, style = KamTheme.type.secondary, color = colors.flagAmber,
+                )
+                else -> Text(
+                    "Should run on this phone.",
+                    style = KamTheme.type.secondary, color = colors.textTertiary,
+                )
+            }
         }
 
         if (locked) {

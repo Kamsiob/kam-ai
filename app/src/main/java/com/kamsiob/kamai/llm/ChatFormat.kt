@@ -48,6 +48,10 @@ enum class ChatFormat {
                         append("<start_of_turn>model\n")
                             .append(turn.content).append("<end_of_turn>\n")
                     }
+
+                    // Display-only markers are filtered out before the prompt is
+                    // built; never emit them as a turn.
+                    Role.SYSTEM -> Unit
                 }
             }
 

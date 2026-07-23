@@ -100,6 +100,23 @@ object Downloads {
         }
     }
 
+    /**
+     * Re-surfaces a download that was interrupted by process death. If a partial
+     * file is on disk and the finished file is not, this registers the spec and
+     * shows the download as paused, so the person sees "Paused at X%" with a
+     * Resume button after a restart instead of the progress silently vanishing.
+     * It never auto-resumes: resuming spends data, so it stays the person's call.
+     */
+    fun restorePaused(spec: Spec) {
+        if (jobs[spec.id]?.isActive == true) return
+        if (_items.value.any { it.id == spec.id }) return
+        if (spec.destination.exists()) return
+        val part = File(spec.destination.parentFile, spec.destination.name + ".part")
+        if (!part.exists() || part.length() <= 0L) return
+        specs[spec.id] = spec
+        put(Item(spec.id, spec.displayName, spec.kind, part.length(), spec.sizeBytes, Status.PAUSED))
+    }
+
     /** Pauses a download, keeping its partial file so it resumes from where it was. */
     fun pause(context: Context, id: String) {
         jobs[id]?.cancel()
@@ -137,7 +154,15 @@ object Downloads {
     private fun item(id: String): Item? = _items.value.firstOrNull { it.id == id }
 
     private fun put(item: Item) {
-        _items.value = _items.value.filterNot { it.id == item.id } + item
+        // Update in place so a progress tick never reorders the list. With several
+        // downloads running at once, appending would make the busiest one keep
+        // jumping to the bottom on every tick.
+        val current = _items.value
+        _items.value = if (current.any { it.id == item.id }) {
+            current.map { if (it.id == item.id) item else it }
+        } else {
+            current + item
+        }
     }
 
     private fun finish(context: Context, id: String, keep: Boolean) {

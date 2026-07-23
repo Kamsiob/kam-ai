@@ -104,7 +104,7 @@ fun WorkbenchScreen(
         ) {
             if (input.isEmpty()) {
                 Text(
-                    if (recording) "Listening. Tap the mic when you are done."
+                    if (recording) "Listening. Tap stop when you are done."
                     else if (transcribing) "Turning your voice into text..."
                     else "Paste or type the text to work on",
                     style = KamTheme.type.body,

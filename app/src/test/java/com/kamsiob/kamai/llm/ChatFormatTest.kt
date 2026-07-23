@@ -95,8 +95,29 @@ class ChatFormatTest {
             PromptBuilder.roughTokenCount(it)
         }
 
-        assertThat(fitted.map { it.content }).containsExactly("keep me")
-        assertThat(fitted.first().role).isEqualTo(Role.USER)
+        assertThat(fitted.turns.map { it.content }).containsExactly("keep me")
+        assertThat(fitted.turns.first().role).isEqualTo(Role.USER)
+        // The two older turns genuinely did not fit the budget.
+        assertThat(fitted.droppedForBudget).isEqualTo(2)
+    }
+
+    @Test
+    fun `a leading greeting trimmed for structure is not counted as a budget drop`() {
+        // A Discover chat opens with an assistant greeting. On the first question
+        // both turns fit, but the greeting is stripped so history does not start
+        // on an answer. That structural trim must not report a budget drop, or
+        // the app would falsely warn "the conversation is too long" at message one.
+        val turns = listOf(
+            PromptBuilder.Turn(Role.ASSISTANT, "Let's talk about this passage."),
+            PromptBuilder.Turn(Role.USER, "who wrote it?"),
+        )
+
+        val fitted = PromptBuilder.fitToBudget(turns, budgetTokens = 4096) {
+            PromptBuilder.roughTokenCount(it)
+        }
+
+        assertThat(fitted.turns.map { it.content }).containsExactly("who wrote it?")
+        assertThat(fitted.droppedForBudget).isEqualTo(0)
     }
 
     @Test
@@ -111,7 +132,10 @@ class ChatFormatTest {
         }
 
         // The question no longer fits, so its answer must not lead the history.
-        assertThat(fitted).isEmpty()
+        assertThat(fitted.turns).isEmpty()
+        // The oversized question was a real budget drop; the dangling answer trim
+        // is structural and not counted, so exactly one budget drop is reported.
+        assertThat(fitted.droppedForBudget).isEqualTo(1)
     }
 
     @Test

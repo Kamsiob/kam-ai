@@ -80,7 +80,18 @@ class DownloadService : Service() {
             .setOngoing(true)
             .setProgress(100, percent, indeterminate)
             .setSilent(true)
+            .setContentIntent(openAppIntent())
             .build()
+
+    /** Tapping the notification returns to the app. */
+    private fun openAppIntent(): android.app.PendingIntent? {
+        val launch = Intent(this, com.kamsiob.kamai.MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        return android.app.PendingIntent.getActivity(
+            this, 0, launch,
+            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
 
     companion object {
         private const val CHANNEL = "downloads"

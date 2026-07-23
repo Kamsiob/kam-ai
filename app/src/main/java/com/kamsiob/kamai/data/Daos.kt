@@ -46,7 +46,7 @@ interface ConversationDao {
         """
         SELECT c.id, c.title, c.mode, c.projectId, c.updatedAt, c.pinned, c.archived,
                (SELECT m.content FROM messages m
-                 WHERE m.conversationId = c.id
+                 WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
                  ORDER BY m.createdAt DESC LIMIT 1) AS snippet,
                (SELECT COUNT(*) FROM messages m WHERE m.conversationId = c.id) AS messageCount
           FROM conversations c
@@ -61,7 +61,7 @@ interface ConversationDao {
         """
         SELECT c.id, c.title, c.mode, c.projectId, c.updatedAt, c.pinned, c.archived,
                (SELECT m.content FROM messages m
-                 WHERE m.conversationId = c.id
+                 WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
                  ORDER BY m.createdAt DESC LIMIT 1) AS snippet,
                (SELECT COUNT(*) FROM messages m WHERE m.conversationId = c.id) AS messageCount
           FROM conversations c
@@ -80,7 +80,7 @@ interface ConversationDao {
         """
         SELECT c.id, c.title, c.mode, c.projectId, c.updatedAt, c.pinned, c.archived,
                (SELECT m.content FROM messages m
-                 WHERE m.conversationId = c.id
+                 WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
                  ORDER BY m.createdAt DESC LIMIT 1) AS snippet,
                (SELECT COUNT(*) FROM messages m WHERE m.conversationId = c.id) AS messageCount
           FROM conversations c
@@ -109,6 +109,9 @@ interface ConversationDao {
 
     @Query("UPDATE conversations SET updatedAt = :now WHERE id = :id")
     suspend fun touch(id: String, now: Long)
+
+    @Query("UPDATE conversations SET mode = :mode, updatedAt = :now WHERE id = :id")
+    suspend fun setMode(id: String, mode: Mode, now: Long)
 
     @Query("UPDATE conversations SET projectId = :projectId, updatedAt = :now WHERE id = :id")
     suspend fun setProject(id: String, projectId: String?, now: Long)

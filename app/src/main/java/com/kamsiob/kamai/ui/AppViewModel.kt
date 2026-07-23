@@ -132,6 +132,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             // on first use. This is the fix for the blank-screen-at-launch bug:
             // startup no longer blocks on loading a multi-gigabyte model.
             modelManager.refreshActive()
+            // Re-surface any download a process death interrupted, so a partial
+            // on disk becomes a resumable "Paused" row instead of vanishing.
+            restoreInterruptedDownloads()
             _ready.value = true
         }
     }
@@ -186,27 +189,40 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val downloads: StateFlow<List<com.kamsiob.kamai.download.Downloads.Item>> =
         com.kamsiob.kamai.download.Downloads.items
 
+    /** The download spec for a model, used both to start and to restore one. */
+    private fun modelSpec(model: TierModel) = com.kamsiob.kamai.download.Downloads.Spec(
+        id = model.id,
+        displayName = model.displayName,
+        kind = "model",
+        url = model.sourceUrl,
+        destination = repository.fileFor(model),
+        sizeBytes = model.downloadBytes,
+        sha256 = model.sha256,
+        onInstalled = { file ->
+            repository.registerModel(model, file, makeActive = false)
+            modelManager.onModelInstalled(model)
+            showToast("${model.displayName} is ready")
+        },
+    )
+
     fun downloadModel(model: TierModel) {
         // A download brings memory and disk pressure; free an idle resident model
         // first. It never triggers a load or changes the active model.
         viewModelScope.launch { modelManager.onDownloadStarting() }
         com.kamsiob.kamai.download.Downloads.start(
-            getApplication(), repository.downloader,
-            com.kamsiob.kamai.download.Downloads.Spec(
-                id = model.id,
-                displayName = model.displayName,
-                kind = "model",
-                url = model.sourceUrl,
-                destination = repository.fileFor(model),
-                sizeBytes = model.downloadBytes,
-                sha256 = model.sha256,
-                onInstalled = { file ->
-                    repository.registerModel(model, file, makeActive = false)
-                    modelManager.onModelInstalled(model)
-                    showToast("${model.displayName} is ready")
-                },
-            ),
+            getApplication(), repository.downloader, modelSpec(model),
         )
+    }
+
+    /**
+     * After a restart, a model download that a process death interrupted has a
+     * partial file on disk but no live state. Re-surface each as a paused,
+     * resumable download so the progress is not silently lost.
+     */
+    private fun restoreInterruptedDownloads() {
+        for (model in com.kamsiob.kamai.model.ModelCatalog.all) {
+            com.kamsiob.kamai.download.Downloads.restorePaused(modelSpec(model))
+        }
     }
 
     fun pauseDownload(id: String) = com.kamsiob.kamai.download.Downloads.pause(getApplication(), id)
@@ -222,6 +238,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Seeds the Workbench source, used by the share and selection integrations. */
     fun setWorkbenchInput(text: String) = viewModelScope.launch {
         repository.putSetting(KamRepository.Keys.WORKBENCH_INPUT, text)
+    }
+
+    // System-wide custom instructions (item 15).
+
+    val systemInstructionsMax: Int get() = repository.systemInstructionsMax
+
+    val userInstructions: StateFlow<String> =
+        repository.observeUserInstructions()
+            .map { it.orEmpty() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
+
+    fun saveUserInstructions(text: String) = viewModelScope.launch {
+        repository.setUserInstructions(text)
+        showToast(if (text.isBlank()) "Cleared" else "Saved")
     }
 
     /**
@@ -246,10 +276,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         showToast(if (pinned) "Pinned" else "Unpinned")
     }
 
-    fun archive(id: String) = viewModelScope.launch {
+    fun archive(id: String, onDone: () -> Unit = {}) = viewModelScope.launch {
         repository.setArchived(id, true)
         showToast("Archived")
+        onDone()
     }
+
+    /** Archiving is reversible, unlike deletion. */
+    fun unarchive(id: String) = viewModelScope.launch {
+        repository.setArchived(id, false)
+        showToast("Moved back to Chats")
+    }
+
+    /** Archived conversations, for the archived view reached from Chats. */
+    val archivedConversations: StateFlow<List<com.kamsiob.kamai.data.ConversationSummary>> =
+        repository.observeArchived()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun renameConversation(id: String, title: String) = viewModelScope.launch {
         if (title.isBlank()) return@launch
@@ -259,11 +301,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Single chat delete. Tier one, and skipped entirely if the user turned
      *  the confirmation off. Never a two-step gauntlet for one chat. */
-    fun deleteConversation(id: String, title: String?) {
+    fun deleteConversation(id: String, title: String?, onDone: () -> Unit = {}) {
         val doDelete = {
             viewModelScope.launch {
                 repository.deleteConversation(id)
                 showToast("Deleted")
+                onDone()
             }
             Unit
         }
@@ -498,18 +541,45 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (result is com.kamsiob.kamai.voice.TtsEngine.Result.Error) showToast(result.message)
     }
 
-    /** Reads an assistant message aloud with the active voice. */
-    fun speak(text: String) = viewModelScope.launch {
-        val voice = repository.activeTtsVoice() ?: return@launch
-        val file = repository.fileForTts(voice)
-        if (!file.exists()) return@launch
-        val tts = com.kamsiob.kamai.voice.Voice.tts(getApplication())
-        val result = tts.speak(voice, file, text)
-        if (result is com.kamsiob.kamai.voice.TtsEngine.Result.Error) showToast(result.message)
+    /** The message currently being read aloud, so its control shows Stop. */
+    private val _speakingMessageId = MutableStateFlow<String?>(null)
+    val speakingMessageId: StateFlow<String?> = _speakingMessageId.asStateFlow()
+    private var speakJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Reads an assistant message aloud, or stops it if it is already the one
+     * speaking, so the play control genuinely toggles. Only one thing speaks at a
+     * time: starting a new one stops whatever was playing first.
+     */
+    fun toggleSpeak(messageId: String, text: String) {
+        if (_speakingMessageId.value == messageId) {
+            stopSpeaking()
+            return
+        }
+        speakJob?.cancel()
+        com.kamsiob.kamai.voice.Voice.tts(getApplication()).stop()
+        _speakingMessageId.value = messageId
+        speakJob = viewModelScope.launch {
+            val voice = repository.activeTtsVoice()
+            val file = voice?.let { repository.fileForTts(it) }
+            if (voice == null || file == null || !file.exists()) {
+                if (_speakingMessageId.value == messageId) _speakingMessageId.value = null
+                return@launch
+            }
+            try {
+                val result = com.kamsiob.kamai.voice.Voice.tts(getApplication()).speak(voice, file, text)
+                if (result is com.kamsiob.kamai.voice.TtsEngine.Result.Error) showToast(result.message)
+            } finally {
+                // Clear only if a newer request has not already taken over.
+                if (_speakingMessageId.value == messageId) _speakingMessageId.value = null
+            }
+        }
     }
 
     fun stopSpeaking() {
+        speakJob?.cancel()
         com.kamsiob.kamai.voice.Voice.tts(getApplication()).stop()
+        _speakingMessageId.value = null
     }
 
     fun deleteArtifact(id: String, name: String? = null) {
@@ -543,6 +613,51 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             repository.deleteArtifact(id)
                             showToast("Deleted")
                         }
+                    }
+                    Unit
+                },
+            ),
+        )
+    }
+
+    /**
+     * Delete a chosen set of downloads at once. One confirmation, then each is
+     * removed the same careful way a single delete is: a model unloads and cancels
+     * any in-flight download; a voice or pack is a plain removal.
+     */
+    fun deleteArtifacts(ids: List<String>) {
+        if (ids.isEmpty()) return
+        if (ids.size == 1) {
+            val only = artifacts.value.firstOrNull { it.id == ids.first() }
+            deleteArtifact(ids.first(), only?.displayName)
+            return
+        }
+        requestConfirm(
+            ConfirmRequest(
+                tier = ConfirmTier.SINGLE,
+                title = "Delete ${ids.size} downloads?",
+                body = "They will be removed from this phone. You can download them again later.",
+                confirmLabel = "Delete ${ids.size}",
+                onConfirm = {
+                    viewModelScope.launch {
+                        for (id in ids) {
+                            val model = com.kamsiob.kamai.model.ModelCatalog.byId(id)
+                            if (model != null) {
+                                modelManager.delete(
+                                    model = model,
+                                    midDownload = downloadingModelId == id,
+                                    cancelDownload = {
+                                        downloadJob?.cancel()
+                                        downloadingModelId = null
+                                        repository.deletePartialDownload(model)
+                                    },
+                                    removeArtifact = { repository.deleteArtifact(id) },
+                                )
+                            } else {
+                                repository.deleteArtifact(id)
+                            }
+                        }
+                        showToast("Deleted ${ids.size}")
                     }
                     Unit
                 },

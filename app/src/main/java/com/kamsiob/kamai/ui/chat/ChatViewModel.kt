@@ -10,6 +10,7 @@ import com.kamsiob.kamai.data.MessageEntity
 import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.data.Role
 import com.kamsiob.kamai.llm.ChatFormat
+import com.kamsiob.kamai.llm.ConversationTitler
 import com.kamsiob.kamai.llm.InferenceEngine
 import com.kamsiob.kamai.llm.ModelManager
 import com.kamsiob.kamai.llm.MemoryExtractor
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -107,16 +109,50 @@ class ChatViewModel(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** The open conversation's title, live, so the header updates when it is set. */
+    val title: StateFlow<String?> =
+        _conversationId
+            .flatMapLatest { id ->
+                if (id == null) flowOf(null)
+                else repository.observeConversation(id).map { it?.title }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** A background titling pass for a conversation opened without a title. */
+    private var titlingJob: kotlinx.coroutines.Job? = null
+
     fun open(conversationId: String) {
         _conversationId.value = conversationId
         viewModelScope.launch {
             repository.conversation(conversationId)?.let { _mode.value = it.mode }
             _attachedName.value = repository.attachmentName(conversationId)
         }
+        // Safety net for item 17: any conversation that gained content elsewhere
+        // and never got a title (an interrupted generation, an older entry point)
+        // is titled now, through the shared path. titleIfNeeded no-ops when a
+        // title already exists, so this only generates when something is missing.
+        // It is cancelled the moment a real turn starts, so it never runs on the
+        // engine at the same time as a reply.
+        titlingJob?.cancel()
+        titlingJob = viewModelScope.launch {
+            ConversationTitler.titleIfNeeded(repository, engine, conversationId)
+        }
     }
 
     fun setMode(mode: Mode) {
+        if (mode == _mode.value) return
         _mode.value = mode
+        val convId = _conversationId.value ?: return
+        viewModelScope.launch {
+            // Persist the switch so it survives reopening, and drop a quiet marker
+            // into the transcript at the switch point, but only once the
+            // conversation has real content to mark.
+            repository.setConversationMode(convId, mode)
+            val history = repository.messages(convId)
+            if (history.any { it.role == Role.USER || it.role == Role.ASSISTANT }) {
+                repository.addMessage(convId, Role.SYSTEM, SystemPrompts.modeSwitchNotice(mode))
+            }
+        }
     }
 
     fun dismissNotice() {
@@ -127,6 +163,10 @@ class ChatViewModel(
         val trimmed = text.trim()
         if (trimmed.isEmpty() || _streaming.value) return
 
+        // Flip to working immediately, before any database write or model load,
+        // so the thinking indicator appears the instant the user taps send rather
+        // than after the model has finished loading and ingesting the prompt.
+        _streaming.value = true
         viewModelScope.launch {
             val id = _conversationId.value ?: repository.createConversation(_mode.value).also {
                 _conversationId.value = it
@@ -213,6 +253,14 @@ class ChatViewModel(
             SystemPrompts.forMode(_mode.value)
         }
 
+        // Precedence (see DECISIONS.md): the app's mode and hard rules above win
+        // and can never be overridden; then the user's system-wide instructions;
+        // then this project's instructions; then memory.
+        val userInstructions = repository.userInstructions()
+        if (userInstructions.isNotBlank()) {
+            system = SystemPrompts.withUserInstructions(system, userInstructions)
+        }
+
         conversation?.projectId?.let { projectId ->
             repository.project(projectId)?.let {
                 system = SystemPrompts.withProject(system, it.instructions)
@@ -247,7 +295,10 @@ class ChatViewModel(
         val contextSize = engine.contextSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT
         val budget = contextSize - engine.countTokens(system) - RESERVED_FOR_REPLY
 
-        val turns = history.map { PromptBuilder.Turn(it.role, it.content) }
+        // SYSTEM entries are display-only mode markers; never send them as turns.
+        val turns = history
+            .filter { it.role != Role.SYSTEM }
+            .map { PromptBuilder.Turn(it.role, it.content) }
         val fitted = PromptBuilder.fitToBudget(turns, budget.coerceAtLeast(256)) {
             PromptBuilder.roughTokenCount(it)
         }
@@ -255,16 +306,17 @@ class ChatViewModel(
         // Context overflow: warn, never silently drop. When the oldest turns no
         // longer fit, say so plainly, once per conversation, so the user knows the
         // model can no longer see the start of the thread rather than wondering
-        // why it forgot. A trailing assistant-only trim does not count.
-        val dropped = turns.size - fitted.size
-        if (dropped > 0 && conversationId != trimWarnedFor) {
+        // why it forgot. Only a genuine budget drop counts: a Discover chat's
+        // opening greeting is trimmed for structure on the very first question,
+        // and warning about that would be both false and alarming.
+        if (fitted.droppedForBudget > 0 && conversationId != trimWarnedFor) {
             trimWarnedFor = conversationId
             _notice.value = "This conversation is long enough that the earliest messages " +
                 "no longer fit in the model's memory. It can still see the recent part. " +
                 "Start a new chat for a clean slate."
         }
 
-        return PromptBuilder.build(chatFormat(), system, fitted)
+        return PromptBuilder.build(chatFormat(), system, fitted.turns)
     }
 
     /** The conversation we have already warned about context trimming for, so the
@@ -277,6 +329,8 @@ class ChatViewModel(
         repository.activeModel()?.format ?: ChatFormat.GEMMA
 
     private fun respond(conversationId: String) {
+        // A background title pass must never share the engine with a live reply.
+        titlingJob?.cancel()
         generation?.cancel()
         _streaming.value = true
 
@@ -391,35 +445,9 @@ class ChatViewModel(
      * small models into answering the instruction instead.
      */
     private suspend fun maybeTitle(conversationId: String) {
-        val conversation = repository.conversation(conversationId) ?: return
-        // A hand-set title is the user's, never overwritten. An auto title is
-        // set after the first exchange and refreshed once as the conversation
-        // grows, so it keeps up until the user makes it theirs. PART 4.
-        if (conversation.titleIsManual) return
-
-        val history = repository.messages(conversationId)
-        if (history.size < 2) return
-        val isFirstTitle = conversation.title == null
-        val isRefreshMilestone = history.size == TITLE_REFRESH_AT
-        if (!isFirstTitle && !isRefreshMilestone) return
-
-        val transcript = history.take(2).joinToString("\n\n") { message ->
-            val who = if (message.role == Role.USER) "Them" else "You"
-            "$who: ${message.content.take(TITLE_SOURCE_CHARS)}"
-        }
-
-        val prompt = PromptBuilder.oneShot(chatFormat(), SystemPrompts.TITLE_INSTRUCTION, transcript)
-        val builder = StringBuilder()
-        engine.generate(prompt, Mode.BENCH, maxTokens = TITLE_MAX_TOKENS).collect {
-            builder.append(it.text)
-        }
-
-        val title = PromptBuilder.cleanOutput(builder.toString())
-            .lineSequence().firstOrNull().orEmpty()
-            .trim().trim('"', '\'', '.')
-            .take(TITLE_MAX_CHARS)
-
-        if (title.isNotBlank()) repository.autoTitle(conversationId, title)
+        // Titling is shared across every entry point so it behaves identically
+        // wherever a conversation was created. See ConversationTitler.
+        ConversationTitler.titleIfNeeded(repository, engine, conversationId)
     }
 
     companion object {
@@ -434,10 +462,6 @@ class ChatViewModel(
         const val MEMORY_LIMIT = 12
         const val RESERVED_FOR_REPLY = 768
         const val DEFAULT_CONTEXT = 4096
-        const val TITLE_SOURCE_CHARS = 400
-        const val TITLE_MAX_TOKENS = 24
-        const val TITLE_MAX_CHARS = 60
-        const val TITLE_REFRESH_AT = 8
         const val AUTO_MEMORY_MAX_TOKENS = 60
     }
 }
