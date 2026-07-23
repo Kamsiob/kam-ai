@@ -213,10 +213,13 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
     private val _quiz = MutableStateFlow<QuizState>(QuizState.Idle)
     val quiz: StateFlow<QuizState> = _quiz.asStateFlow()
 
+    private var quizJob: kotlinx.coroutines.Job? = null
+
     /** Tapped Quiz me. If the reader was not opened for this card, prompt first. */
     fun quizMe(force: Boolean = false) {
         val m = _current.value ?: return
-        viewModelScope.launch {
+        quizJob?.cancel()
+        quizJob = viewModelScope.launch {
             if (!force && !repository.wasReaderOpened(m.packId, m.id)) {
                 _quiz.value = QuizState.NeedsReader
                 return@launch
@@ -232,7 +235,17 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun cancelQuiz() { _quiz.value = QuizState.Idle }
+    /**
+     * Stops any quiz, including one still being generated, so it never keeps
+     * running in the background and surfaces unexpectedly when the user comes back
+     * to Discover. Called on dismiss and when leaving the screen.
+     */
+    fun cancelQuiz() {
+        quizJob?.cancel()
+        quizJob = null
+        engine.requestStop()
+        _quiz.value = QuizState.Idle
+    }
 
     fun revealAnswer() {
         val s = _quiz.value as? QuizState.Asking ?: return

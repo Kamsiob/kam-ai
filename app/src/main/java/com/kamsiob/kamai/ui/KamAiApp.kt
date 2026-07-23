@@ -691,6 +691,10 @@ private fun DiscoverHost(
 
     var showPacks by remember { mutableStateOf(false) }
 
+    // Leaving Discover cancels a quiz still being made, so it never keeps running
+    // and pops up unexpectedly on return (item 5).
+    DisposableEffect(Unit) { onDispose { vm.cancelQuiz() } }
+
     LaunchedEffect(notice) { notice?.let { app.showToast(it); vm.dismissNotice() } }
 
     val openUrl: (String) -> Unit = { url ->

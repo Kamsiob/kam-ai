@@ -1,5 +1,7 @@
 package com.kamsiob.kamai.ui.discover
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -111,7 +113,13 @@ fun QuizSheet(
         ) {
             when (state) {
                 is DiscoverViewModel.QuizState.Generating -> {
-                    Text("Making a few questions...", style = KamTheme.type.body, color = colors.textSecondary)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = colors.accent,
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text("Making a few questions...", style = KamTheme.type.body, color = colors.textSecondary)
+                    }
                 }
                 is DiscoverViewModel.QuizState.Asking -> {
                     val q = state.questions[state.index]
