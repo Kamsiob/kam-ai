@@ -45,9 +45,10 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
 - [~] 5. Global: nothing processes silently; anything slow is cancellable. DONE: chat thinking
       indicator now appears the instant a message is sent, through model load and prefill (was
       keyed on the empty answer bubble that only exists after load); streaming flips synchronously
-      on send; testable `showThinkingIndicator` + unit test. REMAINING: quiz preparing state +
-      leaving-screen behaviour; full app-wide audit of every slow op for immediate feedback + a
-      real cancel path (model load, transcription, TTS, pack install, export/import, search).
+      on send; testable `showThinkingIndicator` + unit test. DONE ALSO: quiz shows a spinner while generating and is cancelled on dismiss/leaving Discover
+      (job cancelled + engine stopped) so it never surfaces unexpectedly. REMAINING: full app-wide
+      audit of every slow op for immediate feedback + a real cancel path (transcription, TTS, pack
+      install, export/import, search).
 - [x] 6. Read aloud cannot be stopped. Play now toggles to a Stop control while a response is being
       read and stops immediately when tapped; only one thing speaks at a time (starting a new read
       stops the current); a new message stops any read; nav-away already stops. `toggleSpeak` +
@@ -83,7 +84,7 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       SystemPrompts.withUserInstructions in buildPrompt at the right precedence: hard/mode rules
       (always win) > user instructions > project > memory. Test: InstructionPrecedenceTest.
       Device-verified: instruction "end every answer with PINEAPPLE" was followed.
-- [~] 16. Memory system. DONE: retrieval is now relevance (keyword+recency, prefix-matched) within a
+- [~] 16. Memory system (core done, device-verified; supersession + influence-indicator remain). DONE: retrieval is now relevance (keyword+recency, prefix-matched) within a
       context-fraction budget, not recency-only; injected near the front; auto-extraction runs as a
       batch over recent turns every few user messages (not every message), given existing facts to
       avoid repeats; dedup on a normalised form; parser strips leaked chat-template tokens (fixed junk
