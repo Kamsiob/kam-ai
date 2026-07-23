@@ -1314,6 +1314,41 @@ re-downloaded so the app is usable again.
 
 100+ unit tests pass, plus the backup and file-extraction instrumented tests.
 
+## Phase 8: release signing and hardening
+
+### The upload keystore
+
+Generated in Phase 8 as planned, into the secrets directory outside the
+repository (~/.kamsiob-secrets/kam-ai-upload.jks), a 4096-bit RSA key valid for
+10000 days, alias kam-ai-upload. Its password is in keystore.properties beside it,
+mode 600, never in git. The build reads that file by absolute path, so no signing
+material is ever committed and a machine without the file still builds debug and
+an unsigned release.
+
+SHA-256 fingerprint:
+DC:91:1A:E7:0B:47:51:DC:69:2D:61:32:8C:B7:AD:4B:89:38:87:26:D6:FE:3D:42:F0:3A:38:72:F7:2A:E7:B4
+
+This is the UPLOAD key, not the app signing key. Google Play App Signing holds the
+real signing key; this key only signs uploads. If it is ever lost, Play support
+can reset the upload key, so it is recoverable, but it must still be backed up:
+losing it means going through that reset before the next update. LAUNCH.md tells
+the owner where it is and to back it up.
+
+### R8 and the release build
+
+The release build minifies and shrinks resources. The real risk is R8 renaming
+classes that native code resolves by name, which would break every model call in
+release while debug worked fine. Keep rules were added for all three JNI bridges
+(llama.cpp, whisper.cpp, sherpa-onnx text-to-speech), for any remaining native
+methods, and for pdfbox and SQLCipher. Verified against the R8 mapping: LlamaBridge,
+WhisperBridge, and OfflineTts are identity-mapped (unrenamed), and all five native
+libraries are present in the signed APK. The signed release is 53 MB, down from the
+121 MB debug build.
+
+A full on-device run of the release build is deferred rather than done now: it
+cannot be installed over the debug build without uninstalling, which would wipe
+the model the owner is re-downloading. It will be run once that download is done.
+
 ## Deferred within completed phases
 
 ### Kokoro premium reading voice (Phase 2)

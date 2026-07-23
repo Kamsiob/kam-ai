@@ -1,9 +1,19 @@
+import java.util.Properties
+
 // AGP 9 compiles Kotlin itself. The standalone org.jetbrains.kotlin.android
 // plugin is not applied here, and applying it is now an error. See DECISIONS.md.
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+}
+
+// The upload keystore lives outside the repository, in the secrets directory, so
+// no signing material is ever committed. A machine without it still builds debug
+// and an unsigned release; only signing a release for distribution needs it.
+val keystorePropsFile = file("${System.getProperty("user.home")}/.kamsiob-secrets/keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
 
 android {
@@ -51,6 +61,17 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            if (keystoreProps.isNotEmpty()) {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ""
@@ -63,6 +84,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Signed only when the upload keystore is present.
+            if (keystoreProps.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
