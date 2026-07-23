@@ -321,6 +321,19 @@ private fun ConversationScreen(app: AppViewModel, conversationId: String, startM
         },
         onRegenerate = chat::regenerate,
         onReport = { message -> reportResponse(context, message.content, app) },
+        onShareResponse = { message -> Share.text(context, message.content) },
+        onShareThread = {
+            Share.text(context, Share.renderThread(null, messages))
+        },
+        onExportThread = { asMarkdown ->
+            Share.exportThread(context, messages.firstOrNull()?.content?.take(40), messages, asMarkdown)
+        },
+        onShareText = { text -> Share.text(context, text) },
+        onFollowUpSelection = { message, text ->
+            // The selected excerpt becomes the follow-up content, linked back to
+            // the full source response. PART 5.
+            app.flag(text, mode, chat.conversationId.value, message.id)
+        },
         onPlay = { },
         onEdit = chat::editAndResend,
         onDismissNotice = chat::dismissNotice,

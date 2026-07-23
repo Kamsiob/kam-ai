@@ -611,6 +611,41 @@ Pinned section header and flattens to a single selectable list, so the
 select-all count and the visible rows always agree, rather than select-all
 counting rows that a collapsed Pinned section was hiding.
 
+## Combined update, part 6: follow-up density, selection, and sharing (PARTS 5 and 5B)
+
+Follow-ups are compact now, in the Chats-list style: each card is a short title
+plus the flagged snippet truncated after about two lines, not the whole
+conversation, so the screen stops consuming enormous vertical space. Tapping
+still opens the full source. A single follow-up removes with a light swipe and a
+toast, no dialog, since a bookmark is the least destructive thing in the app and
+cheap to recreate; clearing several is tier two.
+
+Follow up on a whole response, or on a selection. The bookmark under a response
+still flags the whole thing. Now, selecting any part of a response surfaces the
+app's own menu for exactly that excerpt: copy, follow up, and share. The excerpt
+becomes the follow-up content, linked back to the full source response.
+
+The interaction, resolved cleanly. Rather than fight the system text-selection
+popup, the app replaces the floating menu for a response's text with a small
+themed one carrying the three actions, while leaving the selection handles and
+drag exactly as the platform provides them. The selected text is captured by
+having each action first run the platform copy, which puts the selection on the
+clipboard, then reading it back, so the menu never needs to reach inside the
+selection internals. Text selection therefore cannot trigger the whole-response
+bookmark or a mode switch, and copy, follow up, and share all feel like one
+gesture on whatever was highlighted.
+
+Sharing at three granularities, all through the native Android share sheet, none
+routed through a backend. A whole thread shares as clean attributed text and can
+also export to a .txt or .md file the user saves or sends, delivered through a
+FileProvider so the file leaves only via the share sheet. A whole response
+shares with one icon in its action row, sitting cleanly beside copy, bookmark
+and the overflow. A selected portion shares through the same selection menu.
+
+Tests: 74 unit including the thread render (attributed, readable, trimmed, and a
+heading even when untitled), plus the on-device suites. The share-sheet handoff
+itself is a system intent and is exercised by hand.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

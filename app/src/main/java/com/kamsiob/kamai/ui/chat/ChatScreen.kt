@@ -41,6 +41,8 @@ import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
@@ -92,6 +94,11 @@ fun ChatScreen(
     onFlag: (MessageEntity) -> Unit,
     onRegenerate: () -> Unit,
     onReport: (MessageEntity) -> Unit,
+    onShareResponse: (MessageEntity) -> Unit,
+    onShareThread: () -> Unit,
+    onExportThread: (Boolean) -> Unit,
+    onShareText: (String) -> Unit,
+    onFollowUpSelection: (MessageEntity, String) -> Unit,
     onPlay: (MessageEntity) -> Unit,
     onEdit: (MessageEntity, String) -> Unit,
     onDismissNotice: () -> Unit,
@@ -141,6 +148,11 @@ fun ChatScreen(
                             onFlag = { onFlag(message) },
                             onRegenerate = onRegenerate,
                             onReport = { onReport(message) },
+                            onShareResponse = { onShareResponse(message) },
+                            onShareThread = onShareThread,
+                            onExportThread = onExportThread,
+                            onShareText = onShareText,
+                            onFollowUpSelection = { text -> onFollowUpSelection(message, text) },
                             onPlay = { onPlay(message) },
                             onEdit = { onEdit(message, it) },
                         )
@@ -250,6 +262,11 @@ private fun MessageRow(
     onFlag: () -> Unit,
     onRegenerate: () -> Unit,
     onReport: () -> Unit,
+    onShareResponse: () -> Unit,
+    onShareThread: () -> Unit,
+    onExportThread: (Boolean) -> Unit,
+    onShareText: (String) -> Unit,
+    onFollowUpSelection: (String) -> Unit,
     onPlay: () -> Unit,
     onEdit: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -308,11 +325,27 @@ private fun MessageRow(
                         .clickable(enabled = message.role == Role.USER) { editing = true }
                         .padding(14.dp),
                 ) {
-                    Text(
-                        message.content,
-                        style = KamTheme.type.body,
-                        color = if (message.role == Role.USER) colors.tonalText else colors.textPrimary,
-                    )
+                    if (message.role == Role.ASSISTANT) {
+                        // Selecting any part of a response offers copy, follow up,
+                        // and share for exactly that excerpt. PART 5 and 5B.
+                        com.kamsiob.kamai.ui.components.SelectionActions(
+                            onCopy = { }, // the platform copy already ran
+                            onFollowUp = { if (it.isNotBlank()) onFollowUpSelection(it) },
+                            onShare = { if (it.isNotBlank()) onShareText(it) },
+                        ) {
+                            Text(
+                                message.content,
+                                style = KamTheme.type.body,
+                                color = colors.textPrimary,
+                            )
+                        }
+                    } else {
+                        Text(
+                            message.content,
+                            style = KamTheme.type.body,
+                            color = colors.tonalText,
+                        )
+                    }
                 }
             }
 
@@ -337,6 +370,9 @@ private fun MessageRow(
                     onFlag = onFlag,
                     onRegenerate = onRegenerate,
                     onReport = onReport,
+                    onShareResponse = onShareResponse,
+                    onShareThread = onShareThread,
+                    onExportThread = onExportThread,
                     onPlay = onPlay,
                 )
             }
@@ -406,6 +442,9 @@ private fun ActionRow(
     onFlag: () -> Unit,
     onRegenerate: () -> Unit,
     onReport: () -> Unit,
+    onShareResponse: () -> Unit,
+    onShareThread: () -> Unit,
+    onExportThread: (Boolean) -> Unit,
     onPlay: () -> Unit,
 ) {
     val colors = KamTheme.colors
@@ -449,6 +488,12 @@ private fun ActionRow(
             onClick = { clipboard.setText(AnnotatedString(text)) },
             tint = colors.textTertiary,
         )
+        IconAction(
+            icon = Icons.Rounded.Share,
+            description = "Share this response",
+            onClick = onShareResponse,
+            tint = colors.textTertiary,
+        )
         // Play is hidden entirely when no voice is installed, rather than shown
         // as a button that does nothing.
         if (ttsAvailable) {
@@ -479,6 +524,16 @@ private fun ActionRow(
                 onDismissRequest = { overflowOpen = false },
                 containerColor = colors.surface,
             ) {
+                listOf(
+                    "Share whole thread" to onShareThread,
+                    "Export thread as text" to { onExportThread(false) },
+                    "Export thread as Markdown" to { onExportThread(true) },
+                ).forEach { (label, action) ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(label, style = KamTheme.type.body, color = colors.textPrimary) },
+                        onClick = { overflowOpen = false; action() },
+                    )
+                }
                 androidx.compose.material3.DropdownMenuItem(
                     text = {
                         Text(

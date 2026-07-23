@@ -258,13 +258,24 @@ private fun FollowUpCard(
             Checkbox(checked = completed, onToggle = onToggle)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
+                // Compact: a short title plus the flagged snippet truncated after
+                // about two lines, not the whole conversation. PART 5.
+                Text(
+                    item.snippet.lineSequence().firstOrNull()?.take(60).orEmpty()
+                        .ifBlank { "Flagged note" },
+                    style = KamTheme.type.cardTitle,
+                    color = if (completed) colors.textTertiary else colors.textPrimary,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    textDecoration = if (completed) TextDecoration.LineThrough else null,
+                )
+                Spacer(Modifier.height(4.dp))
                 Text(
                     item.snippet,
                     style = KamTheme.type.body,
-                    color = if (completed) colors.textTertiary else colors.textPrimary,
-                    // The strike must cover every wrapped line, not just the
-                    // first, which is what a text decoration does and what
-                    // drawing a single line across the card would not.
+                    color = if (completed) colors.textTertiary else colors.textSecondary,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     textDecoration = if (completed) TextDecoration.LineThrough else null,
                 )
                 Spacer(Modifier.height(8.dp))

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Exported conversation files live in cache/exports and are shared out
+         through the system share sheet only. -->
+    <cache-path name="exports" path="exports/" />
+</paths>
