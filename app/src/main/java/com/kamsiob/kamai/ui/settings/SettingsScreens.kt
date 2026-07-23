@@ -85,6 +85,8 @@ fun SettingsScreen(
     onDeleteEverything: () -> Unit,
     confirmChatDelete: Boolean,
     onConfirmChatDelete: (Boolean) -> Unit,
+    appLockEnabled: Boolean,
+    onAppLock: () -> Unit,
     onReplayOnboarding: () -> Unit,
     onAppearance: () -> Unit,
     onSafety: () -> Unit,
@@ -138,6 +140,11 @@ fun SettingsScreen(
             if (backupAvailable) {
                 SettingsRow(title = "Backup and restore", onClick = onBackup)
             }
+            SettingsRow(
+                title = "App lock",
+                subtitle = if (appLockEnabled) "On" else "Off",
+                onClick = onAppLock,
+            )
             SettingsToggleRow(
                 title = "Confirm before deleting a chat",
                 subtitle = "Off means a single tap deletes it",

@@ -134,6 +134,7 @@ dependencies {
     implementation(libs.androidx.sqlite)
     implementation(libs.androidx.sqlite.ktx)
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.fragment)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

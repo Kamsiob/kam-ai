@@ -60,6 +60,11 @@ import com.kamsiob.kamai.ui.settings.LicensesScreen
 import com.kamsiob.kamai.ui.settings.MemoryScreen
 import com.kamsiob.kamai.ui.settings.ModelScreen
 import com.kamsiob.kamai.ui.settings.QuestionsScreen
+import com.kamsiob.kamai.lock.AppLock
+import com.kamsiob.kamai.lock.Biometric
+import com.kamsiob.kamai.lock.LockSettingsScreen
+import com.kamsiob.kamai.data.DatabaseKey
+import com.kamsiob.kamai.data.KamDatabase
 import com.kamsiob.kamai.ui.settings.AppearanceScreen
 import com.kamsiob.kamai.ui.settings.RoadmapScreen
 import com.kamsiob.kamai.ui.settings.SafetyScreen
@@ -84,6 +89,7 @@ private sealed interface Pushed {
     data object Licenses : Pushed
     data object Appearance : Pushed
     data object Safety : Pushed
+    data object AppLock : Pushed
     data class Conversation(val id: String) : Pushed
 }
 
@@ -197,6 +203,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.Licenses -> LicensesScreen(models = app.tiers)
                     Pushed.Appearance -> AppearanceHost(app)
                     Pushed.Safety -> SafetyScreen()
+                    Pushed.AppLock -> LockSettingsHost(app)
                 }
             }
 
@@ -375,6 +382,8 @@ private fun SettingsHost(
         onDeleteEverything = { app.requestDeleteEverything(includeDownloads = false) },
         confirmChatDelete = confirmChatDelete,
         onConfirmChatDelete = app::setConfirmChatDelete,
+        appLockEnabled = com.kamsiob.kamai.lock.AppLock.enabled,
+        onAppLock = { stack.add(Pushed.AppLock) },
         onReplayOnboarding = app::replayOnboarding,
         onAppearance = { stack.add(Pushed.Appearance) },
         onSafety = { stack.add(Pushed.Safety) },
@@ -386,6 +395,36 @@ private fun SettingsHost(
             // The support button also closes the Settings page.
             stack.clear()
         },
+    )
+}
+
+@Composable
+private fun LockSettingsHost(app: AppViewModel) {
+    val activity = LocalContext.current as androidx.fragment.app.FragmentActivity
+    LockSettingsScreen(
+        enabled = AppLock.enabled,
+        mode = AppLock.mode,
+        biometricEnabled = AppLock.biometricEnabled,
+        biometricAvailable = Biometric.canAuthenticate(activity),
+        onEnableDevice = {
+            AppLock.enable(AppLock.Mode.DEVICE, null)
+            app.showToast("App lock is on")
+        },
+        onEnablePassphrase = { secret ->
+            // Add the passphrase layer to the key file so the data itself is
+            // gated, then hold the passphrase for this session.
+            DatabaseKey.rewrap(activity, currentSecret = null, newSecret = secret)
+            AppLock.enable(AppLock.Mode.PASSPHRASE, secret)
+            app.showToast("App lock is on")
+        },
+        onDisable = {
+            if (AppLock.mode == AppLock.Mode.PASSPHRASE) {
+                DatabaseKey.rewrap(activity, currentSecret = AppLock.sessionSecret, newSecret = null)
+            }
+            AppLock.disable()
+            app.showToast("App lock is off")
+        },
+        onBiometricToggle = { AppLock.chooseBiometricEnabled(it) },
     )
 }
 

@@ -9,7 +9,10 @@ import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
 
 /**
  * Holds the passphrase that encrypts the SQLCipher database. PART 3.
@@ -37,17 +40,93 @@ object DatabaseKey {
     /**
      * The database passphrase, creating and wrapping a new one on first call.
      * Returns the same bytes on every later call for the life of the install.
+     *
+     * @param userSecret set only when the separate-passphrase app lock is on. In
+     *   that mode the wrapped passphrase is additionally encrypted with a key
+     *   derived from what the user typed, so the database genuinely cannot be
+     *   opened without it, not even by unwrapping the Keystore layer. That is
+     *   what makes the separate-passphrase lock stronger, and what makes a
+     *   forgotten passphrase unrecoverable: the data stays encrypted, and the
+     *   only way forward is the wipe.
      */
     @Synchronized
-    fun getOrCreate(context: Context): ByteArray {
+    fun getOrCreate(context: Context, userSecret: CharArray? = null): ByteArray {
         val file = File(context.filesDir, WRAPPED_FILE)
         return if (file.exists()) {
-            unwrap(file.readBytes())
+            unwrap(peelUserLayer(file.readBytes(), userSecret))
         } else {
             val passphrase = ByteArray(PASSPHRASE_BYTES).also { SecureRandom().nextBytes(it) }
-            file.writeBytes(wrap(passphrase))
+            file.writeBytes(applyUserLayer(wrap(passphrase), userSecret))
             passphrase
         }
+    }
+
+    /**
+     * Re-wraps the stored passphrase so that [newSecret] is required to open it
+     * (or none, when the passphrase lock is turned off). Used when the user
+     * sets, changes, or removes a separate-passphrase lock, so the change takes
+     * effect without ever re-encrypting the whole database.
+     */
+    @Synchronized
+    fun rewrap(context: Context, currentSecret: CharArray?, newSecret: CharArray?) {
+        val file = File(context.filesDir, WRAPPED_FILE)
+        val keystoreWrapped = peelUserLayer(file.readBytes(), currentSecret)
+        file.writeBytes(applyUserLayer(keystoreWrapped, newSecret))
+    }
+
+    /** True when the stored key carries a user-passphrase layer. */
+    fun hasUserLayer(context: Context): Boolean {
+        val file = File(context.filesDir, WRAPPED_FILE)
+        if (!file.exists()) return false
+        return file.readBytes().firstOrNull() == USER_LAYER_MARKER
+    }
+
+    // The passphrase layer is a PBKDF2-derived AES-GCM wrap around the
+    // Keystore-wrapped bytes. A one-byte marker records whether it is present.
+    private const val NO_USER_LAYER_MARKER: Byte = 0
+    private const val USER_LAYER_MARKER: Byte = 1
+    private const val PBKDF2_ITERATIONS = 200_000
+    private const val SALT_BYTES = 16
+
+    private fun applyUserLayer(keystoreWrapped: ByteArray, secret: CharArray?): ByteArray {
+        if (secret == null) return byteArrayOf(NO_USER_LAYER_MARKER) + keystoreWrapped
+        val salt = ByteArray(SALT_BYTES).also { SecureRandom().nextBytes(it) }
+        val key = deriveKey(secret, salt)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, key)
+        val iv = cipher.iv
+        val ct = cipher.doFinal(keystoreWrapped)
+        return byteArrayOf(USER_LAYER_MARKER, salt.size.toByte()) + salt +
+            byteArrayOf(iv.size.toByte()) + iv + ct
+    }
+
+    private fun peelUserLayer(blob: ByteArray, secret: CharArray?): ByteArray {
+        return when (blob[0]) {
+            NO_USER_LAYER_MARKER -> blob.copyOfRange(1, blob.size)
+            USER_LAYER_MARKER -> {
+                requireNotNull(secret) { "this database is passphrase locked" }
+                var i = 1
+                val saltLen = blob[i++].toInt()
+                val salt = blob.copyOfRange(i, i + saltLen); i += saltLen
+                val ivLen = blob[i++].toInt()
+                val iv = blob.copyOfRange(i, i + ivLen); i += ivLen
+                val ct = blob.copyOfRange(i, blob.size)
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                cipher.init(Cipher.DECRYPT_MODE, deriveKey(secret, salt), GCMParameterSpec(GCM_TAG_BITS, iv))
+                cipher.doFinal(ct)
+            }
+            // A key file written before the marker existed is the raw
+            // Keystore-wrapped bytes, which begin with the IV length, never 0 or
+            // 1. Treat it as a plain, no-user-layer key.
+            else -> blob
+        }
+    }
+
+    private fun deriveKey(secret: CharArray, salt: ByteArray): SecretKey {
+        val spec = PBEKeySpec(secret, salt, PBKDF2_ITERATIONS, 256)
+        val bytes = SecretKeyFactory.getInstance("PBKDF2withHmacSHA256")
+            .generateSecret(spec).encoded
+        return SecretKeySpec(bytes, "AES")
     }
 
     /** True once a wrapped passphrase exists, i.e. the DB has been keyed. */

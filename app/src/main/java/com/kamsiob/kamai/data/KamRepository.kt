@@ -283,5 +283,10 @@ class KamRepository(
                     KamDatabase.get(context),
                 ).also { instance = it }
             }
+
+        /** Drops the cached repository so it is rebuilt against a fresh database
+         *  after a forgot-code wipe. */
+        @Synchronized
+        fun forgetInstance() { instance = null }
     }
 }

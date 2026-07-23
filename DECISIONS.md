@@ -489,6 +489,78 @@ permanently unopenable, and a fresh passphrase is minted next launch.
 Still to come in PART 3: the encrypted backup file, the optional app lock across
 every entry point, and the forgot-code wipe-and-restart flow.
 
+## Combined update, part 3b: the optional app lock (PART 3)
+
+An optional lock on Kam AI itself, separate from the phone's lock, off by
+default. Two honestly-labelled strengths, and the tradeoff is spelled out at the
+moment of choosing rather than buried.
+
+- Device mode is backed by the phone's own credential through the system
+  biometric prompt: fingerprint, face, or the phone PIN or pattern. It is
+  recoverable, because the device credential always works, and it is the simpler
+  choice. It is a gate on the app on top of the always-on at-rest encryption. It
+  is honestly the slightly weaker option against someone who already knows the
+  phone code, and it is labelled as such.
+
+- Passphrase mode is a separate passphrase known only for Kam AI, and it is
+  genuinely stronger because it gates the database key itself, not just the UI.
+  The key file gains a PBKDF2-derived AES-GCM layer over the Keystore-wrapped
+  bytes, so without the passphrase the database cannot be opened at all, not even
+  by someone with the phone unlocked and its code. No passphrase is ever stored:
+  the proof it is right is that it unwraps the key. That is what makes a
+  forgotten passphrase genuinely unrecoverable.
+
+The security model, stated plainly. At-rest encryption (part 3a) protects a
+database file copied off the device. The app lock protects against someone
+holding the unlocked phone. Device mode is a UI gate plus that at-rest
+encryption; passphrase mode additionally locks the key, which is the honest
+difference between "slightly weaker but recoverable" and "stronger but
+unrecoverable" that the two labels promise.
+
+Forgot-code recovery. Nobody is permanently locked out of a usable app. The lock
+screen has a plain, non-nagging "Forgot your passphrase?" path that runs the
+tier-two confirmation with a typed word ("erase"). It is honest about what it
+does: it does not recover or reveal the old data, which would defeat the point;
+it destroys the key so the encrypted data becomes permanently unopenable, clears
+the database, turns the lock off, and leaves a working fresh app. A backup, if
+they have one, is the only way back.
+
+Timeout. A session stays unlocked for two minutes in the background by default,
+so a person is not re-authenticating constantly within one sitting, and re-locks
+once that passes, dropping the passphrase from memory when it does.
+
+Architecture. The whole app, including the database, is gated behind the lock in
+KamRoot at the very top. When locked, nothing that can read or add data renders,
+and in passphrase mode the database is not even opened until the passphrase is
+supplied. MainActivity became a FragmentActivity so the biometric prompt can
+attach to it, and drives the timeout from its start and stop lifecycle.
+
+Verified: 6 instrumented tests on the passphrase layer (wrong passphrase fails,
+a locked key cannot open with no passphrase, rewrap round-trips, destroy is
+permanent and irreversible), 7 unit tests on the lock state machine (off by
+default, a brief background trip does not re-lock, crossing the timeout does and
+drops the secret), and the app launches cleanly as a FragmentActivity.
+
+Two honest limits recorded. The biometric device-mode prompt cannot be automated
+(there is no way to supply a fingerprint over ADB), so its final visual pass is
+owner-verifiable; the logic it gates is tested. Biometric convenience in
+passphrase mode (unlocking the strong lock with a fingerprint) would mean storing
+the passphrase under a biometric-bound Keystore key; for now the strong mode is
+passphrase-only, which is the simplest honest form of "unrecoverable", and the
+convenience can be added later without changing the model.
+
+### Deferred within PART 3, by the phase-order rule
+
+The encrypted backup file is part of Backup and restore, which is master-spec
+Phase 7. Per the instruction to integrate later-phase features into their phase
+rather than build them early, the backup will be encrypted when it is built in
+Phase 7; the passphrase-unrecoverable warning and graceful wrong-passphrase
+handling are noted as Phase 7 requirements. The app lock gating of the other
+entry points (the assistant overlay in Phase 4, and the widget, tile, share
+target and text-selection hook in Phase 6) integrates into those phases as each
+surface is built; the gating mechanism (AppLock.locked and KamRoot) is in place
+for them to reuse.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

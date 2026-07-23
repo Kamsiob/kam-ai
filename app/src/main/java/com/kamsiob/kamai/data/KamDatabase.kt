@@ -66,13 +66,28 @@ abstract class KamDatabase : RoomDatabase() {
                 instance ?: build(context.applicationContext).also { instance = it }
             }
 
+        /** Closes and forgets the open database, so the next get() reopens it.
+         *  Used by the forgot-code wipe before the files are deleted, and by the
+         *  repository when a lock change means the key must be re-derived. */
+        @Synchronized
+        fun closeAndForget() {
+            runCatching { instance?.close() }
+            instance = null
+        }
+
         private fun build(context: Context): KamDatabase {
             // PART 3. The database is encrypted at rest with SQLCipher, keyed
             // from the Android Keystore. On the first launch after this shipped,
             // any existing plaintext database is migrated across first, safely
             // and restartably. See DatabaseEncryption and DatabaseKey.
             val dbFile = context.getDatabasePath(NAME)
-            val passphrase = DatabaseKey.getOrCreate(context)
+            // In separate-passphrase lock mode the key file carries a passphrase
+            // layer, so the passphrase the user just entered (held in memory for
+            // this unlocked session) is needed to unwrap it. In every other mode
+            // this is null and the Keystore layer is enough. The app is gated so
+            // this is only ever reached once the lock, if any, is satisfied.
+            val secret = com.kamsiob.kamai.lock.AppLock.sessionSecret
+            val passphrase = DatabaseKey.getOrCreate(context, secret)
             val factory = DatabaseEncryption.openHelperFactory(context, dbFile, passphrase)
             return Room.databaseBuilder(context, KamDatabase::class.java, NAME)
                 .openHelperFactory(factory)
