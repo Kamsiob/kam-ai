@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Kam AI</string>
+    <string name="widget_description">Jump into a new chat or talk to Kam AI.</string>
 </resources>

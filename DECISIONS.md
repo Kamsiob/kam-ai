@@ -1205,6 +1205,28 @@ local CrashLog, which confirmed that path works too.
 
 100 unit tests pass.
 
+## Phase 6: System integrations
+
+Four ways into Kam AI from the rest of the phone, all with zero added permissions.
+
+- Text selection "Ask Kam AI" (ACTION_PROCESS_TEXT) and the share sheet
+  (ACTION_SEND, text/plain) both land in one lightweight TextIntakeActivity: a
+  bottom sheet showing the incoming text with two actions, Ask about this (opens a
+  new chat with the text prefilled in the composer) and Rework in Workbench (opens
+  the Workbench with the text as its source). Verified on device by simulating
+  both intents: PROCESS_TEXT prefilled the composer, SEND prefilled the Workbench.
+- A home-screen widget (KamWidgetProvider) with New chat and Talk to it, and a
+  quick-settings tile (KamTileService), both launching the app with an action
+  extra that opens a fresh chat. Verified the launch path opens a new chat.
+
+The plumbing is a process-level Intake holder the app observes once it is on
+screen, the same pattern as the assistant handoff, so it passes cleanly through
+the app lock. Nothing about the text ever leaves the phone. There is deliberately
+no in-app messaging; anything contact-adjacent would hand off to the native
+Messages app, and nothing here does otherwise.
+
+100 unit tests pass.
+
 ## Deferred within completed phases
 
 ### Kokoro premium reading voice (Phase 2)

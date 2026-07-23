@@ -26,6 +26,7 @@ class MainActivity : FragmentActivity() {
         // flash of the wrong theme and a locked app is gated from the start.
         Appearance.init(this)
         AppLock.init(this)
+        handleActionExtra(intent)
         super.onCreate(savedInstanceState)
 
         setContent {
@@ -33,6 +34,25 @@ class MainActivity : FragmentActivity() {
                 KamRoot(this)
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleActionExtra(intent)
+    }
+
+    /** The widget and quick-settings tile launch with an action extra. */
+    private fun handleActionExtra(intent: android.content.Intent?) {
+        when (intent?.getStringExtra(EXTRA_ACTION)) {
+            ACTION_NEW_CHAT, ACTION_VOICE -> com.kamsiob.kamai.integrations.Intake.requestNewChat()
+        }
+    }
+
+    companion object {
+        const val EXTRA_ACTION = "kam_action"
+        const val ACTION_NEW_CHAT = "new_chat"
+        const val ACTION_VOICE = "voice"
     }
 
     override fun onStop() {

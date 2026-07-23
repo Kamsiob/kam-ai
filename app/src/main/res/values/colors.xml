@@ -5,4 +5,8 @@
     <color name="window_background">#F6F4EC</color>
     <color name="splash_background">#F6F4EC</color>
     <color name="icon_background">#F6F4EC</color>
+    <color name="widget_accent">#2E7A52</color>
+    <color name="widget_on_accent">#F2FBF4</color>
+    <color name="widget_surface">#FFFFFF</color>
+    <color name="widget_text">#1A1C1A</color>
 </resources>

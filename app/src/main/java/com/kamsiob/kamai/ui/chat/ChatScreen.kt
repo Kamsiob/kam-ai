@@ -104,6 +104,7 @@ fun ChatScreen(
     onPlay: (MessageEntity) -> Unit,
     onEdit: (MessageEntity, String) -> Unit,
     onDismissNotice: () -> Unit,
+    initialComposerText: String? = null,
     voiceAvailable: Boolean = false,
     recording: Boolean = false,
     transcribing: Boolean = false,
@@ -181,6 +182,7 @@ fun ChatScreen(
             streaming = streaming,
             onSend = onSend,
             onStop = onStop,
+            initialText = initialComposerText,
             voiceAvailable = voiceAvailable,
             recording = recording,
             transcribing = transcribing,
@@ -626,6 +628,7 @@ private fun Composer(
     streaming: Boolean,
     onSend: (String) -> Unit,
     onStop: () -> Unit,
+    initialText: String? = null,
     voiceAvailable: Boolean = false,
     recording: Boolean = false,
     transcribing: Boolean = false,
@@ -634,7 +637,7 @@ private fun Composer(
     onMicStop: () -> Unit = {},
 ) {
     val colors = KamTheme.colors
-    var value by remember { mutableStateOf("") }
+    var value by remember { mutableStateOf(initialText.orEmpty()) }
 
     // Transcribed text lands in the field, appended to whatever is already there.
     LaunchedEffect(transcribed) {

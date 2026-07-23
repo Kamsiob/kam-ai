@@ -213,6 +213,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _download.value = null
     }
 
+    /** Seeds the Workbench source, used by the share and selection integrations. */
+    fun setWorkbenchInput(text: String) = viewModelScope.launch {
+        repository.putSetting(KamRepository.Keys.WORKBENCH_INPUT, text)
+    }
+
     // Conversations
 
     fun setPinned(id: String, pinned: Boolean) = viewModelScope.launch {

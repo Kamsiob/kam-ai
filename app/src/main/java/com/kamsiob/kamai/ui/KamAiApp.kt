@@ -96,7 +96,11 @@ private sealed interface Pushed {
     data object Appearance : Pushed
     data object Safety : Pushed
     data object AppLock : Pushed
-    data class Conversation(val id: String, val startMode: Mode? = null) : Pushed
+    data class Conversation(
+        val id: String,
+        val startMode: Mode? = null,
+        val initialText: String? = null,
+    ) : Pushed
 }
 
 @Composable
@@ -134,6 +138,33 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
         tab = NavItem.CHATS
         stack.clear()
         stack.add(Pushed.Conversation(id))
+    }
+
+    // System integrations: text arriving from the selection menu or share sheet,
+    // and bare new-chat / voice requests from the widget and tile.
+    val intake by com.kamsiob.kamai.integrations.Intake.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(intake) {
+        val req = intake ?: return@LaunchedEffect
+        com.kamsiob.kamai.integrations.Intake.consume()
+        stack.clear()
+        when (req.target) {
+            com.kamsiob.kamai.integrations.Intake.Target.CHAT -> {
+                tab = NavItem.CHATS
+                stack.add(Pushed.Conversation(NEW_CONVERSATION, Mode.CHAT, initialText = req.text))
+            }
+            com.kamsiob.kamai.integrations.Intake.Target.WORKBENCH -> {
+                app.setWorkbenchInput(req.text)
+                stack.add(Pushed.Workbench)
+            }
+        }
+    }
+    val newChatReq by com.kamsiob.kamai.integrations.Intake.newChat.collectAsStateWithLifecycle()
+    LaunchedEffect(newChatReq) {
+        if (!newChatReq) return@LaunchedEffect
+        com.kamsiob.kamai.integrations.Intake.consumeNewChat()
+        tab = NavItem.CHATS
+        stack.clear()
+        stack.add(Pushed.Conversation(NEW_CONVERSATION, Mode.CHAT))
     }
 
     if (!ready) {
@@ -209,7 +240,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
             ) { pushed ->
                 when (pushed) {
                     null -> TabContent(app, tab, stack)
-                    is Pushed.Conversation -> ConversationScreen(app, pushed.id, pushed.startMode)
+                    is Pushed.Conversation -> ConversationScreen(app, pushed.id, pushed.startMode, pushed.initialText)
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
                     Pushed.Voice -> VoiceHost(app)
@@ -303,7 +334,12 @@ private fun TabContent(
 }
 
 @Composable
-private fun ConversationScreen(app: AppViewModel, conversationId: String, startMode: Mode? = null) {
+private fun ConversationScreen(
+    app: AppViewModel,
+    conversationId: String,
+    startMode: Mode? = null,
+    initialText: String? = null,
+) {
     val context = LocalContext.current
     val chat: ChatViewModel = viewModel(
         key = "chat-$conversationId",
@@ -348,6 +384,7 @@ private fun ConversationScreen(app: AppViewModel, conversationId: String, startM
     }
 
     ChatScreen(
+        initialComposerText = initialText,
         voiceAvailable = voiceAvailable,
         recording = recording,
         transcribing = transcribing,
