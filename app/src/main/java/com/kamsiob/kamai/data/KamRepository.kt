@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import java.io.File
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -235,6 +236,127 @@ class KamRepository(
         File(voiceDir(), voice.fileName + ".part").delete()
     }
 
+    // Discover: content packs and moments.
+
+    fun packsDir(): File = downloader.directoryFor("packs")
+
+    /**
+     * Fetches the pack manifest from the GitHub release. Returns the available
+     * packs, or an empty list if offline or the manifest cannot be read. Installed
+     * packs still work offline; the manifest is only needed to discover and get
+     * new ones.
+     */
+    suspend fun fetchDiscoverManifest(): List<com.kamsiob.kamai.discover.PackInfo> =
+        withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val req = okhttp3.Request.Builder().url(DISCOVER_MANIFEST_URL).build()
+                downloader.httpClient.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) return@use emptyList()
+                    val body = resp.body?.string() ?: return@use emptyList()
+                    val root = org.json.JSONObject(body)
+                    val arr = root.getJSONArray("packs")
+                    (0 until arr.length()).map { i ->
+                        val o = arr.getJSONObject(i)
+                        com.kamsiob.kamai.discover.PackInfo(
+                            id = o.getString("id"),
+                            name = o.getString("name"),
+                            description = o.getString("description"),
+                            moments = o.getInt("moments"),
+                            sizeBytes = o.getLong("sizeBytes"),
+                            version = o.getInt("version"),
+                            fileName = o.getString("fileName"),
+                            downloadUrl = o.getString("downloadUrl"),
+                            sha256 = o.getString("sha256"),
+                        )
+                    }
+                }
+            }.getOrDefault(emptyList())
+        }
+
+    fun fileForPack(fileName: String): File = File(packsDir(), fileName)
+
+    fun observePackArtifacts(): Flow<List<ArtifactEntity>> =
+        db.artifacts().observeByKind(ArtifactKind.PACK)
+
+    suspend fun installedPackIds(): List<String> =
+        db.artifacts().observeByKind(ArtifactKind.PACK).firstOrNull().orEmpty().map { it.id }
+
+    suspend fun installedPackFileNames(): Map<String, String> =
+        db.artifacts().observeByKind(ArtifactKind.PACK).firstOrNull().orEmpty()
+            .associate { it.id to it.fileName }
+
+    suspend fun registerPack(pack: com.kamsiob.kamai.discover.PackInfo, file: File) {
+        db.artifacts().upsert(
+            ArtifactEntity(
+                id = pack.id,
+                kind = ArtifactKind.PACK,
+                displayName = pack.name,
+                fileName = file.name,
+                sizeBytes = file.length(),
+                sha256 = pack.sha256,
+                version = pack.version.toString(),
+                installedAt = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    fun deletePartialPackDownload(fileName: String) {
+        File(packsDir(), "$fileName.part").delete()
+    }
+
+    /**
+     * Deals a moment the user has not seen, drawn at random across the installed
+     * packs (or one pack if [onlyPackId] is set). Returns null only when every
+     * moment in scope has been seen, which the UI turns into a reshuffle offer.
+     */
+    suspend fun dealMoment(onlyPackId: String? = null): com.kamsiob.kamai.discover.Moment? {
+        val installed = db.artifacts().observeByKind(ArtifactKind.PACK).firstOrNull().orEmpty()
+            .filter { onlyPackId == null || it.id == onlyPackId }
+        val pool = mutableListOf<Pair<String, String>>() // packId to momentId
+        for (artifact in installed) {
+            val file = File(packsDir(), artifact.fileName)
+            if (!file.exists()) continue
+            val drawn = db.discover().drawnIds(artifact.id).toSet()
+            for (id in com.kamsiob.kamai.discover.PackReader.allIds(file)) {
+                if (id !in drawn) pool.add(artifact.id to id)
+            }
+        }
+        if (pool.isEmpty()) return null
+        val (packId, momentId) = pool[kotlin.random.Random.nextInt(pool.size)]
+        val fileName = installed.first { it.id == packId }.fileName
+        return com.kamsiob.kamai.discover.PackReader.byId(packId, File(packsDir(), fileName), momentId)
+    }
+
+    suspend fun setDiscoverGrounding(conversationId: String, passage: String) =
+        db.conversations().setGrounding(conversationId, passage)
+
+    suspend fun momentById(packId: String, momentId: String): com.kamsiob.kamai.discover.Moment? {
+        val fileName = installedPackFileNames()[packId] ?: return null
+        return com.kamsiob.kamai.discover.PackReader.byId(packId, File(packsDir(), fileName), momentId)
+    }
+
+    /** True when [onlyPackId] (or any installed pack) still has unseen moments. */
+    suspend fun hasUnseen(onlyPackId: String? = null): Boolean = dealMoment(onlyPackId) != null
+
+    // Discover state passthroughs, all backed by DiscoverDao.
+    suspend fun markDrawn(packId: String, momentId: String) =
+        db.discover().markDrawn(DrawnMomentEntity(packId, momentId, System.currentTimeMillis()))
+    suspend fun markReaderOpened(packId: String, momentId: String) =
+        db.discover().markReaderOpened(packId, momentId)
+    suspend fun wasReaderOpened(packId: String, momentId: String): Boolean =
+        db.discover().wasReaderOpened(packId, momentId) ?: false
+    suspend fun reshuffle(packId: String) = db.discover().reshuffle(packId)
+    suspend fun reshuffleAll() = installedPackIds().forEach { db.discover().reshuffle(it) }
+    suspend fun saveMoment(m: com.kamsiob.kamai.discover.Moment) =
+        db.discover().save(SavedMomentEntity(m.packId, m.id, m.title, m.topic, System.currentTimeMillis()))
+    suspend fun unsaveMoment(packId: String, momentId: String) = db.discover().unsave(packId, momentId)
+    fun observeSavedMoments(): Flow<List<SavedMomentEntity>> = db.discover().observeSaved()
+    suspend fun isMomentSaved(packId: String, momentId: String): Boolean =
+        db.discover().isSaved(packId, momentId) > 0
+    suspend fun recordQuiz(packId: String, asked: Int, right: Int) =
+        db.discover().recordQuiz(packId, asked, right)
+    fun observeQuizStats(): Flow<List<QuizStatsEntity>> = db.discover().observeAllStats()
+
     // Conversations and messages
 
     fun observeConversations(): Flow<List<ConversationSummary>> =
@@ -419,6 +541,9 @@ class KamRepository(
     }
 
     companion object {
+        const val DISCOVER_MANIFEST_URL =
+            "https://github.com/Kamsiob/kam-ai/releases/download/discover-packs-v1/manifest.json"
+
         @Volatile
         private var instance: KamRepository? = null
 

@@ -1,0 +1,42 @@
+{
+  "_comment": "Maps each Discover pack to branches of English Wikipedia's Vital Articles (Level 4), a curated, high-quality set. Each branch is a Vital Articles subpage whose subtree is walked for article links. Target is 2000 moments per pack; whatever a branch set genuinely yields is what ships.",
+  "target_per_pack": 2000,
+  "min_words": 40,
+  "packs": [
+    {
+      "id": "history",
+      "name": "History",
+      "description": "Civilizations and empires, wars and battles, the events and eras that shaped the world.",
+      "roots": [
+        "Wikipedia:Vital articles/Level 4/History",
+        "Wikipedia:Vital articles/Level 5/History"
+      ]
+    },
+    {
+      "id": "science",
+      "name": "Science",
+      "description": "The physical world and living things: physics, chemistry, astronomy, biology, and health.",
+      "roots": [
+        "Wikipedia:Vital articles/Level 4/Physical sciences",
+        "Wikipedia:Vital articles/Level 4/Biology and health sciences"
+      ]
+    },
+    {
+      "id": "how-it-works",
+      "name": "How It Works",
+      "description": "Technology and the everyday mechanisms behind the things around you.",
+      "roots": [
+        "Wikipedia:Vital articles/Level 4/Technology",
+        "Wikipedia:Vital articles/Level 4/Everyday life"
+      ]
+    },
+    {
+      "id": "people",
+      "name": "People",
+      "description": "Lives worth knowing: thinkers, makers, leaders, artists, and scientists.",
+      "roots": [
+        "Wikipedia:Vital articles/Level 4/People"
+      ]
+    }
+  ]
+}

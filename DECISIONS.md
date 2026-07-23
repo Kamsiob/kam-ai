@@ -1141,6 +1141,70 @@ resumable state. Worth a small future improvement: on returning to the foregroun
 with a partial file present, offer to resume, or label the button "Resume". Not a
 data-loss bug; a UX rough edge, noted here so it is not rediscovered.
 
+## Phase 5: Discover and the Wikipedia pack pipeline
+
+Both halves are built and verified on device.
+
+### The pipeline (tools/discover)
+
+build_packs.py walks curated branches of English Wikipedia's Vital Articles,
+pulls each article's introduction through the official API as plain text, cleans
+it, filters weak entries, and writes one versioned SQLite pack per topic plus a
+manifest; publish.sh attaches them to a GitHub release. Etiquette is respected: a
+descriptive User-Agent with a contact, batched extract requests (20 at a time),
+small delays, and an on-disk cache so reruns are cheap and idempotent.
+
+A real correction found by running it, not assuming: the page titles use "Level 4"
+with a space, not "Level/4", and the article links come through transclusion, so
+they are read with action=parse (a plain prop=links query returns nothing). The
+cleaner strips pronunciation and foreign-script parentheticals and reference
+markers while keeping meaningful parentheticals.
+
+Actual moment counts (History was broadened with Level 5 to approach the target;
+the others are what their branches genuinely yield, per the spec's instruction to
+take what is there rather than pad):
+
+- History: 2000
+- Science (physical sciences + biology and health): 2000
+- How It Works (technology + everyday life): 1193
+- People: 1913
+
+Published to the release tag discover-packs-v1; the manifest and all four packs
+are publicly downloadable with matching sha256 hashes. Twenty sample History
+cards were printed for a skim during the run.
+
+### In-app Discover
+
+The single dealt card carries a substantial multi-paragraph preview (never a
+teaser), the topic eyebrow, the From Wikipedia CC BY-SA 4.0 footer, a save toggle,
+Read the full moment, and Quiz me / Deal another. The packs sheet reads the
+manifest, downloads with hash verification, and lists Get/Remove with sizes and
+the plain one-time-offline note; packs also appear in Storage. Drawn ids are
+tracked so only unseen cards are dealt, with a plain reshuffle at true exhaustion
+(unit-tested over a fixture pack). Saved sits at the bottom; a quiet stats line
+shows the running tally with no streaks or pressure mechanics.
+
+The reader shows the full passage, attribution with source link, and the owner's
+two-button feature: Discuss this passage (grounded) and Explore this topic (open),
+with plain copy explaining the difference. Verified on device: the grounded chat,
+asked "Who was the second president of the United States" about the American
+Revolution passage, answered "The passage does not mention the presidents of the
+United States" rather than filling the gap from memory. That is the whole point of
+grounding.
+
+Quiz me generates questions strictly from the full passage, one at a time, with
+honest self-marked feedback that shows the passage's answer, a one-tap flag on a
+miss, and a result like "4 of 4" that updates the tally. If the reader was not
+opened for the card, a plain prompt offers "Read it first" or "Quiz me anyway".
+Two bugs were caught and fixed by testing on device: the parser was grabbing the
+format-template line as a question (now filtered, and the prompt asks for a
+simpler Q:/A: shape a 2B model follows reliably), and an ICU regex crash from a
+character class beginning with "." or ":" (Android treats "[." and "[:" as
+collating/POSIX starts; the classes were reordered). The crash was recorded by the
+local CrashLog, which confirmed that path works too.
+
+100 unit tests pass.
+
 ## Deferred within completed phases
 
 ### Kokoro premium reading voice (Phase 2)

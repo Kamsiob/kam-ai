@@ -286,11 +286,7 @@ private fun TabContent(
 
         NavItem.NEW -> Unit
 
-        NavItem.DISCOVER -> com.kamsiob.kamai.ui.components.EmptyState(
-            title = "Discover is on the way",
-            body = "Packs of short reads, dealt one card at a time. It arrives with " +
-                "the Discover phase of the build.",
-        )
+        NavItem.DISCOVER -> DiscoverHost(app, stack)
 
         NavItem.FOLLOW_UPS -> {
             val open by app.openFollowUps.collectAsStateWithLifecycle()
@@ -548,6 +544,110 @@ private fun ModelHost(app: AppViewModel) {
         onDownload = app::downloadModel,
         onActivate = app::activateModel,
     )
+}
+
+@Composable
+private fun DiscoverHost(
+    app: AppViewModel,
+    stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+) {
+    val context = LocalContext.current
+    val vm: com.kamsiob.kamai.ui.discover.DiscoverViewModel = viewModel()
+    LaunchedEffect(Unit) { vm.refresh() }
+
+    val current by vm.current.collectAsStateWithLifecycle()
+    val exhausted by vm.exhausted.collectAsStateWithLifecycle()
+    val installedIds by vm.installedIds.collectAsStateWithLifecycle()
+    val readerOpen by vm.readerOpen.collectAsStateWithLifecycle()
+    val currentSaved by vm.currentSaved.collectAsStateWithLifecycle()
+    val saved by vm.saved.collectAsStateWithLifecycle()
+    val stats by vm.stats.collectAsStateWithLifecycle()
+    val manifest by vm.manifest.collectAsStateWithLifecycle()
+    val download by vm.download.collectAsStateWithLifecycle()
+    val downloadingPack by vm.downloadingPackId.collectAsStateWithLifecycle()
+    val quiz by vm.quiz.collectAsStateWithLifecycle()
+    val notice by vm.notice.collectAsStateWithLifecycle()
+
+    var showPacks by remember { mutableStateOf(false) }
+
+    LaunchedEffect(notice) { notice?.let { app.showToast(it); vm.dismissNotice() } }
+
+    val openUrl: (String) -> Unit = { url ->
+        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            .onFailure { app.showToast("No app on this phone can open that link.") }
+    }
+
+    com.kamsiob.kamai.ui.discover.DiscoverScreen(
+        current = current,
+        exhausted = exhausted,
+        hasPacks = installedIds.isNotEmpty(),
+        currentSaved = currentSaved,
+        saved = saved,
+        stats = stats,
+        installedCount = installedIds.size,
+        onDeal = vm::deal,
+        onOpenReader = vm::openReader,
+        onToggleSave = vm::toggleSave,
+        onQuiz = { vm.quizMe() },
+        onReshuffle = vm::reshuffle,
+        onOpenPacks = { showPacks = true },
+        onOpenSaved = { s ->
+            // Tapping a saved moment opens a grounded discussion of its passage.
+            vm.openSaved(s.packId, s.momentId) { id -> stack.add(Pushed.Conversation(id)) }
+        },
+    )
+
+    if (readerOpen && current != null) {
+        com.kamsiob.kamai.ui.discover.ReaderSheet(
+            moment = current!!,
+            onDismiss = vm::closeReader,
+            onDiscuss = { vm.discuss { id -> vm.closeReader(); stack.add(Pushed.Conversation(id)) } },
+            onExplore = { vm.explore { id -> vm.closeReader(); stack.add(Pushed.Conversation(id)) } },
+            onOpenSource = openUrl,
+        )
+    }
+
+    if (showPacks) {
+        com.kamsiob.kamai.ui.discover.PacksSheet(
+            manifest = manifest,
+            installedIds = installedIds,
+            download = download,
+            downloadingPackId = downloadingPack,
+            onGet = vm::downloadPack,
+            onRemove = vm::removePack,
+            onDismiss = { showPacks = false },
+        )
+    }
+
+    // Pre-quiz prompt when the reader was not opened for this card.
+    if (quiz is com.kamsiob.kamai.ui.discover.DiscoverViewModel.QuizState.NeedsReader) {
+        com.kamsiob.kamai.ui.components.ConfirmDialog(
+            request = com.kamsiob.kamai.ui.components.ConfirmRequest(
+                tier = com.kamsiob.kamai.ui.components.ConfirmTier.SINGLE,
+                title = "Read the full moment first?",
+                body = "The quiz is drawn from the full passage, not just the preview. Reading " +
+                    "it first gives you a fair shot.",
+                confirmLabel = "Quiz me anyway",
+                cancelLabel = "Read it first",
+                onConfirm = { vm.quizMe(force = true); Unit },
+            ),
+            onDismiss = { vm.cancelQuiz(); vm.openReader() },
+        )
+    }
+
+    val quizState = quiz
+    if (quizState !is com.kamsiob.kamai.ui.discover.DiscoverViewModel.QuizState.Idle &&
+        quizState !is com.kamsiob.kamai.ui.discover.DiscoverViewModel.QuizState.NeedsReader
+    ) {
+        com.kamsiob.kamai.ui.discover.QuizSheet(
+            state = quizState,
+            onReveal = vm::revealAnswer,
+            onMark = vm::markQuizAnswer,
+            onFlag = { q -> vm.flagMissed(q) { app.showToast("Flagged to Follow-ups") } },
+            onDone = vm::cancelQuiz,
+            onDismiss = vm::cancelQuiz,
+        )
+    }
 }
 
 @Composable

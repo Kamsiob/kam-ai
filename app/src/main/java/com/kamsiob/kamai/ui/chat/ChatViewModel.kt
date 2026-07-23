@@ -176,7 +176,14 @@ class ChatViewModel(
         val conversation = repository.conversation(conversationId)
         val history = repository.messages(conversationId)
 
-        var system = SystemPrompts.forMode(_mode.value)
+        // A Discover conversation is grounded in a saved passage: confine the
+        // model to it instead of the plain mode prompt.
+        val grounding = conversation?.groundingMomentId
+        var system = if (!grounding.isNullOrBlank()) {
+            SystemPrompts.grounded(grounding)
+        } else {
+            SystemPrompts.forMode(_mode.value)
+        }
 
         conversation?.projectId?.let { projectId ->
             repository.project(projectId)?.let {

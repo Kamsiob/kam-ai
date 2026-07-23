@@ -75,3 +75,7 @@ app/src/main/assets/piper-tokens.txt
 
 # Large Piper voice model, local one-time TTS proof only
 app/src/androidTest/assets/piper-amy.onnx
+
+# Discover pipeline outputs and cache
+tools/discover/out/
+tools/discover/.cache/

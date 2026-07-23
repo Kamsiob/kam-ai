@@ -66,6 +66,9 @@ data class ConfirmRequest(
     /** When set, the MAJOR second step requires typing this word exactly. */
     val confirmWord: String? = null,
     val confirmLabel: String = "Delete",
+    /** The dismiss button label. Defaults to the reassuring "Keep it" that suits
+     *  destructive confirmations; other prompts can name the safe path plainly. */
+    val cancelLabel: String = "Keep it",
     val onConfirm: () -> Unit,
 )
 
@@ -146,7 +149,7 @@ fun ConfirmDialog(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DialogTextButton("Keep it", colors.textSecondary, onClick = onDismiss)
+                DialogTextButton(request.cancelLabel, colors.textSecondary, onClick = onDismiss)
                 Spacer(Modifier.width(6.dp))
 
                 val wordSatisfied = request.confirmWord == null ||

@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit
  */
 class Downloader(private val context: Context) {
 
+    val httpClient: okhttp3.OkHttpClient get() = client
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         // Read timeout is the gap allowed between two reads, not a budget for

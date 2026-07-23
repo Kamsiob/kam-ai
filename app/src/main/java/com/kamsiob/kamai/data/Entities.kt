@@ -56,8 +56,10 @@ data class ConversationEntity(
      */
     val titleIsManual: Boolean = false,
     /**
-     * Set when a conversation is grounded in a Discover passage, so its system
-     * instructions can confine the model to that text.
+     * Holds the Discover passage a conversation is grounded in, so its system
+     * instructions can confine the model to that text. Stores the passage itself,
+     * not just a reference, so a grounded chat keeps working even if the pack it
+     * came from is later removed. Null for ordinary conversations.
      */
     val groundingMomentId: String? = null,
 )
