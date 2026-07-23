@@ -267,7 +267,14 @@ class ChatViewModel(
             }
         }
 
-        val memories = repository.recentMemory(MEMORY_LIMIT)
+        // Only the memories relevant to this message, within a small slice of the
+        // window, so memory never crowds out the instructions or the conversation.
+        // Placed here, near the front of the system block, where models attend
+        // well. Retrieval is keyword-and-recency for now; see DECISIONS.md.
+        val contextSize = engine.contextSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT
+        val lastUser = history.lastOrNull { it.role == Role.USER }?.content.orEmpty()
+        val memBudgetChars = (contextSize * MEMORY_CTX_FRACTION * CHARS_PER_TOKEN).toInt()
+        val memories = repository.relevantMemory(lastUser, memBudgetChars, MEMORY_LIMIT)
         system = SystemPrompts.withMemory(system, memories)
 
         // Inject the real current date, which the model otherwise gets wrong.
@@ -292,7 +299,6 @@ class ChatViewModel(
         }
 
         // Leave room for the reply itself, not just the prompt.
-        val contextSize = engine.contextSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT
         val budget = contextSize - engine.countTokens(system) - RESERVED_FOR_REPLY
 
         // SYSTEM entries are display-only mode markers; never send them as turns.
@@ -417,19 +423,34 @@ class ChatViewModel(
     }
 
     /**
-     * In Auto mode, after an exchange, ask the model to surface any durable fact
-     * worth keeping. Bounded and strict, so the store stays small and
-     * high-signal. Does nothing in Manual or Off.
+     * In Auto mode, surface durable facts worth keeping. Runs as a separate,
+     * bounded pass on a batch of recent turns, and only every few user messages
+     * rather than after every single one, so it stays cheap and does not drain
+     * the battery. The extractor is told what is already stored so it does not
+     * re-suggest known facts. Does nothing in Manual or Off.
      */
     private suspend fun maybeAutoRemember(conversationId: String) {
         if (repository.memoryMode() != MemoryMode.AUTO) return
         val history = repository.messages(conversationId)
-        val lastUser = history.lastOrNull { it.role == Role.USER } ?: return
-        val lastAssistant = history.lastOrNull { it.role == Role.ASSISTANT } ?: return
+        val userTurns = history.count { it.role == Role.USER }
+        // Batch: only run on every Nth user message, never after every exchange.
+        if (userTurns == 0 || userTurns % AUTO_MEMORY_EVERY != 0) return
 
-        val exchange = "User: \"${lastUser.content.take(600)}\"\n\n" +
-            "You said: \"${lastAssistant.content.take(600)}\""
-        val prompt = PromptBuilder.oneShot(chatFormat(), MemoryExtractor.AUTO_INSTRUCTION, exchange)
+        val recent = history.filter { it.role == Role.USER || it.role == Role.ASSISTANT }.takeLast(6)
+        if (recent.none { it.role == Role.USER }) return
+        val transcript = recent.joinToString("\n") {
+            val who = if (it.role == Role.USER) "User" else "You"
+            "$who: ${it.content.take(400)}"
+        }
+
+        // Give the model what it already knows, so it can skip duplicates.
+        val known = repository.allMemoryTexts().take(40)
+        val knownBlock = if (known.isEmpty()) "" else
+            "\n\nAlready remembered (do not repeat these):\n" + known.joinToString("\n") { "- $it" }
+
+        val prompt = PromptBuilder.oneShot(
+            chatFormat(), MemoryExtractor.AUTO_INSTRUCTION, transcript + knownBlock,
+        )
 
         val builder = StringBuilder()
         engine.generate(prompt, Mode.BENCH, maxTokens = AUTO_MEMORY_MAX_TOKENS).collect {
@@ -463,5 +484,13 @@ class ChatViewModel(
         const val RESERVED_FOR_REPLY = 768
         const val DEFAULT_CONTEXT = 4096
         const val AUTO_MEMORY_MAX_TOKENS = 60
+
+        /** Memory gets at most this fraction of the context, so it never crowds
+         *  out the instructions or the conversation. */
+        const val MEMORY_CTX_FRACTION = 0.10
+        const val CHARS_PER_TOKEN = 3.6
+        /** Auto-extraction runs on a batch of turns, not every message, to keep
+         *  it cheap: only when the user has spoken this many times. */
+        const val AUTO_MEMORY_EVERY = 3
     }
 }

@@ -16,8 +16,8 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       key via `conversationVmKey`. Unit test + device verified (open existing -> new chat empty;
       create chat -> new chat empty again; no stray conversations).
 - [ ] 2. Projects + bottom nav. Remove the bottom-nav "New" button to make room for BOTH Projects
-      and Today (owner). Nav becomes Chats, Projects, Discover, Follow-ups now; Today is added as the
-      5th when built. Build Projects (named container, persistent instructions + notes re-injected
+      and Today (owner). FINAL nav order (owner): Today, Projects, Chats, Follow-ups, Discover (Chats centered).
+      Build order now: Projects, Chats, Follow-ups, Discover; Today slots into position 1 when built. Build Projects (named container, persistent instructions + notes re-injected
       each turn, assign/reassign conversations like Claude, move semantics not retroactive, delete
       asks about conversations, cap instruction length). ISOLATION (owner): project instructions are
       EXCLUSIVE to that project and never leak into system-wide instructions or into chats outside

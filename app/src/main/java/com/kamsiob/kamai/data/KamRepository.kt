@@ -580,10 +580,34 @@ class KamRepository(
     suspend fun recentMemory(limit: Int): List<String> =
         db.memory().mostRecent(limit).map { it.text }
 
+    /**
+     * The memories most relevant to [query], selected by keyword overlap and
+     * recency within a character budget, so only what matters for this message is
+     * injected rather than the whole store. Scans a bounded recent window to keep
+     * the cost small. The current list of stored texts is also returned so the
+     * caller (and the extractor) can avoid duplicates.
+     */
+    suspend fun relevantMemory(query: String, budgetChars: Int, max: Int): List<String> {
+        val items = db.memory().mostRecent(200).map {
+            com.kamsiob.kamai.llm.MemoryRetrieval.Item(it.text, it.updatedAt)
+        }
+        return com.kamsiob.kamai.llm.MemoryRetrieval.select(
+            items, query, System.currentTimeMillis(), budgetChars, max,
+        )
+    }
+
+    /** Every stored memory text, for giving the extractor what is already known. */
+    suspend fun allMemoryTexts(): List<String> = db.memory().mostRecent(500).map { it.text }
+
     suspend fun remember(text: String, sourceConversationId: String?, auto: Boolean = false) {
         // Never store the same fact twice; the memory screen has to stay
-        // readable, and duplicates eat the context budget for no gain.
-        if (db.memory().countMatching(text) > 0) return
+        // readable, and duplicates eat the context budget for no gain. Compare on
+        // a normalised form so trivial punctuation or spacing differences still
+        // count as the same fact.
+        val target = com.kamsiob.kamai.llm.MemoryExtractor.normalise(text)
+        if (target.isBlank()) return
+        val existing = db.memory().mostRecent(500)
+        if (existing.any { com.kamsiob.kamai.llm.MemoryExtractor.normalise(it.text) == target }) return
         val now = System.currentTimeMillis()
         db.memory().upsert(
             MemoryEntity(

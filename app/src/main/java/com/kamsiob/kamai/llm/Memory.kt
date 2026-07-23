@@ -67,6 +67,10 @@ object MemoryExtractor {
 
         return cleaned.lineSequence()
             .map { it.trim().trimStart('-', '*', '•', ' ').trim() }
+            // Drop chat-template tokens the model sometimes emits, for example
+            // "NONE</start_of_turn>" or a bare "<end_of_turn>", so they never get
+            // stored as junk memories. A real fact never contains a '<'.
+            .map { it.substringBefore('<').trim() }
             .filter { line ->
                 line.isNotBlank() &&
                     !line.equals("NONE", ignoreCase = true) &&
@@ -79,5 +83,79 @@ object MemoryExtractor {
             .distinct()
             .take(maxPerExchange)
             .toList()
+    }
+
+    /** A normalised form for near-duplicate detection: lowercase, alphanumerics
+     *  and single spaces only, so "Likes tea." and "likes  tea" collapse. */
+    fun normalise(text: String): String =
+        text.lowercase().replace(Regex("[^a-z0-9 ]"), " ").replace(Regex("\\s+"), " ").trim()
+}
+
+/**
+ * Chooses which memories to inject for a given message. Dumping the whole store
+ * into every prompt is the fastest way to wreck a small model, so this scores each
+ * entry by how much it overlaps the current message and how recent it is, then
+ * fills a small character budget with the best. On-device embeddings are deferred,
+ * so this is practical keyword-and-recency matching, with a clean seam to swap in
+ * semantic retrieval later. Pure and unit-tested.
+ */
+object MemoryRetrieval {
+
+    data class Item(val text: String, val updatedAt: Long)
+
+    private val STOP = setOf(
+        "the", "a", "an", "and", "or", "but", "is", "are", "was", "were", "to", "of",
+        "in", "on", "for", "with", "you", "it", "my", "me", "that", "this", "do", "does",
+        "how", "what", "why", "when", "where", "who", "can", "could", "should", "would",
+        "will", "about", "as", "at", "be", "been", "have", "has", "had", "im", "your",
+    )
+
+    fun tokens(s: String): Set<String> =
+        s.lowercase().split(Regex("[^a-z0-9]+"))
+            .filter { it.length > 2 && it !in STOP }
+            .toSet()
+
+    /** Two tokens count as the same if equal or one is a prefix of the other with
+     *  at least four shared characters, so "peanut" matches "peanuts" and simple
+     *  plurals or tense variants line up without a full stemmer. */
+    private fun matches(a: String, b: String): Boolean {
+        if (a == b) return true
+        val short = if (a.length <= b.length) a else b
+        val long = if (a.length <= b.length) b else a
+        return short.length >= 4 && long.startsWith(short)
+    }
+
+    /**
+     * The memories most worth injecting for [query], within [budgetChars] and at
+     * most [max] entries. Overlap dominates so a directly relevant fact wins;
+     * recency breaks ties and lets a few standing facts ride along on leftover
+     * budget even with no overlap (a name or job matters regardless of the
+     * question).
+     */
+    fun select(
+        items: List<Item>,
+        query: String,
+        now: Long,
+        budgetChars: Int,
+        max: Int,
+    ): List<String> {
+        if (items.isEmpty() || budgetChars <= 0 || max <= 0) return emptyList()
+        val q = tokens(query)
+        val ranked = items.sortedByDescending { item ->
+            val overlap = tokens(item.text).count { mt -> q.any { qt -> matches(mt, qt) } }
+            val ageDays = (now - item.updatedAt).coerceAtLeast(0L) / 86_400_000.0
+            val recency = 1.0 / (1.0 + ageDays)
+            overlap * 10.0 + recency
+        }
+        val chosen = ArrayList<String>()
+        var used = 0
+        for (item in ranked) {
+            if (chosen.size >= max) break
+            val cost = item.text.length + 1
+            if (used + cost > budgetChars) continue
+            chosen += item.text
+            used += cost
+        }
+        return chosen
     }
 }
