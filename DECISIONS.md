@@ -824,6 +824,58 @@ Hardware acceleration stays off (n_gpu_layers = 0), the reliable path, as the
 spec prefers. PART B (voice sharing the budget) integrates into Phase 2. PART C
 edge cases follow.
 
+## Runtime edge cases: crash visibility, current date, context overflow (PART C)
+
+Several of the spec's edge cases were already handled and were confirmed by
+reading the code rather than assumed:
+
+- Storage exhaustion during a download: the downloader checks free space with
+  StatFs before starting and surfaces "There is not enough space on this phone.
+  You need about N more.", and catches an IOException mid-write.
+- First run with no model or no internet: onboarding handles the empty state, and
+  a send with no model set shows "No model is set up yet. Download one in Settings
+  to start." rather than a broken chat.
+- Interrupted generation: an assistant message is written with incomplete = true
+  and only cleared on a clean finish. A startup sweep (repairIncompleteMessages,
+  called from AppViewModel) marks any message stranded by a process death with
+  "Kam AI was closed while this was being written.", so a cut-off answer never
+  looks like a finished one.
+
+Three genuine gaps were filled:
+
+### Current date injected into every request
+
+Every local model states a confidently wrong date, which users notice at once.
+SystemPrompts.withDate now appends the real date and time to the system prompt on
+every send, with an instruction not to contradict it. Three unit tests lock this
+in, including that the injected text itself contains no em dash.
+
+### Context overflow warns, never silently drops
+
+When a conversation grows past what the model can hold, the oldest turns were
+dropped silently and the model appeared to forget the start of the thread for no
+visible reason. It now says so once per conversation: "the earliest messages no
+longer fit in the model's memory. It can still see the recent part." The single
+message that is longer than the whole context still gets the existing out-of-room
+message.
+
+### Crash visibility without telemetry
+
+The app has no telemetry, so a crash previously left only the system's "app keeps
+stopping" dialog and nothing to act on. A CrashLog uncaught-exception handler now
+records the last crash (build, device, thread, stack trace) to a local file and
+then hands off to the platform's default handler, so the process still dies as it
+should. The crash is never swallowed: a survived crash would be a corrupted app
+lying about its state. A Crash report row appears in About only when there is one,
+letting the user read it, share it on their own terms, or clear it. Nothing leaves
+the phone unless they tap share.
+
+SQLCipher for Android was added to the licenses list (BSD-style, Zetetic LLC); the
+AndroidX umbrella entry already covers biometric, datastore, navigation, and
+fragment.
+
+98 unit tests pass.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

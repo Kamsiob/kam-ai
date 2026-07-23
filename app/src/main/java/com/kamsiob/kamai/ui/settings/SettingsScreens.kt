@@ -297,6 +297,8 @@ fun AboutScreen(
     onLicenses: () -> Unit,
     onRoadmap: () -> Unit,
     onSupport: () -> Unit,
+    hasCrashReport: Boolean = false,
+    onCrashReport: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -336,7 +338,19 @@ fun AboutScreen(
                 subtitle = "The whole thing is short",
             ) { onLink(Links.PRIVACY) }
             SettingsRow(title = "Being considered, and not planned", onClick = onRoadmap)
-            SettingsRow(title = "Licenses", onClick = onLicenses, showDivider = false)
+            SettingsRow(
+                title = "Licenses",
+                onClick = onLicenses,
+                showDivider = hasCrashReport,
+            )
+            if (hasCrashReport) {
+                SettingsRow(
+                    title = "Crash report",
+                    subtitle = "The app stopped unexpectedly. You can read it or share it.",
+                    onClick = onCrashReport,
+                    showDivider = false,
+                )
+            }
         }
 
         Spacer(Modifier.height(26.dp))
@@ -693,6 +707,7 @@ fun LicensesScreen(
         add("Kotlin and kotlinx.coroutines" to "Apache-2.0")
         add("OkHttp" to "Apache-2.0")
         add("Room" to "Apache-2.0")
+        add("SQLCipher for Android" to "BSD-style (Zetetic LLC)")
         add("Sora" to "SIL Open Font License 1.1")
         add("Manrope" to "SIL Open Font License 1.1")
         add("JetBrains Mono" to "SIL Open Font License 1.1")
@@ -737,6 +752,64 @@ fun LicensesScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * The last recorded crash, shown in full. Kam AI has no telemetry, so this is the
+ * only way a crash becomes visible, and it never leaves the phone unless the user
+ * taps share.
+ */
+@Composable
+fun CrashReportScreen(
+    report: String?,
+    onShare: () -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = KamTheme.colors
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = screenPad)) {
+        Text("Crash report", style = KamTheme.type.screenTitle, color = colors.textPrimary)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Kam AI keeps nothing about crashes off your phone. This is the last one, " +
+                "here for you to read or send if you want to report it.",
+            style = KamTheme.type.body,
+            color = colors.textSecondary,
+        )
+        Spacer(Modifier.height(16.dp))
+
+        if (report == null) {
+            Text(
+                "There is no crash report right now.",
+                style = KamTheme.type.body,
+                color = colors.textTertiary,
+            )
+            return
+        }
+
+        LazyColumn(
+            modifier = Modifier.weight(1f).edgeFade(),
+            contentPadding = PaddingValues(bottom = 16.dp),
+        ) {
+            item {
+                KamCard(Modifier.fillMaxWidth()) {
+                    Text(
+                        report,
+                        style = KamTheme.type.mono,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(4.dp),
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Row {
+            PrimaryButton(text = "Share", onClick = onShare, modifier = Modifier.weight(1f))
+            Spacer(Modifier.width(10.dp))
+            SecondaryButton(text = "Clear", onClick = onClear, modifier = Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(16.dp))
     }
 }
 

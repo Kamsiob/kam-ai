@@ -140,6 +140,11 @@ class ChatViewModel(
         val memories = repository.recentMemory(MEMORY_LIMIT)
         system = SystemPrompts.withMemory(system, memories)
 
+        // Inject the real current date, which the model otherwise gets wrong.
+        val now = java.util.Date()
+        val fmt = java.text.SimpleDateFormat("EEEE, d MMMM yyyy, h:mm a", java.util.Locale.getDefault())
+        system = SystemPrompts.withDate(system, fmt.format(now))
+
         // Leave room for the reply itself, not just the prompt.
         val contextSize = engine.contextSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT
         val budget = contextSize - engine.countTokens(system) - RESERVED_FOR_REPLY
@@ -149,8 +154,24 @@ class ChatViewModel(
             PromptBuilder.roughTokenCount(it)
         }
 
+        // Context overflow: warn, never silently drop. When the oldest turns no
+        // longer fit, say so plainly, once per conversation, so the user knows the
+        // model can no longer see the start of the thread rather than wondering
+        // why it forgot. A trailing assistant-only trim does not count.
+        val dropped = turns.size - fitted.size
+        if (dropped > 0 && conversationId != trimWarnedFor) {
+            trimWarnedFor = conversationId
+            _notice.value = "This conversation is long enough that the earliest messages " +
+                "no longer fit in the model's memory. It can still see the recent part. " +
+                "Start a new chat for a clean slate."
+        }
+
         return PromptBuilder.build(chatFormat(), system, fitted)
     }
+
+    /** The conversation we have already warned about context trimming for, so the
+     *  notice shows once rather than on every send. */
+    private var trimWarnedFor: String? = null
 
     /** The layout the loaded model wants. Falls back to Gemma, the default tier. */
     private suspend fun chatFormat(): ChatFormat =

@@ -5,11 +5,18 @@ import android.content.ComponentCallbacks2
 import com.kamsiob.kamai.llm.Models
 
 /**
- * The application. Its one job beyond being the process root is to relay system
- * memory pressure to the model manager, so a resident model is released the
- * moment the system needs memory rather than waiting to be killed.
+ * The application. Beyond being the process root it relays system memory pressure
+ * to the model manager, so a resident model is released the moment the system
+ * needs memory rather than waiting to be killed, and it installs the local crash
+ * recorder so a crash leaves something a user can see and share without any
+ * telemetry.
  */
 class KamApp : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        CrashLog.install(this)
+    }
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)

@@ -87,6 +87,7 @@ private sealed interface Pushed {
     data object About : Pushed
     data object Roadmap : Pushed
     data object Licenses : Pushed
+    data object CrashReport : Pushed
     data object Appearance : Pushed
     data object Safety : Pushed
     data object AppLock : Pushed
@@ -201,6 +202,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.About -> AboutHost(app, stack, openUrl)
                     Pushed.Roadmap -> RoadmapScreen()
                     Pushed.Licenses -> LicensesScreen(models = app.tiers)
+                    Pushed.CrashReport -> CrashReportHost(stack)
                     Pushed.Appearance -> AppearanceHost(app)
                     Pushed.Safety -> SafetyScreen()
                     Pushed.AppLock -> LockSettingsHost(app)
@@ -504,6 +506,7 @@ private fun AboutHost(
     openUrl: (String) -> Unit,
 ) {
     val context = LocalContext.current
+    val hasCrash = remember { com.kamsiob.kamai.CrashLog.lastCrash(context) != null }
     AboutScreen(
         versionName = BuildConfig.VERSION_NAME,
         onLink = openUrl,
@@ -519,6 +522,44 @@ private fun AboutHost(
         onSupport = {
             openUrl(Links.SUPPORT)
             stack.clear()
+        },
+        hasCrashReport = hasCrash,
+        onCrashReport = { stack.add(Pushed.CrashReport) },
+    )
+}
+
+/**
+ * Shows the last recorded crash so a user can read it and, if they choose, share
+ * it. Nothing here leaves the phone unless the user taps share. Clearing removes
+ * the local file.
+ */
+@Composable
+private fun CrashReportHost(
+    stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+) {
+    val context = LocalContext.current
+    var text by remember { mutableStateOf(com.kamsiob.kamai.CrashLog.lastCrash(context)) }
+    com.kamsiob.kamai.ui.settings.CrashReportScreen(
+        report = text,
+        onShare = {
+            val body = text ?: return@CrashReportScreen
+            runCatching {
+                context.startActivity(
+                    Intent.createChooser(
+                        Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "Kam AI crash report")
+                            putExtra(Intent.EXTRA_TEXT, body)
+                        },
+                        "Share crash report",
+                    ),
+                )
+            }
+        },
+        onClear = {
+            com.kamsiob.kamai.CrashLog.clear(context)
+            text = null
+            stack.remove(Pushed.CrashReport)
         },
     )
 }

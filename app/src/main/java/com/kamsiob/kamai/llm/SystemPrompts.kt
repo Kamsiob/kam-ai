@@ -153,6 +153,15 @@ object SystemPrompts {
         unless the question genuinely needs more. No preamble.
     """.trimIndent()
 
+    /**
+     * The current date and time, injected into every request. Every local model
+     * otherwise states a confidently wrong date, which users notice at once.
+     * Passed in so it is testable and so the caller controls the format.
+     */
+    fun withDate(base: String, dateLine: String): String =
+        "$base\n\nFor reference, right now it is $dateLine. Use this if the user asks " +
+            "about the date or time, and do not contradict it."
+
     fun forMode(mode: Mode): String = when (mode) {
         Mode.CHAT -> CHAT
         Mode.LOGIC -> LOGIC
