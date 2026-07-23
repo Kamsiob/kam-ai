@@ -51,7 +51,13 @@ You need the Android SDK with platform 37 and NDK 28, plus a JDK 21. Then:
     git clone https://github.com/kamsiob/kam-ai.git
     cd kam-ai
     ./tools/fetch_llama.sh          # pulls llama.cpp at the pinned tag
+    ./tools/fetch_whisper.sh        # pulls whisper.cpp for voice typing
+    ./tools/fetch_sherpa.sh         # pulls the sherpa-onnx voice runtime and data
     ./gradlew :app:assembleDebug
+
+The three fetch scripts pull the native dependencies (llama.cpp, whisper.cpp, and
+the sherpa-onnx text-to-speech runtime) at pinned versions, kept out of git to
+keep the tree small. They are the only setup step beyond the SDK.
 
 llama.cpp is fetched rather than committed, so a clone stays small. The tag it
 pins lives in `tools/fetch_llama.sh`.
