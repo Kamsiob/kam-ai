@@ -453,11 +453,12 @@ private fun ModelHost(app: AppViewModel) {
     ModelScreen(
         totalRamGb = app.totalRamGb,
         tiers = app.tiers,
+        advanced = com.kamsiob.kamai.model.ModelCatalog.advanced,
         installedIds = artifacts.map { it.id }.toSet(),
         activeId = activeModel?.id,
         download = download,
         onDownload = app::downloadModel,
-        onActivate = { app.showToast("${it.displayName} is now in use") },
+        onActivate = app::activateModel,
     )
 }
 

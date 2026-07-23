@@ -42,6 +42,7 @@ import com.kamsiob.kamai.ui.theme.KamTheme
 fun ModelScreen(
     totalRamGb: Int,
     tiers: List<TierModel>,
+    advanced: List<TierModel> = emptyList(),
     installedIds: Set<String>,
     activeId: String?,
     download: Downloader.Progress?,
@@ -95,6 +96,36 @@ fun ModelScreen(
             style = KamTheme.type.secondary,
             color = colors.textTertiary,
         )
+
+        // Advanced: other compatible models, for people who want to reason about
+        // this themselves. Nothing here is required reading. PART 2.
+        if (advanced.isNotEmpty()) {
+            Spacer(Modifier.height(26.dp))
+            com.kamsiob.kamai.ui.components.Eyebrow("Advanced")
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Other models you can try. Bigger or heavier ones need more room. You " +
+                    "can keep several and switch any time.",
+                style = KamTheme.type.secondary,
+                color = colors.textTertiary,
+            )
+            Spacer(Modifier.height(12.dp))
+            advanced.forEach { model ->
+                ModelCard(
+                    model = model,
+                    locked = TierRecommendation.isLocked(model.tier, totalRamGb),
+                    installed = model.id in installedIds,
+                    active = model.id == activeId,
+                    recommended = false,
+                    progress = (download as? Downloader.Progress.Running)
+                        ?.takeIf { installedIds.none { id -> id == model.id } && false }?.fraction,
+                    onDownload = { onDownload(model) },
+                    onActivate = { onActivate(model) },
+                    advanced = true,
+                )
+                Spacer(Modifier.height(11.dp))
+            }
+        }
         Spacer(Modifier.height(28.dp))
     }
 }
@@ -109,6 +140,7 @@ private fun ModelCard(
     progress: Float?,
     onDownload: () -> Unit,
     onActivate: () -> Unit,
+    advanced: Boolean = false,
 ) {
     val colors = KamTheme.colors
     val shape = RoundedCornerShape(KamTheme.dimens.cardRadius)
@@ -163,6 +195,10 @@ private fun ModelCard(
             )
             Spacer(Modifier.weight(1f))
             Text(model.licence, style = KamTheme.type.mono, color = colors.textTertiary)
+        }
+        if (advanced && model.description.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            Text(model.description, style = KamTheme.type.secondary, color = colors.textSecondary)
         }
 
         if (locked) {

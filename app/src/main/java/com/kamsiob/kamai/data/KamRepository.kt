@@ -7,6 +7,7 @@ import com.kamsiob.kamai.model.ModelCatalog
 import com.kamsiob.kamai.model.marketedRamGb
 import com.kamsiob.kamai.model.TierModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import java.io.File
 import java.util.UUID
@@ -94,6 +95,12 @@ class KamRepository(
         db.artifacts().setActive(ArtifactKind.LLM, model.id)
     }
 
+    suspend fun setActiveModel(id: String) = db.artifacts().setActive(ArtifactKind.LLM, id)
+
+    /** Installed LLM ids, so callers can reason about how many models remain. */
+    suspend fun installedModelIds(): List<String> =
+        db.artifacts().observeByKind(ArtifactKind.LLM).firstOrNull().orEmpty().map { it.id }
+
     suspend fun deleteArtifact(id: String) {
         db.artifacts().byId(id)?.let { artifact ->
             when (artifact.kind) {
@@ -102,6 +109,16 @@ class KamRepository(
             }
         }
         db.artifacts().delete(id)
+    }
+
+    /**
+     * Picks the model to fall back to after [deletedId] is removed, so the app
+     * is never left with no usable model. Returns null when nothing else is
+     * installed, which sends the user back to the download flow.
+     */
+    suspend fun nextModelAfterDeleting(deletedId: String): TierModel? {
+        val remaining = installedModelIds().filter { it != deletedId }
+        return remaining.firstNotNullOfOrNull { ModelCatalog.byId(it) }
     }
 
     // Conversations and messages

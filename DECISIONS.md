@@ -561,6 +561,29 @@ target and text-selection hook in Phase 6) integrates into those phases as each
 surface is built; the gating mechanism (AppLock.locked and KamRoot) is in place
 for them to reuse.
 
+## Combined update, part 4: multi-model management (PART 2)
+
+The default experience is unchanged and effortless: pick a tier, done. On top of
+that, an Advanced section on the Model screen, visually separated and clearly
+optional, lists other compatible models a curious user can download and switch
+between. Nothing there is required reading.
+
+Switching the active model is now real rather than a toast: it sets the active
+model in the database and loads it into the engine straight away, keeping every
+conversation, since only the thing answering them changes.
+
+Deleting the active model can never leave the app with nothing usable, which was
+the workflow gap here. If another model is installed, deleting the active one
+falls back to it automatically and loads it. If it was the only model, the engine
+unloads and the user is told plainly to download one to keep chatting, which
+sends them back to the download flow rather than into a broken empty state. This
+is tier-one single confirmation, since it is one item; it just has a smarter
+aftermath.
+
+Every model in the Advanced list is a genuine instruction-tuned GGUF with a
+verified size and hash, checked against the live Hugging Face API like the tier
+defaults, so nothing offered there is a dead or unverifiable link.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

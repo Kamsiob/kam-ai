@@ -319,6 +319,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // Storage
 
+    /** Switches the active model and loads it, quickly. PART 2. */
+    fun activateModel(model: TierModel) = viewModelScope.launch {
+        val file = repository.fileFor(model)
+        if (!file.exists()) {
+            showToast("That model is not downloaded.")
+            return@launch
+        }
+        repository.setActiveModel(model.id)
+        engine.load(model, file)
+        showToast("${model.displayName} is now in use")
+    }
+
     fun deleteArtifact(id: String, name: String? = null) {
         requestConfirm(
             ConfirmRequest(
@@ -328,8 +340,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 confirmLabel = "Delete",
                 onConfirm = {
                     viewModelScope.launch {
+                        val wasActive = repository.activeModel()?.id == id
+                        val fallback = if (wasActive) repository.nextModelAfterDeleting(id) else null
                         repository.deleteArtifact(id)
-                        showToast("Deleted")
+                        // Deleting the active model must never leave the app with
+                        // nothing usable. Fall back to another installed model, or
+                        // unload entirely so the user is sent to download one.
+                        if (wasActive) {
+                            if (fallback != null) {
+                                val file = repository.fileFor(fallback)
+                                repository.setActiveModel(fallback.id)
+                                if (file.exists()) engine.load(fallback, file)
+                                showToast("Deleted. ${fallback.displayName} is now in use.")
+                            } else {
+                                engine.unload()
+                                showToast("Deleted. Download a model to keep chatting.")
+                            }
+                        } else {
+                            showToast("Deleted")
+                        }
                     }
                     Unit
                 },
