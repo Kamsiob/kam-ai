@@ -1,5 +1,7 @@
 package com.kamsiob.kamai.assist
 
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.map
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -50,12 +52,19 @@ class OverlayViewModel(app: Application) : AndroidViewModel(app) {
     private val _transcribing = MutableStateFlow(false)
     val transcribing: StateFlow<Boolean> = _transcribing.asStateFlow()
 
-    private val _voiceAvailable = MutableStateFlow(false)
-    val voiceAvailable: StateFlow<Boolean> = _voiceAvailable.asStateFlow()
+    // Reactive, so voice becoming available (or being installed while the overlay
+    // is open) is reflected immediately, rather than a stale value from init that
+    // left the microphone looking unavailable for no clear reason.
+    val voiceAvailable: StateFlow<Boolean> =
+        repository.observeActiveSttModel()
+            .map { it != null }
+            .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), false)
 
-    init {
-        viewModelScope.launch { _voiceAvailable.value = repository.activeSttModel() != null }
-    }
+    /** The user's chosen default input for the overlay: voice or text. */
+    val defaultToVoice: StateFlow<Boolean> =
+        repository.observeSetting(KamRepository.Keys.ASSISTANT_DEFAULT_VOICE)
+            .map { it == "true" }
+            .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), false)
 
     fun setQuestion(text: String) { _question.value = text }
 

@@ -100,6 +100,8 @@ fun SettingsScreen(
     onAbout: () -> Unit,
     onMemory: () -> Unit,
     onCustomInstructions: () -> Unit = {},
+    assistantDefaultVoice: Boolean = false,
+    onAssistantDefaultVoice: (Boolean) -> Unit = {},
     onSupport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -181,6 +183,14 @@ fun SettingsScreen(
                 subtitle = if (isDefaultAssistant) "Set up. Long-press power to ask." else "Make Kam AI your assistant app",
                 onClick = onAssistant,
             )
+            if (isDefaultAssistant) {
+                SettingsToggleRow(
+                    title = "Power button opens ready for voice",
+                    subtitle = "Off means the keyboard, with voice one tap away",
+                    checked = assistantDefaultVoice,
+                    onCheckedChange = onAssistantDefaultVoice,
+                )
+            }
             SettingsRow(title = "Appearance", subtitle = "Theme and accent colour", onClick = onAppearance)
             SettingsRow(title = "What Kam AI is for", onClick = onReplayOnboarding)
             SettingsRow(title = "Questions and answers", onClick = onQuestions)

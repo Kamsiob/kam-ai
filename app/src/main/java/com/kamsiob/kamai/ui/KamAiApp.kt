@@ -591,6 +591,8 @@ private fun SettingsHost(
         onAbout = { stack.add(Pushed.About) },
         onMemory = { stack.add(Pushed.Memory) },
         onCustomInstructions = { stack.add(Pushed.CustomInstructions) },
+        assistantDefaultVoice = app.assistantDefaultVoice.collectAsStateWithLifecycle().value,
+        onAssistantDefaultVoice = app::setAssistantDefaultVoice,
         onSupport = {
             openUrl(Links.SUPPORT)
             // The support button also closes the Settings page.

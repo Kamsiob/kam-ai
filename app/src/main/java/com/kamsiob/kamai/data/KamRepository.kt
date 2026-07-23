@@ -34,6 +34,7 @@ class KamRepository(
         const val WORKBENCH_INPUT = "workbench.input"
         const val WORKBENCH_OUTPUT = "workbench.output"
         const val SYSTEM_INSTRUCTIONS = "system.instructions"
+        const val ASSISTANT_DEFAULT_VOICE = "assistant.default.voice"
     }
 
     /** The cap on the user's system-wide instructions, in characters. Roughly

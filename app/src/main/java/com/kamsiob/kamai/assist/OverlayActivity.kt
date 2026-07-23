@@ -1,5 +1,7 @@
 package com.kamsiob.kamai.assist
 
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.runtime.LaunchedEffect
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -112,10 +114,21 @@ private fun OverlayPanel(
     val recording by vm.recording.collectAsStateWithLifecycle()
     val transcribing by vm.transcribing.collectAsStateWithLifecycle()
     val voiceAvailable by vm.voiceAvailable.collectAsStateWithLifecycle()
+    val defaultToVoice by vm.defaultToVoice.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
 
     var field by remember { mutableStateOf("") }
     var flagged by remember { mutableStateOf(false) }
+    val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+
+    // Open in the input the user chose: text brings up the keyboard focused;
+    // voice leaves the microphone prominent, one tap away (item 18). Never grab
+    // the keyboard when voice is the default.
+    LaunchedEffect(Unit) {
+        if (!(defaultToVoice && voiceAvailable)) {
+            runCatching { focusRequester.requestFocus() }
+        }
+    }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val micPermission = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -237,10 +250,13 @@ private fun OverlayPanel(
                     BasicTextField(
                         value = field,
                         onValueChange = { field = it; vm.setQuestion(it) },
-                        enabled = !recording && !transcribing,
+                        // Locked while an answer is being written, so nothing is
+                        // typed into a state the assistant is not ready for. The
+                        // Ask button becomes Stop so the run can still be cancelled.
+                        enabled = !recording && !transcribing && !streaming,
                         textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
                         cursorBrush = SolidColor(colors.accent),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                     )
                 }
                 Spacer(Modifier.width(8.dp))

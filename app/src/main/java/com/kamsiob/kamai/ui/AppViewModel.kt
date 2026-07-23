@@ -254,6 +254,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         showToast(if (text.isBlank()) "Cleared" else "Saved")
     }
 
+    // Power button assistant default input mode (item 18). Default is text.
+    val assistantDefaultVoice: StateFlow<Boolean> =
+        repository.observeSetting(KamRepository.Keys.ASSISTANT_DEFAULT_VOICE)
+            .map { it == "true" }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setAssistantDefaultVoice(on: Boolean) = viewModelScope.launch {
+        repository.putSetting(KamRepository.Keys.ASSISTANT_DEFAULT_VOICE, on.toString())
+    }
+
     /**
      * Re-reads the one-shot settings after a restore. The list flows are backed by
      * Room and refresh themselves; these preferences are read once at startup, so
