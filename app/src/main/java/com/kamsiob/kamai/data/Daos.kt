@@ -122,6 +122,10 @@ interface ConversationDao {
     @Query("UPDATE conversations SET groundingMomentId = :passage WHERE id = :id")
     suspend fun setGrounding(id: String, passage: String)
 
+    /** Lifts the scope so the conversation becomes an ordinary open chat. */
+    @Query("UPDATE conversations SET groundingMomentId = NULL WHERE id = :id")
+    suspend fun clearGrounding(id: String)
+
     @Query("DELETE FROM conversations WHERE id = :id")
     suspend fun delete(id: String)
 

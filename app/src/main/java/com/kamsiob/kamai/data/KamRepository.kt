@@ -344,6 +344,11 @@ class KamRepository(
     suspend fun setDiscoverGrounding(conversationId: String, passage: String) =
         db.conversations().setGrounding(conversationId, passage)
 
+    /** Lifts a grounded chat's scope so it continues as an ordinary open chat,
+     *  carrying its history forward. Backs the "continue in open chat" escape. */
+    suspend fun clearGrounding(conversationId: String) =
+        db.conversations().clearGrounding(conversationId)
+
     suspend fun momentById(packId: String, momentId: String): com.kamsiob.kamai.discover.Moment? {
         val fileName = installedPackFileNames()[packId] ?: return null
         return com.kamsiob.kamai.discover.PackReader.byId(packId, File(packsDir(), fileName), momentId)

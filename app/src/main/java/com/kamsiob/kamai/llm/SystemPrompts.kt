@@ -194,6 +194,13 @@ object SystemPrompts {
     fun grounded(passage: String): String =
         "$DISCOVER_GROUNDED\n\nThe passage:\n\n$passage"
 
+    /** The quiet centered note dropped in when a grounded discussion is opened up
+     *  into a normal chat, so the transcript shows where the scope was lifted. */
+    val CONTINUE_OPEN_NOTICE: String =
+        "Opened up to an open chat. Kam AI is no longer confined to the passage and " +
+            "will answer from what it knows, where a small model can misremember, so " +
+            "check anything that matters."
+
     /**
      * The quiet centered note dropped into the transcript when the mode changes,
      * so the history shows exactly where behaviour changed. Plain voice, no hype.

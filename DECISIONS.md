@@ -1815,3 +1815,24 @@ Verified on device: dealt a Discover moment, bookmarked it, saw it appear in the
 under the DISCOVER source chip and in Discover's own Saved section (same data); reopened the grounded
 discussion from both the Follow-ups list and the Discover Saved section; toggled the bookmark off and
 it left the one list. The 3->4 migration ran cleanly over the phone's existing data with no crash.
+
+## Item 21 — Discover scope boundary visible, with a one-tap way out
+
+A grounded Discover discussion confines the model to a saved passage. That boundary was invisible: a
+person could ask something the passage does not cover and get a flat "the passage does not say",
+a dead end. Now the scope is stated up front and there is a one-tap escape.
+
+- ChatViewModel exposes a `grounded` flow (conversation.groundingMomentId present) and
+  `continueInOpenChat()`, which clears the grounding, switches the conversation to open Chat, and adds
+  a quiet SYSTEM note. The mode switch matters: with the passage gone, a conversation left in Discover
+  mode would resolve to DISCOVER_GROUNDED pointing at nothing, so lifting scope must also open the mode.
+- ChatScreen shows a GroundedBanner when grounded, mirroring the Logic banner: tonal fill, book icon,
+  no amber, with "Continue in open chat" as a plain accent action. Repository.clearGrounding +
+  ConversationDao.clearGrounding back it; SystemPrompts.CONTINUE_OPEN_NOTICE is the boundary note.
+
+Verified on device: opened a grounded discussion (banner shown, scope stated), tapped Continue in open
+chat (banner gone, honest note added, mode = Chat), reopened the conversation and the change persisted
+(no banner, still Chat) - so grounding was cleared in the database, not just in memory.
+
+This advances item 21 (scope stated up front + out-of-scope escape carrying context). The scoped
+slide-up surface (item 11) and a broader audit for other invisible walls remain.

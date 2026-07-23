@@ -36,6 +36,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.MoreHoriz
@@ -98,6 +99,8 @@ fun ChatScreen(
     conversationTitle: String? = null,
     projectOptions: List<Pair<String, String>> = emptyList(),
     conversationProjectId: String? = null,
+    grounded: Boolean = false,
+    onContinueOpen: () -> Unit = {},
     onMoveToProject: (String?) -> Unit = {},
     onRenameConversation: (String) -> Unit = {},
     onArchiveConversation: () -> Unit = {},
@@ -164,6 +167,14 @@ fun ChatScreen(
         if (mode == Mode.LOGIC) {
             Box(Modifier.padding(horizontal = KamTheme.dimens.screenPadding, vertical = 4.dp)) {
                 LogicBanner()
+            }
+        }
+
+        // A grounded Discover discussion states its scope up front, and offers the
+        // one-tap way out so an out-of-scope question never dead-ends (item 21).
+        if (grounded) {
+            Box(Modifier.padding(horizontal = KamTheme.dimens.screenPadding, vertical = 4.dp)) {
+                GroundedBanner(onContinueOpen = onContinueOpen)
             }
         }
 
@@ -922,6 +933,47 @@ private fun LogicBanner() {
             "Logic Partner is testing your reasoning, not agreeing with it.",
             style = KamTheme.type.secondary,
             color = colors.tonalText,
+        )
+    }
+}
+
+/**
+ * States a Discover discussion's scope up front and gives the one-tap way out, so
+ * an out-of-scope question is never a dead end (item 21). Tonal fill and text from
+ * the design system, no amber; the escape reads as a plain accent action.
+ */
+@Composable
+private fun GroundedBanner(onContinueOpen: () -> Unit) {
+    val colors = KamTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(colors.tonalFill)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Rounded.MenuBook,
+                contentDescription = null,
+                tint = colors.tonalText,
+                modifier = Modifier.size(15.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Staying with this passage. Answers come from the text above, not the wider web.",
+                style = KamTheme.type.secondary,
+                color = colors.tonalText,
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Continue in open chat",
+            style = KamTheme.type.label,
+            color = colors.accent,
+            modifier = Modifier
+                .clickable(onClick = onContinueOpen)
+                .padding(start = 23.dp, top = 2.dp, bottom = 2.dp),
         )
     }
 }

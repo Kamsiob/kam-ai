@@ -127,6 +127,16 @@ class ChatViewModel(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Whether this is a Discover discussion confined to a passage. Drives the
+     *  scope banner and its one-tap escape into an open chat (item 21). */
+    val grounded: StateFlow<Boolean> =
+        _conversationId
+            .flatMapLatest { id ->
+                if (id == null) flowOf(false)
+                else repository.observeConversation(id).map { !it?.groundingMomentId.isNullOrBlank() }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     /** A background titling pass for a conversation opened without a title. */
     private var titlingJob: kotlinx.coroutines.Job? = null
 
@@ -161,6 +171,27 @@ class ChatViewModel(
             if (history.any { it.role == Role.USER || it.role == Role.ASSISTANT }) {
                 repository.addMessage(convId, Role.SYSTEM, SystemPrompts.modeSwitchNotice(mode))
             }
+        }
+    }
+
+    /**
+     * Lifts a grounded Discover discussion into a normal open chat, keeping the
+     * history. The scope boundary is stated up front and this is its one-tap
+     * escape, so an out-of-scope question does not dead-end (item 21). A quiet
+     * SYSTEM note marks where the scope changed.
+     */
+    fun continueInOpenChat() {
+        val convId = _conversationId.value ?: return
+        if (!grounded.value) return
+        // Lifting the scope also moves the conversation to open Chat: with no
+        // passage left, its Discover mode would otherwise resolve to a grounded
+        // prompt pointing at nothing. Set the mode directly (not setMode) so only
+        // the one continue-open note is added, not a second mode-switch note.
+        _mode.value = Mode.CHAT
+        viewModelScope.launch {
+            repository.clearGrounding(convId)
+            repository.setConversationMode(convId, Mode.CHAT)
+            repository.addMessage(convId, Role.SYSTEM, SystemPrompts.CONTINUE_OPEN_NOTICE)
         }
     }
 

@@ -412,6 +412,7 @@ private fun ConversationScreen(
     val speakingId by app.speakingMessageId.collectAsStateWithLifecycle()
     val conversationTitle by chat.title.collectAsStateWithLifecycle()
     val conversationProjectId by chat.projectId.collectAsStateWithLifecycle()
+    val grounded by chat.grounded.collectAsStateWithLifecycle()
     val allProjects by app.projects.collectAsStateWithLifecycle()
 
     val pickFile = rememberLauncherForActivityResult(
@@ -503,6 +504,8 @@ private fun ConversationScreen(
         conversationTitle = conversationTitle,
         projectOptions = allProjects.map { it.id to it.name },
         conversationProjectId = conversationProjectId,
+        grounded = grounded,
+        onContinueOpen = chat::continueInOpenChat,
         onMoveToProject = { projectId ->
             chat.conversationId.value?.let { app.assignConversationToProject(it, projectId) }
         },

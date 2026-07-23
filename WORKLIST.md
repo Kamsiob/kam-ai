@@ -124,9 +124,17 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       (N)" link on Chats shown only when some exist; open / Move to Chats (unarchive) / Delete;
       archiving reversible, deletion not. Archive/delete from header pop back to the list.
       Device-verified: header, menu, archive->link->archived view->unarchive round trip.
-- [ ] 21. Discover scope boundary visible before hit: verify grounded vs open variants differ;
-      clarify choice at point of selection; scope stated up front; out-of-scope offers one-tap
-      "continue in open chat" carrying question+context. Audit for other invisible walls.
+- [~] 21. Discover scope boundary visible before hit. DONE: a grounded discussion now states its
+      scope up front with a GroundedBanner ("Staying with this passage. Answers come from the text
+      above, not the wider web."; design-system tonal fill, book icon, no amber) and offers a one-tap
+      "Continue in open chat" that lifts the grounding, switches the conversation to open Chat (so its
+      Discover mode no longer resolves to a passage-less grounded prompt), and drops an honest centered
+      SYSTEM note ("a small model can misremember, so check anything that matters"). The whole history
+      carries forward. Device-verified: banner shown, escape lifts scope, note added, mode = Chat,
+      persists across reopen. Grounded vs open already differ at selection (ReaderSheet's Discuss vs
+      Explore, with the plain explanation of each). REMAINING: the scoped slide-up surface itself
+      (item 11, a distinct presentation rather than the full chat window); broader audit for other
+      invisible walls.
 - [~] 22. Capability transparency (declarative capabilities + model-picker chips with tap-to-explain done + verified; speed/quality ratings, input-bar gating, 3-state controls remain). Orig: declarative per-model capabilities in catalog; input bar adapts
       (hide unsupported controls on every surface); three states (can't/can't-afford/not-installed);
       filter pickers; honest model switching with existing attachments. Model picker shows
