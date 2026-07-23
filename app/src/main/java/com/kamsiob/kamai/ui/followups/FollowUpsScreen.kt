@@ -1,5 +1,8 @@
 package com.kamsiob.kamai.ui.followups
 
+import androidx.compose.ui.semantics.selected
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -75,6 +78,15 @@ fun FollowUpsScreen(
 ) {
     val colors = KamTheme.colors
     var completedExpanded by remember { mutableStateOf(false) }
+    // Filter by where an item came from. null means everything.
+    var filter by remember { mutableStateOf<com.kamsiob.kamai.data.Mode?>(null) }
+    val sources = remember(open, completed) {
+        (open + completed).map { it.sourceMode }.distinct()
+    }
+    // A filter that no longer matches anything (its last item was removed) falls back to All.
+    if (filter != null && filter !in sources) filter = null
+    val shownOpen = if (filter == null) open else open.filter { it.sourceMode == filter }
+    val shownCompleted = if (filter == null) completed else completed.filter { it.sourceMode == filter }
 
     Column(modifier = modifier.fillMaxSize()) {
         Text(
@@ -95,6 +107,21 @@ fun FollowUpsScreen(
             return@Column
         }
 
+        // A quiet filter, shown only when items come from more than one place.
+        if (sources.size > 1) {
+            SourceFilterRow(sources = sources, selected = filter, onSelect = { filter = it })
+            Spacer(Modifier.height(4.dp))
+        }
+
+        if (shownOpen.isEmpty() && shownCompleted.isEmpty()) {
+            Text(
+                "Nothing from ${filterLabel(filter)} yet.",
+                style = KamTheme.type.body, color = colors.textTertiary,
+                modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding, vertical = 12.dp),
+            )
+            return@Column
+        }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
@@ -103,7 +130,7 @@ fun FollowUpsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(open, key = { it.id }) { item ->
+            items(shownOpen, key = { it.id }) { item ->
                 FollowUpCard(
                     item = item,
                     completed = false,
@@ -113,16 +140,16 @@ fun FollowUpsScreen(
                 )
             }
 
-            if (completed.isNotEmpty()) {
+            if (shownCompleted.isNotEmpty()) {
                 item(key = "completed-header") {
                     CompletedHeader(
-                        count = completed.size,
+                        count = shownCompleted.size,
                         expanded = completedExpanded,
                         onToggle = { completedExpanded = !completedExpanded },
                     )
                 }
                 if (completedExpanded) {
-                    items(completed, key = { "c-${it.id}" }) { item ->
+                    items(shownCompleted, key = { "c-${it.id}" }) { item ->
                         FollowUpCard(
                             item = item,
                             completed = true,
@@ -133,6 +160,53 @@ fun FollowUpsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Short label for a source filter value; null is everything. */
+private fun filterLabel(mode: com.kamsiob.kamai.data.Mode?): String = when (mode) {
+    null -> "All"
+    com.kamsiob.kamai.data.Mode.CHAT -> "Chat"
+    com.kamsiob.kamai.data.Mode.LOGIC -> "Logic"
+    com.kamsiob.kamai.data.Mode.DISCOVER -> "Discover"
+    com.kamsiob.kamai.data.Mode.BENCH -> "Workbench"
+    com.kamsiob.kamai.data.Mode.OVERLAY -> "Quick ask"
+}
+
+/**
+ * A light, horizontal row of source filters: All plus each place items came from.
+ * The active one fills with the tonal green so it is obvious, and All is always a
+ * clear way back to everything.
+ */
+@Composable
+private fun SourceFilterRow(
+    sources: List<com.kamsiob.kamai.data.Mode>,
+    selected: com.kamsiob.kamai.data.Mode?,
+    onSelect: (com.kamsiob.kamai.data.Mode?) -> Unit,
+) {
+    val colors = KamTheme.colors
+    val options = listOf<com.kamsiob.kamai.data.Mode?>(null) + sources
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = KamTheme.dimens.screenPadding, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEach { option ->
+            val on = option == selected
+            Text(
+                filterLabel(option),
+                style = KamTheme.type.label,
+                color = if (on) colors.tonalText else colors.textSecondary,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(if (on) colors.tonalFill else colors.surfaceSecondary)
+                    .clickable { onSelect(option) }
+                    .semantics { this.selected = on }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
         }
     }
 }

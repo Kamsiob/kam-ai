@@ -15,7 +15,13 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       so the cached VM kept the previous conversation's id. Fixed with unique per-new-chat
       key via `conversationVmKey`. Unit test + device verified (open existing -> new chat empty;
       create chat -> new chat empty again; no stray conversations).
-- [ ] 2. Projects + bottom nav. Remove the bottom-nav "New" button to make room for BOTH Projects
+- [~] 2. Projects + bottom nav. DONE: nav is Projects/Chats/Follow-ups/Discover (New removed);
+      create projects; per-project instructions (capped, re-injected, project-isolated); new chat in
+      a project; move existing chats in/out via header picker (non-retroactive notice); main list
+      excludes project chats; 'In <project>' indicator in the open chat; delete-project moves chats
+      back to Chats. Device-verified (pirate project). REMAINING: multi-select bulk 'move to project'
+      from the chat list; add-existing-from-inside-a-project; optional project notes field (migration).
+      Original scope: Remove the bottom-nav "New" button to make room for BOTH Projects
       and Today (owner). FINAL nav order (owner): Today, Projects, Chats, Follow-ups, Discover (Chats centered).
       Build order now: Projects, Chats, Follow-ups, Discover; Today slots into position 1 when built. Build Projects (named container, persistent instructions + notes re-injected
       each turn, assign/reassign conversations like Claude, move semantics not retroactive, delete
