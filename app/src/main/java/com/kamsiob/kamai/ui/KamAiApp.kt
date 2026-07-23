@@ -125,6 +125,17 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
         }
     }
 
+    // The assistant overlay hands a conversation off by id. Open it once it lands,
+    // clearing anything already stacked so it is the top of the app.
+    val handoff by com.kamsiob.kamai.assist.Handoff.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(handoff) {
+        val id = handoff ?: return@LaunchedEffect
+        com.kamsiob.kamai.assist.Handoff.consume()
+        tab = NavItem.CHATS
+        stack.clear()
+        stack.add(Pushed.Conversation(id))
+    }
+
     if (!ready) {
         Box(Modifier.fillMaxSize().background(colors.background))
         return
@@ -431,6 +442,7 @@ private fun SettingsHost(
     stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
     openUrl: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     val artifacts by app.artifacts.collectAsStateWithLifecycle()
     val activeModel by app.activeModel.collectAsStateWithLifecycle()
     val confirmChatDelete by app.confirmChatDelete.collectAsStateWithLifecycle()
@@ -454,6 +466,12 @@ private fun SettingsHost(
         onConfirmChatDelete = app::setConfirmChatDelete,
         appLockEnabled = com.kamsiob.kamai.lock.AppLock.enabled,
         onAppLock = { stack.add(Pushed.AppLock) },
+        isDefaultAssistant = com.kamsiob.kamai.assist.AssistantRole.isDefault(context),
+        onAssistant = {
+            if (!com.kamsiob.kamai.assist.AssistantRole.openSettings(context)) {
+                app.showToast("Open Settings, then Apps, then Default apps, then Digital assistant app.")
+            }
+        },
         onReplayOnboarding = app::replayOnboarding,
         onAppearance = { stack.add(Pushed.Appearance) },
         onSafety = { stack.add(Pushed.Safety) },

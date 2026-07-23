@@ -1075,6 +1075,72 @@ typing text, force-stopping the app, reopening, and seeing the text restored
 exactly ("Meeting notes from today"). The transform itself runs on the same
 engine path already proven for chat.
 
+## Phase 4: The assistant overlay
+
+Kam AI can be the phone's digital assistant, opened by a long-press of the power
+button, showing a quick panel over whatever the user was doing.
+
+### How it is built
+
+The digital-assistant role needs a VoiceInteractionService. Rather than render the
+overlay inside the voice-interaction window (which makes Compose, the keyboard,
+and the microphone awkward), the session immediately launches a normal, floating,
+translucent activity (OverlayActivity) and hides itself. So the overlay is an
+ordinary Compose activity that behaves exactly like the rest of the app. Three
+components make the role valid: KamAssistService (the VoiceInteractionService),
+KamAssistSessionService (opens the overlay), and KamRecognitionService (a required
+no-op, since Kam AI does its own on-device speech-to-text with whisper rather than
+through the system recognition path). res/xml/kam_assist.xml ties them together
+with supportsAssist=true.
+
+### What the overlay does
+
+A minimal sheet at the bottom over the current app, dimming the rest: ask by text
+or by voice (the same whisper speech-to-text), a compact answer in Overlay mode
+(short by instruction), a single tap-to-flag icon that drops the answer into
+Follow-ups with the question as a note, Copy, and Open Kam AI which turns the
+exchange into a full conversation and opens it. It answers entirely on-device, so
+it works with no network. Verified on device: triggered with the assist key, the
+overlay opens as an assistant-type task over the launcher and renders correctly;
+with no model installed it says so plainly ("No model set up yet. Open Kam AI to
+download one.") rather than doing nothing.
+
+### Settings and the assistant role
+
+A row, "Open with the power button", shows whether Kam AI is the current assistant
+and opens the system Digital assistant screen (falling back to Default apps, then
+Settings) so the user can pick it. There is no API to claim the role directly;
+taking the user to the right screen with a plain explanation is the honest path.
+
+### Testing note: setting the role over ADB
+
+Reinstalling a debug APK can clear the assistant selection. To set it for testing:
+
+    adb shell settings put secure voice_interaction_service com.kamsiob.kamai/.assist.KamAssistService
+    adb shell settings put secure assistant com.kamsiob.kamai/.assist.KamAssistService
+    adb shell settings put secure voice_recognition_service com.kamsiob.kamai/.assist.KamRecognitionService
+
+Trigger the session with `adb shell input keyevent 219` (KEYCODE_ASSIST); plain
+`am start -a android.intent.action.ASSIST` opens a chooser instead and is not the
+right path. To restore the phone's original assistant afterward, put the saved
+values back (on the test Pixel that was
+com.google.android.googlequicksearchbox/com.google.android.voiceinteraction.GsaVoiceInteractionService
+for both, and com.google.android.tts/...GoogleTTSRecognitionService for
+recognition). None of this affects Play-delivered updates.
+
+### A download observation worth recording
+
+A large model download runs in the app, not a foreground service, a deliberate
+choice to keep the app's permission set minimal (no FOREGROUND_SERVICE, no
+background start). The cost, seen during testing: if the app is backgrounded for a
+long stretch mid-download (the overlay was left open for over ten minutes), the
+download coroutine is suspended or killed and does not resume on its own. It does
+resume correctly from the partial file the moment the user taps download again, so
+no bytes are lost, but the Model screen reverts to "Download" rather than showing a
+resumable state. Worth a small future improvement: on returning to the foreground
+with a partial file present, offer to resume, or label the button "Resume". Not a
+data-loss bug; a UX rough edge, noted here so it is not rediscovered.
+
 ## Deferred within completed phases
 
 ### Kokoro premium reading voice (Phase 2)

@@ -91,6 +91,8 @@ fun SettingsScreen(
     onConfirmChatDelete: (Boolean) -> Unit,
     appLockEnabled: Boolean,
     onAppLock: () -> Unit,
+    isDefaultAssistant: Boolean = false,
+    onAssistant: () -> Unit = {},
     onReplayOnboarding: () -> Unit,
     onAppearance: () -> Unit,
     onSafety: () -> Unit,
@@ -168,6 +170,11 @@ fun SettingsScreen(
         Spacer(Modifier.height(22.dp))
 
         SettingsGroup("The app") {
+            SettingsRow(
+                title = "Open with the power button",
+                subtitle = if (isDefaultAssistant) "Set up. Long-press power to ask." else "Make Kam AI your assistant app",
+                onClick = onAssistant,
+            )
             SettingsRow(title = "Appearance", subtitle = "Theme and accent colour", onClick = onAppearance)
             SettingsRow(title = "What Kam AI is for", onClick = onReplayOnboarding)
             SettingsRow(title = "Questions and answers", onClick = onQuestions)

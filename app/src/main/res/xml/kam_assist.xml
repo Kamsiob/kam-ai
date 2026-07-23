@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ties the digital-assistant registration together: the session service that
+     opens the overlay, the recognition service the platform requires named, and
+     the declaration that Kam AI supports the assist gesture. -->
+<voice-interaction-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="com.kamsiob.kamai.assist.KamAssistSessionService"
+    android:recognitionService="com.kamsiob.kamai.assist.KamRecognitionService"
+    android:supportsAssist="true"
+    android:supportsLocalInteraction="true" />

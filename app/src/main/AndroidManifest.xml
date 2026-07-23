@@ -46,6 +46,49 @@
             </intent-filter>
         </activity>
 
+        <!-- The quick assistant overlay, opened by the assist gesture. Its own
+             transparent, floating window over other apps; kept out of Recents. -->
+        <activity
+            android:name=".assist.OverlayActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:taskAffinity=".assist.overlay"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|density|fontScale"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.KamAI.Overlay" />
+
+        <!-- Digital assistant registration (ROLE_ASSISTANT). See
+             res/xml/kam_assist.xml for how the three services tie together. -->
+        <service
+            android:name=".assist.KamAssistService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/kam_assist" />
+        </service>
+
+        <service
+            android:name=".assist.KamAssistSessionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION" />
+
+        <service
+            android:name=".assist.KamRecognitionService"
+            android:exported="true"
+            android:permission="android.permission.RECORD_AUDIO">
+            <intent-filter>
+                <action android:name="android.speech.RecognitionService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.speech"
+                android:resource="@xml/kam_recognition" />
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
