@@ -486,7 +486,15 @@ private fun StorageHost(app: AppViewModel) {
 @Composable
 private fun MemoryHost(app: AppViewModel) {
     val memory by app.memory.collectAsStateWithLifecycle()
-    MemoryScreen(entries = memory, onForget = app::forget)
+    val mode by app.memoryMode.collectAsStateWithLifecycle()
+    MemoryScreen(
+        entries = memory,
+        mode = mode,
+        onModeChange = app::setMemoryMode,
+        onForget = { id, text -> app.forget(id, text) },
+        onForgetMany = app::forgetMany,
+        onForgetAll = app::forgetAll,
+    )
 }
 
 @Composable

@@ -646,6 +646,50 @@ Tests: 74 unit including the thread render (attributed, readable, trimmed, and a
 heading even when untitled), plus the on-device suites. The share-sheet handoff
 itself is a system intent and is exercised by hand.
 
+## Combined update, part 7: the memory system, user in control (PART 7)
+
+Three modes, chosen in the Memory screen, Manual the safe default:
+
+- Manual: nothing is remembered unless the user says so. "Remember that ..." (and
+  "remember:", "remember I ...", "please remember ...") is detected on send,
+  saved, and confirmed on the notice line. This fires in Manual and Auto, never
+  Off, which is the whole point of Manual.
+- Auto: the app also keeps durable facts it notices. After an exchange it runs a
+  strict one-shot extraction asking only for stated preferences, ongoing
+  projects, recurring context, and personal facts the user clearly volunteered,
+  and to reply NONE otherwise. The parse is defensive: it drops NONE, refusal
+  sentences, over-long lines, and caps two facts per exchange, so one chat cannot
+  flood the store. A small, high-signal store is worth far more than a large
+  noisy one.
+- Off: nothing is remembered.
+
+Auto entries are marked "Saved automatically" in the list, surfaced exactly like
+manual ones so nothing is hidden and a person can prune them. The memory store
+is in the same encrypted database as everything else.
+
+Management. The Memory screen lists every entry in full, deletes one (tier one),
+enters multi-select by long-press for select-all and a batch delete (tier two),
+and forgets everything (tier two). The auto flag rides a real Migration(2,3);
+existing memories default to manual.
+
+Tests: 81 unit including the manual capture (plain requests captured, ordinary
+messages and "can you remember things?" left alone), the auto parse (real facts
+kept one per line, NONE and refusals dropped, bullets stripped, bounded to two),
+and Manual confirmed as the default mode; plus three on-device schema-migration
+tests, now covering both the conversation title flag and the memory auto flag,
+with existing data surviving intact.
+
+## Combined update: status
+
+PARTS 0, 1, 2, 3, 4, 5, 5B, 7, 8 and 9 are complete. PART 6, the Workbench
+surface, is master-spec Phase 3 and is built there per the phase-order rule.
+Within PART 3, the encrypted backup file is master-spec Phase 7 and is built
+there. The app-lock gating of the assistant overlay (Phase 4) and the widget,
+tile, share target and text-selection hook (Phase 6) integrates as each of those
+surfaces is built; the gating mechanism is in place for them to reuse. With the
+combined update otherwise done, the build returns to the master-spec phases in
+order, resuming at Phase 2 (Voice).
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

@@ -258,7 +258,7 @@ class KamRepository(
     suspend fun recentMemory(limit: Int): List<String> =
         db.memory().mostRecent(limit).map { it.text }
 
-    suspend fun remember(text: String, sourceConversationId: String?) {
+    suspend fun remember(text: String, sourceConversationId: String?, auto: Boolean = false) {
         // Never store the same fact twice; the memory screen has to stay
         // readable, and duplicates eat the context budget for no gain.
         if (db.memory().countMatching(text) > 0) return
@@ -267,10 +267,20 @@ class KamRepository(
             MemoryEntity(
                 id = UUID.randomUUID().toString(), text = text,
                 createdAt = now, updatedAt = now,
-                sourceConversationId = sourceConversationId,
+                sourceConversationId = sourceConversationId, auto = auto,
             ),
         )
     }
+
+    suspend fun forgetAllMemory() = db.memory().deleteAll()
+
+    suspend fun memoryMode(): com.kamsiob.kamai.llm.MemoryMode =
+        runCatching {
+            com.kamsiob.kamai.llm.MemoryMode.valueOf(setting(Keys.MEMORY_MODE).orEmpty())
+        }.getOrDefault(com.kamsiob.kamai.llm.MemoryMode.MANUAL)
+
+    suspend fun setMemoryMode(mode: com.kamsiob.kamai.llm.MemoryMode) =
+        putSetting(Keys.MEMORY_MODE, mode.name)
 
     suspend fun forget(id: String) = db.memory().deleteById(id)
 

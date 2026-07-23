@@ -11,6 +11,8 @@ import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.data.Role
 import com.kamsiob.kamai.llm.ChatFormat
 import com.kamsiob.kamai.llm.InferenceEngine
+import com.kamsiob.kamai.llm.MemoryExtractor
+import com.kamsiob.kamai.llm.MemoryMode
 import com.kamsiob.kamai.llm.PromptBuilder
 import com.kamsiob.kamai.llm.SystemPrompts
 import kotlinx.coroutines.Job
@@ -80,6 +82,7 @@ class ChatViewModel(
                 _conversationId.value = it
             }
             repository.addMessage(id, Role.USER, trimmed)
+            maybeManualRemember(id, trimmed)
             respond(id)
         }
     }
@@ -194,8 +197,43 @@ class ChatViewModel(
 
                 _streaming.value = false
                 maybeTitle(conversationId)
+                maybeAutoRemember(conversationId)
             }
         }
+    }
+
+    /**
+     * The user asked to remember something. Fires in Manual and Auto, never Off.
+     * A plain confirmation is surfaced through the notice line.
+     */
+    private suspend fun maybeManualRemember(conversationId: String, userText: String) {
+        if (repository.memoryMode() == MemoryMode.OFF) return
+        val fact = MemoryExtractor.manualFact(userText) ?: return
+        repository.remember(fact, conversationId, auto = false)
+        _notice.value = "Saved to memory: ${fact.take(60)}"
+    }
+
+    /**
+     * In Auto mode, after an exchange, ask the model to surface any durable fact
+     * worth keeping. Bounded and strict, so the store stays small and
+     * high-signal. Does nothing in Manual or Off.
+     */
+    private suspend fun maybeAutoRemember(conversationId: String) {
+        if (repository.memoryMode() != MemoryMode.AUTO) return
+        val history = repository.messages(conversationId)
+        val lastUser = history.lastOrNull { it.role == Role.USER } ?: return
+        val lastAssistant = history.lastOrNull { it.role == Role.ASSISTANT } ?: return
+
+        val exchange = "User: \"${lastUser.content.take(600)}\"\n\n" +
+            "You said: \"${lastAssistant.content.take(600)}\""
+        val prompt = PromptBuilder.oneShot(chatFormat(), MemoryExtractor.AUTO_INSTRUCTION, exchange)
+
+        val builder = StringBuilder()
+        engine.generate(prompt, Mode.BENCH, maxTokens = AUTO_MEMORY_MAX_TOKENS).collect {
+            builder.append(it.text)
+        }
+        val facts = MemoryExtractor.parseAutoReply(PromptBuilder.cleanOutput(builder.toString()))
+        facts.forEach { repository.remember(it, conversationId, auto = true) }
     }
 
     /**
@@ -250,5 +288,6 @@ class ChatViewModel(
         const val TITLE_MAX_TOKENS = 24
         const val TITLE_MAX_CHARS = 60
         const val TITLE_REFRESH_AT = 8
+        const val AUTO_MEMORY_MAX_TOKENS = 60
     }
 }

@@ -12,6 +12,7 @@ import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.data.ProjectEntity
 import com.kamsiob.kamai.download.Downloader
 import com.kamsiob.kamai.llm.InferenceEngine
+import com.kamsiob.kamai.llm.MemoryMode
 import com.kamsiob.kamai.model.ModelCatalog
 import com.kamsiob.kamai.model.TierModel
 import com.kamsiob.kamai.model.TierRecommendation
@@ -63,6 +64,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _confirmChatDelete = MutableStateFlow(true)
     val confirmChatDelete: StateFlow<Boolean> = _confirmChatDelete.asStateFlow()
 
+    private val _memoryMode = MutableStateFlow(MemoryMode.MANUAL)
+    val memoryMode: StateFlow<MemoryMode> = _memoryMode.asStateFlow()
+
     val totalRamGb: Int = repository.totalRamGb()
     val tiers: List<TierModel> = ModelCatalog.defaults
     val recommendedTier = TierRecommendation.recommended(totalRamGb)
@@ -111,6 +115,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }.getOrDefault(ChatsView.COMPACT)
             _confirmChatDelete.value =
                 repository.setting(KamRepository.Keys.CONFIRM_CHAT_DELETE) != "false"
+            _memoryMode.value = repository.memoryMode()
 
             loadActiveModelIfPresent()
             _ready.value = true
@@ -287,6 +292,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     viewModelScope.launch {
                         repository.forget(id)
                         showToast("Forgotten")
+                    }
+                    Unit
+                },
+            ),
+        )
+    }
+
+    fun setMemoryMode(mode: MemoryMode) {
+        _memoryMode.value = mode
+        viewModelScope.launch { repository.setMemoryMode(mode) }
+    }
+
+    fun forgetAll() {
+        requestConfirm(
+            ConfirmRequest(
+                tier = ConfirmTier.MAJOR,
+                title = "Forget everything?",
+                body = "Every memory Kam AI has kept will be removed.",
+                undoneNote = "All of it will be gone for good.",
+                confirmLabel = "Forget all",
+                onConfirm = {
+                    viewModelScope.launch {
+                        repository.forgetAllMemory()
+                        showToast("Memory cleared")
                     }
                     Unit
                 },

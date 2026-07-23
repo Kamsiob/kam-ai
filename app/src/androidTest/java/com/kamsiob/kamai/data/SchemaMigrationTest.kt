@@ -84,6 +84,34 @@ class SchemaMigrationTest {
     }
 
     @Test
+    fun memoryEntriesSurviveTheMoveToVersion3() {
+        // A version 2 memory_entries table, without the auto flag.
+        context.deleteDatabase(dbName)
+        val callback = object : SupportSQLiteOpenHelper.Callback(1) {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE memory_entries (id TEXT NOT NULL PRIMARY KEY, text TEXT NOT NULL, " +
+                        "createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, sourceConversationId TEXT)",
+                )
+            }
+            override fun onUpgrade(db: SupportSQLiteDatabase, o: Int, n: Int) {}
+        }
+        helper = FrameworkSQLiteOpenHelperFactory().create(
+            SupportSQLiteOpenHelper.Configuration.builder(context).name(dbName).callback(callback).build(),
+        )
+        val db = helper.writableDatabase
+        db.execSQL("INSERT INTO memory_entries (id, text, createdAt, updatedAt) VALUES ('m1', 'likes tea', 1, 1)")
+        KamDatabase.MIGRATION_2_3.migrate(db)
+
+        db.query("SELECT text, auto FROM memory_entries WHERE id = 'm1'").use { c ->
+            c.moveToFirst()
+            assertThat(c.getString(0)).isEqualTo("likes tea")
+            // Existing memories default to manual (auto = 0).
+            assertThat(c.getInt(1)).isEqualTo(0)
+        }
+    }
+
+    @Test
     fun theNewColumnAcceptsAManualTitleFlag() {
         val db = openV1Then { KamDatabase.MIGRATION_1_2.migrate(it) }
         db.execSQL(

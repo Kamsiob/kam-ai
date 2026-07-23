@@ -4,6 +4,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.ui.semantics.selected
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -432,28 +436,100 @@ fun StorageScreen(
 @Composable
 fun MemoryScreen(
     entries: List<MemoryEntity>,
-    onForget: (String) -> Unit,
+    mode: com.kamsiob.kamai.llm.MemoryMode,
+    onModeChange: (com.kamsiob.kamai.llm.MemoryMode) -> Unit,
+    onForget: (String, String) -> Unit,
+    onForgetMany: (List<String>) -> Unit,
+    onForgetAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
+    val selectedIds = remember { mutableStateListOf<String>() }
+    var selecting by remember { mutableStateOf(false) }
+    fun exit() { selecting = false; selectedIds.clear() }
+    androidx.activity.compose.BackHandler(enabled = selecting) { exit() }
 
     Column(modifier = modifier.fillMaxSize().padding(horizontal = screenPad)) {
-        Text("Memory", style = KamTheme.type.screenTitle, color = colors.textPrimary)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Everything Kam AI has kept about you is listed here, in full. Delete " +
-                "anything you would rather it forgot.",
-            style = KamTheme.type.body,
-            color = colors.textSecondary,
-        )
-        Spacer(Modifier.height(16.dp))
+        if (selecting) {
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${selectedIds.size} selected", style = KamTheme.type.sectionTitle, color = colors.textPrimary)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    if (selectedIds.size == entries.size) "Select none" else "Select all",
+                    style = KamTheme.type.label, color = colors.accent,
+                    modifier = Modifier.clip(CircleShape).clickable {
+                        if (selectedIds.size == entries.size) selectedIds.clear()
+                        else { selectedIds.clear(); selectedIds.addAll(entries.map { it.id }) }
+                    }.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+                Text(
+                    "Forget", style = KamTheme.type.label,
+                    color = if (selectedIds.isNotEmpty()) colors.flagAmber else colors.textTertiary,
+                    modifier = Modifier.clip(CircleShape)
+                        .then(if (selectedIds.isNotEmpty()) Modifier.clickable { onForgetMany(selectedIds.toList()); exit() } else Modifier)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+                Text("Cancel", style = KamTheme.type.label, color = colors.textSecondary,
+                    modifier = Modifier.clip(CircleShape).clickable { exit() }.padding(horizontal = 12.dp, vertical = 8.dp))
+            }
+        } else {
+            Text("Memory", style = KamTheme.type.screenTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Everything Kam AI has kept about you is listed here, in full. You choose " +
+                    "how much it remembers, and you can delete anything.",
+                style = KamTheme.type.body,
+                color = colors.textSecondary,
+            )
+            Spacer(Modifier.height(16.dp))
+
+            // The mode selector. Manual is the safe default. PART 7.
+            Eyebrow("What Kam AI remembers")
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().clip(CircleShape).background(colors.surfaceSecondary).padding(3.dp),
+            ) {
+                listOf(
+                    com.kamsiob.kamai.llm.MemoryMode.MANUAL to "Only when I ask",
+                    com.kamsiob.kamai.llm.MemoryMode.AUTO to "Automatically",
+                    com.kamsiob.kamai.llm.MemoryMode.OFF to "Off",
+                ).forEach { (m, label) ->
+                    val on = m == mode
+                    val bg by androidx.compose.animation.animateColorAsState(
+                        if (on) colors.surface else androidx.compose.ui.graphics.Color.Transparent, label = "mem-mode",
+                    )
+                    Box(
+                        modifier = Modifier.weight(1f).clip(CircleShape).background(bg)
+                            .clickable { onModeChange(m) }.padding(vertical = 9.dp)
+                            .semantics { selected = on },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(label, style = KamTheme.type.secondary,
+                            color = if (on) colors.textPrimary else colors.textTertiary)
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                when (mode) {
+                    com.kamsiob.kamai.llm.MemoryMode.MANUAL -> "Say \"remember that ...\" and it keeps that. Nothing else is kept."
+                    com.kamsiob.kamai.llm.MemoryMode.AUTO -> "It also keeps durable facts it notices, like preferences and ongoing projects. Auto entries are marked so you can prune them."
+                    com.kamsiob.kamai.llm.MemoryMode.OFF -> "Nothing is remembered between conversations."
+                },
+                style = KamTheme.type.secondary,
+                color = colors.textTertiary,
+            )
+            Spacer(Modifier.height(16.dp))
+        }
 
         if (entries.isEmpty()) {
-            EmptyState(
-                title = "Nothing remembered",
-                body = "As you talk, durable facts you mention may end up here. You can " +
-                    "always see and delete them.",
-            )
+            if (!selecting) {
+                EmptyState(
+                    title = "Nothing remembered",
+                    body = "As you talk, durable facts you mention can end up here. You can " +
+                        "always see and delete them.",
+                )
+            }
             return@Column
         }
 
@@ -463,25 +539,75 @@ fun MemoryScreen(
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             items(entries, key = { it.id }) { entry ->
-                KamCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(15.dp), verticalAlignment = Alignment.Top) {
-                        Text(
-                            entry.text,
-                            style = KamTheme.type.body,
-                            color = colors.textPrimary,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Forget",
-                            style = KamTheme.type.label,
-                            color = colors.flagAmber,
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .clickable { onForget(entry.id) }
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                        )
+                val isSel = selectedIds.contains(entry.id)
+                KamCard(
+                    Modifier.fillMaxWidth(),
+                    onClick = if (selecting) {
+                        { if (isSel) selectedIds.remove(entry.id) else selectedIds.add(entry.id) }
+                    } else {
+                        null
+                    },
+                ) {
+                    Row(
+                        Modifier
+                            .padding(15.dp)
+                            .then(
+                                if (!selecting) {
+                                    Modifier.combinedClickable(
+                                        onClick = {},
+                                        onLongClick = { selecting = true; selectedIds.add(entry.id) },
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        if (selecting) {
+                            Box(
+                                Modifier.size(22.dp).clip(CircleShape)
+                                    .background(if (isSel) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
+                                    .border(if (isSel) 0.dp else 2.dp, colors.border, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (isSel) Icon(androidx.compose.material.icons.Icons.Rounded.Check, null, tint = colors.onAccent, modifier = Modifier.size(14.dp))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(entry.text, style = KamTheme.type.body, color = colors.textPrimary)
+                            if (entry.auto) {
+                                Spacer(Modifier.height(5.dp))
+                                KamChip("Saved automatically", mono = true)
+                            }
+                        }
+                        if (!selecting) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Forget",
+                                style = KamTheme.type.label,
+                                color = colors.flagAmber,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .clickable { onForget(entry.id, entry.text) }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                            )
+                        }
                     }
+                }
+            }
+            if (!selecting && entries.size > 1) {
+                item(key = "forget-all") {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Forget everything",
+                        style = KamTheme.type.label,
+                        color = colors.flagAmber,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(onClick = onForgetAll)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                    )
                 }
             }
         }

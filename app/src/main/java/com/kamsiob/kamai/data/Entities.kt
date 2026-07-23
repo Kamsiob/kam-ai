@@ -103,6 +103,9 @@ data class MemoryEntity(
     val updatedAt: Long,
     /** Where it came from, so the memory screen can be honest about it. */
     val sourceConversationId: String? = null,
+    /** True when the app decided to remember this rather than the user asking.
+     *  Surfaced so a person can tell auto entries apart and prune them. PART 7. */
+    val auto: Boolean = false,
 )
 
 @Entity(
