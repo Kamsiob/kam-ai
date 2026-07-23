@@ -30,6 +30,8 @@ class KamRepository(
         const val WEB_SEARCH_ENDPOINT = "search.endpoint"
         const val CONFIRM_CHAT_DELETE = "confirm.chat.delete"
         const val MEMORY_MODE = "memory.mode"
+        const val WORKBENCH_INPUT = "workbench.input"
+        const val WORKBENCH_OUTPUT = "workbench.output"
     }
 
     // Settings

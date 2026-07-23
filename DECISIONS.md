@@ -1052,6 +1052,45 @@ peaks stay apart.
 Licenses updated: whisper.cpp (MIT), sherpa-onnx and ONNX Runtime (Apache-2.0),
 Piper voices (MIT), espeak-ng data (GPL-3.0).
 
+## Phase 3: Workbench
+
+The third mode is built as its own surface, deliberately not a chat. It is reached
+by cycling the new-chat mode chip (Chat, Logic Partner, Workbench); choosing
+Workbench turns the button into Open Workbench and opens the paste-and-transform
+screen rather than a conversation.
+
+The screen: a source area at the top, a row of plain transformations (Tighten,
+Rewrite, Into points, Summarize, Fix grammar, More formal, More casual) plus a
+free instruction field, and a result below with Copy, Flag, and the option to run
+another transformation on the result. Chaining makes the result the new source, so
+what was transformed stays honest. Voice input works here too, the same
+transient-load speech-to-text as chat. Every transformation runs through the
+language model in Workbench mode, whose fixed instructions return only the
+transformed text, and over-length input gets the same plain out-of-room message as
+chat.
+
+State survives rotation and process death: the source and result are persisted to
+the settings store on every change and restored on open. Verified on device by
+typing text, force-stopping the app, reopening, and seeing the text restored
+exactly ("Meeting notes from today"). The transform itself runs on the same
+engine path already proven for chat.
+
+## Deferred within completed phases
+
+### Kokoro premium reading voice (Phase 2)
+
+Phase 2 voice is complete with the flagship speech-to-text flow and a standard
+text-to-speech tier (Piper, Amy and Ryan, male and female), both verified on
+device. The spec also calls for Kokoro-82M as a premium reading voice on capable
+phones. That is deliberately deferred, not forgotten: Kokoro is a multi-file model
+(model, a voices blob, its own tokens, lexicons, and phonemiser data) that does
+not fit the single-file download the standard voices use, so it needs on-device
+archive extraction or a repackaged bundle. The TtsEngine already has a branch for
+the Kokoro config shape, so adding it is a self-contained follow-up: wire the
+Kokoro model config, add the download-and-extract path, and offer it only where
+memory is comfortable. The two-tier requirement's standard tier is fully met; the
+premium tier is the remaining piece.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

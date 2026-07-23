@@ -541,27 +541,42 @@ private fun NewChatBar(
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(6.dp))
-            Text("New chat", style = KamTheme.type.label, color = colors.onAccent)
+            Text(
+                if (mode == Mode.BENCH) "Open Workbench" else "New chat",
+                style = KamTheme.type.label,
+                color = colors.onAccent,
+            )
         }
 
         // The new-chat mode choice is its own adjacent element, distinct from the
-        // in-chat toggle, so it reads as choosing the mode for the next chat.
-        val isLogic = mode == Mode.LOGIC
+        // in-chat toggle, so it reads as choosing the mode for the next thing.
+        // Cycles Chat, Logic Partner, Workbench. Workbench opens its own surface.
+        val label = when (mode) {
+            Mode.LOGIC -> "Logic"
+            Mode.BENCH -> "Bench"
+            else -> "Chat"
+        }
+        val next = when (mode) {
+            Mode.CHAT -> Mode.LOGIC
+            Mode.LOGIC -> Mode.BENCH
+            else -> Mode.CHAT
+        }
+        val tonal = mode != Mode.CHAT
         Row(
             modifier = Modifier
                 .clip(CircleShape)
-                .background(if (isLogic) colors.tonalFill else colors.surfaceSecondary)
-                .clickable { onModeChange(if (isLogic) Mode.CHAT else Mode.LOGIC) }
+                .background(if (tonal) colors.tonalFill else colors.surfaceSecondary)
+                .clickable { onModeChange(next) }
                 .padding(horizontal = 14.dp, vertical = 12.dp)
                 .semantics {
-                    contentDescription = "New chat mode: ${if (isLogic) "Logic Partner" else "Chat"}. Tap to change."
+                    contentDescription = "New chat mode: $label. Tap to change."
                 },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                if (isLogic) "Logic" else "Chat",
+                label,
                 style = KamTheme.type.label,
-                color = if (isLogic) colors.tonalText else colors.textSecondary,
+                color = if (tonal) colors.tonalText else colors.textSecondary,
             )
         }
     }

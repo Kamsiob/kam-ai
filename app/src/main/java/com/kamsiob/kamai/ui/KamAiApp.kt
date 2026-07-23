@@ -92,6 +92,7 @@ private sealed interface Pushed {
     data object Licenses : Pushed
     data object CrashReport : Pushed
     data object Voice : Pushed
+    data object Workbench : Pushed
     data object Appearance : Pushed
     data object Safety : Pushed
     data object AppLock : Pushed
@@ -201,6 +202,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
                     Pushed.Voice -> VoiceHost(app)
+                    Pushed.Workbench -> WorkbenchHost(app)
                     Pushed.Storage -> StorageHost(app)
                     Pushed.Memory -> MemoryHost(app)
                     Pushed.Questions -> QuestionsScreen()
@@ -257,7 +259,10 @@ private fun TabContent(
                 view = view,
                 onViewChange = app::setChatsView,
                 onOpen = { stack.add(Pushed.Conversation(it)) },
-                onNewChat = { mode -> stack.add(Pushed.Conversation(NEW_CONVERSATION, mode)) },
+                onNewChat = { mode ->
+                    if (mode == Mode.BENCH) stack.add(Pushed.Workbench)
+                    else stack.add(Pushed.Conversation(NEW_CONVERSATION, mode))
+                },
                 onRename = app::renameConversation,
                 onPin = app::setPinned,
                 onArchive = app::archive,
@@ -524,6 +529,63 @@ private fun ModelHost(app: AppViewModel) {
         download = download,
         onDownload = app::downloadModel,
         onActivate = app::activateModel,
+    )
+}
+
+@Composable
+private fun WorkbenchHost(app: AppViewModel) {
+    val context = LocalContext.current
+    val bench: com.kamsiob.kamai.ui.workbench.WorkbenchViewModel = viewModel(
+        factory = com.kamsiob.kamai.ui.workbench.WorkbenchViewModel.factory(
+            app.repository, app.engine, app.modelManager,
+        ),
+    )
+    val input by bench.input.collectAsStateWithLifecycle()
+    val output by bench.output.collectAsStateWithLifecycle()
+    val running by bench.running.collectAsStateWithLifecycle()
+    val notice by bench.notice.collectAsStateWithLifecycle()
+    val recording by bench.recording.collectAsStateWithLifecycle()
+    val transcribing by bench.transcribing.collectAsStateWithLifecycle()
+    val sttModel by app.activeSttModel.collectAsStateWithLifecycle()
+
+    val micPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) bench.startRecording()
+        else app.showToast("Voice input needs the microphone. You can turn it on in Settings.")
+    }
+    DisposableEffect(Unit) { onDispose { bench.cancelRecording() } }
+
+    com.kamsiob.kamai.ui.workbench.WorkbenchScreen(
+        input = input,
+        output = output,
+        running = running,
+        notice = notice,
+        voiceAvailable = sttModel != null,
+        recording = recording,
+        transcribing = transcribing,
+        onInputChange = bench::setInput,
+        onAction = bench::run,
+        onCustom = bench::runCustom,
+        onChain = bench::chain,
+        onStop = bench::stop,
+        onCopied = { app.showToast("Copied") },
+        onFlag = { text -> app.flag(text, Mode.BENCH, null, null); app.showToast("Flagged to Follow-ups") },
+        onMicStart = {
+            val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.RECORD_AUDIO,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (granted) bench.startRecording()
+            else micPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+        },
+        onMicStop = {
+            val model = sttModel ?: return@WorkbenchScreen
+            bench.stopAndTranscribe(
+                com.kamsiob.kamai.voice.Voice.stt(context),
+                app.repository.fileForStt(model),
+            )
+        },
+        onDismissNotice = bench::dismissNotice,
     )
 }
 
