@@ -1266,6 +1266,54 @@ everything and one that works.
 15 ModelManager unit tests cover the new model, including a model-too-big-for-the-
 device refusal and a not-enough-free-right-now refusal with a smaller fallback.
 
+## Phase 7: files, export, and import
+
+Both halves are done.
+
+### Backup and restore
+
+Export gathers the whole database (conversations, messages, memory, projects,
+follow-ups, Discover saved and drawn state, quiz stats, artifact records, and
+settings), encodes it as one versioned JSON document, encrypts it with a
+passphrase the user chooses (AES-256-GCM with a PBKDF2 key), and writes it to a
+file they pick through the system. Import decrypts, decodes, and writes it back,
+merging or replacing. Verified two ways: a JVM round-trip test that the codec and
+crypto are exactly reversible and that a wrong passphrase or a non-backup file is
+rejected; and an instrumented test on the real encrypted SQLCipher database that
+populates it, exports, wipes, imports, and confirms every row returns.
+
+The large model and pack files are not embedded, since a backup should stay small
+and portable. Their artifact records travel, so after a restore the app can name
+what to re-download. The device-mismatch case (a backup from a bigger phone
+restored on a smaller one) is handled by not writing artifact records that would
+mark absent files as installed, and by the model manager repairing the active
+reference and refusing an oversized model; the user simply re-downloads a model
+that fits, which the tier logic on the new phone recommends.
+
+### File attachments
+
+A document can be attached to a conversation and read on the phone: plain text,
+Markdown, a PDF with a real text layer (pdfbox-android), and DOCX (unzipped and
+parsed from the body XML with no extra library). Everything else is refused with a
+plain reason, images, spreadsheets, old .doc, and scanned PDFs among them, rather
+than a bad extraction. An instrumented test confirms all four extractors on
+device, including the scanned-and-unsupported refusals. The extracted text is
+given to the model as context, and when a document is longer than the context
+window it is truncated with an honest note pointing the user at a specific
+section, never silently. Verified on device that the paperclip button opens the
+system file picker with the right type filter.
+
+### An operational note worth recording
+
+Running connectedAndroidTest uninstalls and reinstalls the app between runs, which
+wipes downloaded models and packs. During this phase that erased the owner's 5 GB
+Balanced download. In future, device round-trips that must not lose the owner's
+data should use `adb install -r` (which preserves data) rather than the
+instrumented-test task, or re-download afterwards. The Balanced model was
+re-downloaded so the app is usable again.
+
+100+ unit tests pass, plus the backup and file-extraction instrumented tests.
+
 ## Deferred within completed phases
 
 ### Kokoro premium reading voice (Phase 2)

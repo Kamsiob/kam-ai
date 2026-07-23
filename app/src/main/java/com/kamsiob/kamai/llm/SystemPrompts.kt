@@ -183,6 +183,19 @@ object SystemPrompts {
                 "them unless they conflict with anything above:\n\n$projectInstructions"
         }
 
+    /** A document the user attached to this conversation, given to the model as
+     *  context. Truncated to [maxChars] with an honest note when it is too long
+     *  for the model to hold, rather than silently dropping the rest. */
+    fun withAttachment(base: String, name: String, text: String, maxChars: Int): String {
+        val fitted = if (text.length <= maxChars) text else {
+            text.take(maxChars).substringBeforeLast(' ') +
+                "\n\n[The document is longer than fits here. This is the start of it. Ask about " +
+                "a specific part, or paste that part in.]"
+        }
+        return "$base\n\nThe user attached a document named \"$name\". Use it to answer their " +
+            "questions. The document:\n\n$fitted"
+    }
+
     /** Durable facts the user has let the app remember. */
     fun withMemory(base: String, memories: List<String>): String =
         if (memories.isEmpty()) {

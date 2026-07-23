@@ -111,6 +111,7 @@ class ChatViewModel(
         _conversationId.value = conversationId
         viewModelScope.launch {
             repository.conversation(conversationId)?.let { _mode.value = it.mode }
+            _attachedName.value = repository.attachmentName(conversationId)
         }
     }
 
@@ -172,6 +173,33 @@ class ChatViewModel(
         _streaming.value = false
     }
 
+    // Attachments: a document the model reads for this conversation.
+    private val _attachedName = MutableStateFlow<String?>(null)
+    val attachedName: StateFlow<String?> = _attachedName.asStateFlow()
+
+    /** Extracts text from [uri] on-device and attaches it to this conversation. */
+    fun attach(context: android.content.Context, uri: android.net.Uri) {
+        val convId = _conversationId.value ?: return
+        viewModelScope.launch {
+            when (val r = com.kamsiob.kamai.files.FileExtractor.extract(context, uri)) {
+                is com.kamsiob.kamai.files.FileExtractor.Result.Ok -> {
+                    repository.setAttachment(convId, r.name, r.text)
+                    _attachedName.value = r.name
+                    _notice.value = "Attached ${r.name}. Ask about it."
+                }
+                is com.kamsiob.kamai.files.FileExtractor.Result.Error -> _notice.value = r.message
+            }
+        }
+    }
+
+    fun removeAttachment() {
+        val convId = _conversationId.value ?: return
+        viewModelScope.launch {
+            repository.clearAttachment(convId)
+            _attachedName.value = null
+        }
+    }
+
     private suspend fun buildPrompt(conversationId: String): String {
         val conversation = repository.conversation(conversationId)
         val history = repository.messages(conversationId)
@@ -198,6 +226,22 @@ class ChatViewModel(
         val now = java.util.Date()
         val fmt = java.text.SimpleDateFormat("EEEE, d MMMM yyyy, h:mm a", java.util.Locale.getDefault())
         system = SystemPrompts.withDate(system, fmt.format(now))
+
+        // A document the user attached, given to the model as context. It gets
+        // most of the window, leaving room for the question and the reply, and is
+        // truncated with a plain note (never silently) when it is longer than fits.
+        val attachText = repository.attachmentText(conversationId)
+        if (!attachText.isNullOrBlank()) {
+            val attachName = repository.attachmentName(conversationId) ?: "the file"
+            val ctx = engine.contextSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT
+            val maxChars = ((ctx - RESERVED_FOR_REPLY - 256) * 3.2).toInt().coerceAtLeast(1000)
+            system = SystemPrompts.withAttachment(system, attachName, attachText, maxChars)
+            if (attachText.length > maxChars && conversationId != attachWarnedFor) {
+                attachWarnedFor = conversationId
+                _notice.value = "That document is long, so only the first part fits in the " +
+                    "model's memory. Ask about a specific section, or paste that part in."
+            }
+        }
 
         // Leave room for the reply itself, not just the prompt.
         val contextSize = engine.contextSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT
@@ -226,6 +270,7 @@ class ChatViewModel(
     /** The conversation we have already warned about context trimming for, so the
      *  notice shows once rather than on every send. */
     private var trimWarnedFor: String? = null
+    private var attachWarnedFor: String? = null
 
     /** The layout the loaded model wants. Falls back to Gemma, the default tier. */
     private suspend fun chatFormat(): ChatFormat =

@@ -43,6 +43,9 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.CircularProgressIndicator
@@ -105,6 +108,9 @@ fun ChatScreen(
     onEdit: (MessageEntity, String) -> Unit,
     onDismissNotice: () -> Unit,
     initialComposerText: String? = null,
+    attachedName: String? = null,
+    onAttach: () -> Unit = {},
+    onRemoveAttachment: () -> Unit = {},
     voiceAvailable: Boolean = false,
     recording: Boolean = false,
     transcribing: Boolean = false,
@@ -183,6 +189,9 @@ fun ChatScreen(
             onSend = onSend,
             onStop = onStop,
             initialText = initialComposerText,
+            attachedName = attachedName,
+            onAttach = onAttach,
+            onRemoveAttachment = onRemoveAttachment,
             voiceAvailable = voiceAvailable,
             recording = recording,
             transcribing = transcribing,
@@ -629,6 +638,9 @@ private fun Composer(
     onSend: (String) -> Unit,
     onStop: () -> Unit,
     initialText: String? = null,
+    attachedName: String? = null,
+    onAttach: () -> Unit = {},
+    onRemoveAttachment: () -> Unit = {},
     voiceAvailable: Boolean = false,
     recording: Boolean = false,
     transcribing: Boolean = false,
@@ -646,13 +658,42 @@ private fun Composer(
         }
     }
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .imePadding()
             .padding(horizontal = KamTheme.dimens.screenPadding, vertical = 8.dp),
-        verticalAlignment = Alignment.Bottom,
     ) {
+      // The attached document, shown as a removable chip above the field.
+      if (attachedName != null) {
+          Row(
+              modifier = Modifier
+                  .clip(RoundedCornerShape(14.dp))
+                  .background(colors.tonalFill)
+                  .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+              verticalAlignment = Alignment.CenterVertically,
+          ) {
+              Icon(Icons.Rounded.Description, contentDescription = null, tint = colors.tonalText, modifier = Modifier.size(16.dp))
+              Spacer(Modifier.width(6.dp))
+              Text(attachedName, style = KamTheme.type.secondary, color = colors.tonalText)
+              Spacer(Modifier.width(4.dp))
+              Box(
+                  modifier = Modifier
+                      .size(28.dp)
+                      .clip(CircleShape)
+                      .clickable(onClick = onRemoveAttachment)
+                      .semantics { contentDescription = "Remove attachment" },
+                  contentAlignment = Alignment.Center,
+              ) {
+                  Icon(Icons.Rounded.Close, contentDescription = null, tint = colors.tonalText, modifier = Modifier.size(15.dp))
+              }
+          }
+          Spacer(Modifier.height(6.dp))
+      }
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom,
+      ) {
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -683,6 +724,29 @@ private fun Composer(
         }
 
         Spacer(Modifier.width(8.dp))
+
+        // Attach a document for the model to read. Hidden while streaming or
+        // recording, so the row stays uncluttered when it matters.
+        if (!streaming && !recording && !transcribing) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, CircleShape)
+                    .clickable(onClick = onAttach)
+                    .semantics { contentDescription = "Attach a file" },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.AttachFile,
+                    contentDescription = null,
+                    tint = colors.textSecondary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+        }
 
         // The microphone shows only when voice typing is available and the field
         // is empty, so it never competes with sending a typed message.
@@ -744,5 +808,6 @@ private fun Composer(
                 modifier = Modifier.size(21.dp),
             )
         }
+      }
     }
 }

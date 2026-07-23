@@ -367,6 +367,11 @@ private fun ConversationScreen(
     val sttModel by app.activeSttModel.collectAsStateWithLifecycle()
     val ttsVoice by app.activeTtsVoice.collectAsStateWithLifecycle()
     val voiceAvailable = sttModel != null
+    val attachedName by chat.attachedName.collectAsStateWithLifecycle()
+
+    val pickFile = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> if (uri != null) chat.attach(context, uri) }
 
     val micPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -388,6 +393,16 @@ private fun ConversationScreen(
 
     ChatScreen(
         initialComposerText = initialText,
+        attachedName = attachedName,
+        onAttach = {
+            pickFile.launch(
+                arrayOf(
+                    "text/plain", "text/markdown", "text/*", "application/pdf",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ),
+            )
+        },
+        onRemoveAttachment = chat::removeAttachment,
         voiceAvailable = voiceAvailable,
         recording = recording,
         transcribing = transcribing,

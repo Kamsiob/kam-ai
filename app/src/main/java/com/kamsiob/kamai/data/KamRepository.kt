@@ -357,6 +357,22 @@ class KamRepository(
         db.discover().recordQuiz(packId, asked, right)
     fun observeQuizStats(): Flow<List<QuizStatsEntity>> = db.discover().observeAllStats()
 
+    // Conversation attachments (a document the model reads), kept in settings so
+    // no schema change is needed and a large document stores as one value.
+
+    suspend fun setAttachment(conversationId: String, name: String, text: String) {
+        putSetting("attach.name.$conversationId", name)
+        putSetting("attach.text.$conversationId", text)
+    }
+
+    suspend fun attachmentName(conversationId: String): String? = setting("attach.name.$conversationId")
+    suspend fun attachmentText(conversationId: String): String? = setting("attach.text.$conversationId")
+
+    suspend fun clearAttachment(conversationId: String) {
+        db.settings().remove("attach.name.$conversationId")
+        db.settings().remove("attach.text.$conversationId")
+    }
+
     // Backup and restore
 
     suspend fun exportSnapshot(): BackupCodec.Snapshot = BackupCodec.Snapshot(

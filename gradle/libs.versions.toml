@@ -28,6 +28,7 @@ turbine = "1.2.1"
 robolectric = "4.16.1"
 mockk = "1.14.11"
 sqlcipher = "4.17.0"
+pdfbox-android = "2.0.27.0"
 sqlite = "2.7.0"
 biometric = "1.1.0"
 fragment = "1.8.9"
@@ -65,6 +66,7 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
+pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfbox-android" }
 androidx-sqlite = { group = "androidx.sqlite", name = "sqlite", version.ref = "sqlite" }
 androidx-sqlite-ktx = { group = "androidx.sqlite", name = "sqlite-ktx", version.ref = "sqlite" }
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
