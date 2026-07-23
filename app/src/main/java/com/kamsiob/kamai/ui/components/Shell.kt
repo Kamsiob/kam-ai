@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Settings
@@ -120,12 +121,16 @@ fun IconAction(
     }
 }
 
-/** The four bottom navigation destinations. Settings is not one of them. */
+/**
+ * The bottom navigation destinations, in display order. Settings is not one of
+ * them. Today is added at the front when that feature ships; the final order is
+ * Today, Projects, Chats, Follow-ups, Discover.
+ */
 enum class NavItem(val label: String, val icon: ImageVector) {
+    PROJECTS("Projects", Icons.Rounded.Folder),
     CHATS("Chats", Icons.Rounded.Forum),
-    NEW("New", Icons.Rounded.Add),
-    DISCOVER("Discover", Icons.Rounded.Explore),
     FOLLOW_UPS("Follow-ups", Icons.Rounded.BookmarkBorder),
+    DISCOVER("Discover", Icons.Rounded.Explore),
 }
 
 /**

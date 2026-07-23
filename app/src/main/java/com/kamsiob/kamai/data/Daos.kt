@@ -116,6 +116,9 @@ interface ConversationDao {
     @Query("UPDATE conversations SET projectId = :projectId, updatedAt = :now WHERE id = :id")
     suspend fun setProject(id: String, projectId: String?, now: Long)
 
+    @Query("SELECT id FROM conversations WHERE projectId = :projectId")
+    suspend fun forProjectIds(projectId: String): List<String>
+
     @Query("UPDATE conversations SET groundingMomentId = :passage WHERE id = :id")
     suspend fun setGrounding(id: String, passage: String)
 

@@ -429,13 +429,69 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    fun saveProject(id: String?, name: String, instructions: String) = viewModelScope.launch {
-        repository.upsertProject(id, name, instructions)
+    // Projects (item 2).
+
+    val projectInstructionsMax: Int get() = repository.projectInstructionsMax
+
+    fun observeProject(id: String) = repository.observeProject(id)
+    fun conversationsInProject(id: String) = repository.conversationsInProject(id)
+
+    /** Creates a project and returns its id through [onCreated] so the caller can open it. */
+    fun createProject(name: String, onCreated: (String) -> Unit = {}) = viewModelScope.launch {
+        val id = repository.upsertProject(null, name.ifBlank { "New project" }, "")
+        onCreated(id)
     }
 
-    fun deleteProject(id: String) = viewModelScope.launch {
-        repository.deleteProject(id)
-        showToast("Deleted")
+    fun saveProject(id: String?, name: String, instructions: String) = viewModelScope.launch {
+        repository.upsertProject(id, name, instructions)
+        showToast("Saved")
+    }
+
+    /** Starts a new chat that already belongs to [projectId]. */
+    fun createProjectChat(projectId: String, onReady: (String) -> Unit) = viewModelScope.launch {
+        val id = repository.createConversation(com.kamsiob.kamai.data.Mode.CHAT, projectId)
+        onReady(id)
+    }
+
+    /** Moves a conversation into a project, or out to the general list (null). */
+    fun assignConversationToProject(conversationId: String, projectId: String?) = viewModelScope.launch {
+        repository.assignConversationToProject(conversationId, projectId)
+        showToast(if (projectId == null) "Moved to Chats" else "Moved to project")
+    }
+
+    fun assignConversationsToProject(ids: List<String>, projectId: String?) = viewModelScope.launch {
+        ids.forEach { repository.assignConversationToProject(it, projectId) }
+        showToast(if (projectId == null) "Moved ${ids.size} to Chats" else "Moved ${ids.size}")
+    }
+
+    /**
+     * Deletes a project. Its conversations are never silently destroyed: they are
+     * moved back to the general Chats list, and the confirmation says so plainly.
+     * The user can then delete any of them from Chats if they choose.
+     */
+    fun deleteProject(id: String, name: String?, conversationCount: Int, onDone: () -> Unit = {}) {
+        val body = if (conversationCount == 0) {
+            "This empty project will be removed."
+        } else {
+            "Its $conversationCount ${if (conversationCount == 1) "chat" else "chats"} will move back " +
+                "to Chats, not be deleted. The project itself will be removed."
+        }
+        requestConfirm(
+            ConfirmRequest(
+                tier = ConfirmTier.SINGLE,
+                title = "Delete ${name ?: "this project"}?",
+                body = body,
+                confirmLabel = "Delete project",
+                onConfirm = {
+                    viewModelScope.launch {
+                        repository.deleteProject(id, deleteConversations = false)
+                        showToast(if (conversationCount == 0) "Deleted" else "Project deleted, chats kept")
+                        onDone()
+                    }
+                    Unit
+                },
+            ),
+        )
     }
 
     // Storage

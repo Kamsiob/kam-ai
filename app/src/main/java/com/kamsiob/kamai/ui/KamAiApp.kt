@@ -100,6 +100,7 @@ private sealed interface Pushed {
     data object AppLock : Pushed
     data object Archived : Pushed
     data object CustomInstructions : Pushed
+    data class Project(val id: String) : Pushed
     data class Conversation(
         val id: String,
         val startMode: Mode? = null,
@@ -288,6 +289,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.AppLock -> LockSettingsHost(app)
                     Pushed.Archived -> ArchivedHost(app, stack)
                     Pushed.CustomInstructions -> CustomInstructionsHost(app, stack)
+                    is Pushed.Project -> ProjectHost(app, stack, pushed.id)
                 }
             }
 
@@ -295,13 +297,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                 val followUpCount by app.followUpCount.collectAsStateWithLifecycle()
                 KamBottomNav(
                     current = tab,
-                    onSelect = { selected ->
-                        if (selected == NavItem.NEW) {
-                            stack.add(Pushed.Conversation(NEW_CONVERSATION, Mode.CHAT))
-                        } else {
-                            tab = selected
-                        }
-                    },
+                    onSelect = { selected -> tab = selected },
                     followUpCount = followUpCount,
                     modifier = Modifier.navigationBarsPadding(),
                 )
@@ -351,7 +347,14 @@ private fun TabContent(
             )
         }
 
-        NavItem.NEW -> Unit
+        NavItem.PROJECTS -> {
+            val projects by app.projects.collectAsStateWithLifecycle()
+            com.kamsiob.kamai.ui.projects.ProjectsScreen(
+                projects = projects,
+                onOpen = { stack.add(Pushed.Project(it)) },
+                onCreate = { name -> app.createProject(name) { id -> stack.add(Pushed.Project(id)) } },
+            )
+        }
 
         NavItem.DISCOVER -> DiscoverHost(app, stack)
 
@@ -918,6 +921,33 @@ private fun StorageHost(app: AppViewModel) {
         artifacts = artifacts,
         onDelete = app::deleteArtifact,
         onDeleteMany = app::deleteArtifacts,
+    )
+}
+
+@Composable
+private fun ProjectHost(
+    app: AppViewModel,
+    stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+    projectId: String,
+) {
+    val project by app.observeProject(projectId).collectAsStateWithLifecycle(initialValue = null)
+    val conversations by app.conversationsInProject(projectId).collectAsStateWithLifecycle(initialValue = emptyList())
+    com.kamsiob.kamai.ui.projects.ProjectScreen(
+        project = project,
+        conversations = conversations,
+        instructionsMax = app.projectInstructionsMax,
+        onSaveInstructions = { text -> app.saveProject(projectId, project?.name ?: "Project", text) },
+        onRename = { name -> app.saveProject(projectId, name, project?.instructions ?: "") },
+        onNewChatHere = {
+            app.createProjectChat(projectId) { id -> stack.add(Pushed.Conversation(id)) }
+        },
+        onOpenConversation = { stack.add(Pushed.Conversation(it)) },
+        onRemoveFromProject = { id -> app.assignConversationToProject(id, null) },
+        onDelete = {
+            app.deleteProject(projectId, project?.name, conversations.size) {
+                if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex)
+            }
+        },
     )
 }
 

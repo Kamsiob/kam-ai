@@ -77,9 +77,15 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       SystemPrompts.withUserInstructions in buildPrompt at the right precedence: hard/mode rules
       (always win) > user instructions > project > memory. Test: InstructionPrecedenceTest.
       Device-verified: instruction "end every answer with PINEAPPLE" was followed.
-- [ ] 16. Memory system: verify what actually exists; make extraction (separate low-cost pass,
-      dedup/supersede with existing memories), qualification, retrieval budget (small fraction of
-      ctx, relevance+recency), injection placement, transparency/control all real. Tests + device.
+- [~] 16. Memory system. DONE: retrieval is now relevance (keyword+recency, prefix-matched) within a
+      context-fraction budget, not recency-only; injected near the front; auto-extraction runs as a
+      batch over recent turns every few user messages (not every message), given existing facts to
+      avoid repeats; dedup on a normalised form; parser strips leaked chat-template tokens (fixed junk
+      "NONE</start_of_turn>" memories). Transparency/control already exist (Memory screen: see/edit/
+      delete/bulk/all, auto-vs-manual). Tests: MemoryRetrievalTest. Device-verified end to end
+      (remembered allergy -> later chat answered "Shellfish"). REMAINING (refs #16): full contradiction
+      supersession (recency ranking currently favors the newer fact); optional "memory influenced this
+      response" indicator.
 - [x] 17. Conversation titles missing/poor by entry point. Extracted one shared `ConversationTitler`
       used by every path: ChatViewModel.respond() (in-app + Discover), the overlay handoff (was never
       titled -> the Eiffel bug), and title-on-open as a safety net for interrupted/legacy chats.

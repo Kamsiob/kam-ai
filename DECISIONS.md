@@ -1759,3 +1759,28 @@ Each user-provided layer (user instructions, project instructions) is told in th
 its content "unless it conflicts with anything above", so nothing below can override the app's rules
 or, in a project, the user's own standing instructions. Device-verified end to end: a custom
 instruction to end every answer with a marker word was obeyed in a fresh chat.
+
+### Item 16: memory system made real
+
+What existed: manual ("remember that ...") and an Auto one-shot after every exchange; storage with
+exact-text dedup; retrieval was mostRecent(N) with NO relevance; injection via withMemory. Honest
+gap: retrieval was recency-only, which the owner flagged as the biggest quality risk on a small model.
+
+Done:
+- Retrieval by relevance (MemoryRetrieval.select): each memory scored by keyword overlap with the
+  current message (prefix-matched so "peanut" hits "peanuts") plus a small recency bonus, filling a
+  budget of ~10% of the context window at most MEMORY_LIMIT entries. Injected near the front of the
+  system block where models attend well. A clean seam remains for semantic retrieval when on-device
+  embeddings land. Pure and unit-tested.
+- Extraction as a cheaper batch: Auto runs over the last few turns only every AUTO_MEMORY_EVERY user
+  messages, not after every one, and is given the already-stored facts so it does not re-suggest them.
+- Dedup on a normalised form (case/punctuation/spacing) instead of exact text; the auto-reply parser
+  strips chat-template tokens ("NONE</start_of_turn>", "<end_of_turn>") that had been stored as junk.
+- Transparency/control already present in the Memory screen (see all in full, auto vs manual, edit,
+  delete, multi-select, delete all, mode switch).
+
+Verified on device: told "remember that I am allergic to shellfish" in one chat; a separate later chat
+answered "Shellfish" to "name one food I must avoid", proving extraction, retrieval, and cross-chat
+injection. Remaining refinements (issue #16 stays open): full contradiction supersession (today the
+recency component simply ranks a newer conflicting fact above the older one) and an optional indicator
+that a given response was influenced by memory.

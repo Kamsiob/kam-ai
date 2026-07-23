@@ -554,9 +554,20 @@ class KamRepository(
 
     // Projects
 
+    /** The cap on project instructions, in characters. Same reasoning as the
+     *  system-wide instructions: a project competes with everything else for a
+     *  small window. */
+    val projectInstructionsMax: Int get() = 2000
+
     fun observeProjects(): Flow<List<ProjectEntity>> = db.projects().observeAll()
 
+    fun observeProject(id: String): Flow<ProjectEntity?> = db.projects().observe(id)
+
     suspend fun project(id: String): ProjectEntity? = db.projects().byId(id)
+
+    /** Conversations that belong to [projectId]. */
+    fun conversationsInProject(projectId: String): Flow<List<ConversationSummary>> =
+        db.conversations().observeActive(projectId)
 
     suspend fun upsertProject(id: String?, name: String, instructions: String): String {
         val now = System.currentTimeMillis()
@@ -564,14 +575,38 @@ class KamRepository(
         val existing = id?.let { db.projects().byId(it) }
         db.projects().upsert(
             ProjectEntity(
-                id = projectId, name = name, instructions = instructions,
+                id = projectId, name = name.trim(),
+                instructions = instructions.take(projectInstructionsMax),
                 createdAt = existing?.createdAt ?: now, updatedAt = now,
             ),
         )
         return projectId
     }
 
-    suspend fun deleteProject(id: String) = db.projects().delete(id)
+    /**
+     * Assigns a conversation to a project, or removes it from any project when
+     * [projectId] is null. The change applies to subsequent turns only, never
+     * retroactively, since buildPrompt reads the current project each turn.
+     */
+    suspend fun assignConversationToProject(conversationId: String, projectId: String?) =
+        db.conversations().setProject(conversationId, projectId, System.currentTimeMillis())
+
+    /**
+     * Deletes a project. Its conversations are never silently destroyed: either
+     * they are returned to the general chat list ([deleteConversations] = false)
+     * or deleted along with it.
+     */
+    suspend fun deleteProject(id: String, deleteConversations: Boolean) {
+        if (deleteConversations) {
+            db.conversations().forProjectIds(id).forEach { db.conversations().delete(it) }
+        } else {
+            val now = System.currentTimeMillis()
+            db.conversations().forProjectIds(id).forEach {
+                db.conversations().setProject(it, null, now)
+            }
+        }
+        db.projects().delete(id)
+    }
 
     // Memory
 
