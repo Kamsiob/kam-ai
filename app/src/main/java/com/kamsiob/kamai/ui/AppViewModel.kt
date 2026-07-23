@@ -429,6 +429,82 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         showToast("${model.displayName} is now in use")
     }
 
+    // Voice: text-to-speech voice management.
+
+    val installedTts: StateFlow<List<String>> =
+        repository.observeTtsArtifacts()
+            .map { list -> list.map { it.id } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val activeTtsVoice: StateFlow<com.kamsiob.kamai.voice.TtsVoice?> =
+        repository.observeActiveTtsVoice()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private val _downloadingTtsId = MutableStateFlow<String?>(null)
+    val downloadingTtsId: StateFlow<String?> = _downloadingTtsId.asStateFlow()
+
+    fun downloadTts(voice: com.kamsiob.kamai.voice.TtsVoice) {
+        _downloadingTtsId.value = voice.id
+        downloadJob = viewModelScope.launch {
+            modelManager.onDownloadStarting()
+            repository.downloader.download(
+                url = voice.sourceUrl,
+                destination = repository.fileForTts(voice),
+                expectedSizeBytes = voice.downloadBytes,
+                expectedSha256 = voice.sha256,
+            ).collect { progress ->
+                _download.value = progress
+                if (progress is Downloader.Progress.Done) {
+                    repository.registerTtsVoice(voice, progress.file, makeActive = true)
+                    _downloadingTtsId.value = null
+                    showToast("${voice.displayName} is ready")
+                }
+                if (progress is Downloader.Progress.Failed) {
+                    _downloadingTtsId.value = null
+                    showToast(progress.message)
+                }
+            }
+        }
+    }
+
+    fun activateTts(voice: com.kamsiob.kamai.voice.TtsVoice) = viewModelScope.launch {
+        if (!repository.fileForTts(voice).exists()) {
+            showToast("That voice is not downloaded.")
+            return@launch
+        }
+        repository.setActiveTtsVoice(voice.id)
+        showToast("${voice.displayName} is now the reading voice")
+    }
+
+    /** Previews a voice by reading a short line aloud. */
+    fun previewTts(voice: com.kamsiob.kamai.voice.TtsVoice) = viewModelScope.launch {
+        val file = repository.fileForTts(voice)
+        if (!file.exists()) {
+            showToast("Download this voice first.")
+            return@launch
+        }
+        val tts = com.kamsiob.kamai.voice.Voice.tts(getApplication())
+        val result = tts.speak(
+            voice, file,
+            "This is how I sound. I read your notes and drafts aloud, all on your phone.",
+        )
+        if (result is com.kamsiob.kamai.voice.TtsEngine.Result.Error) showToast(result.message)
+    }
+
+    /** Reads an assistant message aloud with the active voice. */
+    fun speak(text: String) = viewModelScope.launch {
+        val voice = repository.activeTtsVoice() ?: return@launch
+        val file = repository.fileForTts(voice)
+        if (!file.exists()) return@launch
+        val tts = com.kamsiob.kamai.voice.Voice.tts(getApplication())
+        val result = tts.speak(voice, file, text)
+        if (result is com.kamsiob.kamai.voice.TtsEngine.Result.Error) showToast(result.message)
+    }
+
+    fun stopSpeaking() {
+        com.kamsiob.kamai.voice.Voice.tts(getApplication()).stop()
+    }
+
     fun deleteArtifact(id: String, name: String? = null) {
         requestConfirm(
             ConfirmRequest(

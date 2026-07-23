@@ -26,8 +26,10 @@ class KamApp : Application() {
             // device is critically low. Unload the model entirely.
             level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE ||
                 level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
-                level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND ->
+                level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> {
                 manager.onSeverePressure()
+                com.kamsiob.kamai.voice.Voice.releaseAll()
+            }
 
             // Moderate: the app is in the foreground but memory is getting tight.
             // Release the KV cache, keep the model mapped, keep the conversation.
@@ -40,5 +42,6 @@ class KamApp : Application() {
     override fun onLowMemory() {
         super.onLowMemory()
         Models.manager(this).onSeverePressure()
+        com.kamsiob.kamai.voice.Voice.releaseAll()
     }
 }

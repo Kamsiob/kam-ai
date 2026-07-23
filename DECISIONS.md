@@ -998,6 +998,60 @@ isolated from libkamai.so with -Wl,--exclude-libs,ALL so the two different-
 versioned ggml copies cannot collide. Confirmed: each library exports only its
 JNI entry points and zero ggml internals.
 
+## Phase 2 TTS: sherpa-onnx reading voice, verified synthesising on device
+
+The second half of voice is built and proven. Answers can be read aloud with an
+on-device neural voice through the sherpa-onnx runtime, never the Android system
+voice, as the spec requires.
+
+### Verified on device
+
+An instrumented test runs a Piper voice through the real TtsEngine on the Pixel
+and checks that synthesis produces a real amount of non-silent PCM at a sane
+sample rate. It passed in about 4 seconds. This is the meaningful proof for the
+native integration risk: the runtime loads, the phonemiser data is found, the
+voice model runs, and audio comes out. How it sounds cannot be asserted in a
+test, only that synthesis works end to end.
+
+### The runtime and how it is packaged
+
+sherpa-onnx ships prebuilt Android libraries. Only the two needed for arm64
+(libsherpa-onnx-jni.so and libonnxruntime.so, about 25 MB together) are fetched
+by tools/fetch_sherpa.sh and kept out of git, the same fetch-not-commit pattern
+as llama.cpp and whisper.cpp. The Kotlin API (Tts.kt) is vendored in the source
+tree with its Apache-2.0 header because it is small and readable.
+
+The Piper voices all share one espeak-ng phonemiser data set and one tokens file.
+Rather than download them with every voice, they are bundled once (espeak-ng-data
+zipped, plus tokens) and produced by fetch_sherpa.sh into the app assets, also
+gitignored. On first use they are unpacked to disk, since sherpa-onnx reads them
+from the filesystem next to the downloaded model. A voice download is then just
+its single model file, so the size shown to the user is honest. The onnx hashes
+were confirmed identical between the individual HuggingFace files the app
+downloads and the sherpa release tarball the shared data comes from, so model and
+phonemiser data always match.
+
+### Voices and the play button
+
+Two Piper voices in the standard tier: Amy (female) and Ryan (male), 63 MB each,
+downloaded through the same verified path and listed in Storage. The Voice screen
+gained a Reading voice section with download, use, and preview (which reads a
+sample line aloud). A play button appears under any answer once a reading voice is
+set, wired to synthesise and stream through an AudioTrack that stops instantly on
+navigation away. Honest expectations again: good on-device voices, below the big
+cloud services in polish.
+
+### PART B for TTS
+
+The reading voice shares the language model's memory budget like speech to text:
+before the runtime loads a voice, it releases the language model's KV cache, and
+the voice is stopped and freed on memory pressure and on backgrounding.
+Text-to-speech runs after generation, when the language model is idle, so the
+peaks stay apart.
+
+Licenses updated: whisper.cpp (MIT), sherpa-onnx and ONNX Runtime (Apache-2.0),
+Piper voices (MIT), espeak-ng data (GPL-3.0).
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

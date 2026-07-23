@@ -65,3 +65,13 @@ app/src/androidTest/assets/*.gguf
 
 # Large whisper model used only for a local one-time device transcription proof
 app/src/androidTest/assets/ggml-base.bin
+
+# sherpa-onnx prebuilt libraries, fetched by tools/fetch_sherpa.sh
+app/src/main/jniLibs/
+
+# Piper voice shared data, produced by tools/fetch_sherpa.sh
+app/src/main/assets/espeak-ng-data.zip
+app/src/main/assets/piper-tokens.txt
+
+# Large Piper voice model, local one-time TTS proof only
+app/src/androidTest/assets/piper-amy.onnx

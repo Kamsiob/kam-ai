@@ -185,6 +185,54 @@ class KamRepository(
         File(voiceDir(), model.fileName + ".part").delete()
     }
 
+    // Voice: text-to-speech voices, stored as TTS_VOICE artifacts.
+
+    fun fileForTts(voice: com.kamsiob.kamai.voice.TtsVoice): File =
+        File(voiceDir(), voice.fileName)
+
+    suspend fun activeTtsVoice(): com.kamsiob.kamai.voice.TtsVoice? =
+        db.artifacts().active(ArtifactKind.TTS_VOICE)
+            ?.let { com.kamsiob.kamai.voice.TtsCatalog.byId(it.id) }
+
+    fun observeActiveTtsVoice(): Flow<com.kamsiob.kamai.voice.TtsVoice?> =
+        db.artifacts().observeActive(ArtifactKind.TTS_VOICE).map { entity ->
+            entity?.let { com.kamsiob.kamai.voice.TtsCatalog.byId(it.id) }
+        }
+
+    suspend fun installedTtsIds(): List<String> =
+        db.artifacts().observeByKind(ArtifactKind.TTS_VOICE).firstOrNull().orEmpty().map { it.id }
+
+    fun observeTtsArtifacts(): Flow<List<ArtifactEntity>> =
+        db.artifacts().observeByKind(ArtifactKind.TTS_VOICE)
+
+    suspend fun registerTtsVoice(
+        voice: com.kamsiob.kamai.voice.TtsVoice,
+        file: File,
+        makeActive: Boolean = true,
+    ) {
+        db.artifacts().upsert(
+            ArtifactEntity(
+                id = voice.id,
+                kind = ArtifactKind.TTS_VOICE,
+                displayName = voice.displayName,
+                fileName = file.name,
+                sizeBytes = file.length(),
+                sha256 = voice.sha256,
+                version = "1",
+                installedAt = System.currentTimeMillis(),
+            ),
+        )
+        if (makeActive || db.artifacts().active(ArtifactKind.TTS_VOICE) == null) {
+            db.artifacts().setActive(ArtifactKind.TTS_VOICE, voice.id)
+        }
+    }
+
+    suspend fun setActiveTtsVoice(id: String) = db.artifacts().setActive(ArtifactKind.TTS_VOICE, id)
+
+    fun deletePartialTtsDownload(voice: com.kamsiob.kamai.voice.TtsVoice) {
+        File(voiceDir(), voice.fileName + ".part").delete()
+    }
+
     // Conversations and messages
 
     fun observeConversations(): Flow<List<ConversationSummary>> =

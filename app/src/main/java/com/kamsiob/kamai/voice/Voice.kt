@@ -18,6 +18,9 @@ object Voice {
     @Volatile
     private var sttRef: SttEngine? = null
 
+    @Volatile
+    private var ttsRef: TtsEngine? = null
+
     fun stt(context: Context): SttEngine {
         val app = context.applicationContext
         return sttRef ?: synchronized(this) {
@@ -30,5 +33,20 @@ object Voice {
                 },
             ).also { sttRef = it }
         }
+    }
+
+    fun tts(context: Context): TtsEngine {
+        val app = context.applicationContext
+        return ttsRef ?: synchronized(this) {
+            ttsRef ?: TtsEngine(
+                context = app,
+                onBeforeLoad = { Models.manager(app).onModeratePressure() },
+            ).also { ttsRef = it }
+        }
+    }
+
+    /** Release voice models on memory pressure or backgrounding. */
+    fun releaseAll() {
+        ttsRef?.stop()
     }
 }

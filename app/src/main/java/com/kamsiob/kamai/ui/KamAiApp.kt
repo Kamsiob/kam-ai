@@ -314,6 +314,7 @@ private fun ConversationScreen(app: AppViewModel, conversationId: String, startM
     val recording by chat.recording.collectAsStateWithLifecycle()
     val transcribing by chat.transcribing.collectAsStateWithLifecycle()
     val sttModel by app.activeSttModel.collectAsStateWithLifecycle()
+    val ttsVoice by app.activeTtsVoice.collectAsStateWithLifecycle()
     val voiceAvailable = sttModel != null
 
     val micPermission = rememberLauncherForActivityResult(
@@ -326,8 +327,13 @@ private fun ConversationScreen(app: AppViewModel, conversationId: String, startM
         }
     }
 
-    // The screen going away should not leave the mic recording.
-    DisposableEffect(Unit) { onDispose { chat.cancelRecording() } }
+    // The screen going away should not leave the mic recording or a voice reading.
+    DisposableEffect(Unit) {
+        onDispose {
+            chat.cancelRecording()
+            app.stopSpeaking()
+        }
+    }
 
     ChatScreen(
         voiceAvailable = voiceAvailable,
@@ -353,8 +359,8 @@ private fun ConversationScreen(app: AppViewModel, conversationId: String, startM
         notice = notice,
         modelLabel = activeModel?.displayName,
         flaggedMessageIds = flagged.toSet(),
-        // Play is hidden until a voice exists, rather than shown doing nothing.
-        ttsAvailable = false,
+        // Play is hidden until a reading voice exists, rather than shown doing nothing.
+        ttsAvailable = ttsVoice != null,
         onModeChange = chat::setMode,
         onSend = chat::send,
         onStop = chat::stop,
@@ -377,7 +383,7 @@ private fun ConversationScreen(app: AppViewModel, conversationId: String, startM
             // the full source response. PART 5.
             app.flag(text, mode, chat.conversationId.value, message.id)
         },
-        onPlay = { },
+        onPlay = { message -> app.speak(message.content) },
         onEdit = chat::editAndResend,
         onDismissNotice = chat::dismissNotice,
     )
@@ -527,6 +533,9 @@ private fun VoiceHost(app: AppViewModel) {
     val activeStt by app.activeSttModel.collectAsStateWithLifecycle()
     val download by app.download.collectAsStateWithLifecycle()
     val downloadingStt by app.downloadingSttId.collectAsStateWithLifecycle()
+    val installedTts by app.installedTts.collectAsStateWithLifecycle()
+    val activeTts by app.activeTtsVoice.collectAsStateWithLifecycle()
+    val downloadingTts by app.downloadingTtsId.collectAsStateWithLifecycle()
 
     com.kamsiob.kamai.ui.settings.VoiceScreen(
         sttModels = com.kamsiob.kamai.voice.SttCatalog.ALL,
@@ -537,6 +546,13 @@ private fun VoiceHost(app: AppViewModel) {
         downloadingSttId = downloadingStt,
         onDownloadStt = app::downloadStt,
         onActivateStt = app::activateStt,
+        ttsVoices = com.kamsiob.kamai.voice.TtsCatalog.ALL,
+        installedTtsIds = installedTts.toSet(),
+        activeTtsId = activeTts?.id,
+        downloadingTtsId = downloadingTts,
+        onDownloadTts = app::downloadTts,
+        onActivateTts = app::activateTts,
+        onPreviewTts = app::previewTts,
     )
 }
 
