@@ -27,6 +27,12 @@ struct Session {
     llama_context * ctx     = nullptr;
     llama_sampler * sampler = nullptr;
 
+    // The context parameters, kept so the context (and its KV cache) can be
+    // freed under memory pressure and recreated later without reloading the
+    // memory-mapped model weights. Two-stage pressure response.
+    int n_ctx     = 0;
+    int n_threads = 0;
+
     // Position of the next token in the sequence.
     int n_past = 0;
 
@@ -52,6 +58,29 @@ std::string jstring_to_utf8(JNIEnv * env, jstring s) {
     std::string out(chars ? chars : "");
     if (chars) env->ReleaseStringUTFChars(s, chars);
     return out;
+}
+
+// Builds a context (and its KV cache) for the already-loaded model, using the
+// stored parameters. Returns true on success. Caller holds the mutex. This lets
+// the context be freed under memory pressure and rebuilt later without touching
+// the memory-mapped model weights.
+bool build_context_locked() {
+    if (g_session.model == nullptr) return false;
+    if (g_session.ctx != nullptr) return true;
+
+    llama_context_params cparams = llama_context_default_params();
+    cparams.n_ctx           = (uint32_t) g_session.n_ctx;
+    cparams.n_batch         = 512;
+    cparams.n_ubatch        = 512;
+    cparams.n_threads       = g_session.n_threads;
+    cparams.n_threads_batch = g_session.n_threads;
+    cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_AUTO;
+
+    g_session.ctx = llama_init_from_model(g_session.model, cparams);
+    if (g_session.ctx == nullptr) return false;
+    llama_set_abort_callback(g_session.ctx, abort_callback, &g_session.abort);
+    g_session.n_past = 0;
+    return true;
 }
 
 // Turns one token into text. Called for every token generated, so it keeps a
@@ -112,31 +141,63 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeLoad(
             "That model file could not be opened. It may be incomplete, so try downloading it again.");
     }
 
-    llama_context_params cparams = llama_context_default_params();
-    cparams.n_ctx         = (uint32_t) n_ctx;
-    cparams.n_batch       = 512;
-    cparams.n_ubatch      = 512;
-    cparams.n_threads     = n_threads;
-    cparams.n_threads_batch = n_threads;
-    cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_AUTO;
+    g_session.model     = model;
+    g_session.ctx       = nullptr;
+    g_session.n_ctx     = n_ctx;
+    g_session.n_threads = n_threads;
+    g_session.n_past    = 0;
+    g_session.abort.store(false);
 
-    llama_context * ctx = llama_init_from_model(model, cparams);
-    if (ctx == nullptr) {
+    if (!build_context_locked()) {
         llama_model_free(model);
+        g_session.model = nullptr;
         LOGE("failed to create context");
         return env->NewStringUTF(
             "There was not enough free memory to start this model. Close some apps, or pick a smaller model in Settings.");
     }
 
-    llama_set_abort_callback(ctx, abort_callback, &g_session.abort);
-
-    g_session.model  = model;
-    g_session.ctx    = ctx;
-    g_session.n_past = 0;
-    g_session.abort.store(false);
-
     LOGI("model loaded: n_ctx=%d threads=%d", n_ctx, n_threads);
     return env->NewStringUTF("");
+}
+
+// Frees the context and its KV cache but keeps the memory-mapped model resident.
+// The moderate-pressure response: the conversation can continue, the next reply
+// is a little slower while the context is rebuilt, and no model reload is needed.
+JNIEXPORT void JNICALL
+Java_com_kamsiob_kamai_llm_LlamaBridge_nativeReleaseContext(JNIEnv *, jobject) {
+    std::lock_guard<std::mutex> lock(g_session.mu);
+    g_session.abort.store(true);
+    if (g_session.sampler) { llama_sampler_free(g_session.sampler); g_session.sampler = nullptr; }
+    if (g_session.ctx)     { llama_free(g_session.ctx);             g_session.ctx     = nullptr; }
+    g_session.n_past = 0;
+    g_session.abort.store(false);
+}
+
+// Rebuilds the context if the model is loaded but the context was released.
+// Returns an empty string on success, or a plain reason on failure.
+JNIEXPORT jstring JNICALL
+Java_com_kamsiob_kamai_llm_LlamaBridge_nativeEnsureContext(JNIEnv * env, jobject) {
+    std::lock_guard<std::mutex> lock(g_session.mu);
+    if (g_session.model == nullptr) {
+        return env->NewStringUTF("No model is loaded.");
+    }
+    if (g_session.ctx != nullptr) return env->NewStringUTF("");
+    if (build_context_locked()) return env->NewStringUTF("");
+    return env->NewStringUTF(
+        "There was not enough free memory to continue. Close some apps and try again.");
+}
+
+// True when the model weights are resident, regardless of whether the context
+// (KV cache) is currently allocated.
+JNIEXPORT jboolean JNICALL
+Java_com_kamsiob_kamai_llm_LlamaBridge_nativeIsModelLoaded(JNIEnv *, jobject) {
+    return g_session.model != nullptr ? JNI_TRUE : JNI_FALSE;
+}
+
+// True when the context (KV cache) is currently allocated.
+JNIEXPORT jboolean JNICALL
+Java_com_kamsiob_kamai_llm_LlamaBridge_nativeIsContextLoaded(JNIEnv *, jobject) {
+    return g_session.ctx != nullptr ? JNI_TRUE : JNI_FALSE;
 }
 
 // Builds the sampler chain. Kam AI never exposes these values in the UI, so

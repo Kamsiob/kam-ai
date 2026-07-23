@@ -37,6 +37,9 @@ data class TierModel(
     val format: com.kamsiob.kamai.llm.ChatFormat,
     /** One plain line for the Advanced model list. Empty for the tier defaults. */
     val description: String = "",
+    /** An honest caution for models that may not load on their nominal device
+     *  class, shown in the Advanced list. Empty when the model runs comfortably. */
+    val warning: String = "",
 ) {
     /** "1.2 GB", for the mono size labels. */
     val downloadLabel: String get() = formatBytes(downloadBytes)

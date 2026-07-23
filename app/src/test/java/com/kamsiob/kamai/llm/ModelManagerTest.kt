@@ -21,6 +21,7 @@ class ModelManagerTest {
         val events = mutableListOf<String>()
         var loaded: String? = null
         var failNextLoad = false
+        var contextReleased = false
 
         override val isLoaded: Boolean get() = loaded != null
 
@@ -39,6 +40,11 @@ class ModelManagerTest {
         override suspend fun unload() {
             if (loaded != null) events.add("unload $loaded")
             loaded = null
+            contextReleased = false
+        }
+
+        override suspend fun releaseContext() {
+            if (loaded != null) { events.add("releaseContext $loaded"); contextReleased = true }
         }
     }
 
@@ -180,8 +186,8 @@ class ModelManagerTest {
             val installed = mutableListOf(basic, best)
             val active = arrayOf<String?>(best.id)
             // Enough for Basic (~3.1 GB + overhead) but not Best (~7.1 GB).
-            // Fits Basic (~2.6 GB needed) but not Best (~4.4 GB needed).
-            val gauge = FakeGauge(available = 3L * 1024 * 1024 * 1024 + 512L * 1024 * 1024)
+            // Fits Basic (~4.3 GB needed) but not Best (~8.3 GB needed).
+            val gauge = FakeGauge(available = 5L * 1024 * 1024 * 1024)
             val m = mgr(rt, gauge, this, installed, active, files)
 
             val status = m.ensureLoaded()
@@ -219,7 +225,7 @@ class ModelManagerTest {
             m.ensureLoaded()
             assertThat(rt.loaded).isEqualTo(basic.id)
 
-            m.onMemoryPressure()
+            m.onSeverePressure()
             advanceUntilIdle()
             assertThat(rt.isLoaded).isFalse()
             assertThat(m.status.value).isEqualTo(ModelManager.Status.Idle(basic))
@@ -287,6 +293,40 @@ class ModelManagerTest {
             val status = m.ensureLoaded()
             assertThat(status).isInstanceOf(ModelManager.Status.Failed::class.java)
             assertThat(rt.isLoaded).isFalse()
+        }
+    }
+
+    @Test
+    fun moderatePressureReleasesTheKvCacheButKeepsTheModelResident() = runTest {
+        val rt = FakeRuntime()
+        withTempFiles(listOf(basic.id)) { files ->
+            val m = mgr(rt, FakeGauge(plenty), this, mutableListOf(basic), arrayOf<String?>(basic.id), files)
+            m.ensureLoaded()
+            assertThat(rt.loaded).isEqualTo(basic.id)
+
+            m.onModeratePressure()
+            advanceUntilIdle()
+
+            // The model is still resident; only the KV cache was released.
+            assertThat(rt.isLoaded).isTrue()
+            assertThat(rt.contextReleased).isTrue()
+            assertThat(m.status.value).isEqualTo(ModelManager.Status.Loaded(basic))
+            assertThat(rt.events.last()).isEqualTo("releaseContext ${basic.id}")
+        }
+    }
+
+    @Test
+    fun severePressureUnloadsTheWholeModel() = runTest {
+        val rt = FakeRuntime()
+        withTempFiles(listOf(basic.id)) { files ->
+            val m = mgr(rt, FakeGauge(plenty), this, mutableListOf(basic), arrayOf<String?>(basic.id), files)
+            m.ensureLoaded()
+
+            m.onSeverePressure()
+            advanceUntilIdle()
+
+            assertThat(rt.isLoaded).isFalse()
+            assertThat(m.status.value).isEqualTo(ModelManager.Status.Idle(basic))
         }
     }
 }

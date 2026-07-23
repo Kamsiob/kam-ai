@@ -251,9 +251,22 @@ class ModelManager(
         }
     }
 
-    /** System memory pressure: release the model at once, keep it active so the
-     *  next use reloads it transparently. */
-    fun onMemoryPressure() {
+    /**
+     * Moderate memory pressure: release the KV cache but keep the model mmapped,
+     * so the conversation continues and only the next reply is slightly slower
+     * while the context is rebuilt. The model stays resident and active.
+     */
+    fun onModeratePressure() {
+        scope.launch {
+            lock.withLock {
+                if (runtime.isLoaded) runtime.releaseContext()
+            }
+        }
+    }
+
+    /** Severe memory pressure: unload the model entirely, keeping it active so
+     *  the next use reloads it transparently. */
+    fun onSeverePressure() {
         scope.launch {
             lock.withLock {
                 if (runtime.isLoaded) {
@@ -305,17 +318,17 @@ class ModelManager(
     }
 
     /**
-     * An estimate of the memory a load actually pins right now. The model weights
-     * are memory-mapped, so under pressure the kernel can reclaim weight pages
-     * rather than kill the app; the genuinely hard-to-reclaim cost is the compute
-     * and KV-cache buffers plus the working set that stays hot during inference.
-     * Half the weights is a deliberate middle estimate of that hot set, plus a
-     * fixed context overhead. A model's tier RAM gate already guarantees the
-     * device can hold it at all; this dynamic check only refuses when the phone
-     * is under real pressure at the moment of loading.
+     * The memory a load needs available right now. Measured reality, not theory:
+     * an earlier, more optimistic estimate (half the weights, trusting mmap to
+     * keep the rest reclaimable) let the 12B model pass the check and then get
+     * SIGKILLed by the kernel on a 16 GB phone with about 5 GB free. Loading a
+     * GGUF reads and touches essentially the whole file plus the context and
+     * compute buffers, so the honest requirement is the full weights plus the
+     * context overhead. Being conservative here is the whole point: a refusal
+     * with a clear message is vastly better than an out-of-memory kill.
      */
     fun requiredBytes(model: TierModel): Long =
-        model.downloadBytes / 2 + CONTEXT_OVERHEAD_BYTES
+        model.downloadBytes + CONTEXT_OVERHEAD_BYTES
 
     private fun refusalMessage(model: TierModel, smaller: TierModel?): String {
         val need = formatBytes(requiredBytes(model))

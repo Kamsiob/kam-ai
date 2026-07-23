@@ -200,6 +200,10 @@ private fun ModelCard(
             Spacer(Modifier.height(4.dp))
             Text(model.description, style = KamTheme.type.secondary, color = colors.textSecondary)
         }
+        if (advanced && model.warning.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(model.warning, style = KamTheme.type.secondary, color = colors.flagAmber)
+        }
 
         if (locked) {
             Spacer(Modifier.height(10.dp))

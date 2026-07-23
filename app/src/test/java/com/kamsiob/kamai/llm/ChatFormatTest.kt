@@ -127,7 +127,7 @@ class ChatFormatTest {
     fun `each tier names the Gemma 4 variant sized for it`() {
         assertThat(ModelCatalog.forTier(Tier.BASIC).parameterLabel).isEqualTo("E2B")
         assertThat(ModelCatalog.forTier(Tier.BALANCED).parameterLabel).isEqualTo("E4B")
-        assertThat(ModelCatalog.forTier(Tier.BEST).parameterLabel).isEqualTo("12B")
+        assertThat(ModelCatalog.forTier(Tier.BEST).parameterLabel).isEqualTo("E4B")
     }
 
     @Test

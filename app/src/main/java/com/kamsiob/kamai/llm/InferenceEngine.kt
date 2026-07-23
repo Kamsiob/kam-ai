@@ -100,8 +100,17 @@ class InferenceEngine(
     }
 
     override suspend fun unload() = withContext(nativeDispatcher) {
-        if (LlamaBridge.nativeIsLoaded()) LlamaBridge.nativeUnload()
+        if (LlamaBridge.ensureLibraryLoaded() == null && LlamaBridge.nativeIsModelLoaded()) {
+            LlamaBridge.nativeUnload()
+        }
         _state.value = EngineState.NoModel
+    }
+
+    /** Moderate pressure: free the KV cache, keep the model mmapped. */
+    override suspend fun releaseContext() = withContext(nativeDispatcher) {
+        if (LlamaBridge.ensureLibraryLoaded() == null && LlamaBridge.nativeIsContextLoaded()) {
+            LlamaBridge.nativeReleaseContext()
+        }
     }
 
     /**
@@ -119,6 +128,16 @@ class InferenceEngine(
         onStop: (StopReason) -> Unit = {},
     ): Flow<Chunk> = callbackFlow {
         val values = Sampling.forMode(mode)
+
+        // Rebuild the context if it was released under memory pressure. The
+        // model weights are still mmapped, so this is quick, and it is why a
+        // moderate-pressure release costs at most a slightly slower next reply.
+        val ensured = LlamaBridge.nativeEnsureContext()
+        if (ensured.isNotEmpty()) {
+            onStop(StopReason.Failed(ensured))
+            close()
+            return@callbackFlow
+        }
 
         LlamaBridge.nativeResetContext()
         LlamaBridge.nativeConfigureSampler(
@@ -198,9 +217,15 @@ class InferenceEngine(
     val contextSize: Int
         get() = (_state.value as? EngineState.Ready)?.contextTokens ?: 0
 
-    /** ModelRuntime: whether a model is resident right now. */
+    /** ModelRuntime: whether the model weights are resident right now. The KV
+     *  context may have been released under pressure; the engine rebuilds it
+     *  transparently on the next generation.
+     *
+     *  Ensures the native library is loaded before asking it anything. The
+     *  manager checks this before any load, which can be the very first native
+     *  call in the process, so it must not assume the library is already up. */
     override val isLoaded: Boolean
-        get() = LlamaBridge.nativeIsLoaded()
+        get() = LlamaBridge.ensureLibraryLoaded() == null && LlamaBridge.nativeIsModelLoaded()
 
     /**
      * Leaves at least two cores for the rest of the phone. Using every core

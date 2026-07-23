@@ -751,6 +751,79 @@ memory of a loaded model against its file size. Thermal throttling, the
 quantization review, and measured tier assignment follow. PART B (voice sharing
 the budget) integrates into Phase 2. PART C edge cases follow.
 
+## Model memory: two-stage pressure, honest fit check, and measured tiers (PART A cont.)
+
+### A second crash, and the real memory lesson
+
+With the blank-screen fixed, sending a message with the 12B active crashed the app
+with a kernel SIGKILL (out of memory), not a graceful refusal. The fit check had
+used an optimistic estimate (half the weights, trusting mmap to keep the rest
+reclaimable) and let the load through; loading then touched essentially the whole
+7 GB file plus the context buffers and the kernel killed the process. The honest
+requirement is the full weights plus the context overhead, so that is what the
+check now uses. A refusal with a clear message beats an out-of-memory kill every
+time.
+
+Verified on device: with the 12B active on a 16 GB Pixel with about 5 GB free,
+sending a message now shows, in the amber notice, "Gemma 4 12B needs about 7.9 GB
+free to run, and this phone does not have that spare right now. Close some apps
+to free memory and try again, or download a smaller model." No crash, app fully
+usable.
+
+### A JNI ordering bug found in the same pass
+
+The manager checks isLoaded before any load, which can be the first native call
+in the process, and the native library was only loaded inside load(). That
+produced an UnsatisfiedLinkError ("no implementation found ... is the library
+loaded?"). The status-check natives (isLoaded, releaseContext, unload) now ensure
+the library is loaded before calling in.
+
+### Tiers reassigned from measurement, 12B moved to Advanced
+
+The measured reality is that a 7 GB model does not load comfortably on a 16 GB
+phone, so the 12B does not belong on the Best tier. The default tiers are now the
+Gemma 4 on-device (E) line, which is what it is designed for:
+
+- Basic, 8 GB: Gemma 4 E2B Q4_K_M, 3.1 GB. Measured to load and generate.
+- Balanced, 12 GB: Gemma 4 E4B Q4_K_M, 5.0 GB.
+- Best Available, 16 GB: Gemma 4 E4B Q5_K_M, 5.5 GB. The same on-device model at
+  higher precision, the honest ceiling for something that runs comfortably.
+
+The 12B and E4B Q6 move to Advanced, each with a plain warning that they may
+refuse to load on a typical phone. Q4_K_M stays the tier default quantisation;
+higher precision only appears in Advanced where the warning makes the memory cost
+explicit.
+
+### Two-stage memory pressure
+
+The native bridge now separates the context (KV cache) lifetime from the model
+lifetime, so the two-stage response the spec asks for is real:
+
+- Moderate pressure (onTrimMemory at running-low): release the KV cache, keep the
+  model mmapped. The conversation continues and only the next reply is a little
+  slower while the context is rebuilt.
+- Severe pressure (critical, complete, or backgrounded): unload the model
+  entirely. It reloads lazily and transparently on next use.
+
+New native functions: nativeReleaseContext, nativeEnsureContext,
+nativeIsModelLoaded, nativeIsContextLoaded. The engine rebuilds the context
+automatically before generating if it was released. Idle memory with the model
+lazily unloaded measured at about 186 MB PSS.
+
+Tests: 14 ModelManager unit tests including moderate pressure releases the KV
+cache while the model stays resident, and severe pressure unloads it. 95 unit
+total.
+
+### Still to record in PART A
+
+An explicit mmap measurement (resident memory of a loaded model versus its file
+size) is done next by downloading E2B and measuring on device. Thermal
+throttling is already wired via ThermalWatcher (shorter context when warm, early
+stop with a plain message when hot); it will be confirmed under sustained load.
+Hardware acceleration stays off (n_gpu_layers = 0), the reliable path, as the
+spec prefers. PART B (voice sharing the budget) integrates into Phase 2. PART C
+edge cases follow.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

@@ -18,6 +18,14 @@ interface ModelRuntime {
 
     /** Unloads whatever is resident and releases its memory. Safe to call when nothing is loaded. */
     suspend fun unload()
+
+    /**
+     * Releases the KV cache but keeps the model resident. The moderate-pressure
+     * step: the conversation continues, the next response rebuilds the context
+     * and is a little slower, and no model reload is needed. Safe to call when
+     * nothing is loaded.
+     */
+    suspend fun releaseContext()
 }
 
 /**

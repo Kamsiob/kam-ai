@@ -13,20 +13,25 @@ class KamApp : Application() {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        // On any real pressure, or when the app is fully backgrounded and the
-        // system wants memory, drop the resident model. It reloads lazily on the
-        // next use. This is the counterpart to the lazy-load rule and is what
-        // keeps a large model from getting the app killed.
-        val pressure = level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
-            level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND
-        if (pressure) {
-            Models.manager(this).onMemoryPressure()
+        val manager = Models.manager(this)
+        when {
+            // Severe: the app is backgrounded and the system wants memory, or the
+            // device is critically low. Unload the model entirely.
+            level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE ||
+                level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+                level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND ->
+                manager.onSeverePressure()
+
+            // Moderate: the app is in the foreground but memory is getting tight.
+            // Release the KV cache, keep the model mapped, keep the conversation.
+            level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ->
+                manager.onModeratePressure()
         }
     }
 
     @Deprecated("Deprecated in Android, still called on older levels")
     override fun onLowMemory() {
         super.onLowMemory()
-        Models.manager(this).onMemoryPressure()
+        Models.manager(this).onSeverePressure()
     }
 }

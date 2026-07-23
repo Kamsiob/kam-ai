@@ -75,4 +75,13 @@ internal object LlamaBridge {
     external fun nativeChatTemplate(): String?
     external fun nativeUnload()
     external fun nativeIsLoaded(): Boolean
+
+    /** Frees the KV-cache context but keeps the model mmapped. Moderate pressure. */
+    external fun nativeReleaseContext()
+    /** Rebuilds the context if the model is loaded but the context was released. */
+    external fun nativeEnsureContext(): String
+    /** True when the model weights are resident, context or not. */
+    external fun nativeIsModelLoaded(): Boolean
+    /** True when the KV-cache context is currently allocated. */
+    external fun nativeIsContextLoaded(): Boolean
 }
