@@ -584,6 +584,33 @@ Every model in the Advanced list is a genuine instruction-tuned GGUF with a
 verified size and hash, checked against the live Hugging Face API like the tier
 defaults, so nothing offered there is a dead or unverifiable link.
 
+## Combined update, part 5: the Chats screen fills out (PART 4)
+
+New chat is now a first-class action on the Chats screen: an accent pill with,
+beside it, its own mode selector as a distinct adjacent element. That selector
+is deliberately separate from the in-chat Chat/Logic flip, so choosing the mode
+for the next chat reads as its own thing rather than being fused with the toggle
+inside an open chat, which is exactly the distinction PART 4 draws. The bottom
+nav New still works and defaults to Chat.
+
+Rename is reachable from the swipe rail, the grid long-press menu, and the
+accessibility actions, opening a small inline dialog that saves immediately. A
+renamed chat is manual and sticks everywhere the title appears, including search,
+because it is just the conversation's title.
+
+Bulk selection is a first-class path, not an afterthought. Long-pressing a row,
+or the Select item in the grid menu, enters selection mode: a running count, a
+checkbox per row, Select all and Select none, Cancel, and one Delete that
+removes the whole selection through the tier-two two-step confirmation, since
+deleting several at once is major loss. Back closes selection before anything
+else. A single delete stays tier-one and honours the confirm-before-deleting
+preference. Nobody has to delete chats one at a time.
+
+A workflow gap closed while walking this: entering selection mode hides the
+Pinned section header and flattens to a single selectable list, so the
+select-all count and the visible rows always agree, rather than select-all
+counting rows that a collapsed Pinned section was hiding.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

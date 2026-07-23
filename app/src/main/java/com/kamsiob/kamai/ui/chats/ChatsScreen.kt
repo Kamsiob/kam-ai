@@ -33,8 +33,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Archive
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DriveFileRenameOutline
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.PushPin
@@ -47,6 +50,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +71,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kamsiob.kamai.data.ConversationSummary
+import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.ui.AppViewModel.ChatsView
 import com.kamsiob.kamai.ui.components.EmptyState
 import com.kamsiob.kamai.ui.components.Eyebrow
@@ -87,16 +92,26 @@ fun ChatsScreen(
     view: ChatsView,
     onViewChange: (ChatsView) -> Unit,
     onOpen: (String) -> Unit,
-    onNewChat: () -> Unit,
     onPin: (String, Boolean) -> Unit,
     onArchive: (String) -> Unit,
     onDelete: (String) -> Unit,
     onDeleteMany: (List<String>) -> Unit = {},
+    onNewChat: (Mode) -> Unit = {},
+    onRename: (String, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
     var query by remember { mutableStateOf("") }
     var pinnedExpanded by remember { mutableStateOf(true) }
+    var newChatMode by remember { mutableStateOf(Mode.CHAT) }
+
+    // Bulk selection. Long-pressing a row enters it; tapping toggles a row.
+    val selected = remember { mutableStateListOf<String>() }
+    var selecting by remember { mutableStateOf(false) }
+    fun exitSelection() { selecting = false; selected.clear() }
+
+    // Rename target, driving the inline dialog.
+    var renaming by remember { mutableStateOf<ConversationSummary?>(null) }
 
     val filtered = remember(conversations, query) {
         if (query.isBlank()) {
@@ -111,19 +126,50 @@ fun ChatsScreen(
     val pinned = filtered.filter { it.pinned }
     val recent = filtered.filterNot { it.pinned }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = KamTheme.dimens.screenPadding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Chats", style = KamTheme.type.screenTitle, color = colors.textPrimary)
-            Spacer(Modifier.weight(1f))
-            ViewSwitcher(view, onViewChange)
-        }
+    // Back closes selection mode before anything else on this screen.
+    BackHandler(enabled = selecting) { exitSelection() }
 
-        SearchField(query, { query = it }, Modifier.padding(horizontal = KamTheme.dimens.screenPadding))
+    val toggleSelect: (String) -> Unit = { id ->
+        if (selected.contains(id)) selected.remove(id) else selected.add(id)
+        if (selected.isEmpty()) selecting = false
+    }
+    val enterSelection: (String) -> Unit = { id ->
+        selecting = true
+        if (!selected.contains(id)) selected.add(id)
+    }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        if (selecting) {
+            SelectionBar(
+                count = selected.size,
+                allSelected = selected.size == filtered.size && filtered.isNotEmpty(),
+                onSelectAll = { selected.clear(); selected.addAll(filtered.map { it.id }) },
+                onSelectNone = { selected.clear() },
+                onCancel = { exitSelection() },
+                onDelete = {
+                    onDeleteMany(selected.toList())
+                    exitSelection()
+                },
+            )
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = KamTheme.dimens.screenPadding),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Chats", style = KamTheme.type.screenTitle, color = colors.textPrimary)
+                Spacer(Modifier.weight(1f))
+                ViewSwitcher(view, onViewChange)
+            }
+            NewChatBar(
+                mode = newChatMode,
+                onModeChange = { newChatMode = it },
+                onNewChat = { onNewChat(newChatMode) },
+                modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
+            )
+            SearchField(query, { query = it }, Modifier.padding(horizontal = KamTheme.dimens.screenPadding))
+        }
 
         if (conversations.isEmpty()) {
             EmptyState(
@@ -132,6 +178,7 @@ fun ChatsScreen(
                     "phone, so nothing you type leaves it.",
                 modifier = Modifier.fillMaxWidth(),
             )
+            renaming?.let { RenameDialog(it, onRename) { renaming = null } }
             return@Column
         }
 
@@ -154,7 +201,17 @@ fun ChatsScreen(
             ) {
                 items(filtered, key = { it.id }) { row ->
                     // Swipe is replaced by a long-press menu in grid view.
-                    GridCell(row, onOpen, onPin, onArchive, onDelete)
+                    GridCell(
+                        row = row,
+                        selecting = selecting,
+                        selected = selected.contains(row.id),
+                        onOpen = { if (selecting) toggleSelect(row.id) else onOpen(row.id) },
+                        onEnterSelection = { enterSelection(row.id) },
+                        onPin = onPin,
+                        onArchive = onArchive,
+                        onDelete = onDelete,
+                        onRename = { renaming = row },
+                    )
                 }
             }
         } else {
@@ -167,7 +224,7 @@ fun ChatsScreen(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 // The Pinned section is hidden entirely when nothing is pinned.
-                if (pinned.isNotEmpty()) {
+                if (pinned.isNotEmpty() && !selecting) {
                     item(key = "pinned-header") {
                         SectionHeader(
                             label = "Pinned",
@@ -178,7 +235,8 @@ fun ChatsScreen(
                     }
                     if (pinnedExpanded) {
                         items(pinned, key = { "p-${it.id}" }) { row ->
-                            SwipeRow(row, view, onOpen, onPin, onArchive, onDelete)
+                            ChatRow(row, view, selecting, selected.contains(row.id),
+                                toggleSelect, enterSelection, onOpen, onPin, onArchive, onDelete) { renaming = row }
                         }
                     }
                     item(key = "recent-label") {
@@ -186,11 +244,37 @@ fun ChatsScreen(
                     }
                 }
 
-                items(recent, key = { it.id }) { row ->
-                    SwipeRow(row, view, onOpen, onPin, onArchive, onDelete)
+                val listRows = if (selecting) filtered else recent
+                items(listRows, key = { it.id }) { row ->
+                    ChatRow(row, view, selecting, selected.contains(row.id),
+                        toggleSelect, enterSelection, onOpen, onPin, onArchive, onDelete) { renaming = row }
                 }
             }
         }
+    }
+
+    renaming?.let { RenameDialog(it, onRename) { renaming = null } }
+}
+
+/** A row that is either the swipe row (normal) or a selectable row (selecting). */
+@Composable
+private fun ChatRow(
+    row: ConversationSummary,
+    view: ChatsView,
+    selecting: Boolean,
+    isSelected: Boolean,
+    onToggleSelect: (String) -> Unit,
+    onEnterSelection: (String) -> Unit,
+    onOpen: (String) -> Unit,
+    onPin: (String, Boolean) -> Unit,
+    onArchive: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onRename: () -> Unit,
+) {
+    if (selecting) {
+        SelectableRow(row, view, isSelected) { onToggleSelect(row.id) }
+    } else {
+        SwipeRow(row, view, onOpen, onPin, onArchive, onDelete, onRename) { onEnterSelection(row.id) }
     }
 }
 
@@ -329,6 +413,8 @@ private fun SwipeRow(
     onPin: (String, Boolean) -> Unit,
     onArchive: (String) -> Unit,
     onDelete: (String) -> Unit,
+    onRename: () -> Unit,
+    onLongPress: () -> Unit,
 ) {
     val colors = KamTheme.colors
     val density = LocalDensity.current
@@ -356,6 +442,12 @@ private fun SwipeRow(
                     .height(ROW_HEIGHT),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                RailButton(
+                    icon = Icons.Rounded.DriveFileRenameOutline,
+                    label = "Rename",
+                    tint = colors.textSecondary,
+                    background = colors.surfaceSecondary,
+                ) { close(); onRename() }
                 RailButton(
                     icon = Icons.Rounded.PushPin,
                     label = if (row.pinned) "Unpin" else "Pin",
@@ -398,15 +490,251 @@ private fun SwipeRow(
                 }
                 .semantics {
                     customActions = listOf(
+                        CustomAccessibilityAction("Rename") { onRename(); true },
                         CustomAccessibilityAction(
                             if (row.pinned) "Unpin" else "Pin",
                         ) { onPin(row.id, !row.pinned); true },
                         CustomAccessibilityAction("Archive") { onArchive(row.id); true },
                         CustomAccessibilityAction("Delete") { onDelete(row.id); true },
+                        CustomAccessibilityAction("Select") { onLongPress(); true },
                     )
                 },
         ) {
-            ConversationRow(row, view) { if (revealed) close() else onOpen(row.id) }
+            ConversationRow(
+                row = row,
+                view = view,
+                onClick = { if (revealed) close() else onOpen(row.id) },
+                onLongClick = onLongPress,
+            )
+        }
+    }
+}
+
+/** The new-chat action, with its own mode selector beside it. PART 4. */
+@Composable
+private fun NewChatBar(
+    mode: Mode,
+    onModeChange: (Mode) -> Unit,
+    onNewChat: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = KamTheme.colors
+    Row(
+        modifier = modifier.fillMaxWidth().padding(top = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clip(CircleShape)
+                .background(colors.accent)
+                .clickable(onClick = onNewChat)
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                androidx.compose.material.icons.Icons.Rounded.Add,
+                contentDescription = null,
+                tint = colors.onAccent,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("New chat", style = KamTheme.type.label, color = colors.onAccent)
+        }
+
+        // The new-chat mode choice is its own adjacent element, distinct from the
+        // in-chat toggle, so it reads as choosing the mode for the next chat.
+        val isLogic = mode == Mode.LOGIC
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(if (isLogic) colors.tonalFill else colors.surfaceSecondary)
+                .clickable { onModeChange(if (isLogic) Mode.CHAT else Mode.LOGIC) }
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .semantics {
+                    contentDescription = "New chat mode: ${if (isLogic) "Logic Partner" else "Chat"}. Tap to change."
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                if (isLogic) "Logic" else "Chat",
+                style = KamTheme.type.label,
+                color = if (isLogic) colors.tonalText else colors.textSecondary,
+            )
+        }
+    }
+}
+
+/** The bar shown while selecting several conversations. PART 0 bulk selection. */
+@Composable
+private fun SelectionBar(
+    count: Int,
+    allSelected: Boolean,
+    onSelectAll: () -> Unit,
+    onSelectNone: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = KamTheme.dimens.screenPadding, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "$count selected",
+            style = KamTheme.type.sectionTitle,
+            color = colors.textPrimary,
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            if (allSelected) "Select none" else "Select all",
+            style = KamTheme.type.label,
+            color = colors.accent,
+            modifier = Modifier
+                .clip(CircleShape)
+                .clickable { if (allSelected) onSelectNone() else onSelectAll() }
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+        Text(
+            "Delete",
+            style = KamTheme.type.label,
+            color = if (count > 0) colors.flagAmber else colors.textTertiary,
+            modifier = Modifier
+                .clip(CircleShape)
+                .then(if (count > 0) Modifier.clickable(onClick = onDelete) else Modifier)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+        Text(
+            "Cancel",
+            style = KamTheme.type.label,
+            color = colors.textSecondary,
+            modifier = Modifier
+                .clip(CircleShape)
+                .clickable(onClick = onCancel)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
+}
+
+/** A conversation row in selection mode, with a leading checkbox. */
+@Composable
+private fun SelectableRow(
+    row: ConversationSummary,
+    view: ChatsView,
+    isSelected: Boolean,
+    onToggle: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    val shape = RoundedCornerShape(18.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(if (isSelected) colors.tonalFill else colors.surface)
+            .border(1.dp, if (isSelected) colors.accent else colors.border, shape)
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .semantics { selected = isSelected },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(if (isSelected) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
+                .border(if (isSelected) 0.dp else 2.dp, colors.border, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isSelected) {
+                Icon(
+                    androidx.compose.material.icons.Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = colors.onAccent,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            row.title ?: "New conversation",
+            style = KamTheme.type.cardTitle,
+            color = colors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(relativeTime(row.updatedAt), style = KamTheme.type.mono, color = colors.textTertiary)
+    }
+}
+
+/** The inline rename dialog. Saves immediately. */
+@Composable
+private fun RenameDialog(
+    row: ConversationSummary,
+    onRename: (String, String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    var text by remember {
+        mutableStateOf(
+            androidx.compose.ui.text.input.TextFieldValue(
+                row.title.orEmpty(),
+                androidx.compose.ui.text.TextRange(row.title.orEmpty().length),
+            ),
+        )
+    }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        BackHandler(enabled = true, onBack = onDismiss)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                .padding(22.dp),
+        ) {
+            Text("Rename chat", style = KamTheme.type.cardTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(14.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.surfaceSecondary)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            ) {
+                androidx.compose.foundation.text.BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.accent),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Text(
+                    "Cancel",
+                    style = KamTheme.type.label,
+                    color = colors.textSecondary,
+                    modifier = Modifier.clip(CircleShape).clickable(onClick = onDismiss)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Save",
+                    style = KamTheme.type.label,
+                    color = if (text.text.isNotBlank()) colors.accent else colors.textTertiary,
+                    modifier = Modifier.clip(CircleShape)
+                        .then(if (text.text.isNotBlank()) Modifier.clickable { onRename(row.id, text.text); onDismiss() } else Modifier)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            }
         }
     }
 }
@@ -438,6 +766,7 @@ private fun ConversationRow(
     row: ConversationSummary,
     view: ChatsView,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     val colors = KamTheme.colors
     val shape = RoundedCornerShape(18.dp)
@@ -448,7 +777,7 @@ private fun ConversationRow(
             .clip(shape)
             .background(colors.surface)
             .border(1.dp, colors.border, shape)
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 14.dp, vertical = if (view == ChatsView.COMPACT) 12.dp else 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -498,10 +827,14 @@ private fun ConversationRow(
 @Composable
 private fun GridCell(
     row: ConversationSummary,
+    selecting: Boolean,
+    selected: Boolean,
     onOpen: (String) -> Unit,
+    onEnterSelection: (String) -> Unit,
     onPin: (String, Boolean) -> Unit,
     onArchive: (String) -> Unit,
     onDelete: (String) -> Unit,
+    onRename: () -> Unit,
 ) {
     val colors = KamTheme.colors
     var menuOpen by remember { mutableStateOf(false) }
@@ -512,11 +845,13 @@ private fun GridCell(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(colors.surface)
-                .border(1.dp, colors.border, shape)
+                .background(if (selected) colors.tonalFill else colors.surface)
+                .border(1.dp, if (selected) colors.accent else colors.border, shape)
                 .combinedClickable(
                     onClick = { onOpen(row.id) },
-                    onLongClick = { menuOpen = true },
+                    // Long-press opens the action menu in grid view, matching
+                    // DESIGN.md; it also enters selection mode.
+                    onLongClick = { if (selecting) onOpen(row.id) else menuOpen = true },
                 )
                 .padding(13.dp),
         ) {
@@ -557,8 +892,10 @@ private fun GridCell(
             containerColor = colors.surface,
         ) {
             listOf(
+                "Rename" to onRename,
                 (if (row.pinned) "Unpin" else "Pin") to { onPin(row.id, !row.pinned) },
                 "Archive" to { onArchive(row.id) },
+                "Select" to { onEnterSelection(row.id) },
                 "Delete" to { onDelete(row.id) },
             ).forEach { (label, action) ->
                 DropdownMenuItem(

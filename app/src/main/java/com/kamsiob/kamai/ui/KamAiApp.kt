@@ -90,7 +90,7 @@ private sealed interface Pushed {
     data object Appearance : Pushed
     data object Safety : Pushed
     data object AppLock : Pushed
-    data class Conversation(val id: String) : Pushed
+    data class Conversation(val id: String, val startMode: Mode? = null) : Pushed
 }
 
 @Composable
@@ -192,7 +192,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
             ) { pushed ->
                 when (pushed) {
                     null -> TabContent(app, tab, stack)
-                    is Pushed.Conversation -> ConversationScreen(app, pushed.id)
+                    is Pushed.Conversation -> ConversationScreen(app, pushed.id, pushed.startMode)
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
                     Pushed.Storage -> StorageHost(app)
@@ -213,7 +213,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     current = tab,
                     onSelect = { selected ->
                         if (selected == NavItem.NEW) {
-                            stack.add(Pushed.Conversation(NEW_CONVERSATION))
+                            stack.add(Pushed.Conversation(NEW_CONVERSATION, Mode.CHAT))
                         } else {
                             tab = selected
                         }
@@ -250,7 +250,8 @@ private fun TabContent(
                 view = view,
                 onViewChange = app::setChatsView,
                 onOpen = { stack.add(Pushed.Conversation(it)) },
-                onNewChat = { stack.add(Pushed.Conversation(NEW_CONVERSATION)) },
+                onNewChat = { mode -> stack.add(Pushed.Conversation(NEW_CONVERSATION, mode)) },
+                onRename = app::renameConversation,
                 onPin = app::setPinned,
                 onArchive = app::archive,
                 onDelete = { id ->
@@ -283,7 +284,7 @@ private fun TabContent(
 }
 
 @Composable
-private fun ConversationScreen(app: AppViewModel, conversationId: String) {
+private fun ConversationScreen(app: AppViewModel, conversationId: String, startMode: Mode? = null) {
     val context = LocalContext.current
     val chat: ChatViewModel = viewModel(
         key = "chat-$conversationId",
@@ -292,6 +293,7 @@ private fun ConversationScreen(app: AppViewModel, conversationId: String) {
 
     LaunchedEffect(conversationId) {
         if (conversationId.isNotEmpty()) chat.open(conversationId)
+        else startMode?.let { chat.setMode(it) }
     }
 
     val messages by chat.messages.collectAsStateWithLifecycle()
