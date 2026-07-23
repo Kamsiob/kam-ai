@@ -325,7 +325,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 ConfirmRequest(
                     tier = ConfirmTier.SINGLE,
                     title = "Delete this chat?",
-                    body = "\"${title ?: "This conversation"}\" and its messages will be removed.",
+                    // Quote a real title; for an untitled chat say it plainly rather
+                    // than quoting the fallback, which reads as if that were the name.
+                    body = if (title.isNullOrBlank()) {
+                        "This chat and its messages will be removed."
+                    } else {
+                        "\"$title\" and its messages will be removed."
+                    },
                     confirmLabel = "Delete",
                     onConfirm = doDelete,
                 ),
