@@ -54,6 +54,9 @@ venv/
 # llama.cpp is fetched by tools/fetch_llama.sh at a pinned tag
 app/src/main/cpp/llama.cpp/
 
+# whisper.cpp is fetched by tools/fetch_whisper.sh at a pinned tag
+app/src/main/cpp/whisper.cpp/
+
 # Smoke test model cache
 .smoke-cache/
 
