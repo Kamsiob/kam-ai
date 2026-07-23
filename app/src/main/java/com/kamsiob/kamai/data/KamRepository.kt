@@ -357,6 +357,51 @@ class KamRepository(
         db.discover().recordQuiz(packId, asked, right)
     fun observeQuizStats(): Flow<List<QuizStatsEntity>> = db.discover().observeAllStats()
 
+    // Backup and restore
+
+    suspend fun exportSnapshot(): BackupCodec.Snapshot = BackupCodec.Snapshot(
+        conversations = db.conversations().allForBackup(),
+        messages = db.messages().allForBackup(),
+        projects = db.projects().allForBackup(),
+        memory = db.memory().allForBackup(),
+        followUps = db.followUps().allForBackup(),
+        drawn = db.discover().allDrawnForBackup(),
+        saved = db.discover().allSavedForBackup(),
+        quizStats = db.discover().allStatsForBackup(),
+        artifacts = db.artifacts().allForBackup(),
+        settings = db.settings().all(),
+    )
+
+    /**
+     * Restores a snapshot. In [replace] mode the existing content is cleared
+     * first; otherwise it is merged (rows with the same id are overwritten). The
+     * artifacts table is deliberately not touched: it reflects which large files
+     * are physically present on this device, which a backup does not carry, so the
+     * caller offers to re-download anything the backup listed but this phone lacks.
+     */
+    suspend fun importSnapshot(s: BackupCodec.Snapshot, replace: Boolean) {
+        if (replace) {
+            db.messages().deleteAll()
+            db.conversations().deleteAll()
+            db.projects().deleteAll()
+            db.memory().deleteAllMemory()
+            db.followUps().deleteAllFollowUps()
+            db.discover().deleteAllDrawn()
+            db.discover().deleteAllSaved()
+            db.discover().deleteAllStats()
+        }
+        s.projects.forEach { db.projects().upsert(it) }
+        s.conversations.forEach { db.conversations().upsert(it) }
+        s.messages.forEach { db.messages().insert(it) }
+        s.memory.forEach { db.memory().upsert(it) }
+        s.followUps.forEach { db.followUps().upsert(it) }
+        s.drawn.forEach { db.discover().markDrawn(it) }
+        s.saved.forEach { db.discover().save(it) }
+        s.quizStats.forEach { db.discover().upsertStats(it) }
+        // Settings merge in both modes so the restored preferences take effect.
+        s.settings.forEach { db.settings().put(it) }
+    }
+
     // Conversations and messages
 
     fun observeConversations(): Flow<List<ConversationSummary>> =

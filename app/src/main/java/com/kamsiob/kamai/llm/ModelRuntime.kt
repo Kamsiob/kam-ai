@@ -36,6 +36,9 @@ interface MemoryGauge {
     /** Bytes the system reports as available to the app without killing others. */
     fun availableBytes(): Long
 
+    /** Total physical RAM. Used to check the whole working set fits the device. */
+    fun totalBytes(): Long
+
     /** True when the system is already in a low-memory state. */
     fun lowMemory(): Boolean
 }

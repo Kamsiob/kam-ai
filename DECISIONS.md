@@ -1227,6 +1227,45 @@ Messages app, and nothing here does otherwise.
 
 100 unit tests pass.
 
+## Critical fix: the memory fit-check was refusing every model on a real phone
+
+The owner reported that nothing worked, that even the Balanced model would not
+answer on his 16 GB phone. It was not a model problem. It was the fit-check.
+
+The check (written after an early 12B out-of-memory kill) required the model's
+full weights plus overhead to be in the system's reported free memory: about
+6.1 GB for Balanced (E4B), 4.25 GB for Basic (E2B). But a normally-used 16 GB
+phone rarely reports that much free. Android keeps recently-used apps cached, so
+with a browser and the camera open the phone reported only 2.8 to 3.4 GB free.
+Every model, including the recommended one, was refused before it ever loaded.
+The user saw a refusal, not an answer, which reads as the app being broken.
+
+The check was wrong about how the memory behaves. The weights are memory-mapped,
+so they are file-backed page cache the kernel reclaims and re-reads on demand;
+they do not need to sit in the free figure. What genuinely needs free memory is
+the anonymous KV cache and compute buffers. This was already measured earlier in
+the build: loading E2B, a 3.1 GB model, cost about 1.1 GB of committed memory, not
+3.1 GB.
+
+The fit-check now uses that reality:
+
+- It requires the anonymous buffers (a compute-buffer floor plus a fraction of the
+  weights for the KV cache, tuned to reproduce the measured 1.1 GB for E2B) to fit
+  in what is free right now.
+- A separate total-RAM check ensures the whole working set (mmapped weights plus
+  those buffers plus an OS reserve) physically fits the device, which still stops
+  a model that is genuinely too big for the phone from being loaded into an
+  out-of-memory kill.
+
+Verified on the owner's phone with about 3 GB free: Balanced (E4B) loaded and
+answered ("say hello in one sentence" gave "Hello"; "what is the capital of Japan"
+gave "The capital of Japan is Tokyo"), across turns, with the process stable and
+about 2.8 GB still free. This is the difference between an app that refuses
+everything and one that works.
+
+15 ModelManager unit tests cover the new model, including a model-too-big-for-the-
+device refusal and a not-enough-free-right-now refusal with a smaller fallback.
+
 ## Deferred within completed phases
 
 ### Kokoro premium reading voice (Phase 2)

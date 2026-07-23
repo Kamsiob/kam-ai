@@ -218,6 +218,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         repository.putSetting(KamRepository.Keys.WORKBENCH_INPUT, text)
     }
 
+    /**
+     * Re-reads the one-shot settings after a restore. The list flows are backed by
+     * Room and refresh themselves; these preferences are read once at startup, so
+     * a restore that changed them needs a nudge. The active model reference is
+     * repaired so a backup from another phone never points at a model not here.
+     */
+    fun reloadAfterRestore() = viewModelScope.launch {
+        _chatsView.value = runCatching {
+            ChatsView.valueOf(repository.setting(KamRepository.Keys.CHATS_VIEW).orEmpty())
+        }.getOrDefault(ChatsView.COMPACT)
+        _confirmChatDelete.value = repository.setting(KamRepository.Keys.CONFIRM_CHAT_DELETE) != "false"
+        _memoryMode.value = repository.memoryMode()
+        modelManager.refreshActive()
+    }
+
     // Conversations
 
     fun setPinned(id: String, pinned: Boolean) = viewModelScope.launch {

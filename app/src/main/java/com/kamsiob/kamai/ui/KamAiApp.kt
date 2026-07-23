@@ -3,6 +3,7 @@ package com.kamsiob.kamai.ui
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import kotlinx.coroutines.launch
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -93,6 +94,7 @@ private sealed interface Pushed {
     data object CrashReport : Pushed
     data object Voice : Pushed
     data object Workbench : Pushed
+    data object Backup : Pushed
     data object Appearance : Pushed
     data object Safety : Pushed
     data object AppLock : Pushed
@@ -245,6 +247,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.Model -> ModelHost(app)
                     Pushed.Voice -> VoiceHost(app)
                     Pushed.Workbench -> WorkbenchHost(app)
+                    Pushed.Backup -> BackupHost(app)
                     Pushed.Storage -> StorageHost(app)
                     Pushed.Memory -> MemoryHost(app)
                     Pushed.Questions -> QuestionsScreen()
@@ -487,13 +490,13 @@ private fun SettingsHost(
         // These rows appear as their phases land, rather than sitting there
         // with coming-soon text, which DESIGN.md rules out.
         voiceInstalled = installedStt.isNotEmpty(),
-        backupAvailable = false,
+        backupAvailable = true,
         webSearchAvailable = false,
         onModel = { stack.add(Pushed.Model) },
         onVoice = { stack.add(Pushed.Voice) },
         onStorage = { stack.add(Pushed.Storage) },
         onWebSearch = { },
-        onBackup = { },
+        onBackup = { stack.add(Pushed.Backup) },
         onDeleteEverything = { app.requestDeleteEverything(includeDownloads = false) },
         confirmChatDelete = confirmChatDelete,
         onConfirmChatDelete = app::setConfirmChatDelete,
@@ -770,6 +773,71 @@ private fun VoiceHost(app: AppViewModel) {
         onDownloadTts = app::downloadTts,
         onActivateTts = app::activateTts,
         onPreviewTts = app::previewTts,
+    )
+}
+
+@Composable
+private fun BackupHost(app: AppViewModel) {
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var exportPass by remember { mutableStateOf("") }
+    var importPass by remember { mutableStateOf("") }
+    var importReplace by remember { mutableStateOf(false) }
+
+    val manager = remember {
+        com.kamsiob.kamai.data.BackupManager(
+            app.repository, BuildConfig.VERSION_NAME,
+            com.kamsiob.kamai.data.BackupCodec.FORMAT_VERSION,
+        )
+    }
+
+    val createDoc = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream"),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        busy = true
+        scope.launch {
+            val ok = runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { out ->
+                    manager.export(out, exportPass)
+                } ?: error("no stream")
+            }.isSuccess
+            busy = false
+            app.showToast(if (ok) "Backup saved" else "Could not write the backup file.")
+        }
+    }
+
+    val openDoc = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        busy = true
+        scope.launch {
+            val result = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    manager.import(input, importPass, importReplace)
+                } ?: error("no stream")
+            }.getOrNull()
+            busy = false
+            app.showToast(result?.message ?: "Could not read the backup file.")
+            // Reload app state after a successful restore.
+            if (result?.ok == true) app.reloadAfterRestore()
+        }
+    }
+
+    com.kamsiob.kamai.ui.settings.BackupScreen(
+        onExport = { pass ->
+            exportPass = pass
+            val stamp = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            createDoc.launch("kam-ai-backup-$stamp.kambackup")
+        },
+        onImport = { pass, replace ->
+            importPass = pass
+            importReplace = replace
+            openDoc.launch(arrayOf("*/*"))
+        },
+        busy = busy,
     )
 }
 

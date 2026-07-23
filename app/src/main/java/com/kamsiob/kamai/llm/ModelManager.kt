@@ -92,8 +92,17 @@ class ModelManager(
 
     // Tunable memory model. See requiredBytes for the reasoning.
     private companion object {
-        const val CONTEXT_OVERHEAD_BYTES = 768L * 1024 * 1024
+        /** Fixed compute-buffer floor, on top of the KV cache. */
+        const val COMPUTE_BASE_BYTES = 640L * 1024 * 1024
+        /** The KV cache scales roughly with model size; this fraction of the
+         *  weights, plus the compute base, matched the measured committed cost of
+         *  E2B on device (about 1.1 GB for a 3.1 GB model). */
+        const val KV_FRACTION = 0.20
+        /** Headroom kept free after the anonymous buffers are allocated. */
         const val SAFETY_MARGIN_BYTES = 384L * 1024 * 1024
+        /** Room the OS and foreground apps need beyond the model's whole working
+         *  set, for the total-RAM sanity check. */
+        const val OS_RESERVE_BYTES = 2L * 1024 * 1024 * 1024
         const val BACKGROUND_UNLOAD_MS = 90_000L
     }
 
@@ -305,38 +314,56 @@ class ModelManager(
     /**
      * Whether [model] is expected to fit in memory right now.
      *
-     * The requirement is the model's weights plus room for the context and
-     * compute buffers, checked against what the system reports as available,
-     * with a safety margin so a load never lands the phone right at the edge.
-     * Being conservative here is deliberate: refusing with a clear message and a
-     * smaller option is far better than a load that sets off the low memory
-     * killer, which is what actually happened before this manager existed.
+     * Two checks, matching how the memory actually behaves:
+     *
+     * 1. The anonymous buffers (KV cache and compute) must fit in what is free
+     *    right now. These are the allocations that cannot be reclaimed, so they
+     *    are what a load can genuinely fail on.
+     * 2. The whole working set (the mmapped weights plus those buffers) must fit
+     *    the device's total RAM with room for the OS and foreground apps.
+     *
+     * The weights themselves are memory-mapped, so they do not need to sit in the
+     * currently-free figure: the kernel pages them from disk and reclaims cached
+     * apps as needed. An earlier version required the full weights to be free,
+     * which on a normally-loaded 16 GB phone (often only 2 to 3 GB reported free)
+     * refused every model, including the recommended one. That was the bug this
+     * replaces. The total-RAM check still stops a model that is genuinely too big
+     * for the phone from being loaded into an out-of-memory kill.
      */
     fun fits(model: TierModel): Boolean {
         if (gauge.lowMemory()) return false
-        return gauge.availableBytes() >= requiredBytes(model) + SAFETY_MARGIN_BYTES
+        val anon = requiredBytes(model)
+        val availableOk = gauge.availableBytes() >= anon + SAFETY_MARGIN_BYTES
+        val workingSet = model.downloadBytes + anon + OS_RESERVE_BYTES
+        val totalOk = gauge.totalBytes() >= workingSet
+        return availableOk && totalOk
     }
 
     /**
-     * The memory a load needs available right now. Measured reality, not theory:
-     * an earlier, more optimistic estimate (half the weights, trusting mmap to
-     * keep the rest reclaimable) let the 12B model pass the check and then get
-     * SIGKILLed by the kernel on a 16 GB phone with about 5 GB free. Loading a
-     * GGUF reads and touches essentially the whole file plus the context and
-     * compute buffers, so the honest requirement is the full weights plus the
-     * context overhead. Being conservative here is the whole point: a refusal
-     * with a clear message is vastly better than an out-of-memory kill.
+     * The anonymous memory a load needs free right now: the KV cache and compute
+     * buffers, not the weights. Grounded in measurement rather than theory: with
+     * the weights memory-mapped, loading and running E2B (a 3.1 GB model) cost
+     * about 1.1 GB of committed memory on device, which this estimate reproduces
+     * (a compute-buffer floor plus a fraction of the weights for the KV cache).
+     * The weights are reclaimable page cache and are covered by the total-RAM
+     * check in [fits], not by this figure.
      */
     fun requiredBytes(model: TierModel): Long =
-        model.downloadBytes + CONTEXT_OVERHEAD_BYTES
+        COMPUTE_BASE_BYTES + (model.downloadBytes * KV_FRACTION).toLong()
 
     private fun refusalMessage(model: TierModel, smaller: TierModel?): String {
-        val need = formatBytes(requiredBytes(model))
-        val base = "${model.displayName} needs about $need free to run, and this phone " +
-            "does not have that spare right now."
+        // Distinguish "no room right now" from "too big for this phone at all".
+        val tooBigForPhone = gauge.totalBytes() < model.downloadBytes + requiredBytes(model) + OS_RESERVE_BYTES
+        val base = if (tooBigForPhone) {
+            "${model.displayName} is too large to run on this phone."
+        } else {
+            "${model.displayName} needs a little more free memory than there is right now."
+        }
         return if (smaller != null) {
             "$base You can switch to ${smaller.displayName}, which is smaller, or free up " +
                 "memory by closing some apps and try again."
+        } else if (tooBigForPhone) {
+            "$base Try a smaller model."
         } else {
             "$base Close some apps to free memory and try again, or download a smaller model."
         }

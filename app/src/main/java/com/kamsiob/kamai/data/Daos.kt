@@ -26,6 +26,9 @@ data class ConversationSummary(
 @Dao
 interface ConversationDao {
 
+    @Query("SELECT * FROM conversations")
+    suspend fun allForBackup(): List<ConversationEntity>
+
     @Upsert
     suspend fun upsert(conversation: ConversationEntity)
 
@@ -126,6 +129,12 @@ interface ConversationDao {
 @Dao
 interface MessageDao {
 
+    @Query("SELECT * FROM messages")
+    suspend fun allForBackup(): List<MessageEntity>
+
+    @Query("DELETE FROM messages")
+    suspend fun deleteAll()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(message: MessageEntity)
 
@@ -172,6 +181,9 @@ interface MessageDao {
 @Dao
 interface ProjectDao {
 
+    @Query("SELECT * FROM projects")
+    suspend fun allForBackup(): List<ProjectEntity>
+
     @Upsert
     suspend fun upsert(project: ProjectEntity)
 
@@ -193,6 +205,12 @@ interface ProjectDao {
 
 @Dao
 interface MemoryDao {
+
+    @Query("SELECT * FROM memory_entries")
+    suspend fun allForBackup(): List<MemoryEntity>
+
+    @Query("DELETE FROM memory_entries")
+    suspend fun deleteAllMemory()
 
     @Upsert
     suspend fun upsert(entry: MemoryEntity)
@@ -218,6 +236,12 @@ interface MemoryDao {
 
 @Dao
 interface FollowUpDao {
+
+    @Query("SELECT * FROM follow_ups")
+    suspend fun allForBackup(): List<FollowUpEntity>
+
+    @Query("DELETE FROM follow_ups")
+    suspend fun deleteAllFollowUps()
 
     @Upsert
     suspend fun upsert(followUp: FollowUpEntity)
@@ -252,6 +276,15 @@ interface FollowUpDao {
 
 @Dao
 interface DiscoverDao {
+
+    @Query("SELECT * FROM discover_drawn")
+    suspend fun allDrawnForBackup(): List<DrawnMomentEntity>
+
+    @Query("SELECT * FROM discover_saved")
+    suspend fun allSavedForBackup(): List<SavedMomentEntity>
+
+    @Query("SELECT * FROM discover_quiz_stats")
+    suspend fun allStatsForBackup(): List<QuizStatsEntity>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun markDrawn(entry: DrawnMomentEntity)
@@ -314,6 +347,9 @@ interface DiscoverDao {
 
 @Dao
 interface ArtifactDao {
+
+    @Query("SELECT * FROM artifacts")
+    suspend fun allForBackup(): List<ArtifactEntity>
 
     @Upsert
     suspend fun upsert(artifact: ArtifactEntity)

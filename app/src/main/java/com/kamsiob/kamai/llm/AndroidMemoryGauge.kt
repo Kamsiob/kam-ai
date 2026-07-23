@@ -12,5 +12,7 @@ class AndroidMemoryGauge(context: Context) : MemoryGauge {
 
     override fun availableBytes(): Long = info().availMem
 
+    override fun totalBytes(): Long = info().totalMem
+
     override fun lowMemory(): Boolean = info().lowMemory
 }

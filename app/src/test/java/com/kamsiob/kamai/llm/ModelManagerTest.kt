@@ -48,8 +48,13 @@ class ModelManagerTest {
         }
     }
 
-    private class FakeGauge(var available: Long, var low: Boolean = false) : MemoryGauge {
+    private class FakeGauge(
+        var available: Long,
+        var low: Boolean = false,
+        var total: Long = 16L * 1024 * 1024 * 1024,
+    ) : MemoryGauge {
         override fun availableBytes(): Long = available
+        override fun totalBytes(): Long = total
         override fun lowMemory(): Boolean = low
     }
 
@@ -185,9 +190,10 @@ class ModelManagerTest {
         withTempFiles(listOf(basic.id, best.id)) { files ->
             val installed = mutableListOf(basic, best)
             val active = arrayOf<String?>(best.id)
-            // Enough for Basic (~3.1 GB + overhead) but not Best (~7.1 GB).
-            // Fits Basic (~4.3 GB needed) but not Best (~8.3 GB needed).
-            val gauge = FakeGauge(available = 5L * 1024 * 1024 * 1024)
+            // Free memory that covers Basic's anonymous buffers but not Best's:
+            // enough for Basic's KV+compute (~1.6 GB with margin) and short of
+            // Best's (~2.1 GB). The mmapped weights are not part of this figure.
+            val gauge = FakeGauge(available = 1_900L * 1024 * 1024)
             val m = mgr(rt, gauge, this, installed, active, files)
 
             val status = m.ensureLoaded()
@@ -196,8 +202,25 @@ class ModelManagerTest {
             val refused = status as ModelManager.Status.Refused
             assertThat(refused.model).isEqualTo(best)
             assertThat(refused.smaller).isEqualTo(basic)
-            assertThat(refused.reason).contains("does not have that spare")
+            assertThat(refused.reason).contains("more free memory")
             // And crucially, nothing was loaded.
+            assertThat(rt.isLoaded).isFalse()
+        }
+    }
+
+    @Test
+    fun aModelTooBigForTheDeviceIsRefusedAsTooLarge() = runTest {
+        val rt = FakeRuntime()
+        withTempFiles(listOf(best.id)) { files ->
+            // Plenty free right now, but the phone's total RAM cannot hold the
+            // whole working set (a small-RAM device with a large model).
+            val gauge = FakeGauge(
+                available = 6L * 1024 * 1024 * 1024,
+                total = 6L * 1024 * 1024 * 1024,
+            )
+            val m = mgr(rt, gauge, this, mutableListOf(best), arrayOf<String?>(best.id), files)
+            val status = m.ensureLoaded() as ModelManager.Status.Refused
+            assertThat(status.reason).contains("too large to run on this phone")
             assertThat(rt.isLoaded).isFalse()
         }
     }
