@@ -52,6 +52,53 @@ class ChatViewModel(
 
     private var generation: Job? = null
 
+    // Voice typing. The recorder captures 16 kHz mono; transcription runs through
+    // the injected SttEngine, which loads and unloads whisper within the call so
+    // it never sits resident next to the language model.
+    private val recorder = com.kamsiob.kamai.voice.AudioRecorder()
+
+    private val _recording = MutableStateFlow(false)
+    val recording: StateFlow<Boolean> = _recording.asStateFlow()
+
+    private val _transcribing = MutableStateFlow(false)
+    val transcribing: StateFlow<Boolean> = _transcribing.asStateFlow()
+
+    /** Emits transcribed text for the composer to place in its field. */
+    private val _transcribed = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val transcribed: kotlinx.coroutines.flow.SharedFlow<String> = _transcribed
+
+    fun startRecording() {
+        if (_recording.value || _transcribing.value) return
+        if (recorder.start(viewModelScope)) {
+            _recording.value = true
+        } else {
+            _notice.value = "The microphone could not be opened. Check it is not in use elsewhere."
+        }
+    }
+
+    /** Stops recording and transcribes with [stt] using [modelFile]. */
+    fun stopAndTranscribe(stt: com.kamsiob.kamai.voice.SttEngine, modelFile: java.io.File) {
+        if (!_recording.value) return
+        _recording.value = false
+        val pcm = recorder.stop()
+        _transcribing.value = true
+        viewModelScope.launch {
+            when (val r = stt.transcribe(modelFile, pcm)) {
+                is com.kamsiob.kamai.voice.SttEngine.Result.Ok -> _transcribed.emit(r.text)
+                is com.kamsiob.kamai.voice.SttEngine.Result.Error -> _notice.value = r.message
+            }
+            _transcribing.value = false
+        }
+    }
+
+    /** Abandons an in-flight recording, for example when the screen goes away. */
+    fun cancelRecording() {
+        if (_recording.value) {
+            recorder.cancel()
+            _recording.value = false
+        }
+    }
+
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val messages: StateFlow<List<MessageEntity>> =
         _conversationId

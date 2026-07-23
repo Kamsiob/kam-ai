@@ -43,7 +43,9 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -102,6 +104,12 @@ fun ChatScreen(
     onPlay: (MessageEntity) -> Unit,
     onEdit: (MessageEntity, String) -> Unit,
     onDismissNotice: () -> Unit,
+    voiceAvailable: Boolean = false,
+    recording: Boolean = false,
+    transcribing: Boolean = false,
+    transcribed: kotlinx.coroutines.flow.SharedFlow<String>? = null,
+    onMicStart: () -> Unit = {},
+    onMicStop: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -173,6 +181,12 @@ fun ChatScreen(
             streaming = streaming,
             onSend = onSend,
             onStop = onStop,
+            voiceAvailable = voiceAvailable,
+            recording = recording,
+            transcribing = transcribing,
+            transcribed = transcribed,
+            onMicStart = onMicStart,
+            onMicStop = onMicStop,
         )
     }
 }
@@ -612,9 +626,22 @@ private fun Composer(
     streaming: Boolean,
     onSend: (String) -> Unit,
     onStop: () -> Unit,
+    voiceAvailable: Boolean = false,
+    recording: Boolean = false,
+    transcribing: Boolean = false,
+    transcribed: kotlinx.coroutines.flow.SharedFlow<String>? = null,
+    onMicStart: () -> Unit = {},
+    onMicStop: () -> Unit = {},
 ) {
     val colors = KamTheme.colors
     var value by remember { mutableStateOf("") }
+
+    // Transcribed text lands in the field, appended to whatever is already there.
+    LaunchedEffect(transcribed) {
+        transcribed?.collect { text ->
+            value = if (value.isBlank()) text else "${value.trimEnd()} $text"
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -633,7 +660,11 @@ private fun Composer(
         ) {
             if (value.isEmpty()) {
                 Text(
-                    "Ask, paste, or talk it out",
+                    when {
+                        recording -> "Listening. Tap the mic when you are done."
+                        transcribing -> "Turning your voice into text..."
+                        else -> "Ask, paste, or talk it out"
+                    },
                     style = KamTheme.type.body,
                     color = colors.textTertiary,
                 )
@@ -641,7 +672,7 @@ private fun Composer(
             BasicTextField(
                 value = value,
                 onValueChange = { value = it },
-                enabled = enabled,
+                enabled = enabled && !recording && !transcribing,
                 textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
                 cursorBrush = SolidColor(colors.accent),
                 modifier = Modifier.fillMaxWidth(),
@@ -649,6 +680,41 @@ private fun Composer(
         }
 
         Spacer(Modifier.width(8.dp))
+
+        // The microphone shows only when voice typing is available and the field
+        // is empty, so it never competes with sending a typed message.
+        if (voiceAvailable && !streaming && (value.isBlank() || recording || transcribing)) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(if (recording) colors.flagAmber else colors.surface)
+                    .border(1.dp, colors.border, CircleShape)
+                    .clickable(enabled = !transcribing) {
+                        if (recording) onMicStop() else onMicStart()
+                    }
+                    .semantics {
+                        contentDescription = if (recording) "Stop recording" else "Start voice typing"
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                if (transcribing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = colors.accent,
+                    )
+                } else {
+                    Icon(
+                        if (recording) Icons.Rounded.Stop else Icons.Rounded.Mic,
+                        contentDescription = null,
+                        tint = if (recording) colors.onAccent else colors.textSecondary,
+                        modifier = Modifier.size(21.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+        }
 
         Box(
             modifier = Modifier

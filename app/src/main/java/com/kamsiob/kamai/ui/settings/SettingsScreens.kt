@@ -122,11 +122,12 @@ fun SettingsScreen(
                 title = "Memory",
                 subtitle = "What Kam AI remembers about you",
                 onClick = onMemory,
-                showDivider = voiceInstalled || true,
             )
-            if (voiceInstalled) {
-                SettingsRow(title = "Voice", subtitle = "Read aloud", onClick = onVoice)
-            }
+            SettingsRow(
+                title = "Voice",
+                subtitle = if (voiceInstalled) "Voice typing is set up" else "Talk instead of typing",
+                onClick = onVoice,
+            )
             SettingsRow(
                 title = "Storage",
                 trailing = formatBytes(storageBytes),

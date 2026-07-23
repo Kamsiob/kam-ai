@@ -13,6 +13,11 @@
          itself at boot. See DECISIONS.md. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Voice typing transcribes on-device with whisper.cpp. Requested only at
+         first use, and the microphone is not required to install the app. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
     <!-- arm64 with the NEON extensions the model runtime is built against. -->
     <uses-feature android:name="android.hardware.ram.normal" android:required="false" />
 

@@ -18,6 +18,7 @@ import com.kamsiob.kamai.model.TierRecommendation
 import com.kamsiob.kamai.ui.components.ConfirmRequest
 import com.kamsiob.kamai.ui.components.ConfirmTier
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -105,6 +106,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val activeModel: StateFlow<TierModel?> =
         repository.observeActiveModel()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The active speech-to-text model, or null when voice typing is not set up. */
+    val activeSttModel: StateFlow<com.kamsiob.kamai.voice.SttModel?> =
+        repository.observeActiveSttModel()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {
@@ -373,6 +379,53 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return@launch
         }
         modelManager.switchTo(model)
+        showToast("${model.displayName} is now in use")
+    }
+
+    // Voice: speech-to-text model management.
+
+    /** Ids of installed STT models, for the Voice screen's installed state. */
+    val installedStt: StateFlow<List<String>> =
+        repository.observeSttArtifacts()
+            .map { list -> list.map { it.id } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _downloadingSttId = MutableStateFlow<String?>(null)
+    val downloadingSttId: StateFlow<String?> = _downloadingSttId.asStateFlow()
+
+    fun downloadStt(model: com.kamsiob.kamai.voice.SttModel) {
+        _downloadingSttId.value = model.id
+        downloadJob = viewModelScope.launch {
+            // Voice models share the language model's budget, so free an idle
+            // resident model before a voice download takes memory and disk.
+            modelManager.onDownloadStarting()
+            repository.downloader.download(
+                url = model.sourceUrl,
+                destination = repository.fileForStt(model),
+                expectedSizeBytes = model.downloadBytes,
+                expectedSha256 = model.sha256,
+            ).collect { progress ->
+                _download.value = progress
+                if (progress is Downloader.Progress.Done) {
+                    // First voice model becomes active so the mic appears at once.
+                    repository.registerSttModel(model, progress.file, makeActive = true)
+                    _downloadingSttId.value = null
+                    showToast("${model.displayName} is ready")
+                }
+                if (progress is Downloader.Progress.Failed) {
+                    _downloadingSttId.value = null
+                    showToast(progress.message)
+                }
+            }
+        }
+    }
+
+    fun activateStt(model: com.kamsiob.kamai.voice.SttModel) = viewModelScope.launch {
+        if (!repository.fileForStt(model).exists()) {
+            showToast("That voice model is not downloaded.")
+            return@launch
+        }
+        repository.setActiveSttModel(model.id)
         showToast("${model.displayName} is now in use")
     }
 

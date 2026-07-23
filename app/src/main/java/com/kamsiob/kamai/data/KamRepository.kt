@@ -134,6 +134,57 @@ class KamRepository(
         return remaining.firstNotNullOfOrNull { ModelCatalog.byId(it) }
     }
 
+    // Voice: speech-to-text models, stored as STT artifacts.
+
+    fun voiceDir(): File = downloader.directoryFor("voice")
+
+    fun fileForStt(model: com.kamsiob.kamai.voice.SttModel): File =
+        File(voiceDir(), model.fileName)
+
+    fun observeSttArtifacts(): Flow<List<ArtifactEntity>> =
+        db.artifacts().observeByKind(ArtifactKind.STT)
+
+    suspend fun activeSttModel(): com.kamsiob.kamai.voice.SttModel? =
+        db.artifacts().active(ArtifactKind.STT)
+            ?.let { com.kamsiob.kamai.voice.SttCatalog.byId(it.id) }
+
+    fun observeActiveSttModel(): Flow<com.kamsiob.kamai.voice.SttModel?> =
+        db.artifacts().observeActive(ArtifactKind.STT).map { entity ->
+            entity?.let { com.kamsiob.kamai.voice.SttCatalog.byId(it.id) }
+        }
+
+    suspend fun installedSttIds(): List<String> =
+        db.artifacts().observeByKind(ArtifactKind.STT).firstOrNull().orEmpty().map { it.id }
+
+    suspend fun registerSttModel(
+        model: com.kamsiob.kamai.voice.SttModel,
+        file: File,
+        makeActive: Boolean = true,
+    ) {
+        db.artifacts().upsert(
+            ArtifactEntity(
+                id = model.id,
+                kind = ArtifactKind.STT,
+                displayName = model.displayName,
+                fileName = file.name,
+                sizeBytes = file.length(),
+                sha256 = model.sha256,
+                version = "1",
+                installedAt = System.currentTimeMillis(),
+            ),
+        )
+        // First voice model becomes active; a later one only if asked.
+        if (makeActive || db.artifacts().active(ArtifactKind.STT) == null) {
+            db.artifacts().setActive(ArtifactKind.STT, model.id)
+        }
+    }
+
+    suspend fun setActiveSttModel(id: String) = db.artifacts().setActive(ArtifactKind.STT, id)
+
+    fun deletePartialSttDownload(model: com.kamsiob.kamai.voice.SttModel) {
+        File(voiceDir(), model.fileName + ".part").delete()
+    }
+
     // Conversations and messages
 
     fun observeConversations(): Flow<List<ConversationSummary>> =

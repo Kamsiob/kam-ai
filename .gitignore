@@ -62,3 +62,6 @@ app/src/main/cpp/whisper.cpp/
 
 # Smoke test model, fetched by tools/fetch_smoke_model.sh
 app/src/androidTest/assets/*.gguf
+
+# Large whisper model used only for a local one-time device transcription proof
+app/src/androidTest/assets/ggml-base.bin

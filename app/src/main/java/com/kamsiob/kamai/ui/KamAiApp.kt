@@ -4,6 +4,9 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
@@ -88,6 +91,7 @@ private sealed interface Pushed {
     data object Roadmap : Pushed
     data object Licenses : Pushed
     data object CrashReport : Pushed
+    data object Voice : Pushed
     data object Appearance : Pushed
     data object Safety : Pushed
     data object AppLock : Pushed
@@ -196,6 +200,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     is Pushed.Conversation -> ConversationScreen(app, pushed.id, pushed.startMode)
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
+                    Pushed.Voice -> VoiceHost(app)
                     Pushed.Storage -> StorageHost(app)
                     Pushed.Memory -> MemoryHost(app)
                     Pushed.Questions -> QuestionsScreen()
@@ -305,7 +310,43 @@ private fun ConversationScreen(app: AppViewModel, conversationId: String, startM
     val activeModel by app.activeModel.collectAsStateWithLifecycle()
     val flagged = remember { mutableStateListOf<String>() }
 
+    // Voice typing. Available only when a speech model is installed and active.
+    val recording by chat.recording.collectAsStateWithLifecycle()
+    val transcribing by chat.transcribing.collectAsStateWithLifecycle()
+    val sttModel by app.activeSttModel.collectAsStateWithLifecycle()
+    val voiceAvailable = sttModel != null
+
+    val micPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            chat.startRecording()
+        } else {
+            app.showToast("Voice typing needs the microphone. You can turn it on in Settings.")
+        }
+    }
+
+    // The screen going away should not leave the mic recording.
+    DisposableEffect(Unit) { onDispose { chat.cancelRecording() } }
+
     ChatScreen(
+        voiceAvailable = voiceAvailable,
+        recording = recording,
+        transcribing = transcribing,
+        transcribed = chat.transcribed,
+        onMicStart = {
+            val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.RECORD_AUDIO,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (granted) chat.startRecording() else micPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+        },
+        onMicStop = {
+            val model = sttModel ?: return@ChatScreen
+            chat.stopAndTranscribe(
+                com.kamsiob.kamai.voice.Voice.stt(context),
+                app.repository.fileForStt(model),
+            )
+        },
         messages = messages,
         mode = mode,
         streaming = streaming,
@@ -382,17 +423,18 @@ private fun SettingsHost(
     val artifacts by app.artifacts.collectAsStateWithLifecycle()
     val activeModel by app.activeModel.collectAsStateWithLifecycle()
     val confirmChatDelete by app.confirmChatDelete.collectAsStateWithLifecycle()
+    val installedStt by app.installedStt.collectAsStateWithLifecycle()
 
     SettingsScreen(
         activeModel = activeModel,
         storageBytes = artifacts.sumOf { it.sizeBytes },
         // These rows appear as their phases land, rather than sitting there
         // with coming-soon text, which DESIGN.md rules out.
-        voiceInstalled = false,
+        voiceInstalled = installedStt.isNotEmpty(),
         backupAvailable = false,
         webSearchAvailable = false,
         onModel = { stack.add(Pushed.Model) },
-        onVoice = { },
+        onVoice = { stack.add(Pushed.Voice) },
         onStorage = { stack.add(Pushed.Storage) },
         onWebSearch = { },
         onBackup = { },
@@ -476,6 +518,25 @@ private fun ModelHost(app: AppViewModel) {
         download = download,
         onDownload = app::downloadModel,
         onActivate = app::activateModel,
+    )
+}
+
+@Composable
+private fun VoiceHost(app: AppViewModel) {
+    val installedStt by app.installedStt.collectAsStateWithLifecycle()
+    val activeStt by app.activeSttModel.collectAsStateWithLifecycle()
+    val download by app.download.collectAsStateWithLifecycle()
+    val downloadingStt by app.downloadingSttId.collectAsStateWithLifecycle()
+
+    com.kamsiob.kamai.ui.settings.VoiceScreen(
+        sttModels = com.kamsiob.kamai.voice.SttCatalog.ALL,
+        installedSttIds = installedStt.toSet(),
+        activeSttId = activeStt?.id,
+        recommendedSttId = com.kamsiob.kamai.voice.SttCatalog.recommendedFor(app.totalRamGb).id,
+        download = download,
+        downloadingSttId = downloadingStt,
+        onDownloadStt = app::downloadStt,
+        onActivateStt = app::activateStt,
     )
 }
 

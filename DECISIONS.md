@@ -942,6 +942,62 @@ is wired from the start, hardware acceleration is off by default, quantisation i
 Q4_K_M by tier with higher precision only in Advanced behind a warning, and the
 tier assignments come from what actually runs on the device.
 
+## Phase 2 STT: whisper.cpp speech to text, verified on device (with PART B)
+
+Voice typing is built and proven end to end. The user talks, whisper.cpp
+transcribes on the phone with no network, and the text lands in the composer to
+send or to ask the model to tidy.
+
+### Verified on device, not assumed
+
+An instrumented test runs the standard whisper sample (jfk.wav) through the real
+SttEngine on the Pixel and asserts the words come back. It passed: the 11-second
+clip transcribed correctly in about 6 seconds, returning "ask not what your
+country can do for you". This proves the isolated whisper library actually works,
+which the symbol-isolation and build steps alone could not. The model's sha256
+(60ed5bc3...) was confirmed against the catalogue when downloading it for the
+test, so the size and hash shipped to users are correct. The test skips itself
+when no model is present, so it is safe on any device; the large model file it can
+use is gitignored and never committed.
+
+### Tiers, downloads, and honesty
+
+Two multilingual whisper models, tiered like the language models: Standard
+(ggml-base, 148 MB) for any phone and Better (ggml-small, 488 MB) recommended on
+12 GB and up. Both download through the same resumable, space-checked, hash-
+verified path as the language models and appear in Storage. The Voice screen sets
+honest expectations: good on-device models, not quite as sharp as the big cloud
+services, and that is the trade for everything staying on the phone.
+
+### The microphone and its permission
+
+A microphone button appears in the composer only when a voice model is installed
+and the field is empty, so it never competes with sending typed text. It records
+16 kHz mono, exactly what whisper wants, so there is no resampling to get wrong.
+The RECORD_AUDIO permission is requested at first tap with the system dialog, and
+a denial shows a plain line pointing at Settings rather than silently doing
+nothing. Verified on device: the permission dialog appears, and after granting,
+the mic records.
+
+### PART B: voice shares the language model's memory budget
+
+The whole point of PART B is that a voice model and a language model never peak in
+memory together. Two things enforce it. First, SttEngine loads the whisper model
+only for the duration of one transcription and unloads it the instant it finishes
+(even on failure), so it never sits resident next to a generating language model.
+Second, before whisper loads, it calls back into the model manager to release the
+language model's KV cache (onModeratePressure), so the transient whisper peak
+lands while the language model is at its smallest. Transcription happens while the
+language model is idle anyway (the user is talking), and generation happens after,
+when whisper is already gone. The two peaks are sequenced apart by construction.
+
+### The native build (recap)
+
+whisper.cpp builds via ExternalProject into libkamwhisper.so with its own ggml,
+isolated from libkamai.so with -Wl,--exclude-libs,ALL so the two different-
+versioned ggml copies cannot collide. Confirmed: each library exports only its
+JNI entry points and zero ggml internals.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.
