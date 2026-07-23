@@ -408,6 +408,8 @@ private fun ConversationScreen(
     val attachedName by chat.attachedName.collectAsStateWithLifecycle()
     val speakingId by app.speakingMessageId.collectAsStateWithLifecycle()
     val conversationTitle by chat.title.collectAsStateWithLifecycle()
+    val conversationProjectId by chat.projectId.collectAsStateWithLifecycle()
+    val allProjects by app.projects.collectAsStateWithLifecycle()
 
     val pickFile = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -496,6 +498,11 @@ private fun ConversationScreen(
         onEdit = chat::editAndResend,
         onDismissNotice = chat::dismissNotice,
         conversationTitle = conversationTitle,
+        projectOptions = allProjects.map { it.id to it.name },
+        conversationProjectId = conversationProjectId,
+        onMoveToProject = { projectId ->
+            chat.conversationId.value?.let { app.assignConversationToProject(it, projectId) }
+        },
         onRenameConversation = { newTitle ->
             chat.conversationId.value?.let { app.renameConversation(it, newTitle) }
         },

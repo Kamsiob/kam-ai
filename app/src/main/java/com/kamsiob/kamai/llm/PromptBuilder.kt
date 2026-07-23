@@ -53,12 +53,21 @@ object PromptBuilder {
             val at = text.indexOf(marker)
             if (at >= 0) text = text.substring(0, at)
         }
+        // Strip any leftover template-style control tokens the model garbled, for
+        // example "<end_of_of_turn>" or a stray "<start_of_turn>", which the exact
+        // markers above do not match.
+        text = text.replace(CONTROL_TOKEN, "")
         return text.trim()
     }
 
-    /** True when a streamed chunk means generation should stop now. */
+    /** Garbled or stray chat-template tokens: anything in angle brackets mentioning
+     *  "turn", or an <|...|> control token. */
+    private val CONTROL_TOKEN = Regex("<\\|?/?[a-z_]*turn[a-z_]*\\|?>|<\\|[a-z_]+\\|>", RegexOption.IGNORE_CASE)
+
+    /** True when a streamed chunk means generation should stop now. Also catches
+     *  a garbled end-of-turn token so it never leaks into the answer. */
     fun isStopMarker(piece: String): Boolean =
-        ALL_STOP_MARKERS.any { piece.contains(it) }
+        ALL_STOP_MARKERS.any { piece.contains(it) } || piece.contains("_of_turn", ignoreCase = true)
 
     /**
      * The turns that fit the budget, plus how many were dropped because they did

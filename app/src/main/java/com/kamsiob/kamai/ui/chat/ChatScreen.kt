@@ -96,6 +96,9 @@ fun ChatScreen(
     ttsAvailable: Boolean,
     speakingMessageId: String? = null,
     conversationTitle: String? = null,
+    projectOptions: List<Pair<String, String>> = emptyList(),
+    conversationProjectId: String? = null,
+    onMoveToProject: (String?) -> Unit = {},
     onRenameConversation: (String) -> Unit = {},
     onArchiveConversation: () -> Unit = {},
     onDeleteConversation: () -> Unit = {},
@@ -140,6 +143,9 @@ fun ChatScreen(
         if (messages.isNotEmpty()) {
             ConversationHeader(
                 title = conversationTitle,
+                projectOptions = projectOptions,
+                currentProjectId = conversationProjectId,
+                onMoveToProject = onMoveToProject,
                 onRename = onRenameConversation,
                 onArchive = onArchiveConversation,
                 onDelete = onDeleteConversation,
@@ -273,6 +279,9 @@ private fun whenEmptyBody(mode: Mode) = when (mode) {
 @Composable
 private fun ConversationHeader(
     title: String?,
+    projectOptions: List<Pair<String, String>>,
+    currentProjectId: String?,
+    onMoveToProject: (String?) -> Unit,
     onRename: (String) -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
@@ -281,6 +290,7 @@ private fun ConversationHeader(
     val colors = KamTheme.colors
     var menuOpen by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
+    var picking by remember { mutableStateOf(false) }
 
     Row(
         modifier = modifier.fillMaxWidth().padding(top = 6.dp, bottom = 2.dp),
@@ -296,14 +306,26 @@ private fun ConversationHeader(
                 .background(colors.accent),
         )
         Spacer(Modifier.width(10.dp))
-        Text(
-            title ?: "New chat",
-            style = KamTheme.type.cardTitle,
-            color = colors.textPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                title ?: "New chat",
+                style = KamTheme.type.cardTitle,
+                color = colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // Which project this chat belongs to, so its context is never ambiguous.
+            val projectName = projectOptions.firstOrNull { it.first == currentProjectId }?.second
+            if (projectName != null) {
+                Text(
+                    "In $projectName",
+                    style = KamTheme.type.secondary,
+                    color = colors.accent,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         Box {
             IconAction(
                 icon = Icons.Rounded.MoreHoriz,
@@ -319,6 +341,21 @@ private fun ConversationHeader(
                     text = { Text("Rename", style = KamTheme.type.body, color = colors.textPrimary) },
                     onClick = { menuOpen = false; renaming = true },
                 )
+                androidx.compose.material3.DropdownMenuItem(
+                    text = {
+                        Text(
+                            if (currentProjectId != null) "Move to another project" else "Move to project",
+                            style = KamTheme.type.body, color = colors.textPrimary,
+                        )
+                    },
+                    onClick = { menuOpen = false; picking = true },
+                )
+                if (currentProjectId != null) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("Remove from project", style = KamTheme.type.body, color = colors.textPrimary) },
+                        onClick = { menuOpen = false; onMoveToProject(null) },
+                    )
+                }
                 androidx.compose.material3.DropdownMenuItem(
                     text = { Text("Archive", style = KamTheme.type.body, color = colors.textPrimary) },
                     onClick = { menuOpen = false; onArchive() },
@@ -337,6 +374,68 @@ private fun ConversationHeader(
             onConfirm = { onRename(it); renaming = false },
             onDismiss = { renaming = false },
         )
+    }
+
+    if (picking) {
+        ProjectPickerDialog(
+            options = projectOptions,
+            currentProjectId = currentProjectId,
+            onPick = { picking = false; onMoveToProject(it) },
+            onDismiss = { picking = false },
+        )
+    }
+}
+
+/**
+ * Picks which project a conversation belongs to. Moving applies from here on, not
+ * retroactively, which the dialog states plainly.
+ */
+@Composable
+private fun ProjectPickerDialog(
+    options: List<Pair<String, String>>,
+    currentProjectId: String?,
+    onPick: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(colors.surface)
+                .border(1.dp, colors.border, RoundedCornerShape(24.dp)).padding(20.dp),
+        ) {
+            Text("Move to project", style = KamTheme.type.cardTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "The project's instructions apply from now on, not to messages already sent.",
+                style = KamTheme.type.secondary, color = colors.textTertiary,
+            )
+            Spacer(Modifier.height(12.dp))
+            if (options.isEmpty()) {
+                Text(
+                    "No projects yet. Make one in the Projects tab first.",
+                    style = KamTheme.type.body, color = colors.textSecondary,
+                )
+            } else {
+                options.forEach { (id, name) ->
+                    val selected = id == currentProjectId
+                    Text(
+                        name,
+                        style = KamTheme.type.body,
+                        color = if (selected) colors.accent else colors.textPrimary,
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                            .clickable { onPick(id) }.padding(vertical = 12.dp, horizontal = 4.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Text(
+                    "Cancel", style = KamTheme.type.label, color = colors.textSecondary,
+                    modifier = Modifier.clip(CircleShape).clickable(onClick = onDismiss)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            }
+        }
     }
 }
 

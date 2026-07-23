@@ -51,7 +51,7 @@ interface ConversationDao {
                (SELECT COUNT(*) FROM messages m WHERE m.conversationId = c.id) AS messageCount
           FROM conversations c
          WHERE c.archived = 0
-           AND (:projectId IS NULL OR c.projectId = :projectId)
+           AND ((:projectId IS NULL AND c.projectId IS NULL) OR c.projectId = :projectId)
          ORDER BY c.pinned DESC, c.updatedAt DESC
         """,
     )

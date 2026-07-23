@@ -171,4 +171,10 @@ class ChatFormatTest {
             assertThat(model.licence).isNotEmpty()
         }
     }
+    @Test
+    fun `cleanOutput strips garbled template tokens`() {
+        assertThat(PromptBuilder.cleanOutput("Berlin.<end_of_of_turn>")).isEqualTo("Berlin.")
+        assertThat(PromptBuilder.cleanOutput("Hi<start_of_turn>")).isEqualTo("Hi")
+        assertThat(PromptBuilder.isStopMarker("<end_of_of_turn>")).isTrue()
+    }
 }

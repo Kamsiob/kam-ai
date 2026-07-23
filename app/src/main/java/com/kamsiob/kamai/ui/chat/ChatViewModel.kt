@@ -118,6 +118,15 @@ class ChatViewModel(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** The project this conversation belongs to, live, for the header's picker. */
+    val projectId: StateFlow<String?> =
+        _conversationId
+            .flatMapLatest { id ->
+                if (id == null) flowOf(null)
+                else repository.observeConversation(id).map { it?.projectId }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     /** A background titling pass for a conversation opened without a title. */
     private var titlingJob: kotlinx.coroutines.Job? = null
 
