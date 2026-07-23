@@ -1,5 +1,15 @@
 package com.kamsiob.kamai.ui.discover
 
+import com.kamsiob.kamai.ui.theme.reducedMotion
+import com.kamsiob.kamai.ui.theme.standardSpec
+import com.kamsiob.kamai.ui.theme.expressiveSpec
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -101,14 +111,44 @@ fun DiscoverScreen(
             !hasPacks -> EmptyPacks(onOpenPacks)
             exhausted -> Exhausted(onReshuffle)
             current == null -> Box(Modifier.fillMaxWidth().height(200.dp))
-            else -> MomentCard(
-                moment = current,
-                saved = currentSaved,
-                onOpenReader = onOpenReader,
-                onToggleSave = onToggleSave,
-                onQuiz = onQuiz,
-                onDeal = onDeal,
-            )
+            else -> {
+                // Dealing another moment should feel like a card being dealt: the
+                // old one sweeps off and fades while the new one rises and settles
+                // on the expressive spring. Collapses to an instant swap under
+                // reduced motion (item 8).
+                val reduced = reducedMotion()
+                val riseSpec = expressiveSpec<androidx.compose.ui.unit.IntOffset>()
+                val scaleSpec = expressiveSpec<Float>()
+                val fadeSpec = standardSpec<Float>()
+                val sweepSpec = standardSpec<androidx.compose.ui.unit.IntOffset>()
+                androidx.compose.animation.AnimatedContent(
+                    targetState = current,
+                    transitionSpec = {
+                        if (reduced) {
+                            fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                        } else {
+                            (
+                                slideInVertically(riseSpec) { it / 4 } +
+                                    fadeIn(fadeSpec) +
+                                    scaleIn(scaleSpec, initialScale = 0.94f)
+                                ).togetherWith(
+                                slideOutHorizontally(sweepSpec) { -it / 3 } + fadeOut(fadeSpec),
+                            )
+                        }
+                    },
+                    contentKey = { it.id },
+                    label = "deal",
+                ) { moment ->
+                    MomentCard(
+                        moment = moment,
+                        saved = currentSaved,
+                        onOpenReader = onOpenReader,
+                        onToggleSave = onToggleSave,
+                        onQuiz = onQuiz,
+                        onDeal = onDeal,
+                    )
+                }
+            }
         }
 
         if (saved.isNotEmpty()) {
