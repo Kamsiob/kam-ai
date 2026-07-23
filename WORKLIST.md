@@ -56,10 +56,10 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       noted as a refinement; AudioTrack has no focus handling yet.)
 - [x] 7. Incorrect microphone copy. Recording hint now reads "Listening. Tap stop when you are
       done." to match the Stop control shown (chat + Workbench, both audited). Device-verified.
-- [ ] 8. Discover card animation (sweep out with tilt/fade, incoming rises via expressive spring;
+- [x] 8. Discover card deal animation (sweep out + rise in on expressive spring, reduced-motion aware). Done. (sweep out with tilt/fade, incoming rises via expressive spring;
       respect reduced motion). [may integrate with Discover phase]
 - [ ] 9. Follow up from a Discover card directly (bookmark action).
-- [ ] 10. Filter Follow-ups by source (chat, Logic, Discover); light, obvious, clear reset.
+- [x] 10. Filter Follow-ups by source. Done (light chip row, All + each source). (chat, Logic, Discover); light, obvious, clear reset.
 - [ ] 11. Discover discussion uses a scoped slide-up surface, not full chat window (title, source,
       distinct look, design system, no amber).
 - [x] 12. Logic mode. DONE: persistent LogicBanner + "Logic Partner" tonal pill while active
@@ -102,7 +102,7 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       resident, else the instant excerpt fallback). Display fallback uses the snippet, not "New
       conversation". Tests: ConversationTitlerTest. Device-verified: interrupted "tell me about paris"
       now titled; new chats get model titles.
-- [ ] 18. Power button assistant: quiet visual character; disable input while generating + stop
+- [~] 18. Power button assistant (input locks while generating, reactive mic, default-mode setting; quiet visual polish + on-device mic-via-gesture confirm remain). Orig: quiet visual character; disable input while generating + stop
       control; fix greyed-out mic (diagnose real cause); Settings default input mode (voice/text,
       default text).
 - [x] 19. Hidden fourth swipe action fixed. RAIL_WIDTH widened (175->232dp) to fit all four
@@ -119,7 +119,7 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
 - [ ] 21. Discover scope boundary visible before hit: verify grounded vs open variants differ;
       clarify choice at point of selection; scope stated up front; out-of-scope offers one-tap
       "continue in open chat" carrying question+context. Audit for other invisible walls.
-- [ ] 22. Capability transparency: declarative per-model capabilities in catalog; input bar adapts
+- [~] 22. Capability transparency (declarative capabilities + model-picker chips with tap-to-explain done + verified; speed/quality ratings, input-bar gating, 3-state controls remain). Orig: declarative per-model capabilities in catalog; input bar adapts
       (hide unsupported controls on every surface); three states (can't/can't-afford/not-installed);
       filter pickers; honest model switching with existing attachments. Model picker shows
       capability icons (tappable explain), measured speed rating /5, quality rating /5 (relative),
