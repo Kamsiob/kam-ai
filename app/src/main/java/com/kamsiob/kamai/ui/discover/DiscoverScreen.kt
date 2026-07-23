@@ -159,7 +159,7 @@ private fun MomentCard(
             )
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .clickable(onClick = onToggleSave)
                     .semantics { contentDescription = if (saved) "Saved" else "Save" },

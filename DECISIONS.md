@@ -1349,6 +1349,33 @@ A full on-device run of the release build is deferred rather than done now: it
 cannot be installed over the debug build without uninstalling, which would wipe
 the model the owner is re-downloading. It will be run once that download is done.
 
+## Phase 8 self-review pass
+
+Reviewed against DESIGN.md for the things that can be checked without the running
+app while a model re-downloads.
+
+- Copy voice: no em dashes and no exclamation points anywhere in user-facing
+  strings, confirmed by a repo-wide search. The store listing and LAUNCH.md follow
+  the same voice.
+- Amber discipline: the reserved amber appears only where it should, on flags, the
+  locked-tier and Advanced-model warnings, the Support this work button, the
+  destructive confirmations and delete labels, error and notice lines, and the
+  recording indicator (a consistent attention use across chat, workbench, and the
+  overlay). No amber leaks onto ordinary UI.
+- Touch targets: the Discover save toggle was a 36 dp target, below the 48 dp
+  minimum the theme sets; raised to 48 dp. Icon buttons elsewhere sit inside 48 dp
+  boxes already.
+
+The remaining Phase 8 gates (the four user-testing scripts in full, fresh listing
+screenshots, and an on-device run of the R8-minified release build) need the app
+running with a model. The release build is statically verified (signed with the
+upload key, all five native libraries present, and the JNI bridge classes
+identity-mapped by R8 so native calls resolve); the debug build with every
+phase's changes was confirmed generating on device (Balanced answering after the
+memory fix). A full release-build run is left for the first Play internal-testing
+install rather than done now, because installing the differently-signed release
+over the debug build would uninstall it and wipe the model download.
+
 ## Deferred within completed phases
 
 ### Kokoro premium reading voice (Phase 2)
