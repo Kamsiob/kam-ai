@@ -288,7 +288,7 @@ private fun ConversationScreen(app: AppViewModel, conversationId: String, startM
     val context = LocalContext.current
     val chat: ChatViewModel = viewModel(
         key = "chat-$conversationId",
-        factory = ChatViewModel.factory(app.repository, app.engine),
+        factory = ChatViewModel.factory(app.repository, app.engine, app.modelManager),
     )
 
     LaunchedEffect(conversationId) {

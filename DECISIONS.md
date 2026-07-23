@@ -690,6 +690,67 @@ surfaces is built; the gating mechanism is in place for them to reuse. With the
 combined update otherwise done, the build returns to the master-spec phases in
 order, resuming at Phase 2 (Voice).
 
+## The blank-screen-at-launch bug, and the model memory manager (PART A)
+
+### The bug
+
+After downloading the 12B (Best) model, the app launched to a blank white screen
+that persisted across force-close. Diagnosis on device: the database and key were
+intact (this was never a data problem), but startup gated the first render on
+`loadActiveModelIfPresent()`, which loaded the now-active 7.1 GB model
+synchronously before setting the ready flag. Loading 7 GB at cold start drove the
+phone past its memory watermark, the logcat showed a cascade of lowmemorykiller
+kills tearing through ~25 other apps, and the app itself was killed, all while the
+UI stayed blank because ready never flipped. Every relaunch repeated it.
+
+### The manager
+
+Rather than patch the one call site, all load and unload decisions now live in a
+single ModelManager that is the source of truth for what is resident. It is
+deliberately free of Android types so its whole decision surface is unit-tested
+with fakes, and the Android wiring (a memory gauge, file paths, the repository)
+is injected. It enforces:
+
+- **At most one model resident.** Switching unloads the current model and
+  confirms release before the next loads; the fake runtime's load asserts nothing
+  is resident when a load begins, so "never two at once" is proven, not hoped.
+- **Lazy loading, never at startup.** Startup only reads the active reference and
+  repairs a dangling one; the model loads on first actual use.
+- **Pressure-aware refusal.** Before a load, the estimated requirement is checked
+  against available memory plus a margin; if it will not fit, the load is refused
+  with a plain message and a smaller installed model offered.
+- **Safe delete in every state.** A resident model is unloaded before its file is
+  removed; the active reference is repaired to another installed model or a
+  no-model state; a mid-download delete cancels and cleans the partial; no
+  dangling reference is ever left for a later launch.
+- **Downloads do not disturb what runs.** A finished download never auto-activates
+  (except the very first model, when nothing was active) and never triggers a
+  load; a starting download unloads an idle resident model to free room.
+- **Memory pressure and backgrounding** unload via the Application's onTrimMemory
+  and the activity lifecycle, reloading transparently on next use.
+
+Verified on device against the exact broken state: the app now launches in about
+560 ms with the 12B still active on disk, renders the Chats screen immediately,
+the process stays alive, and there are zero lowmemorykiller lines where before
+there was a cascade. Idle memory with the model lazily unloaded is about 186 MB
+PSS, versus the multi-gigabyte resident load that caused the crash.
+
+Tests: 12 ModelManager unit tests covering switch-never-two-resident, delete the
+loaded model, delete the only model, mid-download delete, refusal with and
+without a smaller option, memory pressure then transparent reload, install does
+not disturb the active model, first install adopts active, dangling reference
+repair, and failed load. 93 unit tests total.
+
+### Still open in PART A, being built next
+
+Two-stage memory pressure (release the KV cache on moderate pressure, unload the
+model on severe) needs a native change to separate the context lifecycle from the
+model lifecycle, so the model can stay mmapped while the KV cache is freed. mmap
+is already requested in the loader; it will be confirmed by measuring resident
+memory of a loaded model against its file size. Thermal throttling, the
+quantization review, and measured tier assignment follow. PART B (voice sharing
+the budget) integrates into Phase 2. PART C edge cases follow.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.

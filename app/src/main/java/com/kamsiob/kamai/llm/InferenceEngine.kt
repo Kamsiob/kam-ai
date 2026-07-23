@@ -30,7 +30,7 @@ import java.util.concurrent.Executors
 class InferenceEngine(
     private val context: Context,
     private val thermal: ThermalWatcher = ThermalWatcher(context),
-) {
+) : ModelRuntime {
 
     /** One thread, one model, one generation at a time. */
     private val nativeDispatcher: CoroutineDispatcher =
@@ -61,7 +61,7 @@ class InferenceEngine(
 
     data class Chunk(val text: String)
 
-    suspend fun load(model: TierModel, file: File): Result<Unit> = loadLock.withLock {
+    override suspend fun load(model: TierModel, file: File): Result<Unit> = loadLock.withLock {
         withContext(nativeDispatcher) {
             LlamaBridge.ensureLibraryLoaded()?.let { reason ->
                 _state.value = EngineState.Failed(reason)
@@ -99,7 +99,7 @@ class InferenceEngine(
         }
     }
 
-    suspend fun unload() = withContext(nativeDispatcher) {
+    override suspend fun unload() = withContext(nativeDispatcher) {
         if (LlamaBridge.nativeIsLoaded()) LlamaBridge.nativeUnload()
         _state.value = EngineState.NoModel
     }
@@ -197,6 +197,10 @@ class InferenceEngine(
 
     val contextSize: Int
         get() = (_state.value as? EngineState.Ready)?.contextTokens ?: 0
+
+    /** ModelRuntime: whether a model is resident right now. */
+    override val isLoaded: Boolean
+        get() = LlamaBridge.nativeIsLoaded()
 
     /**
      * Leaves at least two cores for the rest of the phone. Using every core

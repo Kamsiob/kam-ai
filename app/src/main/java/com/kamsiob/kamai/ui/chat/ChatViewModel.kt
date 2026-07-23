@@ -11,6 +11,7 @@ import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.data.Role
 import com.kamsiob.kamai.llm.ChatFormat
 import com.kamsiob.kamai.llm.InferenceEngine
+import com.kamsiob.kamai.llm.ModelManager
 import com.kamsiob.kamai.llm.MemoryExtractor
 import com.kamsiob.kamai.llm.MemoryMode
 import com.kamsiob.kamai.llm.PromptBuilder
@@ -33,6 +34,7 @@ import kotlinx.coroutines.launch
 class ChatViewModel(
     private val repository: KamRepository,
     private val engine: InferenceEngine,
+    private val modelManager: ModelManager,
 ) : ViewModel() {
 
     private val _conversationId = MutableStateFlow<String?>(null)
@@ -159,6 +161,33 @@ class ChatViewModel(
         _streaming.value = true
 
         generation = viewModelScope.launch {
+            // Lazy load on first use, through the manager. It enforces the memory
+            // check and the one-resident rule; we only proceed once a model is
+            // actually resident, and surface anything else plainly.
+            when (val status = modelManager.ensureLoaded()) {
+                is ModelManager.Status.Loaded -> Unit
+                is ModelManager.Status.NoModel -> {
+                    _notice.value = "No model is set up yet. Download one in Settings to start."
+                    _streaming.value = false
+                    return@launch
+                }
+                is ModelManager.Status.Refused -> {
+                    _notice.value = status.reason
+                    _streaming.value = false
+                    return@launch
+                }
+                is ModelManager.Status.Failed -> {
+                    _notice.value = status.reason
+                    _streaming.value = false
+                    return@launch
+                }
+                else -> {
+                    _notice.value = "The model is not ready yet. Try again in a moment."
+                    _streaming.value = false
+                    return@launch
+                }
+            }
+
             val prompt = buildPrompt(conversationId)
             val messageId = repository.addMessage(
                 conversationId, Role.ASSISTANT, "", incomplete = true,
@@ -277,8 +306,9 @@ class ChatViewModel(
         fun factory(
             repository: KamRepository,
             engine: InferenceEngine,
+            modelManager: ModelManager,
         ): ViewModelProvider.Factory = viewModelFactory {
-            initializer { ChatViewModel(repository, engine) }
+            initializer { ChatViewModel(repository, engine, modelManager) }
         }
 
         const val MEMORY_LIMIT = 12

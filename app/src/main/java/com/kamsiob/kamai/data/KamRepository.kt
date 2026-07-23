@@ -79,7 +79,7 @@ class KamRepository(
     suspend fun activeModel(): TierModel? =
         db.artifacts().active(ArtifactKind.LLM)?.let { ModelCatalog.byId(it.id) }
 
-    suspend fun registerModel(model: TierModel, file: File) {
+    suspend fun registerModel(model: TierModel, file: File, makeActive: Boolean = true) {
         db.artifacts().upsert(
             ArtifactEntity(
                 id = model.id,
@@ -92,7 +92,20 @@ class KamRepository(
                 installedAt = System.currentTimeMillis(),
             ),
         )
-        db.artifacts().setActive(ArtifactKind.LLM, model.id)
+        // The manager decides activation now; only adopt eagerly when asked.
+        if (makeActive) db.artifacts().setActive(ArtifactKind.LLM, model.id)
+    }
+
+    /** Clears the active-model reference entirely, for the no-model state. */
+    suspend fun clearActiveModel() = db.artifacts().clearActive(ArtifactKind.LLM)
+
+    /** Every installed LLM as a catalogue model, for the manager's fallbacks. */
+    suspend fun installedModels(): List<TierModel> =
+        installedModelIds().mapNotNull { ModelCatalog.byId(it) }
+
+    /** Removes a partial .part download for a model that was mid-flight. */
+    fun deletePartialDownload(model: TierModel) {
+        java.io.File(fileFor(model).parentFile, fileFor(model).name + ".part").delete()
     }
 
     suspend fun setActiveModel(id: String) = db.artifacts().setActive(ArtifactKind.LLM, id)

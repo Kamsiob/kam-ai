@@ -11,7 +11,6 @@ import com.kamsiob.kamai.data.MemoryEntity
 import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.data.ProjectEntity
 import com.kamsiob.kamai.download.Downloader
-import com.kamsiob.kamai.llm.InferenceEngine
 import com.kamsiob.kamai.llm.MemoryMode
 import com.kamsiob.kamai.model.ModelCatalog
 import com.kamsiob.kamai.model.TierModel
@@ -36,7 +35,12 @@ import kotlinx.coroutines.launch
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val repository = KamRepository.get(application)
-    val engine = InferenceEngine(application)
+
+    /** The one engine and the one manager, shared process-wide. The manager is
+     *  the single source of truth for what is resident. See ModelManager. */
+    val engine = com.kamsiob.kamai.llm.Models.engine(application)
+    val modelManager = com.kamsiob.kamai.llm.Models.manager(application)
+    val modelStatus get() = modelManager.status
 
     /** Chats list view. Compact is the default and the last used is restored. */
     enum class ChatsView { COMFORTABLE, COMPACT, GRID }
@@ -117,15 +121,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 repository.setting(KamRepository.Keys.CONFIRM_CHAT_DELETE) != "false"
             _memoryMode.value = repository.memoryMode()
 
-            loadActiveModelIfPresent()
+            // Never load a model at startup. The manager only reads which model
+            // is active and repairs a dangling reference; loading happens lazily
+            // on first use. This is the fix for the blank-screen-at-launch bug:
+            // startup no longer blocks on loading a multi-gigabyte model.
+            modelManager.refreshActive()
             _ready.value = true
         }
-    }
-
-    private suspend fun loadActiveModelIfPresent() {
-        val model = repository.activeModel() ?: return
-        val file = repository.fileFor(model)
-        if (file.exists()) engine.load(model, file)
     }
 
     fun requestConfirm(request: ConfirmRequest) { _confirm.value = request }
@@ -171,8 +173,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // Downloads
 
+    private var downloadJob: kotlinx.coroutines.Job? = null
+    private var downloadingModelId: String? = null
+
     fun downloadModel(model: TierModel) {
-        viewModelScope.launch {
+        // A download brings memory and disk pressure; free an idle resident model
+        // first. The download never triggers a load or changes the active model.
+        downloadingModelId = model.id
+        downloadJob = viewModelScope.launch {
+            modelManager.onDownloadStarting()
             repository.downloader.download(
                 url = model.sourceUrl,
                 destination = repository.fileFor(model),
@@ -181,11 +190,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             ).collect { progress ->
                 _download.value = progress
                 if (progress is Downloader.Progress.Done) {
-                    repository.registerModel(model, progress.file)
-                    engine.load(model, progress.file)
+                    repository.registerModel(model, progress.file, makeActive = false)
+                    modelManager.onModelInstalled(model)
+                    downloadingModelId = null
                     showToast("${model.displayName} is ready")
                 }
                 if (progress is Downloader.Progress.Failed) {
+                    downloadingModelId = null
                     showToast(progress.message)
                 }
             }
@@ -354,15 +365,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // Storage
 
-    /** Switches the active model and loads it, quickly. PART 2. */
+    /** Switches the active model. The manager fully unloads the current one
+     *  first; the new one loads lazily on next use. PART 2. */
     fun activateModel(model: TierModel) = viewModelScope.launch {
-        val file = repository.fileFor(model)
-        if (!file.exists()) {
+        if (!repository.fileFor(model).exists()) {
             showToast("That model is not downloaded.")
             return@launch
         }
-        repository.setActiveModel(model.id)
-        engine.load(model, file)
+        modelManager.switchTo(model)
         showToast("${model.displayName} is now in use")
     }
 
@@ -375,23 +385,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 confirmLabel = "Delete",
                 onConfirm = {
                     viewModelScope.launch {
-                        val wasActive = repository.activeModel()?.id == id
-                        val fallback = if (wasActive) repository.nextModelAfterDeleting(id) else null
-                        repository.deleteArtifact(id)
-                        // Deleting the active model must never leave the app with
-                        // nothing usable. Fall back to another installed model, or
-                        // unload entirely so the user is sent to download one.
-                        if (wasActive) {
-                            if (fallback != null) {
-                                val file = repository.fileFor(fallback)
-                                repository.setActiveModel(fallback.id)
-                                if (file.exists()) engine.load(fallback, file)
-                                showToast("Deleted. ${fallback.displayName} is now in use.")
-                            } else {
-                                engine.unload()
-                                showToast("Deleted. Download a model to keep chatting.")
-                            }
+                        val model = com.kamsiob.kamai.model.ModelCatalog.byId(id)
+                        if (model != null) {
+                            // A model: the manager unloads it if resident, cancels
+                            // its download if mid-flight, removes it, and repairs
+                            // the active reference so nothing is left dangling.
+                            val midDownload = downloadingModelId == id
+                            modelManager.delete(
+                                model = model,
+                                midDownload = midDownload,
+                                cancelDownload = {
+                                    downloadJob?.cancel()
+                                    downloadingModelId = null
+                                    repository.deletePartialDownload(model)
+                                },
+                                removeArtifact = { repository.deleteArtifact(id) },
+                            )
+                            showToast("Deleted")
                         } else {
+                            // A voice or pack: a plain single delete.
+                            repository.deleteArtifact(id)
                             showToast("Deleted")
                         }
                     }
@@ -424,8 +437,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        viewModelScope.launch { engine.unload() }
-    }
+    // The engine and manager are process-wide singletons now, so the view model
+    // being cleared must not unload them; unloading is the manager's decision,
+    // driven by memory pressure and the app going to the background.
 }

@@ -8,6 +8,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import com.kamsiob.kamai.lock.AppLock
 import com.kamsiob.kamai.lock.KamRoot
+import com.kamsiob.kamai.llm.Models
 import com.kamsiob.kamai.ui.theme.Appearance
 import com.kamsiob.kamai.ui.theme.KamTheme
 
@@ -37,10 +38,14 @@ class MainActivity : FragmentActivity() {
     override fun onStop() {
         super.onStop()
         AppLock.onBackgrounded(SystemClock.elapsedRealtime())
+        // Start the manager's background-unload timer; a long trip away frees the
+        // model, a brief one does not pay a reload.
+        Models.manager(this).onBackgrounded()
     }
 
     override fun onStart() {
         super.onStart()
         AppLock.onForegrounded(SystemClock.elapsedRealtime())
+        Models.manager(this).onForegrounded()
     }
 }
