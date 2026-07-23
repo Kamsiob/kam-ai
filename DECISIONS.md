@@ -876,6 +876,72 @@ fragment.
 
 98 unit tests pass.
 
+## mmap measured on device, PART A complete
+
+The spec asked to verify mmap rather than assume it, and to measure resident
+memory before and after a load. Done on the Pixel with Gemma 4 E2B (the 3.1 GB
+Basic tier, file 3,106,738,272 bytes), read from /proc/<pid>/maps via run-as and
+from dumpsys meminfo.
+
+### mmap is genuinely working
+
+The model file appears in the process map as a file-backed shared mapping:
+
+    758125e000-763961a000 r--s 00f16000 fe:50 63973  .../gemma-4-e2b-it-q4km.gguf
+
+The r--s flags are the proof: read-only, MAP_SHARED, backed by the file, not an
+anonymous heap copy. llama.cpp is memory-mapping the weights, so the kernel can
+evict and re-read weight pages under pressure instead of the app holding a
+committed 3.1 GB copy.
+
+### The numbers, before and after
+
+- Idle, model lazily unloaded: 203 MB PSS, 320 MB RSS. MemAvailable 5.01 GB.
+- E2B resident and generating: 3.92 GB PSS, 3.96 GB RSS. Of that, Native Heap
+  (the anonymous KV cache and compute buffers) is 1.54 GB; the rest is the
+  file-backed weight mapping.
+- The figure that matters: MemAvailable dropped only about 1.13 GB while a 3.1 GB
+  model was loaded and running. That gap is the whole point of mmap. The weights
+  sit in reclaimable page cache and do not count as committed memory the way a
+  malloc'd copy would.
+
+### Why the fit check is still deliberately conservative
+
+Given the above it is tempting to size the requirement at the anonymous footprint
+(about 1.5 GB) rather than the full weights. That would be a mistake, and it is
+the exact mistake that SIGKILLed the 12B earlier. Loading and then running reads
+through the whole file; on a phone without room to keep those pages resident the
+kernel thrashes, faulting weight pages in and out and evicting everything else,
+which trips the low memory killer. The weights being reclaimable does not make
+them free to churn. Requiring the full weights plus overhead keeps enough
+headroom that the mapping stays hot, so the conservative requiredBytes stands.
+
+### End to end on device
+
+E2B was switched to active, loaded lazily on first send, and answered across
+turns: "Say hello in one word" gave "Hello"; "count to three" gave "One. Two.
+Three." Plain, terse, in the app's voice, with the current date now injected into
+every request. The 12B remains installed and refuses to load with the plain
+memory notice.
+
+### Two-stage pressure
+
+The manager's moderate (release KV, keep model) and severe (unload) paths are
+covered by unit tests. They cannot be driven from adb against a foreground
+process: am send-trim-memory refuses ("Unable to set a background trim level on a
+foreground process", and it will not re-raise a level once set), which is an
+Android restriction, not a code issue. The native split is confirmed present
+(nativeReleaseContext / nativeEnsureContext symbols in the built .so), and the
+engine rebuilds the context before each generation, so a released context is
+transparent to the next reply.
+
+PART A is complete: one manager owns all load and unload, mmap is verified and
+measured, the KV cache is tracked and released first under pressure, loading is
+lazy and guarded against memory, install and delete are safe, thermal degradation
+is wired from the start, hardware acceleration is off by default, quantisation is
+Q4_K_M by tier with higher precision only in Advanced behind a warning, and the
+tier assignments come from what actually runs on the device.
+
 ## BLOCKED
 
 Items that cannot be completed yet, and exactly what unblocks each.
