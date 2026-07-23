@@ -51,6 +51,11 @@ data class ConversationEntity(
     val pinned: Boolean = false,
     val archived: Boolean = false,
     /**
+     * True once the user has renamed the conversation by hand. After that the
+     * title is theirs and auto-titling never overwrites it. PART 4.
+     */
+    val titleIsManual: Boolean = false,
+    /**
      * Set when a conversation is grounded in a Discover passage, so its system
      * instructions can confine the model to that text.
      */

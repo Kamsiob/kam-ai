@@ -96,8 +96,13 @@ interface ConversationDao {
     @Query("UPDATE conversations SET archived = :archived, updatedAt = :now WHERE id = :id")
     suspend fun setArchived(id: String, archived: Boolean, now: Long)
 
-    @Query("UPDATE conversations SET title = :title WHERE id = :id")
-    suspend fun setTitle(id: String, title: String)
+    /** Auto-title. Leaves a manually renamed conversation alone. */
+    @Query("UPDATE conversations SET title = :title WHERE id = :id AND titleIsManual = 0")
+    suspend fun autoTitle(id: String, title: String)
+
+    /** The user renamed it by hand; this sticks. */
+    @Query("UPDATE conversations SET title = :title, titleIsManual = 1 WHERE id = :id")
+    suspend fun setManualTitle(id: String, title: String)
 
     @Query("UPDATE conversations SET updatedAt = :now WHERE id = :id")
     suspend fun touch(id: String, now: Long)

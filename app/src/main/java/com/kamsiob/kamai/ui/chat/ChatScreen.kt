@@ -42,6 +42,7 @@ import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,13 +76,6 @@ import com.kamsiob.kamai.ui.theme.KamTheme
 import com.kamsiob.kamai.ui.theme.expressiveSpec
 import com.kamsiob.kamai.ui.theme.reducedMotion
 import com.kamsiob.kamai.ui.theme.standardSpec
-
-/** The three modes the switcher offers. Discover has its own tab. */
-private val SWITCHER_MODES = listOf(
-    Mode.CHAT to "Chat",
-    Mode.LOGIC to "Logic",
-    Mode.BENCH to "Bench",
-)
 
 @Composable
 fun ChatScreen(
@@ -184,7 +178,12 @@ private fun whenEmptyBody(mode: Mode) = when (mode) {
     else -> "Anything on your mind. It runs on this phone, so nothing you type leaves it."
 }
 
-/** Segmented pill with a sliding thumb. Model tier shown quietly beside it. */
+/**
+ * The in-chat mode control: one little bubble that flips between Chat and Logic
+ * Partner, not a three-way segmented control. Workbench is its own surface and
+ * is deliberately never part of this. PART 4. Switching mid-conversation is
+ * allowed and the existing context carries forward.
+ */
 @Composable
 private fun ModeSwitcher(
     current: Mode,
@@ -193,6 +192,15 @@ private fun ModeSwitcher(
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
+    // Only Chat and Logic live here; anything else shows as Chat for the flip.
+    val isLogic = current == Mode.LOGIC
+    val next = if (isLogic) Mode.CHAT else Mode.LOGIC
+    val label = if (isLogic) "Logic Partner" else "Chat"
+    val bg by androidx.compose.animation.animateColorAsState(
+        targetValue = if (isLogic) colors.tonalFill else colors.surfaceSecondary,
+        animationSpec = expressiveSpec(),
+        label = "mode-bubble",
+    )
 
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -201,34 +209,27 @@ private fun ModeSwitcher(
         Row(
             modifier = Modifier
                 .clip(CircleShape)
-                .background(colors.surfaceSecondary)
-                .padding(3.dp),
+                .background(bg)
+                .clickable { onSelect(next) }
+                .padding(horizontal = 15.dp, vertical = 9.dp)
+                .semantics {
+                    contentDescription = "Mode: $label. Tap to switch to " +
+                        (if (isLogic) "Chat." else "Logic Partner.")
+                },
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            SWITCHER_MODES.forEach { (mode, label) ->
-                val selected = mode == current
-                val background by androidx.compose.animation.animateColorAsState(
-                    targetValue = if (selected) colors.surface else androidx.compose.ui.graphics.Color.Transparent,
-                    animationSpec = standardSpec(),
-                    label = "thumb",
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(background)
-                        .clickable { onSelect(mode) }
-                        .padding(horizontal = 15.dp, vertical = 8.dp)
-                        .semantics {
-                            this.selected = selected
-                            contentDescription = "$label mode"
-                        },
-                ) {
-                    Text(
-                        label,
-                        style = KamTheme.type.label,
-                        color = if (selected) colors.textPrimary else colors.textTertiary,
-                    )
-                }
-            }
+            Icon(
+                Icons.Rounded.SwapHoriz,
+                contentDescription = null,
+                tint = if (isLogic) colors.tonalText else colors.textSecondary,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(7.dp))
+            Text(
+                label,
+                style = KamTheme.type.label,
+                color = if (isLogic) colors.tonalText else colors.textPrimary,
+            )
         }
 
         Spacer(Modifier.weight(1f))

@@ -205,10 +205,16 @@ class ChatViewModel(
      */
     private suspend fun maybeTitle(conversationId: String) {
         val conversation = repository.conversation(conversationId) ?: return
-        if (conversation.title != null) return
+        // A hand-set title is the user's, never overwritten. An auto title is
+        // set after the first exchange and refreshed once as the conversation
+        // grows, so it keeps up until the user makes it theirs. PART 4.
+        if (conversation.titleIsManual) return
 
         val history = repository.messages(conversationId)
         if (history.size < 2) return
+        val isFirstTitle = conversation.title == null
+        val isRefreshMilestone = history.size == TITLE_REFRESH_AT
+        if (!isFirstTitle && !isRefreshMilestone) return
 
         val transcript = history.take(2).joinToString("\n\n") { message ->
             val who = if (message.role == Role.USER) "Them" else "You"
@@ -226,7 +232,7 @@ class ChatViewModel(
             .trim().trim('"', '\'', '.')
             .take(TITLE_MAX_CHARS)
 
-        if (title.isNotBlank()) repository.setTitle(conversationId, title)
+        if (title.isNotBlank()) repository.autoTitle(conversationId, title)
     }
 
     companion object {
@@ -243,5 +249,6 @@ class ChatViewModel(
         const val TITLE_SOURCE_CHARS = 400
         const val TITLE_MAX_TOKENS = 24
         const val TITLE_MAX_CHARS = 60
+        const val TITLE_REFRESH_AT = 8
     }
 }

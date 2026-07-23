@@ -203,6 +203,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         showToast("Archived")
     }
 
+    fun renameConversation(id: String, title: String) = viewModelScope.launch {
+        if (title.isBlank()) return@launch
+        repository.renameConversation(id, title)
+        showToast("Renamed")
+    }
+
     /** Single chat delete. Tier one, and skipped entirely if the user turned
      *  the confirmation off. Never a two-step gauntlet for one chat. */
     fun deleteConversation(id: String, title: String?) {

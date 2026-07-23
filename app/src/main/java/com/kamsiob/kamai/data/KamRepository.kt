@@ -172,8 +172,13 @@ class KamRepository(
     suspend fun messages(conversationId: String): List<MessageEntity> =
         db.messages().forConversation(conversationId)
 
-    suspend fun setTitle(conversationId: String, title: String) =
-        db.conversations().setTitle(conversationId, title)
+    /** Auto-title from the model; leaves a hand-renamed conversation alone. */
+    suspend fun autoTitle(conversationId: String, title: String) =
+        db.conversations().autoTitle(conversationId, title)
+
+    /** The user renamed it. This sticks and is never auto-overwritten. */
+    suspend fun renameConversation(conversationId: String, title: String) =
+        db.conversations().setManualTitle(conversationId, title.trim())
 
     suspend fun setPinned(id: String, pinned: Boolean) = db.conversations().setPinned(id, pinned)
 

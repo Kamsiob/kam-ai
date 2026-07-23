@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 
@@ -40,7 +42,7 @@ class Converters {
         ArtifactEntity::class,
         SettingEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -57,6 +59,16 @@ abstract class KamDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "kam-ai.db"
+
+        /** Adds the manual-title flag. A real migration, never a destructive
+         *  fallback: losing conversations to a schema bump is unacceptable. */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE conversations ADD COLUMN titleIsManual INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
 
         @Volatile
         private var instance: KamDatabase? = null
@@ -91,6 +103,7 @@ abstract class KamDatabase : RoomDatabase() {
             val factory = DatabaseEncryption.openHelperFactory(context, dbFile, passphrase)
             return Room.databaseBuilder(context, KamDatabase::class.java, NAME)
                 .openHelperFactory(factory)
+                .addMigrations(MIGRATION_1_2)
                 .build()
         }
     }
