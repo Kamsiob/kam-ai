@@ -16,6 +16,29 @@ enum class Tier(
 }
 
 /**
+ * A capability a model may support. Declared per model in the catalog so the
+ * interface can adapt without hardcoding by model name (item 22). Each carries a
+ * short label and a plain one-line explanation shown when a person taps its icon.
+ */
+enum class Capability(val label: String, val explanation: String) {
+    TEXT("Text", "It reads and writes text, the everyday chat you would expect."),
+    DOCUMENTS(
+        "Documents",
+        "It can read a document you attach (plain text, Markdown, a PDF with a " +
+            "text layer, or a Word file) and answer questions about it.",
+    ),
+    IMAGES(
+        "Images",
+        "It can look at a photo or screenshot and answer questions about it, " +
+            "including reading text from it. It cannot create images.",
+    ),
+    AUDIO(
+        "Voice",
+        "You can speak instead of typing; your voice is turned into text on this phone.",
+    ),
+}
+
+/**
  * A model the app can download for a tier.
  *
  * @param contextTokens the context window the app actually runs it at, which is
@@ -40,7 +63,17 @@ data class TierModel(
     /** An honest caution for models that may not load on their nominal device
      *  class, shown in the Advanced list. Empty when the model runs comfortably. */
     val warning: String = "",
+    /**
+     * What this model can actually do, declared here as the single source of
+     * truth so the interface adapts without hardcoding per model name (item 22).
+     * A new model in the catalog works correctly with no code change. Defaults to
+     * text and document attachments, which every current model supports; image
+     * understanding is added per model when a vision build ships.
+     */
+    val capabilities: Set<Capability> = setOf(Capability.TEXT, Capability.DOCUMENTS),
 ) {
+
+    fun supports(capability: Capability): Boolean = capability in capabilities
     /** "1.2 GB", for the mono size labels. */
     val downloadLabel: String get() = formatBytes(downloadBytes)
 }

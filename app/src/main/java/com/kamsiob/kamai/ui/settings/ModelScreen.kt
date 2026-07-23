@@ -230,6 +230,12 @@ private fun ModelCard(
             Spacer(Modifier.height(4.dp))
             Text(model.description, style = KamTheme.type.secondary, color = colors.textSecondary)
         }
+
+        // What this model can do, before downloading. Each chip explains itself
+        // on tap, and unsupported abilities are shown muted rather than hidden so
+        // models can be compared at a glance (item 22).
+        Spacer(Modifier.height(8.dp))
+        CapabilityRow(model)
         // Every advanced model states plainly whether it is likely to run here.
         if (advanced) {
             Spacer(Modifier.height(6.dp))
@@ -283,6 +289,72 @@ private fun ModelCard(
                 onClick = onDownload,
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+    }
+}
+
+/**
+ * The capability chips for a model (item 22): Text, Documents, Images. Supported
+ * ones are solid, unsupported are muted, and tapping any chip explains what it
+ * means in plain words. Labels carry the meaning, never colour alone, and every
+ * chip has a screen-reader description.
+ */
+@Composable
+private fun CapabilityRow(model: TierModel) {
+    val colors = KamTheme.colors
+    var explaining by remember { mutableStateOf<com.kamsiob.kamai.model.Capability?>(null) }
+    val shown = listOf(
+        com.kamsiob.kamai.model.Capability.TEXT,
+        com.kamsiob.kamai.model.Capability.DOCUMENTS,
+        com.kamsiob.kamai.model.Capability.IMAGES,
+    )
+
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        shown.forEach { capability ->
+            val on = model.supports(capability)
+            Text(
+                if (on) capability.label else "No ${capability.label.lowercase()}",
+                style = KamTheme.type.secondary,
+                color = if (on) colors.tonalText else colors.textTertiary,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (on) colors.tonalFill else colors.surfaceSecondary)
+                    .clickable { explaining = capability }
+                    .padding(horizontal = 9.dp, vertical = 5.dp)
+                    .semantics {
+                        contentDescription =
+                            (if (on) "Supports " else "Does not support ") + capability.label +
+                                ". Tap to explain."
+                    },
+            )
+        }
+    }
+
+    explaining?.let { cap ->
+        androidx.compose.ui.window.Dialog(onDismissRequest = { explaining = null }) {
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(20.dp)).padding(20.dp),
+            ) {
+                Text(cap.label, style = KamTheme.type.cardTitle, color = colors.textPrimary)
+                Spacer(Modifier.height(8.dp))
+                Text(cap.explanation, style = KamTheme.type.body, color = colors.textSecondary)
+                if (!model.supports(cap)) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "This model does not do this.",
+                        style = KamTheme.type.secondary, color = colors.textTertiary,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Text(
+                        "Got it", style = KamTheme.type.label, color = colors.accent,
+                        modifier = Modifier.clip(CircleShape).clickable { explaining = null }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
         }
     }
 }
