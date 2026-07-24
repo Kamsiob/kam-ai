@@ -80,17 +80,25 @@ said there was nothing outstanding.
 
 Everything here has cost someone an hour at least once.
 
-- **Build machine JDK is 26.** Robolectric 4.16.1 cannot instrument against it, so six
-  test classes fail identically at `ClassReader.java:200`: AppLockStateTest,
-  BackupRoundTripTest, FollowUpStateTest, KamDatabaseTest, ModelManagementTest,
-  PackDealTest. This is a machine problem, not a code problem. Do not fix, delete, or
-  downgrade anything. **Always filter failures by cause, never by count:**
-  ```bash
-  ./gradlew testDebugUnitTest --console=plain 2>&1 > /tmp/t.txt
-  grep -A1 "FAILED$" /tmp/t.txt | grep -v "ClassReader.java:200" | grep -E "^\s+[a-z]" | sort -u
-  ```
-  Nothing printed means genuinely clean. Three real failures once hid in that noise for
-  most of a session.
+- **The test suite is green. A failure means a failure.** `./gradlew testDebugUnitTest`
+  gives 26 classes, 160 tests, 0 failures, 0 skipped. Read the count.
+  **Fixed 24 July 2026, and the old advice is obsolete.** For a long time thirty-nine tests
+  failed at `ClassReader.java:200`, because Robolectric 4.16.1 cannot instrument against
+  this machine's default JDK 26, and every session was told to filter failures by cause and
+  grep that string away. Real failures hid in that noise for most of a session once. Do not
+  reintroduce the filter.
+  The fix was that JDK 21 was **already installed** and unused: Homebrew carries both
+  (`brew list | grep -i jdk` shows `openjdk` 26.0.1 and `openjdk@21` 21.0.12) in
+  `/home/linuxbrew/.linuxbrew`, entirely inside the home directory. The immutable `/usr`
+  on this Bazzite host was never the obstacle, whatever earlier documents claimed.
+  `gradle.properties` points Gradle at
+  `/home/linuxbrew/.linuxbrew/opt/openjdk@21/libexec`, since its auto-detection will not
+  look in the Homebrew prefix by itself, and `app/build.gradle.kts` sets a `javaLauncher`
+  for language version 21 on `tasks.withType<Test>()`. **Only the test task moved.**
+  Compilation, KSP, AGP and the native build still run on 26, and nothing that ships
+  changed. There is no flag to pass and no variable to set: run `./gradlew
+  testDebugUnitTest` as normal. If a second JDK is ever needed again, `brew install
+  openjdk@N`, never `/usr`, and never change the default.
 - **`SchemaMigrationTest` and `MigrationToV5Test` are instrumented tests**, not Robolectric
   ones. They need a device or emulator, not a different JDK. (Earlier documents said
   otherwise and were wrong.)
@@ -336,8 +344,9 @@ Memory: E2B loaded and generating is 3.92 GB PSS, but `MemAvailable` drops only 
 is about 186 to 203 MB PSS. The fit check is deliberately conservative anyway: an early
 build that trusted the optimistic figure was SIGKILLed.
 
-Test suite: 148 unit tests, 39 failing, all of them the JDK 26 Robolectric mismatch, plus
-the new `MigrationSqlTest` at 5 passing. Zero genuine failures.
+Test suite: **160 unit tests across 26 classes, all passing, nothing skipped**, once the
+test task moved to JDK 21. The thirty-nine Robolectric failures are gone rather than
+filtered. On the phone, 11 instrumented tests covering the three migration classes.
 
 Debug APK about 131 MB (arm64, full native stack); an emulator build with the native stack
 dropped is about 95 MB. Signed release, minified, was 53 MB.

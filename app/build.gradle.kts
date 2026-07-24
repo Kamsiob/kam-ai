@@ -146,6 +146,22 @@ android {
     }
 }
 
+// Robolectric 4.16.1 cannot instrument against a JDK 26 class file, and this machine's
+// default JDK is 26, so six test classes failed identically at ClassReader.java:200 for as
+// long as anyone had been working here. Thirty-nine failures is a lot of noise to read
+// past, and real failures have hidden inside it before.
+//
+// Only the unit test task is moved to 21. Compilation, KSP, AGP and the native build all
+// still run on 26, so nothing about what ships changes; this picks the JVM the tests
+// execute on and nothing else. The path Gradle finds 21 through is in gradle.properties.
+tasks.withType<Test>().configureEach {
+    javaLauncher.set(
+        javaToolchains.launcherFor {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        },
+    )
+}
+
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
     arg("room.generateKotlin", "true")

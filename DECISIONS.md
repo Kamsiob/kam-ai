@@ -1499,6 +1499,50 @@ cover are additionally exercised by the on-device manual passes on the Pixel.
 
 **What the owner needs to do: nothing.** The suite is green on any JDK-17 CI.
 
+### Resolved 24 July 2026: JDK 21 alongside JDK 26, and the suite is genuinely green
+
+The claim above that this machine has "no way to provision one offline" was wrong, and so
+was the claim elsewhere in this file that a read-only `/usr` "makes a second JDK
+impossible". `/usr` was never the obstacle. This host is Bazzite, image-based with an
+immutable `/usr`, but Homebrew installs into `/home/linuxbrew/.linuxbrew`, entirely in the
+home directory, and it was already installed and already carrying both JDKs:
+
+```
+$ brew list | grep -i jdk
+openjdk        # 26.0.1, the default on PATH
+openjdk@21     # 21.0.12
+```
+
+So nothing needed installing. JDK 21 had been sitting there unused while thirty-nine tests
+failed. **If a second JDK is ever needed on this machine, `brew install openjdk@N` is the
+answer; do not touch `/usr` and do not change the default.**
+
+**How the build selects it.** Two lines, and only the unit test task moves:
+
+- `gradle.properties` carries
+  `org.gradle.java.installations.paths=/home/linuxbrew/.linuxbrew/opt/openjdk@21/libexec`.
+  Gradle's toolchain auto-detection does not look inside the Homebrew prefix on its own,
+  which is the whole reason this line has to exist.
+- `app/build.gradle.kts` sets a `javaLauncher` on `tasks.withType<Test>()` for language
+  version 21.
+
+Compilation, KSP, AGP and the native build all still run on 26. Nothing about what ships
+changes: this picks the JVM the tests execute on and nothing else. `assembleDebug` and
+`assembleDebugAndroidTest` were both rebuilt afterwards and still succeed.
+
+To invoke it, run `./gradlew testDebugUnitTest` as before. There is no flag to remember and
+no environment variable to set, which is deliberate: a step someone has to remember is a
+step that gets forgotten, and this one was worth thirty-nine phantom failures.
+
+**Result: 26 classes, 160 tests, 0 failures, 0 skipped.** The six classes that had never
+once run on this machine now pass in full: AppLockStateTest 7, BackupRoundTripTest 6,
+FollowUpStateTest 9, KamDatabaseTest 11, ModelManagementTest 4, PackDealTest 2.
+
+**The filter-by-cause instruction is now obsolete.** For as long as anyone had worked here,
+reading the suite meant grepping `ClassReader.java:200` out of the output and hoping. Real
+failures hid in that noise for most of a session once, which is recorded further down this
+file. A failure now means a failure. Read the count again.
+
 ## Owner bug-fix pass (2026-07-23) and the Today tab
 
 The owner delivered two large prompts from hands-on phone testing: a 22-item bug-fix and
