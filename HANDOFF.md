@@ -73,9 +73,18 @@ a note rather than as something the assistant said, shared threads keep their ow
 an export filename comes from the title rather than a mode-change notice. This unblocks the
 export half of #28.
 
-**Next concrete step:** the overlay set, **#45, #46 and #47**, done together since they
-touch one surface, and #60 (the leftover "flag" wording) belongs with them. Full order in
-section 4.
+**Also finished: #45 and #46, both closed.** #45 was not a wrong memory check: the overlay
+refuses correctly and goes through the same corrected `fits()`, but `_notice` was never
+cleared anywhere, so one transient refusal stuck to the panel while later questions answered
+underneath it. **#45 is the one fix here that is not device-verified**, because a real memory
+refusal could not be forced; reopen it rather than treating a recurrence as new. #46 was a
+timing bug: the overlay decided how to open before the setting had loaded, so it always chose
+text. Verified end to end on the phone, opening already listening.
+
+**Next concrete step:** **#47**, the overlay drag handle, the last of the overlay set. **#61**
+(the recording button drawing in the reserved gold) and **#60** (the leftover "flag" wording)
+both belong with it, since all three touch that surface and it should be opened once. Full
+order in section 4.
 
 **Two things were found along the way and are recorded, not fixed.** Read both before
 picking up performance or export work.
@@ -189,9 +198,10 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #40 | Stopping a response loses its reason, hides the action row, then gets mislabelled | **closed, verified on the phone**, including across a relaunch |
 | #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | **closed, verified on the phone** against the real exported files |
 | #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | **closed, verified on the phone.** Guarded by PublicCopyTest |
-| #45 | Overlay shows a memory warning and then works anyway | not started |
+| #45 | Overlay shows a memory warning and then works anyway | **closed.** The check was right; the notice was never cleared. **Not device-verified**, see the issue |
+| #61 | The overlay recording button uses the reserved gold | not started. Do with #47; DESIGN specifies no listening treatment, so the colour is the owner's call |
 | #59 | Template tokens leaked before the #49 fix are still stored and still displayed | not started. Sanitise on read; do not rewrite user rows |
-| #46 | Assistant voice-first setting has no effect | not started |
+| #46 | Assistant voice-first setting has no effect | **closed, verified on the phone.** It now opens already listening |
 
 ### Daily-use friction from live testing, all not started
 
