@@ -16,6 +16,21 @@ val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
 
+// Migrations and the Android-backed tests are verified on an emulator, never
+// against the phone, which holds the owner's real data and carries exactly one
+// installation of this app. An emulator is x86_64 while the app ships arm64
+// only, so an emulator build swaps the ABI and leaves the native inference
+// stack out entirely: every native library is loaded lazily at first use, and a
+// migration test never downloads a model, so nothing calls into one.
+//   ./gradlew assembleDebug -Pkamai.emulator=true
+// This must never be used for a build that goes on the phone.
+//
+// The emulator does not currently run on this build machine: its qemu process
+// segfaults at startup regardless of GPU mode, acceleration, or ASLR. See
+// DECISIONS.md, "Where migrations get tested". Until that is resolved the
+// runnable proof is MigrationSqlTest, a pure JVM test over real SQLite.
+val emulatorBuild = providers.gradleProperty("kamai.emulator").orNull == "true"
+
 android {
     namespace = "com.kamsiob.kamai"
     // Compiled against 37 because current AndroidX libraries require it.
@@ -37,8 +52,10 @@ android {
 
         // arm64 only. Every phone with enough memory to hold one of these models
         // is arm64, and shipping the other ABIs would only pad the download.
+        // The one exception is an emulator build, which is x86_64 and carries no
+        // native code at all.
         ndk {
-            abiFilters += "arm64-v8a"
+            abiFilters += if (emulatorBuild) "x86_64" else "arm64-v8a"
         }
 
         externalNativeBuild {
@@ -54,10 +71,12 @@ android {
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = providers.gradleProperty("kamai.cmakeVersion").get()
+    if (!emulatorBuild) {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = providers.gradleProperty("kamai.cmakeVersion").get()
+            }
         }
     }
 
@@ -74,6 +93,9 @@ android {
 
     buildTypes {
         debug {
+            // Always the same application id, so a debug build upgrades the one
+            // installed copy in place. There is exactly one copy of this app on
+            // the phone, ever. See DECISIONS.md, "One copy only".
             applicationIdSuffix = ""
             isMinifyEnabled = false
         }
@@ -170,6 +192,9 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.androidx.test.core)
+    // A real SQLite engine on the JVM, so migration SQL can be verified on a
+    // build machine with no device and no working emulator. See DECISIONS.md.
+    testImplementation(libs.sqlite.jdbc)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

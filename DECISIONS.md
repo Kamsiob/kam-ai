@@ -2270,3 +2270,202 @@ upgrade from a pre-migration database. The app running with existing conversatio
 evidence, and `SchemaMigrationTest` covers it, but that test is one of the six that cannot execute on
 this machine. This is the only outstanding item that could cost a user their data, so it should be
 verified before any release.
+
+## Standing process rules added 24 July 2026 (owner, permanent)
+
+These sit alongside the two rules recorded above (living documents, GitHub issues used
+fully) and outrank convenience in every future session.
+
+### HANDOFF.md is maintained continuously, never on request
+
+The repository must be resumable at any moment by a session with no memory of any other.
+HANDOFF.md is committed and pushed at every one of these points: finishing or partly
+finishing any item; every commit; before pausing, stopping, waiting, or handing back;
+when context is getting low, before it becomes a problem; when a session appears to be
+ending; when something fails or is rejected, while the details are still fresh; and
+whenever a decision is made that a future session might reverse.
+
+It must always carry, kept current rather than appended to indefinitely: where the work
+stands and the next concrete step; everything tried that did not work, with why and
+whether it is worth revisiting; every measurement with its actual numbers; everything
+learned about this environment, device, toolchain, or the models that the code does not
+show; every decision and its reasoning, especially the counterintuitive ones; an item by
+item inventory of remaining work marked verified, unverified, partial, not started,
+skipped, or blocked, with partial items described precisely enough to resume mid-task;
+the recommended order and its dependencies; anything deferred and what would un-defer it;
+anything written but not verified on the device; the real state of the issue tracker as
+distinct from its labels; anything waiting on an external dependency, a clock, or the
+owner; anything the owner asked for verbally that is not yet in a specification; and
+every open question or unverified assumption.
+
+Accurate beats optimistic. Overstating completion is far worse than admitting something
+is half finished, because the next session builds on top of it and the error compounds.
+Stale sections are rewritten, not left to contradict newer ones.
+
+### Reading discipline, so context is spent on work rather than on re-reading
+
+HANDOFF.md is read in full at the start of a session, which is what it is for. Everything
+else, including this file, MASTER_SPEC.md, DESIGN.md, and the task documents, is searched
+for the relevant section rather than read end to end, and consulted again when the work
+moves to a different area. Issue titles and states are scanned; an individual issue is
+opened when it is about to be worked on.
+
+HANDOFF.md is structured to serve that: state of play, next step, and the remaining work
+inventory at the top, and the historical record of rejected approaches, measurements, and
+older decisions in clearly labelled later sections that can be consulted rather than read.
+It is pruned as it goes rather than allowed to grow without bound.
+
+## One copy only, restated after it was breached
+
+The standing rule from the original brief is that exactly one copy of this app exists on
+the machine and on the phone, always the current build. On 24 July a second copy was
+installed on the phone under a suffixed application id
+(`com.kamsiob.kamai.migtest`) in order to test the version 4 to version 5 migration
+without risking the owner's real data. The owner stopped it and required the copy to be
+removed immediately, which it was; the real installation was never touched, and its
+package update time and database were verified unchanged afterwards.
+
+The rule now reads: never install a second parallel copy of this app on the phone, for
+any reason, including testing. The `kamai.appIdSuffix` build property that made it
+possible has been removed rather than left lying about.
+
+## Where migrations get tested
+
+The owner's direction, which is now the standing policy: **schema migration is database
+behaviour and is not device specific, so it is verified on an emulator, never against the
+phone.** The phone holds conversations that exist nowhere else. A destructive in-place
+test against the real installation is not to be run at all without first pulling its data
+off the device as a safety copy and asking the owner first.
+
+An emulator build is supported by `-Pkamai.emulator=true`, which switches the ABI to
+x86_64 and drops the native inference stack entirely (every native library is loaded
+lazily at first use, and a migration test never gets as far as loading a model). The app
+otherwise ships arm64 only, so without that flag it will not install on an emulator.
+
+**The emulator does not run on this build machine.** The system image
+(`system-images;android-36;google_apis;x86_64`) installs fine and the AVD creates fine,
+but the emulator's own `qemu-system-x86_64-headless` process segfaults within a second of
+startup, before the guest boots. It does this with `-gpu swiftshader_indirect`, with
+`-gpu off`, with `-gpu guest`, with `-accel off`, with Vulkan disabled by feature flag,
+and with ASLR disabled through `setarch -R`. The emulator package is already the newest
+available (36.6.11), so there is no update to apply. The host is the same image-based
+Fedora with a read-only `/usr` that also makes a second JDK impossible, on kernel
+7.1.3-ogc3 with Mesa 26, and the core dumps show Mesa and Vulkan modules loaded even with
+the GPU disabled. This is an environment incompatibility, not a project defect, and it is
+recorded so nobody spends another hour on it. It will work on any ordinary machine.
+
+### What was done instead, and what it does and does not prove
+
+`MigrationSqlTest` (pure JVM, `app/src/test`) drives the real migration statements over a
+real SQLite database through JDBC. The statements are read from
+`KamDatabase.MIGRATION_4_5_SQL`, a list the shipped `Migration` object executes, so the
+migration that ships and the migration that is tested cannot drift apart. That refactor
+is the only production change: same statements, same order.
+
+It seeds a version 4 database in the exported version 4 schema, populated the way a used
+install was: five conversations across Chat, Logic, Discover and Bench, one inside a
+project, one pinned, one archived, one grounded on a Discover moment; messages including
+a display-only SYSTEM mode marker and an answer left incomplete with a stop reason; two
+memory entries, one automatic; three follow-ups including a saved Discover moment with
+its pack and moment ids; Discover drawn state and quiz stats; an artifact row; settings.
+
+Result, 5 tests, all passing:
+
+- Every conversation survives. Both Chat rows become General; Logic, Discover and Bench
+  are untouched. `modesUsed` is seeded from the mode after the rename, so a former Chat
+  row records GENERAL rather than a stale CHAT the dots cannot draw. Title, pinned,
+  archived, project link, grounding id and both timestamps are unchanged.
+- Follow-ups keep their source, with the same Chat to General rewrite, and every existing
+  item gains kind CHECK. The saved Discover moment keeps its pack and moment ids, so it
+  still reopens as a grounded discussion.
+- Messages, projects, memory, Discover state, artifacts and settings are byte for byte
+  unchanged, including the incomplete message's stop reason.
+- **An interrupted migration rolls back cleanly and can be run again.** The statements are
+  run inside a transaction that is never committed, which is what a process kill mid
+  upgrade amounts to. The database returns to version 4 exactly: no new columns, no half
+  applied rename, no lost rows. Running it again then succeeds, which is what the user
+  gets on the next launch.
+- Only exact `CHAT` rows are rewritten. A mode of `CHATTY` is left alone.
+
+What this does not cover: Room's own version bookkeeping and the SQLCipher layer, which
+need a device or an emulator. `MigrationToV5Test` in `app/src/androidTest` covers exactly
+that path over the real Room migration object and should be run on any machine with a
+working emulator or a spare device. Until then, issue #24 stays honest: the SQL is proven,
+the full Room and SQLCipher path is not.
+
+A useful correction to the earlier record while here: **`SchemaMigrationTest` is an
+instrumented test in `app/src/androidTest`, not one of the six Robolectric classes.** The
+handoff, this file, and issue #24 all said or implied it could not run on this machine
+because of the JDK 26 problem. That was wrong; it needs a device, not a different JDK. The
+six classes that genuinely cannot run here remain AppLockStateTest, BackupRoundTripTest,
+FollowUpStateTest, KamDatabaseTest, ModelManagementTest and PackDealTest.
+
+## Round 3 (24 July 2026): live-use bugs, performance research, Logic and Brainstorm
+
+The owner delivered a third task document from hands-on use of the app: eight bugs, a
+large researched performance list, and rebuilds of the Logic Partner and Brainstorm
+methods. It is explicitly additional work. Nothing already planned or in progress is
+cancelled by it. It is decomposed into issues **#43 through #58** and folded into the
+remaining-work inventory in HANDOFF.md rather than replacing it.
+
+### How it reconciles with work already recorded
+
+- **#43 (scrolling fought during streaming) refines #35 rather than reversing it.** #35
+  landed "follow the newest text only when the user is already at the bottom", which was
+  correct and is not enough: it re-engages the moment the user drifts back near the
+  bottom, and a growing message moves the bottom under them. The new requirement is a
+  per-response latch: once the user scrolls, following stops for the rest of that
+  response until they return to the bottom themselves or tap jump-to-latest.
+- **#49 (chat template tokens leaking) is checked against the KV prefix reuse first.**
+  The handoff already names a `cached_tokens` drift as the worst failure mode in the
+  codebase, and "only in longer conversations" is its signature. The debug assertion
+  comparing that vector's length against `n_past`, recommended under #38 and never
+  written, is part of this issue.
+- **#51 to #56 continue #38 rather than restarting it.** The measurements already taken
+  (thread counts on this exact device, prefill and decode asymmetry, GPU offload absent,
+  debug native code already built as Release with the ARM extensions) are not re-derived.
+  The genuinely new items are KleidiAI microkernels, runtime verification that repacking
+  actually engages, explicit core affinity, the physical batch sweep, state persistence
+  across sessions, flash attention paired with q8_0 KV cache, and the drafter path with a
+  server-style context setup.
+- **#54 un-defers speculative decoding**, which DECISIONS.md had deferred pending an
+  answer on stability. The round 3 research supplies the specific difference that changes
+  the outcome: the standalone speculative example and benchmark tool fail because they do
+  not set up the second context correctly, while the server-style path works. That is a
+  concrete, testable difference from what was assumed, which is the bar for retrying
+  something previously rejected.
+- **#57 (Logic Partner) and #58 (Brainstorm) sit on top of #25**, which already owns the
+  on-device behavioural testing that has never been done. #58 adds the research grounding
+  that testing will be measured against; #25 stays the record of the verification itself.
+
+### Order changed, and why
+
+#49 moves near the front, ahead of the copy and export fixes, because it is a correctness
+defect visible to any user in ordinary use and because it may be the KV cache invariant
+failing, which would also silently corrupt answers. #43 and #44 follow it: both are daily
+friction in the most used surface, and both are small. The rest of round 3's performance
+work is staged as the document specifies and sits after the small correctness fixes.
+
+### Five points raised rather than resolved silently
+
+1. **KV state persistence versus at-rest encryption.** A serialised KV state file holds
+   the conversation in reconstructible form. The database is SQLCipher encrypted so that
+   a file copied off the device is meaningless, and a plaintext state file beside it would
+   quietly break that promise. State will be encrypted with the same Keystore-wrapped key
+   or held in memory only. Recorded on #52.
+2. **Disabling mmap with locked pages** runs against the memory model that fixed two
+   crashes. The fit check is conservative precisely because the weights are mmapped, and
+   an early build was killed by the kernel for assuming the optimistic figure. It will be
+   measured, but not shipped without revisiting the fit check, and it must be measured
+   with other apps cached in the background, which is the state a real phone is in.
+3. **Qwen.** The round 3 research notes in passing that Qwen has no sliding-window
+   complication. Gemma 4 across every tier was a deliberate decision: one family, one
+   licence, one prompt format. It is not being reopened on the strength of an aside.
+4. **Changing a tier's quantisation** means new catalogue entries with fresh sizes and
+   hashes and users re-downloading gigabytes, so Q4_0 versus Q4_K_M versus Q5_K_M is
+   measured before anything is proposed.
+5. **Logic Partner's prompt budget.** It sits at about 940 estimated tokens against a
+   1000 budget guarded by PromptBudgetTest, and the standing direction has been to keep
+   trimming. Real argument analysis will not fit for free. It will be written as compactly
+   as possible, and if the budget must rise, that is paid for by the caching work in #52
+   and recorded here rather than the number being quietly raised.

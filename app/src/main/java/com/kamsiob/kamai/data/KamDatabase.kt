@@ -123,18 +123,33 @@ abstract class KamDatabase : RoomDatabase() {
          * their only recorded mode, Chat rows become General everywhere, and
          * existing follow-ups default to check.
          */
+        /**
+         * The statements MIGRATION_4_5 runs, in order, exposed so they can be
+         * driven over a plain SQLite database by a pure JVM test.
+         *
+         * This build machine cannot run either kind of Android-backed test: its
+         * only JDK is 26, which Robolectric 4.16.1 cannot instrument against, and
+         * the emulator's own qemu process segfaults on this kernel. Instrumented
+         * tests need a device, and the phone holds the owner's real data. Keeping
+         * the SQL in one list means the migration that ships and the migration
+         * that is tested cannot drift apart. See MigrationSqlTest.
+         */
+        val MIGRATION_4_5_SQL = listOf(
+            // Chat -> General, in both places a mode name is stored.
+            "UPDATE conversations SET mode = 'GENERAL' WHERE mode = 'CHAT'",
+            "UPDATE follow_ups SET sourceMode = 'GENERAL' WHERE sourceMode = 'CHAT'",
+            // Record every mode used. Existing rows have used exactly their
+            // current mode, so seed the set from it (already General for the
+            // former Chat rows above).
+            "ALTER TABLE conversations ADD COLUMN modesUsed TEXT NOT NULL DEFAULT 'GENERAL'",
+            "UPDATE conversations SET modesUsed = mode",
+            // Follow-up kind, defaulting existing items to check.
+            "ALTER TABLE follow_ups ADD COLUMN kind TEXT NOT NULL DEFAULT 'CHECK'",
+        )
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Chat -> General, in both places a mode name is stored.
-                db.execSQL("UPDATE conversations SET mode = 'GENERAL' WHERE mode = 'CHAT'")
-                db.execSQL("UPDATE follow_ups SET sourceMode = 'GENERAL' WHERE sourceMode = 'CHAT'")
-                // Record every mode used. Existing rows have used exactly their
-                // current mode, so seed the set from it (already General for the
-                // former Chat rows above).
-                db.execSQL("ALTER TABLE conversations ADD COLUMN modesUsed TEXT NOT NULL DEFAULT 'GENERAL'")
-                db.execSQL("UPDATE conversations SET modesUsed = mode")
-                // Follow-up kind, defaulting existing items to check.
-                db.execSQL("ALTER TABLE follow_ups ADD COLUMN kind TEXT NOT NULL DEFAULT 'CHECK'")
+                MIGRATION_4_5_SQL.forEach(db::execSQL)
             }
         }
 
