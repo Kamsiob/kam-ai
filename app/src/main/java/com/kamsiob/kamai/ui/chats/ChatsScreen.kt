@@ -29,7 +29,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -51,6 +53,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableFloatStateOf
@@ -133,6 +136,30 @@ fun ChatsScreen(
     }
     val pinned = filtered.filter { it.pinned }
     val recent = filtered.filterNot { it.pinned }
+
+    // Issue #44. The ordering was already right, most recently active first, but
+    // both lists kept the scroll offset they had when the user left, so a
+    // conversation they had just finished sat above the fold and looked unsaved.
+    //
+    // Held explicitly rather than left to the default remembered state, so the
+    // effect below can move them. One for the column, shared by COMFORTABLE and
+    // COMPACT, and one for the grid.
+    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
+
+    // The newest activity in the whole set, which changes exactly when a
+    // conversation is created or gains a message, and does not change while the
+    // user merely browses, searches or filters. Deliberately not "the id of the
+    // first row": in grid view a pinned conversation is first and would never
+    // move, and in the column the pinned section is separate, so neither would
+    // notice the thing the user just did.
+    val newestActivity = remember(conversations) { conversations.maxOfOrNull { it.updatedAt } }
+    LaunchedEffect(newestActivity) {
+        if (newestActivity != null) {
+            listState.animateScrollToItem(0)
+            gridState.animateScrollToItem(0)
+        }
+    }
 
     // Back closes selection mode before anything else on this screen.
     BackHandler(enabled = selecting) { exitSelection() }
@@ -222,6 +249,7 @@ fun ChatsScreen(
 
                 view == ChatsView.GRID -> LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
+                    state = gridState,
                     modifier = Modifier.fillMaxSize().edgeFade(),
                     contentPadding = PaddingValues(KamTheme.dimens.screenPadding),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -244,6 +272,7 @@ fun ChatsScreen(
                 }
 
                 else -> LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize().edgeFade(),
                     contentPadding = PaddingValues(
                         horizontal = KamTheme.dimens.screenPadding,
