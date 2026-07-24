@@ -208,7 +208,10 @@ private fun MomentCard(
                 Icon(
                     if (saved) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
                     contentDescription = null,
-                    tint = if (saved) colors.accent else colors.textSecondary,
+                    // Saving is one action everywhere, so a saved bookmark is the
+                    // reserved amber here just as it is on a chat response, not the
+                    // accent (issue 23).
+                    tint = if (saved) colors.flagAmber else colors.textSecondary,
                     modifier = Modifier.size(20.dp),
                 )
             }

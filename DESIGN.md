@@ -26,9 +26,7 @@ App icon: the same geometry as an Android adaptive icon. Foreground is the mark,
 
 ## 3. Color
 
-The accent is user-chosen from sixteen colours (eight bright, eight earthy, green the default), each with separately tuned light and dark shades and its own on-accent text colour, all contrast-checked in both themes. Amber is a separate reserved colour the accent never touches. Amber is reserved for four things only: saved items (the bookmark on a response and the Follow-ups list it feeds), locked model tiers, the Support this work button, and destructive-action labels (for example Delete). Amber must never appear anywhere else. No purple anywhere. No gradients except the core of the mark. No sparkles, no glow effects beyond the mark's breathing shadow and the onboarding ripple rings.
-
-Note on one inconsistency being tracked: the bookmark on a chat response fills amber when set, per the rule above. The save bookmark on a Discover card currently fills with the accent colour instead of amber; unifying it to amber is tracked as open issue #23 and does not change the rule stated here.
+The accent is user-chosen from sixteen colours (eight bright, eight earthy, green the default), each with separately tuned light and dark shades and its own on-accent text colour, all contrast-checked in both themes. Amber is a separate reserved colour the accent never touches. Amber is reserved for four things only: saved items (the bookmark on a response, on a Discover card, and the Follow-ups list they feed, all filling the same amber when set), locked model tiers, the Support this work button, and destructive-action labels (for example Delete). Amber must never appear anywhere else. No purple anywhere. No gradients except the core of the mark. No sparkles, no glow effects beyond the mark's breathing shadow and the onboarding ripple rings.
 
 Light theme (warm ivory):
 - Background: #F6F4EC
