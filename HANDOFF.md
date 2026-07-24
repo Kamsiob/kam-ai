@@ -63,10 +63,14 @@ from DESIGN.md rather than rewritten. `PublicCopyTest` now guards it, because no
 the rename was complete in the code and the tests while the first thing a new user reads
 still described the old app.
 
-**Next concrete step:** **#40** (stopping a response loses its reason, hides the action row
-and gets mislabelled on the next launch), then **#41** (export attribution, which unblocks
-the export half of #28). #40 comes before #35's failure-state work, which builds on that
-code path. Full order in section 4.
+**Also finished: #40, verified on the phone and closed.** Stopping now keeps the partial
+answer, says "You stopped this one.", keeps the whole action row including regenerate, and
+survives a relaunch without being relabelled. This unblocks #35's failure-state half, which
+builds on the same code path.
+
+**Next concrete step:** **#41** (exports attribute mode-change notices to the assistant,
+shared threads lose their title, and an export filename can come from a SYSTEM notice),
+which unblocks the export half of #28. Full order in section 4.
 
 **Two things were found along the way and are recorded, not fixed.** Read both before
 picking up performance or export work.
@@ -88,15 +92,13 @@ said there was nothing outstanding.
    content descriptions, after the unified-saving decision made everything a bookmark. The
    onboarding and Q&A copy is fixed (#42) and guarded; these surfaces are not, and
    `PublicCopyTest` does not reach them.
-2. **Stopping a response loses its stop reason** and hides the whole action row, then gets
-   mislabelled on the next launch. Issue #40.
-3. **Exports attribute mode-change notices to the assistant.** Issue #41.
-4. **Workbench promises a linked session it does not implement.** The copy is correct
+2. **Exports attribute mode-change notices to the assistant.** Issue #41.
+3. **Workbench promises a linked session it does not implement.** The copy is correct
    about the intent; #32 makes it true. Do not weaken the copy in the meantime.
-5. **The mode rename is complete in code, not in copy.** Every `Mode.CHAT` is gone.
-6. **`ui/components/ModeSegmentedControl.kt` is live**, referenced from `ChatsScreen.kt`
+4. **The mode rename is complete in code, not in copy.** Every `Mode.CHAT` is gone.
+5. **`ui/components/ModeSegmentedControl.kt` is live**, referenced from `ChatsScreen.kt`
    by fully qualified name, so a grep for the file name finds nothing. Do not delete it.
-7. **Three legacy `"CHAT"` mappings exist on purpose** (Room type converter, backup codec,
+6. **Three legacy `"CHAT"` mappings exist on purpose** (Room type converter, backup codec,
    CSV parsers) for data the migration cannot reach, such as an older backup file.
 
 ---
@@ -180,7 +182,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | # | Item | State |
 |---|---|---|
 | #49 | Chat template tokens leak into responses in longer conversations | **closed, verified on the phone** with adversarial labelled-dialogue prompts |
-| #40 | Stopping a response loses its reason, hides the action row, then gets mislabelled | not started |
+| #40 | Stopping a response loses its reason, hides the action row, then gets mislabelled | **closed, verified on the phone**, including across a relaunch |
 | #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | not started |
 | #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | **closed, verified on the phone.** Guarded by PublicCopyTest |
 | #45 | Overlay shows a memory warning and then works anyway | not started |
@@ -209,7 +211,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #32 | Workbench linking, both directions | not started. **Touches the data model, needs MIGRATION_5_6.** No Workbench entity exists; it persists two strings through the settings table |
 | #33 | Filter follow-ups by kind alongside source | not started. Brainstorm-defaults-to-pursue path also unverified |
 | #34 | Keyboard and reachability audit | not started. Nothing in the app reacts to the keyboard opening and the message list has no IME padding. Do after #29 |
-| #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll landed but **only ever seen in their hidden state**. The failure-state half is blocked behind #40 |
+| #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll are now **seen working on the phone** (#43). The failure-state half is **unblocked**: #40 is closed and the stop reason is now recorded honestly. Scroll restoration on reopening is still not done |
 | #36 | Onboarding and public copy for four modes | not started. Do after #29 and #42 |
 | #38 | Titling KV pollution (**now measured, and severe**), Bench/Overlay/Discover prompt trims, runtime network monitor | partial. Titling costs ~28s per turn by destroying the prefix reuse, and runs after every turn rather than once. Numbers in the issue comment. Fix it before any round 3 perf work, or every measurement taken there is against a defeated cache |
 | #39 | Usability gaps and end-to-end workflows, **including eleven of the twelve mode-switch pairs never exercised** | not started |

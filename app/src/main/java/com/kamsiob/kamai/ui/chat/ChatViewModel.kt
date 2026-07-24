@@ -18,6 +18,8 @@ import com.kamsiob.kamai.llm.MemoryMode
 import com.kamsiob.kamai.llm.PromptBuilder
 import com.kamsiob.kamai.llm.SystemPrompts
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +29,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Drives one conversation: sending, streaming, stopping, regenerating, and
@@ -247,10 +250,23 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Stops the answer in progress and keeps what was written.
+     *
+     * Deliberately does not cancel the job. Cancelling it was issue #40: the
+     * `finally` in [respond] that records the stop reason and finishes the
+     * message then ran inside an already-cancelled coroutine and threw at its
+     * first suspension point, so the message stayed incomplete with no reason,
+     * lost its whole action row, and was relabelled "Kam AI was closed while
+     * this was being written." on the next launch, which was not true.
+     *
+     * The engine's abort flag ends the decode within a token, and it now reports
+     * the stop as the user's rather than leaving it to be inferred. `_streaming`
+     * is left for that same `finally` to clear, so the stop button disappears
+     * when the answer has actually stopped rather than when it was asked to.
+     */
     fun stop() {
         engine.requestStop()
-        generation?.cancel()
-        _streaming.value = false
     }
 
     // Attachments: a document the model reads for this conversation.
@@ -380,10 +396,23 @@ class ChatViewModel(
     private fun respond(conversationId: String) {
         // A background title pass must never share the engine with a live reply.
         titlingJob?.cancel()
-        generation?.cancel()
+        val previous = generation
         _streaming.value = true
 
         generation = viewModelScope.launch {
+            // Wait for any previous answer to finish tearing down before starting
+            // another. Its `finally` is NonCancellable and does real work:
+            // finishing the message, clearing `_streaming`, titling, remembering.
+            // Letting the two overlap would allow the old teardown to clear the
+            // streaming flag for this new answer and to put a second pass on the
+            // engine at the same time. Cancelling the collector also trips
+            // `awaitClose`, which aborts the native decode, so this does not wait
+            // for a long answer to finish on its own.
+            //
+            // Before #40 the old teardown threw at its first suspension point and
+            // never got far enough to cause this, so the bug was hiding the race.
+            previous?.cancelAndJoin()
+            _streaming.value = true
             // Lazy load on first use, through the manager. It enforces the memory
             // check and the one-resident rule; we only proceed once a model is
             // actually resident, and surface anything else plainly.
@@ -428,28 +457,35 @@ class ChatViewModel(
                         )
                     }
             } finally {
-                val finalText = PromptBuilder.cleanOutput(builder.toString())
-                val reason = when (val r = stopReason) {
-                    is InferenceEngine.StopReason.Overheating -> r.message
-                    is InferenceEngine.StopReason.OutOfRoom -> r.message
-                    is InferenceEngine.StopReason.Failed -> r.message
-                    InferenceEngine.StopReason.UserStopped -> "You stopped this one."
-                    InferenceEngine.StopReason.Finished -> null
-                }
+                // NonCancellable because this block is what makes a stopped or
+                // abandoned answer honest, and every call in it suspends. If the
+                // scope is cancelled, by the screen going away mid-answer, an
+                // unwrapped block throws at its first suspension point and the
+                // message is left incomplete with no reason for ever. See #40.
+                withContext(NonCancellable) {
+                    val finalText = PromptBuilder.cleanOutput(builder.toString())
+                    val reason = when (val r = stopReason) {
+                        is InferenceEngine.StopReason.Overheating -> r.message
+                        is InferenceEngine.StopReason.OutOfRoom -> r.message
+                        is InferenceEngine.StopReason.Failed -> r.message
+                        InferenceEngine.StopReason.UserStopped -> "You stopped this one."
+                        InferenceEngine.StopReason.Finished -> null
+                    }
 
-                if (finalText.isEmpty() && reason != null) {
-                    // Nothing was produced, so an empty bubble would be worse
-                    // than no bubble. Say what happened instead.
-                    repository.deleteMessage(messageId)
-                    _notice.value = reason
-                } else {
-                    repository.updateMessage(messageId, finalText, incomplete = false)
-                    repository.finishMessage(messageId, reason)
-                }
+                    if (finalText.isEmpty() && reason != null) {
+                        // Nothing was produced, so an empty bubble would be worse
+                        // than no bubble. Say what happened instead.
+                        repository.deleteMessage(messageId)
+                        _notice.value = reason
+                    } else {
+                        repository.updateMessage(messageId, finalText, incomplete = false)
+                        repository.finishMessage(messageId, reason)
+                    }
 
-                _streaming.value = false
-                maybeTitle(conversationId)
-                maybeAutoRemember(conversationId)
+                    _streaming.value = false
+                    maybeTitle(conversationId)
+                    maybeAutoRemember(conversationId)
+                }
             }
         }
     }

@@ -136,6 +136,10 @@ class InferenceEngine(
     ): Flow<Chunk> = callbackFlow {
         val values = Sampling.forMode(mode)
 
+        // Cleared per generation, so a stop from the previous answer cannot mark
+        // this one as stopped.
+        userStopRequested = false
+
         // Rebuild the context if it was released under memory pressure. The
         // model weights are still mmapped, so this is quick, and it is why a
         // moderate-pressure release costs at most a slightly slower next reply.
@@ -221,13 +225,21 @@ class InferenceEngine(
             }
         }
 
+        // Settle the reason before flushing, because whether the held tail is
+        // worth showing depends on it.
+        if (produced >= maxTokens) reason = StopReason.Finished
+        // A user stop is now reported explicitly rather than inferred from the
+        // coroutine being cancelled. requestStop only raises the native abort
+        // flag, which makes nativeNextToken return null and looks exactly like a
+        // model that finished, so without this a stopped answer was recorded as
+        // a complete one. Cancellation still counts, for the case where the whole
+        // screen goes away mid-answer. See issue #40.
+        if (userStopRequested || !isActive) reason = StopReason.UserStopped
+
         // Whatever is still held back was ordinary text after all.
         if (reason != StopReason.UserStopped) {
             guard.flush().takeIf { it.isNotEmpty() }?.let { trySend(Chunk(it)) }
         }
-
-        if (produced >= maxTokens) reason = StopReason.Finished
-        if (!isActive) reason = StopReason.UserStopped
 
         // Measured performance for this generation. Read with:
         //   adb logcat -s KamPerf
@@ -249,8 +261,27 @@ class InferenceEngine(
         awaitClose { LlamaBridge.nativeRequestStop() }
     }.flowOn(nativeDispatcher)
 
-    /** Interrupts a decode that is already in flight. */
-    fun requestStop() = LlamaBridge.nativeRequestStop()
+    /**
+     * True from the moment the user asks to stop until the next generation
+     * begins. Volatile because it is written from whichever thread taps stop and
+     * read on the native dispatcher.
+     */
+    @Volatile
+    private var userStopRequested = false
+
+    /**
+     * Interrupts a decode that is already in flight, and records that it was the
+     * user who did it.
+     *
+     * The flag matters as much as the abort. Raising the native flag alone ends
+     * the loop in a way indistinguishable from the model reaching its own end,
+     * so the answer would be filed as complete and the honest "You stopped this
+     * one." line would never appear.
+     */
+    fun requestStop() {
+        userStopRequested = true
+        LlamaBridge.nativeRequestStop()
+    }
 
     suspend fun countTokens(text: String): Int = withContext(nativeDispatcher) {
         if (LlamaBridge.nativeIsLoaded()) {

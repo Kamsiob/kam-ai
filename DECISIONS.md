@@ -2713,3 +2713,67 @@ from Item 9 and should be fixed, but those are surfaces with their own open work
 #47 for the overlay) and changing them piecemeal now would collide with it. Filed separately
 rather than widened into this change. `PublicCopyTest` covers only onboarding and the Q&A,
 so it will not catch those; extend it when they are cleaned up.
+
+## Issue #40: stopping an answer, and a race the bug was hiding
+
+`stop()` called `engine.requestStop()` and then `generation?.cancel()`. The `finally` in
+`respond()` that records the stop reason and finishes the message was not wrapped in
+`NonCancellable`, so it ran inside an already-cancelled coroutine and threw at its first
+suspension point. The message stayed `incomplete = true` with `stoppedReason = null`, which
+cost the honest "You stopped this one." line, hid the entire action row including
+regenerate, rendered as nothing at all when no tokens had been produced, and got relabelled
+"Kam AI was closed while this was being written." by `repairIncompleteMessages()` on the
+next launch, which was untrue.
+
+### The issue's suggested fix was wrong on the facts
+
+It said to drop the cancel and let "the graceful `requestStop()` path in InferenceEngine
+(which already sets StopReason.UserStopped) do its job". It does not. `requestStop()` only
+raised the native abort flag, which makes `nativeNextToken` return null, which is
+indistinguishable from the model reaching its own end and yields `StopReason.Finished`.
+`UserStopped` came solely from `if (!isActive)`, meaning it was **derived from the
+cancellation**. Dropping the cancel would have filed every stopped answer as complete: the
+same defect wearing different clothes.
+
+So the engine now says so explicitly. `requestStop()` sets a volatile `userStopRequested`
+flag alongside the native abort, cleared at the start of each generation so a stop from the
+previous answer cannot mark the next one. The reason is settled as
+`if (userStopRequested || !isActive)`, keeping cancellation as a cause for the case where
+the whole screen goes away mid-answer. That determination moved above the `guard.flush()`
+call, because whether the held tail is worth showing depends on the reason.
+
+With that, `stop()` no longer cancels anything. The abort ends the decode within a token,
+the flow completes normally, and the `finally` runs without a cancelled coroutine at all.
+`_streaming` is left for that block to clear, so the stop button disappears when the answer
+has actually stopped rather than when it was asked to.
+
+The `finally` is wrapped in `withContext(NonCancellable)` anyway. Not for the stop path,
+which no longer cancels, but for the case the wrapper is genuinely for: the scope being
+cancelled because the screen went away mid-answer. Without it that message is left
+incomplete with no reason for ever.
+
+### The race underneath
+
+`respond()` began with `generation?.cancel()` followed immediately by
+`_streaming.value = true` and a new `launch`. Once the `finally` actually runs, the previous
+answer's teardown overlaps the new one: it can clear `_streaming` for an answer that just
+started, and put a titling and auto-remember pass on the engine at the same time as a live
+reply. **The old bug was hiding this**, because the teardown always threw before reaching
+any of it.
+
+The previous job is now awaited with `cancelAndJoin()` inside the new coroutine, with
+`_streaming` set true again afterwards. Cancelling the collector trips `awaitClose`, which
+aborts the native decode, so this does not wait for a long answer to finish on its own.
+
+### Testing
+
+Nothing here is reachable by the current unit suite. The defect was coroutine lifecycle, not
+logic, and catching it would need fakes for `KamRepository`, `InferenceEngine` (native) and
+`ModelManager`, none of which exist. **A test asserting the `StopReason` to message mapping
+would have passed throughout and caught nothing**, so none was added; the mapping was never
+what broke. Worth building that harness the next time this file is opened for real work.
+
+Verified on the phone instead, which is what the issue asked for. Stopped a long answer
+mid-stream: the partial text stayed, "You stopped this one." appeared, and the full action
+row including regenerate was there. Then force-stopped and relaunched the app: the message
+still reads "You stopped this one." rather than the closed-while-writing label.
