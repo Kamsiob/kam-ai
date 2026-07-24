@@ -63,6 +63,21 @@ class ScrollFollowTest {
     }
 
     @Test
+    fun theThinkingIndicatorCountsAsARowBelowTheLastMessage() {
+        // Found on the phone, not here. While the model is thinking there is one
+        // more row than there are messages, so being at the bottom of the last
+        // *message* is not being at the bottom of the list. Code that scrolls to
+        // messages.lastIndex stops a row short, atBottom stays false, and the
+        // response never starts following once it arrives. Five messages plus the
+        // indicator is six rows, and index 4 is not the last of them.
+        assertThat(atBottom(lastVisibleIndex = 4, lastVisibleItemEnd = 900, totalItems = 6))
+            .isFalse()
+        // Scrolling to the real last row, the indicator itself, does reach bottom.
+        assertThat(atBottom(lastVisibleIndex = 5, lastVisibleItemEnd = 900, totalItems = 6))
+            .isTrue()
+    }
+
+    @Test
     fun followingIsOnByDefaultAtTheBottom() {
         val latch = FollowLatch()
         assertThat(latch.userTookControl).isFalse()

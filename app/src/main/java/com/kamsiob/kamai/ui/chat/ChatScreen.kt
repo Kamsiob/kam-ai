@@ -98,6 +98,22 @@ import com.kamsiob.kamai.ui.theme.standardSpec
  */
 private const val FOLLOW_TO_END_OFFSET = 1_000_000
 
+/**
+ * Scrolls to the true bottom of the list.
+ *
+ * Deliberately the last *item*, not the last *message*. The thinking indicator is
+ * an extra item below the messages, so while it is showing there is one more row
+ * than there are messages. Scrolling to `messages.lastIndex` therefore stops one
+ * row short, never reaches the bottom, and leaves `atBottom` false, which in turn
+ * means a response never starts following once it does begin to arrive. That was
+ * a live defect found on the phone, not in the tests: the old index-only
+ * `atBottom` happened to tolerate it and the stricter one does not.
+ */
+private suspend fun androidx.compose.foundation.lazy.LazyListState.followToEnd() {
+    val last = layoutInfo.totalItemsCount - 1
+    if (last >= 0) animateScrollToItem(last, FOLLOW_TO_END_OFFSET)
+}
+
 @Composable
 fun ChatScreen(
     messages: List<MessageEntity>,
@@ -205,9 +221,9 @@ fun ChatScreen(
     // list clamps to the very bottom of the content: following has to mean the
     // newest text, and scrolling to the item's start would sit at the top of a
     // long answer while it grew below the fold.
-    LaunchedEffect(messages.size, messages.lastOrNull()?.content?.length) {
+    LaunchedEffect(messages.size, messages.lastOrNull()?.content?.length, streaming) {
         if (messages.isNotEmpty() && followLatch.shouldFollow(atBottom)) {
-            listState.animateScrollToItem(messages.lastIndex, FOLLOW_TO_END_OFFSET)
+            listState.followToEnd()
         }
     }
 
@@ -332,12 +348,7 @@ fun ChatScreen(
                                 // Tapping this is the user asking to follow again,
                                 // so it releases the latch as well as scrolling.
                                 followLatch.jumpTapped()
-                                scope.launch {
-                                    listState.animateScrollToItem(
-                                        messages.lastIndex,
-                                        FOLLOW_TO_END_OFFSET,
-                                    )
-                                }
+                                scope.launch { listState.followToEnd() }
                             }
                             .semantics { contentDescription = "Jump to the latest message" },
                         contentAlignment = Alignment.Center,
