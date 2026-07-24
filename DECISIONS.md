@@ -2823,3 +2823,68 @@ out of the app's cache with `run-as`:
 - the text heads `Rules for responding`, not `Kam AI conversation`
 - the notice reads `[ Logic Partner is on. ... ]`, with no `Kam AI:` prefix anywhere near it
 - the Markdown version heads `# Rules for responding` and renders the notice as `_..._`
+
+## Issues #45 and #46: two overlay defects that were both about timing
+
+### #45, the memory warning that appears and then works anyway
+
+The check is not wrong and the overlay does not proceed. `OverlayViewModel.ask` goes through
+the same `modelManager.ensureLoaded()` as the app, so it uses the corrected `fits()` from the
+earlier rebuild, and a `Refused` status sets a notice and returns without generating.
+
+**The defect is that the message outlives the condition.** `_notice` is assigned in nine
+places in that file and set back to null in none of them. There is no dismiss on the overlay
+either, unlike the chat screen which has had `dismissNotice()` all along. So one refusal
+stuck to the panel for the life of the overlay while every later question answered normally
+underneath it. That is exactly the reported symptom.
+
+The refusal itself is genuinely transient, and the overlay is where it is most likely: it is
+invoked by a long-press of power while other apps are live and holding memory, which is the
+worst moment to ask for a free-memory reading. So the warning was true when it appeared and
+false a second later, which is the worst of both.
+
+`ask()` and `startRecording()` now clear the notice as they begin, and `dismissNotice()`
+exists for parity with the chat screen. The warning now says something about the attempt in
+front of the user rather than about one they have forgotten.
+
+**Not verified on the device**, honestly. Forcing a real memory refusal on a 16 GB phone with
+the model already resident is not something I could arrange, and no other notice fired during
+testing. The diagnosis is provable by reading the file, since every one of the nine
+assignments is non-null and nothing else touches the flow, but the fix has not been watched
+doing its job. Worth a second look if the warning is ever seen again.
+
+### #46, the voice-first setting that had no effect
+
+`defaultToVoice` and `voiceAvailable` are both `stateIn(..., false)`, so both read false
+until the database answers. The overlay decided how to open in a `LaunchedEffect(Unit)`,
+which runs once on first composition, **before either has arrived**. It therefore always saw
+"not voice", focused the text field, and never ran again. The setting was read correctly and
+consulted at the only moment it could not yet be known.
+
+`openWithVoice` is a new `StateFlow<Boolean?>` combining the two, null until both are known.
+The nullability is the fix: a caller can now tell "not yet" from "no". The overlay keys its
+effect on that flow, returns early while it is null, and latches on `opened` so exactly one
+decision is made per overlay. Without the latch a setting changing while the panel is up
+could grab focus or the microphone out from under somebody mid-sentence.
+
+Voice first now means **listening**, not merely available, which is the stronger of the two
+options the issue allowed and the one that makes the setting meaningfully different from off.
+Stopping is the same button turning into Stop, and the field is right there to type into
+instead. When the microphone permission is missing it is requested plainly, rather than
+silently falling back to the keyboard, which is what the old behaviour amounted to.
+
+Verified on the phone end to end, with the setting turned on for the test and put back
+afterwards: long-pressing power opened the panel already listening with "Listening..." in the
+field and a Stop control, stopping moved it to "Turning your voice into text...", and the
+transcription reached the model, which answered. No keyboard was grabbed at any point.
+
+### Found while verifying, not fixed: the recording button uses the reserved gold
+
+`RoundBtn` draws the recording state with `colors.flagAmber`. DESIGN.md section 2 is explicit:
+gold is reserved for saved items, locked tiers, the Support this work button and destructive
+labels, and "must never appear anywhere else". A recording control is none of those.
+
+This predates #46, but it was close to invisible while voice-first did nothing, and it is now
+the first thing a voice-first user sees. **Not fixed here on purpose**: DESIGN specifies no
+treatment for a listening state, and picking one is the owner's call rather than a colour to
+choose in passing. Filed separately, and it belongs with the overlay rework in #47.

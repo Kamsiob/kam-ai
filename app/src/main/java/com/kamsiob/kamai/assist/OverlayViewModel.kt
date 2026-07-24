@@ -66,12 +66,41 @@ class OverlayViewModel(app: Application) : AndroidViewModel(app) {
             .map { it == "true" }
             .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), false)
 
+    /**
+     * Whether the overlay should open listening, or null while the answer is
+     * still being read out of the database.
+     *
+     * **The nullability is the entire point.** Both flows above start `false`,
+     * because that is what `stateIn` needs as an initial value, and the overlay
+     * decided how to open in a `LaunchedEffect(Unit)` that ran on first
+     * composition, before either had arrived. So it always saw "not voice",
+     * focused the text field, and never ran again, whatever the setting actually
+     * said. That is issue #46: the setting had no effect because nothing ever
+     * read its real value at the only moment that mattered.
+     *
+     * A caller can now tell "not yet" from "no", and wait for the difference.
+     */
+    val openWithVoice: StateFlow<Boolean?> =
+        kotlinx.coroutines.flow.combine(
+            repository.observeSetting(KamRepository.Keys.ASSISTANT_DEFAULT_VOICE).map { it == "true" },
+            repository.observeActiveSttModel().map { it != null },
+        ) { wantsVoice, available -> wantsVoice && available }
+            .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), null)
+
     fun setQuestion(text: String) { _question.value = text }
 
     fun ask(text: String = _question.value) {
         if (text.isBlank() || _streaming.value) return
         _question.value = text
         _answer.value = ""
+        // A new question means the last complaint is no longer current. Nothing
+        // cleared this before, so a notice stayed on screen for the life of the
+        // overlay: a memory refusal, which is genuinely transient because the
+        // overlay is invoked while other apps hold memory, sat above every
+        // successful answer that followed it. That is issue #45, the warning that
+        // appears and then works anyway. The check was right and the overlay did
+        // refuse that attempt; only the message outlived the condition.
+        _notice.value = null
         _streaming.value = true
         job = viewModelScope.launch {
             when (val status = modelManager.ensureLoaded()) {
@@ -129,8 +158,16 @@ class OverlayViewModel(app: Application) : AndroidViewModel(app) {
 
     fun startRecording() {
         if (_recording.value || _transcribing.value) return
+        // Same reasoning as ask(): starting again clears the last complaint, so a
+        // stale one cannot sit over a recording that is working (#45).
+        _notice.value = null
         if (recorder.start(viewModelScope)) _recording.value = true
         else _notice.value = "The microphone could not be opened."
+    }
+
+    /** Lets the surface dismiss a notice, as the chat screen already could. */
+    fun dismissNotice() {
+        _notice.value = null
     }
 
     fun stopAndTranscribe() {

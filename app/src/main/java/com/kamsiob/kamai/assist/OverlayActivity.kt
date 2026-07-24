@@ -120,7 +120,7 @@ private fun OverlayPanel(
     val recording by vm.recording.collectAsStateWithLifecycle()
     val transcribing by vm.transcribing.collectAsStateWithLifecycle()
     val voiceAvailable by vm.voiceAvailable.collectAsStateWithLifecycle()
-    val defaultToVoice by vm.defaultToVoice.collectAsStateWithLifecycle()
+    val openWithVoice by vm.openWithVoice.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
 
     var field by remember { mutableStateOf("") }
@@ -134,19 +134,38 @@ private fun OverlayPanel(
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    // Open in the input the user chose: text brings up the keyboard focused;
-    // voice leaves the microphone prominent, one tap away (item 18). Never grab
-    // the keyboard when voice is the default.
-    LaunchedEffect(Unit) {
-        if (!(defaultToVoice && voiceAvailable)) {
-            runCatching { focusRequester.requestFocus() }
-        }
-    }
-
     val context = androidx.compose.ui.platform.LocalContext.current
     val micPermission = androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> if (granted) vm.startRecording() }
+
+    // Open in the input the user chose.
+    //
+    // Keyed on the setting rather than on Unit, and it waits for a non-null
+    // value, because both underlying flows start false while the database is
+    // still being read. Deciding on first composition meant always deciding
+    // "text", so the voice-first setting did nothing at all (#46). The `opened`
+    // latch keeps this to one decision per overlay, so a setting changing while
+    // the panel is up cannot grab focus or the microphone out from under
+    // somebody mid-sentence.
+    var opened by remember { mutableStateOf(false) }
+    LaunchedEffect(openWithVoice) {
+        val voiceFirst = openWithVoice ?: return@LaunchedEffect
+        if (opened) return@LaunchedEffect
+        opened = true
+        if (voiceFirst) {
+            // Voice first means listening, not merely available. Stopping is the
+            // same button, which turns into Stop, and the field is right there to
+            // type into instead.
+            val granted = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
+            // Asked plainly rather than silently falling back to the keyboard,
+            // which is what the old behaviour amounted to.
+            if (granted) vm.startRecording() else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+        } else {
+            runCatching { focusRequester.requestFocus() }
+        }
+    }
 
     // The scrim: a faint dim so the panel reads as lifted over whatever was
     // behind it, and tapping it dismisses the overlay.
