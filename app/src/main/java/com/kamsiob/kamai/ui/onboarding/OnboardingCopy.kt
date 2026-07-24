@@ -50,7 +50,7 @@ object OnboardingCopy {
     )
 
     const val SLIDE2_CLOSING =
-        "When something matters, flag it. It lands in Follow-ups so you can check it " +
+        "When something matters, bookmark it. It lands in Follow-ups so you can check it " +
             "properly later."
 
     val slide3 = Slide(
@@ -59,15 +59,19 @@ object OnboardingCopy {
         button = "Continue",
     )
 
+    // The four modes, in the order the mode control shows them. Discover is not
+    // among them on purpose: it is a source, with its own tab, not a mode. Listing
+    // it here was part of issue #42.
     val slide3Modes = listOf(
-        "Chat" to "Everyday questions and back-and-forth.",
+        "General" to "Everyday questions and back-and-forth.",
         "Logic Partner" to "Argues the other side and pokes holes in your thinking.",
+        "Brainstorm" to "Will not hand you ideas, it pulls them out of you.",
         "Workbench" to "Paste something in, get it rewritten, tightened, or reorganized.",
-        "Discover" to "Deals you something interesting to read and talk about.",
     )
 
     const val SLIDE3_CLOSING =
-        "Switch with the pills at the top of any chat. Discover has its own tab."
+        "Modes are chosen when starting a chat and can be switched at any time. " +
+            "Discover has its own tab."
 
     val slide4 = Slide(
         eyebrow = "Setup",

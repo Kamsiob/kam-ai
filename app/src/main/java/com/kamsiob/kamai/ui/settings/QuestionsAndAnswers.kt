@@ -21,7 +21,8 @@ object QuestionsAndAnswers {
             "Why does it sometimes get facts wrong?",
             "The model is small enough to fit on a phone, so it knows less than the big " +
                 "cloud AIs and can misremember things like dates and names. When an answer " +
-                "matters, flag it and check later. That is exactly what Follow-ups are for.",
+                "matters, bookmark it and check later. That is exactly what Follow-ups are " +
+                "for.",
         ),
         Entry(
             "Why can't it make images?",
@@ -36,11 +37,12 @@ object QuestionsAndAnswers {
         ),
         Entry(
             "What are the modes?",
-            "Four ways to use the same AI. Chat is everyday back-and-forth. Logic Partner " +
-                "argues the other side of your ideas. Workbench rewrites and reorganizes " +
-                "text you paste in. Discover deals you something interesting to read and " +
-                "talk about. Switch with the pills at the top of a chat; Discover has its " +
-                "own tab.",
+            "Four ways to use the same AI. General is everyday back-and-forth. Logic " +
+                "Partner argues the other side of your ideas. Brainstorm will not hand you " +
+                "ideas, it pulls them out of you. Workbench rewrites and reorganizes text " +
+                "you paste in. You pick a mode when you start a chat and can switch at any " +
+                "time from the mode name above the message box. Discover is separate, with " +
+                "its own tab: it deals you something interesting to read and talk about.",
         ),
         Entry(
             "How do I open it with the power button?",
@@ -55,8 +57,8 @@ object QuestionsAndAnswers {
         ),
         Entry(
             "What is a follow-up?",
-            "A small flag you can put on any answer you want to double-check or dig into " +
-                "later. Flagged things collect in the Follow-ups tab so nothing gets lost.",
+            "A bookmark you can put on any answer you want to double-check or dig into " +
+                "later. Saved things collect in the Follow-ups tab so nothing gets lost.",
         ),
         Entry(
             "What are content packs?",

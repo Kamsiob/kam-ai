@@ -2657,3 +2657,59 @@ as the size implies.
 Added in 595f6d9 and confirmed live under tag `KamAI-llama`: the loader's own output now
 reaches logcat, including the full metadata dump. That is what #51 needs in order to read
 whether repacking and flash attention actually engaged, rather than assuming they did.
+
+## Issue #42: the copy a new user reads first, and the guard that was missing
+
+Two shipped surfaces still described the pre-four-mode app: onboarding slide 3 in
+`ui/onboarding/OnboardingCopy.kt` and the "What are the modes?" entry in
+`ui/settings/QuestionsAndAnswers.kt`. Both named Chat instead of General, omitted Brainstorm
+entirely, listed Discover as a mode when it is a source with its own tab, and pointed at
+"the pills at the top of a chat", a switcher that had been deleted.
+
+The corrected wording was taken verbatim from DESIGN.md sections 9 and 10 rather than
+rewritten, since the design document already carried it and the two had simply drifted
+apart. DESIGN.md section 10's parenthetical noting that the app still carried the old
+wording has been removed now that it does not.
+
+Two further instances of the same drift were fixed while in these files, both from the
+unified-saving decision in Item 9: slide 2 closed with "When something matters, flag it"
+where DESIGN says "bookmark it", and the "What is a follow-up?" answer called it "a small
+flag" collecting "flagged things" rather than a bookmark collecting saved things.
+
+### The interesting part is why it survived
+
+Nothing tested this copy. The four-mode rename was complete in the code, complete in the
+tests, and the first thing a new user reads went on describing the old app, with a green
+suite the entire time. `Mode.CHAT` no longer existed anywhere, yet onboarding still
+introduced "Chat".
+
+`PublicCopyTest` now guards it. The assertions are deliberately about **meaning that has
+already gone stale once**, not about exact sentences: the mode list is exactly the four real
+modes in order, every mode in the enum is introduced somewhere in the public copy, Discover
+is never presented as a mode, nothing points at the deleted switcher, saving is called
+bookmarking, "Chat" is not used as a mode name, and no user-facing string contains an em
+dash. Pinning whole paragraphs would make ordinary editing fail the build and teach the next
+person to update the expected string without reading it, which guards nothing.
+
+The mode-coverage test reads from `Mode.entries`, so adding a mode and forgetting to
+introduce it to users fails here. `BENCH` is Workbench and is deliberately **not** excluded;
+only `DISCOVER` and `OVERLAY` are, because neither is a mode a user picks.
+
+**The guard was checked by breaking it.** Reintroducing the three original defects made
+exactly three tests fail, `theOnboardingModeListIsTheFourRealModes`,
+`discoverIsNeverPresentedAsAMode` and `noPublicCopyPointsAtTheDeletedSwitcher`, and the copy
+was then restored. A guard nobody has watched fail is not known to guard anything.
+
+Verified on the phone by replaying onboarding from Settings and reading the Q&A screen:
+slide 2 says bookmark, slide 3 lists General, Logic Partner, Brainstorm and Workbench with
+"Modes are chosen when starting a chat and can be switched at any time", and both Q&A
+entries read correctly.
+
+### Left alone deliberately
+
+"Flag" survives in the overlay, the Discover quiz and the Follow-ups screen, in toasts and
+content descriptions such as "Flagged to Follow-ups" and "Flag this". That is the same drift
+from Item 9 and should be fixed, but those are surfaces with their own open work (#45, #46,
+#47 for the overlay) and changing them piecemeal now would collide with it. Filed separately
+rather than widened into this change. `PublicCopyTest` covers only onboarding and the Q&A,
+so it will not catch those; extend it when they are cleaned up.

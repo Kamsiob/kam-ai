@@ -57,10 +57,16 @@ asks where the last item *ends* rather than only whether it is visible. #44 turn
 be position, not ordering: the ordering was right all along and both lists were simply
 restoring the scroll offset the user left behind.
 
-**Next concrete step:** **#42** (onboarding slide 3 and the "What are the modes?" Q&A still
-describe three modes and a dead switcher), then **#40** (stopping loses its reason), then
-**#41** (export attribution, which unblocks the export half of #28). Full order in
-section 4.
+**Also finished: #42, verified on the phone and closed.** Onboarding slide 3 and the Q&A
+now describe the four real modes and the mode control that actually exists, taken verbatim
+from DESIGN.md rather than rewritten. `PublicCopyTest` now guards it, because nothing did:
+the rename was complete in the code and the tests while the first thing a new user reads
+still described the old app.
+
+**Next concrete step:** **#40** (stopping a response loses its reason, hides the action row
+and gets mislabelled on the next launch), then **#41** (export attribution, which unblocks
+the export half of #28). #40 comes before #35's failure-state work, which builds on that
+code path. Full order in section 4.
 
 **Two things were found along the way and are recorded, not fixed.** Read both before
 picking up performance or export work.
@@ -78,8 +84,10 @@ said there was nothing outstanding.
 
 ### Things that would break if you assumed they were finished
 
-1. **Onboarding and the Q&A still describe the old three modes** and point at a switcher
-   that no longer exists. Live defect, issue #42.
+1. **"Flag" still appears in the overlay, the Discover quiz and Follow-ups**, in toasts and
+   content descriptions, after the unified-saving decision made everything a bookmark. The
+   onboarding and Q&A copy is fixed (#42) and guarded; these surfaces are not, and
+   `PublicCopyTest` does not reach them.
 2. **Stopping a response loses its stop reason** and hides the whole action row, then gets
    mislabelled on the next launch. Issue #40.
 3. **Exports attribute mode-change notices to the assistant.** Issue #41.
@@ -174,7 +182,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #49 | Chat template tokens leak into responses in longer conversations | **closed, verified on the phone** with adversarial labelled-dialogue prompts |
 | #40 | Stopping a response loses its reason, hides the action row, then gets mislabelled | not started |
 | #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | not started |
-| #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | not started |
+| #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | **closed, verified on the phone.** Guarded by PublicCopyTest |
 | #45 | Overlay shows a memory warning and then works anyway | not started |
 | #59 | Template tokens leaked before the #49 fix are still stored and still displayed | not started. Sanitise on read; do not rewrite user rows |
 | #46 | Assistant voice-first setting has no effect | not started |
