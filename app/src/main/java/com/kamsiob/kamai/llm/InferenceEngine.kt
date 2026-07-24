@@ -280,11 +280,25 @@ class InferenceEngine(
      */
     fun requestStop() {
         userStopRequested = true
-        LlamaBridge.nativeRequestStop()
+        // Guarded, because this is a teardown path and teardown runs whether or
+        // not anything ever started. The overlay calls it from `onPause` every
+        // time it closes, including when the user opened the assistant, changed
+        // their mind, and never asked anything. In a process where the native
+        // library was never loaded, that threw UnsatisfiedLinkError straight out
+        // of onPause and took the app down with "Kam AI keeps stopping".
+        //
+        // Long-standing rather than new, but it only became easy to reach once
+        // the overlay gained a handle that opens the app (#47) and a voice-first
+        // mode that opens without typing (#46). Nothing to stop is not an error.
+        if (LlamaBridge.isLibraryLoaded) LlamaBridge.nativeRequestStop()
     }
 
     suspend fun countTokens(text: String): Int = withContext(nativeDispatcher) {
-        if (LlamaBridge.nativeIsLoaded()) {
+        // The library check has to come first. This method already has a
+        // deliberate fallback for "nothing is loaded", but the guard was itself a
+        // native call, so in the one case the fallback exists for, a process with
+        // no library at all, it threw instead of falling back.
+        if (LlamaBridge.isLibraryLoaded && LlamaBridge.nativeIsLoaded()) {
             LlamaBridge.nativeCountTokens(text).coerceAtLeast(0)
         } else {
             PromptBuilder.roughTokenCount(text)

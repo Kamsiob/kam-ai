@@ -21,6 +21,16 @@ internal object LlamaBridge {
     private var loadFailure: String? = null
 
     /**
+     * Whether libkamai.so is already loaded, without trying to load it.
+     *
+     * For callers that only want to tidy up. Every `native*` method below throws
+     * `UnsatisfiedLinkError` when the library was never loaded, and a teardown
+     * path asking generation to stop in a process that never started any has
+     * nothing to gain from loading a 100 MB library to find that out.
+     */
+    val isLibraryLoaded: Boolean get() = libraryLoaded
+
+    /**
      * Loads libkamai.so. Returns null on success, or a plain-language reason on
      * failure. A missing native library is not recoverable, but it should still
      * say something a person can act on rather than crashing.

@@ -15,6 +15,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -167,6 +173,23 @@ private fun OverlayPanel(
         }
     }
 
+    // Drag state for the handle (#47). An Animatable rather than a plain float so
+    // a drag that does not reach either threshold can spring back rather than
+    // snapping, which is what makes the panel feel attached to the finger.
+    val dragY = remember { androidx.compose.animation.core.Animatable(0f) }
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    // How far up the panel may travel, and how far commits either way. Up is the
+    // shorter throw because expanding is the useful outcome and dismissing is
+    // already one tap on the scrim away.
+    // Hoisted, because the spec helper is composable and the gesture callbacks
+    // below are not.
+    val settleSpec = com.kamsiob.kamai.ui.theme.standardSpec<Float>()
+    val expandTravel = with(density) { 160.dp.toPx() }
+    val commitUp = with(density) { 56.dp.toPx() }
+    val commitDown = with(density) { 96.dp.toPx() }
+
     // The scrim: a faint dim so the panel reads as lifted over whatever was
     // behind it, and tapping it dismisses the overlay.
     Box(
@@ -192,6 +215,7 @@ private fun OverlayPanel(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .offset { IntOffset(0, dragY.value.roundToInt()) }
                 .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
                 .background(colors.background)
                 .clickable(
@@ -202,15 +226,74 @@ private fun OverlayPanel(
                 .imePadding()
                 .padding(horizontal = 18.dp, vertical = 14.dp),
         ) {
-            // A quiet grabber at the top, matching the app's other bottom sheets.
+            // The grabber, which now does something. It looked draggable and was
+            // decorative, which is issue #47: an affordance that promises and then
+            // refuses is worse than no affordance.
+            //
+            // Dragging up expands the exchange into the full app, landing in that
+            // conversation with its content intact, so a quick question becomes a
+            // real one without retyping. Dragging down dismisses. Both follow the
+            // finger and settle on release. Tapping expands, since doing nothing
+            // was the whole complaint.
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(bottom = 12.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .size(width = 34.dp, height = 4.dp)
-                    .background(colors.textTertiary.copy(alpha = 0.4f)),
-            )
+                    // A larger touch target than the 34x4 line it draws, so the
+                    // gesture is reachable without hunting for a hairline.
+                    .size(width = 96.dp, height = 28.dp)
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures(
+                            onVerticalDrag = { change, delta ->
+                                change.consume()
+                                // Upward is unbounded enough to feel free, downward
+                                // is not resisted at all, so the two directions read
+                                // differently under the finger.
+                                scope.launch {
+                                    dragY.snapTo((dragY.value + delta).coerceAtLeast(-expandTravel))
+                                }
+                            },
+                            onDragEnd = {
+                                when {
+                                    dragY.value <= -commitUp -> {
+                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onHandoff()
+                                    }
+                                    dragY.value >= commitDown -> {
+                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onClose()
+                                    }
+                                    // Short of either, it goes back where it was.
+                                    else -> scope.launch {
+                                        dragY.animateTo(0f, settleSpec)
+                                    }
+                                }
+                            },
+                            onDragCancel = {
+                                scope.launch {
+                                    dragY.animateTo(0f, settleSpec)
+                                }
+                            },
+                        )
+                    }
+                    .clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null,
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onHandoff()
+                        },
+                    )
+                    .semantics { contentDescription = "Expand into the full app" },
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(3.dp))
+                        .size(width = 34.dp, height = 4.dp)
+                        .background(colors.textTertiary.copy(alpha = 0.4f)),
+                )
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // The mark breathes while an answer is being written, its
                 // status-indicator behaviour from DESIGN.md section 2.

@@ -199,9 +199,23 @@ class OverlayViewModel(app: Application) : AndroidViewModel(app) {
      * to open. The question and answer become the first two messages, so the user
      * can keep going where the overlay left off.
      */
-    fun handoff(onReady: (String) -> Unit) {
+    /**
+     * Opens the exchange in the full app, creating a conversation from it.
+     *
+     * The empty case matters now. Handoff used to be reachable only through the
+     * "Open Kam AI" button, which appears alongside an answer, so there was
+     * always something to carry. The drag handle (#47) reaches it from an empty
+     * panel too, and creating a conversation there would litter the chat list
+     * with blank entries every time somebody opened the assistant and thought
+     * better of it. Nothing asked means nothing to carry: just open the app.
+     */
+    fun handoff(onReady: () -> Unit) {
         val q = _question.value
         val a = _answer.value
+        if (q.isBlank() && a.isBlank()) {
+            onReady()
+            return
+        }
         viewModelScope.launch {
             val id = repository.createConversation(Mode.GENERAL)
             if (q.isNotBlank()) repository.addMessage(id, Role.USER, q)
@@ -214,7 +228,7 @@ class OverlayViewModel(app: Application) : AndroidViewModel(app) {
                 com.kamsiob.kamai.llm.ConversationTitler.titleIfNeeded(repository, engine, id)
             }
             Handoff.request(id)
-            onReady(id)
+            onReady()
         }
     }
 

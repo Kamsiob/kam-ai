@@ -2888,3 +2888,74 @@ This predates #46, but it was close to invisible while voice-first did nothing, 
 the first thing a voice-first user sees. **Not fixed here on purpose**: DESIGN specifies no
 treatment for a listening state, and picking one is the owner's call rather than a colour to
 choose in passing. Filed separately, and it belongs with the overlay rework in #47.
+
+## Issue #47: the overlay handle, and the crash it uncovered
+
+The grabber looked draggable and was decorative. It now does the useful thing: dragging up
+expands the exchange into the full app, landing in that conversation with its content intact,
+so a quick question becomes a real one without retyping. Dragging down dismisses. Tapping
+expands, since doing nothing was the whole complaint. Both directions follow the finger, and
+a drag that reaches neither threshold springs back on the standard spec.
+
+The handoff itself already existed behind the "Open Kam AI" button, including creating the
+conversation, carrying both messages, and titling it through the shared path. The handle only
+needed to reach it.
+
+**Thresholds, after the first attempt failed on the device.** Up commits at 56dp, down at
+64dp. Down started at 96dp and could not be reached: with no answer yet the panel is short,
+so its handle sits near the bottom of the screen and there is not that much room left to drag
+into. A threshold you cannot reach is the same broken affordance the issue is about. The
+touch target is 96x28dp around a 34x4dp line, so the gesture does not require hunting for a
+hairline.
+
+### Handoff from an empty panel
+
+Handoff used to be reachable only through a button that appears alongside an answer, so there
+was always something to carry. The handle reaches it from an empty panel too, and creating a
+conversation there would have littered the chat list with blank entries every time somebody
+opened the assistant and thought better of it. `handoff` now returns early when both the
+question and the answer are blank: nothing asked means nothing to carry, so it just opens the
+app. Verified: tapping the handle on an empty overlay opens the app and adds nothing.
+
+### The crash this uncovered, which was nobody's new mistake
+
+Tapping the handle on a cold process produced "Kam AI keeps stopping".
+
+```
+java.lang.UnsatisfiedLinkError: No implementation found for
+  void com.kamsiob.kamai.llm.LlamaBridge.nativeRequestStop()
+  at com.kamsiob.kamai.llm.InferenceEngine.requestStop
+  at com.kamsiob.kamai.assist.OverlayViewModel.stop
+  at com.kamsiob.kamai.assist.OverlayActivity.onPause
+```
+
+`OverlayActivity.onPause` calls `vm.stop()` every time the overlay closes, including when the
+user opened the assistant, changed their mind, and never asked anything. In a process where
+the native library was never loaded, asking generation to stop threw straight out of
+`onPause`.
+
+**This is long-standing, not a regression.** `requestStop()` has always called
+`nativeRequestStop()` unconditionally. What changed is how easy it is to reach: before, the
+overlay's only route into the app was a button that appears with an answer, by which point
+the library is loaded. A handle that opens the app from an empty panel, and a voice-first
+mode that opens without typing, both reach `onPause` with nothing ever loaded. It is worth
+noting the app has a `files/crash` directory on the device, so this may account for reports
+nobody had explained.
+
+`LlamaBridge.isLibraryLoaded` reads the existing volatile flag without attempting a load, and
+`requestStop` checks it first. Teardown runs whether or not anything started, and nothing to
+stop is not an error.
+
+The same shape was fixed in `countTokens`, which already had a deliberate fallback for
+"nothing is loaded" but used a *native* call as its guard, so in the one case the fallback
+existed for it threw instead of falling back.
+
+Verified on the phone: from a force-stopped process, opening the assistant and tapping the
+handle with nothing asked opens the app with zero crashes in `logcat -b crash`.
+
+### Verified end to end
+
+Asked the overlay a question, dragged the handle up: the app opened in that exact
+conversation with the question and answer intact, already titled "Primary colours pigment
+light", and it sat at the top of Chats exactly once, with no duplicate on returning. Dragging
+down dismissed the panel. Tapping expanded it.
