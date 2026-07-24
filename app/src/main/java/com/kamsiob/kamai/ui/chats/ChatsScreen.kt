@@ -106,7 +106,6 @@ fun ChatsScreen(
     val colors = KamTheme.colors
     var query by remember { mutableStateOf("") }
     var pinnedExpanded by remember { mutableStateOf(true) }
-    var newChatMode by remember { mutableStateOf(Mode.GENERAL) }
 
     // Bulk selection. Long-pressing a row enters it; tapping toggles a row.
     val selected = remember { mutableStateListOf<String>() }
@@ -264,15 +263,15 @@ fun ChatsScreen(
             }
         }
 
-        // New chat and its mode picker, pinned at the bottom for easy reach.
+        // The segmented mode control is both the new-chat action and the mode
+        // selector: one tap on a segment starts a new conversation in that mode.
+        // It sits directly above the bottom navigation, reachable one-handed.
         if (!selecting) {
-            NewChatBar(
-                mode = newChatMode,
-                onModeChange = { newChatMode = it },
-                onNewChat = { onNewChat(newChatMode) },
+            com.kamsiob.kamai.ui.components.SegmentedModeControl(
+                onSelect = { onNewChat(it) },
                 modifier = Modifier
                     .padding(horizontal = KamTheme.dimens.screenPadding)
-                    .padding(bottom = 6.dp),
+                    .padding(top = 6.dp, bottom = 6.dp),
             )
         }
     }
@@ -543,78 +542,6 @@ private fun SwipeRow(
                 view = view,
                 onClick = { if (revealed) close() else onOpen(row.id) },
                 onLongClick = onLongPress,
-            )
-        }
-    }
-}
-
-/** The new-chat action, with its own mode selector beside it. PART 4. */
-@Composable
-private fun NewChatBar(
-    mode: Mode,
-    onModeChange: (Mode) -> Unit,
-    onNewChat: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = KamTheme.colors
-    Row(
-        modifier = modifier.fillMaxWidth().padding(top = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .clip(CircleShape)
-                .background(colors.accent)
-                .clickable(onClick = onNewChat)
-                .padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                androidx.compose.material.icons.Icons.Rounded.Add,
-                contentDescription = null,
-                tint = colors.onAccent,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                if (mode == Mode.BENCH) "Open Workbench" else "New chat",
-                style = KamTheme.type.label,
-                color = colors.onAccent,
-            )
-        }
-
-        // The new-chat mode choice is its own adjacent element, distinct from the
-        // in-chat toggle, so it reads as choosing the mode for the next thing.
-        // Cycles Chat, Logic Partner, Workbench. Workbench opens its own surface.
-        val label = when (mode) {
-            Mode.LOGIC -> "Logic"
-            Mode.BENCH -> "Bench"
-            else -> "Chat"
-        }
-        val next = when (mode) {
-            Mode.GENERAL -> Mode.LOGIC
-            Mode.LOGIC -> Mode.BENCH
-            else -> Mode.GENERAL
-        }
-        val tonal = mode != Mode.GENERAL
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(if (tonal) colors.tonalFill else colors.surfaceSecondary)
-                .clickable { onModeChange(next) }
-                .padding(horizontal = 14.dp, vertical = 12.dp)
-                .semantics {
-                    contentDescription = "New chat mode: $label. Tap to change."
-                },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                label,
-                style = KamTheme.type.label,
-                color = if (tonal) colors.tonalText else colors.textSecondary,
             )
         }
     }

@@ -1970,3 +1970,21 @@ Colourblind safety rests on never using colour alone: every mode colour appears 
 Mode icons are simple line glyphs, deliberately not the overused lightbulb (Brainstorm) or wrench
 (Workbench), and no sparkles: General a speech bubble, Logic a balance scale, Brainstorm a hub with
 spokes, Workbench lines of text. Provided via modeIcon(mode) with a shared ModeDot composable.
+
+### Segmented mode control replaces the New chat button (issue #27)
+
+The New chat button and the old mode bubble are gone, replaced by one segmented control (General, Logic,
+Storm, Bench) sitting directly above the bottom navigation, reachable one-handed. It is both the
+new-chat action and the mode selector: one tap or a drag-and-release on a segment starts a new
+conversation in that mode, so a normal conversation is still exactly one tap; General is the resting
+position. The moving thumb (the only filled element) travels on the expressive spring with overshoot,
+stretches slightly along travel, and the arriving segment's dot scales up while its label brightens.
+It is draggable as well as tappable: the thumb follows the finger, resists past the two ends, and snaps
+to the nearest segment on release; releasing back on the start segment selects nothing. Haptics are a
+light tick (TextHandleMove) as the thumb crosses each detent during a drag and a heavier thump
+(LongPress) on snap or tap, both routed through LocalHapticFeedback so the system haptic setting is
+respected. Verified on device: the four segments render with their mode colours and dots, the thumb
+rests on General, and tapping a segment opens a new conversation in that mode (confirmed the mode is
+seeded into the ChatViewModel and createConversation/forMode use it, so Brainstorm's prompt applies).
+The in-conversation mode indicator/picker and per-mode empty-state nudges are separate (issues #28, #29);
+the old top mode pill is stale until #28 replaces it. Shared component so Projects can reuse it (#39).
