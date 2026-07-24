@@ -242,10 +242,10 @@ private fun ModelCard(
             when {
                 locked -> Text(
                     "Unlikely to run on this phone. It needs more memory than this phone has.",
-                    style = KamTheme.type.secondary, color = colors.flagAmber,
+                    style = KamTheme.type.secondary, color = colors.goldText,
                 )
                 model.warning.isNotEmpty() -> Text(
-                    model.warning, style = KamTheme.type.secondary, color = colors.flagAmber,
+                    model.warning, style = KamTheme.type.secondary, color = colors.goldText,
                 )
                 else -> Text(
                     "Should run on this phone.",
@@ -260,7 +260,7 @@ private fun ModelCard(
                 "${TierRecommendation.lockedNote(model.tier)} of memory. This phone does " +
                     "not have enough for this one.",
                 style = KamTheme.type.secondary,
-                color = colors.flagAmber,
+                color = colors.goldText,
                 fontWeight = FontWeight.W600,
             )
             return@Column

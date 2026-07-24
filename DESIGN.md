@@ -26,7 +26,9 @@ App icon: the same geometry as an Android adaptive icon. Foreground is the mark,
 
 ## 3. Color
 
-The accent is user-chosen from sixteen colours (eight bright, eight earthy, green the default), each with separately tuned light and dark shades and its own on-accent text colour, all contrast-checked in both themes. Amber is a separate reserved colour the accent never touches. Amber is reserved for four things only: saved items (the bookmark on a response, on a Discover card, and the Follow-ups list they feed, all filling the same amber when set), locked model tiers, the Support this work button, and destructive-action labels (for example Delete). Amber must never appear anywhere else. No purple anywhere. No gradients except the core of the mark. No sparkles, no glow effects beyond the mark's breathing shadow and the onboarding ripple rings.
+The accent is user-chosen from sixteen colours (eight bright, eight earthy, green the default), each with separately tuned light and dark shades and its own on-accent text colour, all contrast-checked in both themes. A reserved gold (a brighter, more saturated colour than the former amber, moved further from Workbench's mustard so the two never read as the same thing: gold is luminous, mustard is deep and dull) is a separate reserved colour the accent never touches. Gold is reserved for four things only: saved items (the bookmark on a response, on a Discover card, and the Follow-ups list they feed, all filling the same gold when set), locked model tiers, the Support this work button, and destructive-action labels (for example Delete). Gold must never appear anywhere else. No purple anywhere. No gradients except the core of the mark. No sparkles, no glow effects beyond the mark's breathing shadow and the onboarding ripple rings.
+
+The four modes each have one identity hue, an identity signal only, never used for general UI state (buttons, links, selection, focus stay on the accent), and always paired with the mode name or icon so colour is never the only carrier of meaning. Light theme: General 2E7A52, Logic 2F5D8C, Brainstorm 9A3B33 (a deep maroon red, not pink), Workbench B0851C (a deep mustard). Dark theme: General 6FD19E, Logic 7FB3E0, Brainstorm E2705F, Workbench C9A44E. Discover, which is a source rather than one of the four modes, carries its own identity (light 6A4A9C, dark B79CE6) so its conversations are legible in the chat list without being one of the mode filters.
 
 Light theme (warm ivory):
 - Background: #F6F4EC
@@ -37,7 +39,7 @@ Light theme (warm ivory):
 - Text secondary: #61705F
 - Text tertiary: #95A093
 - Accent (default green): #2E7A52, with on-accent text #F2FBF4. Fifteen other accents ship alongside, each with its own tuned light shade and on-accent text.
-- Saved amber (bookmarks, Follow-ups, destructive labels): #C98A22, with soft amber fill #F7EBD3
+- Reserved gold: #EFA913 for fills, icons, dots, and the support button; #8A5F0D wherever it is text or a glyph on the ivory ground, because the bright gold is too light to read there (the spec's #96690F measured 4.41 on ivory, just under AA, so it was nudged to #8A5F0D at 5.12); soft gold fill #FCEFC6 for tinted backgrounds.
 - Borders: rgba(27,36,30,0.08)
 - Card shadow: 0 10px 28px rgba(38,64,48,0.10) plus 0 2px 6px rgba(38,64,48,0.06)
 
@@ -50,7 +52,7 @@ Dark theme (deep pine):
 - Text secondary: #9AA69B
 - Text tertiary: #5E6A60
 - Accent (default green): #6FD19E, with on-accent text #0A1B11. The other fifteen accents each carry a tuned dark shade.
-- Saved amber (bookmarks, Follow-ups, destructive labels): #E4B05A, with soft amber fill #2E2515
+- Reserved gold: #FFD166 for fills, icons, dots, text, and the support button (one luminous gold works for all on pine); soft gold fill #332812 for tinted backgrounds.
 - Borders: rgba(237,242,234,0.07)
 - Card shadow: 0 5px 16px rgba(0,0,0,0.18). Dark shadows must stay this soft. Heavy black shadows in dark mode read as dirty translucent boxes and were explicitly rejected.
 

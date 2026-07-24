@@ -161,7 +161,7 @@ fun ProjectScreen(
                         onClick = { menuOpen = false; renaming = true },
                     )
                     androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("Delete project", style = KamTheme.type.body, color = colors.flagAmber) },
+                        text = { Text("Delete project", style = KamTheme.type.body, color = colors.goldText) },
                         onClick = { menuOpen = false; onDelete() },
                     )
                 }

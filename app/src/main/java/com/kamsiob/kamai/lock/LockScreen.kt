@@ -105,7 +105,7 @@ fun LockScreen(
 
             if (error != null) {
                 Spacer(Modifier.height(10.dp))
-                Text(error, style = KamTheme.type.secondary, color = colors.flagAmber, textAlign = TextAlign.Center)
+                Text(error, style = KamTheme.type.secondary, color = colors.goldText, textAlign = TextAlign.Center)
             }
 
             Spacer(Modifier.height(16.dp))
@@ -124,7 +124,7 @@ fun LockScreen(
         } else {
             if (error != null) {
                 Spacer(Modifier.height(14.dp))
-                Text(error, style = KamTheme.type.secondary, color = colors.flagAmber, textAlign = TextAlign.Center)
+                Text(error, style = KamTheme.type.secondary, color = colors.goldText, textAlign = TextAlign.Center)
             }
             Spacer(Modifier.height(20.dp))
             PrimaryButton("Unlock", onClick = onUseBiometric, modifier = Modifier.fillMaxWidth())

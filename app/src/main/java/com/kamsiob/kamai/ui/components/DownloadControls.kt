@@ -52,7 +52,7 @@ fun DownloadControls(
                     Downloads.Status.DONE -> "Done"
                 },
                 style = KamTheme.type.mono,
-                color = if (item.status == Downloads.Status.FAILED) colors.flagAmber else colors.textSecondary,
+                color = if (item.status == Downloads.Status.FAILED) colors.goldText else colors.textSecondary,
                 modifier = Modifier.weight(1f),
             )
             when (item.status) {

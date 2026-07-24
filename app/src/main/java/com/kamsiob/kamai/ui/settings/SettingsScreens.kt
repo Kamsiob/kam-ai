@@ -435,7 +435,7 @@ fun StorageScreen(
                 )
                 Text(
                     "Delete", style = KamTheme.type.label,
-                    color = if (selectedIds.isNotEmpty()) colors.flagAmber else colors.textTertiary,
+                    color = if (selectedIds.isNotEmpty()) colors.goldText else colors.textTertiary,
                     modifier = Modifier.clip(CircleShape)
                         .then(if (selectedIds.isNotEmpty()) Modifier.clickable { onDeleteMany(selectedIds.toList()); exit() } else Modifier)
                         .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -530,7 +530,7 @@ fun StorageScreen(
                             Text(
                                 "Delete",
                                 style = KamTheme.type.label,
-                                color = colors.flagAmber,
+                                color = colors.goldText,
                                 modifier = Modifier
                                     .clip(CircleShape)
                                     .clickable { onDelete(artifact.id) }
@@ -581,7 +581,7 @@ fun MemoryScreen(
                 )
                 Text(
                     "Forget", style = KamTheme.type.label,
-                    color = if (selectedIds.isNotEmpty()) colors.flagAmber else colors.textTertiary,
+                    color = if (selectedIds.isNotEmpty()) colors.goldText else colors.textTertiary,
                     modifier = Modifier.clip(CircleShape)
                         .then(if (selectedIds.isNotEmpty()) Modifier.clickable { onForgetMany(selectedIds.toList()); exit() } else Modifier)
                         .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -703,7 +703,7 @@ fun MemoryScreen(
                             Text(
                                 "Forget",
                                 style = KamTheme.type.label,
-                                color = colors.flagAmber,
+                                color = colors.goldText,
                                 modifier = Modifier
                                     .clip(CircleShape)
                                     .clickable { onForget(entry.id, entry.text) }
@@ -719,7 +719,7 @@ fun MemoryScreen(
                     Text(
                         "Forget everything",
                         style = KamTheme.type.label,
-                        color = colors.flagAmber,
+                        color = colors.goldText,
                         modifier = Modifier
                             .clip(CircleShape)
                             .clickable(onClick = onForgetAll)
@@ -1021,7 +1021,7 @@ fun CustomInstructionsScreen(
         Text(
             if (remaining <= 200) "$remaining characters left" else "Saved on this phone",
             style = KamTheme.type.secondary,
-            color = if (remaining <= 0) colors.flagAmber else colors.textTertiary,
+            color = if (remaining <= 0) colors.goldText else colors.textTertiary,
         )
 
         Spacer(Modifier.height(18.dp))

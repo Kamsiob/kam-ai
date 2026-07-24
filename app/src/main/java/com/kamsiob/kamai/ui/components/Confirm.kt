@@ -157,16 +157,16 @@ fun ConfirmDialog(
 
                 when {
                     request.tier == ConfirmTier.SINGLE -> DialogTextButton(
-                        request.confirmLabel, colors.flagAmber,
+                        request.confirmLabel, colors.goldText,
                         onClick = onSecondStepReady,
                     )
                     step == 1 -> DialogTextButton(
-                        "Continue", colors.flagAmber,
+                        "Continue", colors.goldText,
                         onClick = { step = 2 },
                     )
                     else -> DialogTextButton(
                         request.confirmLabel,
-                        if (wordSatisfied) colors.flagAmber else colors.textTertiary,
+                        if (wordSatisfied) colors.goldText else colors.textTertiary,
                         enabled = wordSatisfied,
                         onClick = onSecondStepReady,
                     )

@@ -563,7 +563,7 @@ private fun TierCard(
                 Text(
                     TierRecommendation.lockedNote(model.tier),
                     style = KamTheme.type.mono,
-                    color = colors.flagAmber,
+                    color = colors.goldText,
                     fontWeight = FontWeight.W600,
                 )
             }

@@ -270,7 +270,7 @@ fun SettingsRow(
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = if (destructive) colors.flagAmber else colors.textSecondary,
+                    tint = if (destructive) colors.goldText else colors.textSecondary,
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(14.dp))
@@ -281,7 +281,7 @@ fun SettingsRow(
                     style = KamTheme.type.bodyEmphasis,
                     color = when {
                         !enabled -> colors.textTertiary
-                        destructive -> colors.flagAmber
+                        destructive -> colors.goldText
                         else -> colors.textPrimary
                     },
                 )

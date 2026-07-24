@@ -500,7 +500,7 @@ private fun SwipeRow(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.Delete,
                         label = "Delete",
-                        tint = colors.flagAmber,
+                        tint = colors.goldText,
                         background = colors.amberFill,
                     ) { close(); onDelete(row.id) }
                 }
@@ -655,7 +655,7 @@ private fun SelectionBar(
         Text(
             "Delete",
             style = KamTheme.type.label,
-            color = if (count > 0) colors.flagAmber else colors.textTertiary,
+            color = if (count > 0) colors.goldText else colors.textTertiary,
             modifier = Modifier
                 .clip(CircleShape)
                 .then(if (count > 0) Modifier.clickable(onClick = onDelete) else Modifier)
@@ -956,7 +956,7 @@ private fun GridCell(
                         Text(
                             label,
                             style = KamTheme.type.body,
-                            color = if (label == "Delete") colors.flagAmber else colors.textPrimary,
+                            color = if (label == "Delete") colors.goldText else colors.textPrimary,
                         )
                     },
                     onClick = { menuOpen = false; action() },
@@ -1062,7 +1062,7 @@ fun ArchivedScreen(
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            "Delete", style = KamTheme.type.label, color = colors.flagAmber,
+                            "Delete", style = KamTheme.type.label, color = colors.goldText,
                             modifier = Modifier.clip(CircleShape).clickable { onDelete(row.id) }
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                         )

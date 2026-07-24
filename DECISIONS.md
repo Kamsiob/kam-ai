@@ -1941,3 +1941,32 @@ Remaining four-mode work is tracked in the open issues (#26 colors, #27 segmente
 notices UI, #29 nudges, #30 dots/filter, #31 auto-archive, #32 Workbench linking, #33 follow-up kinds
 UI, #34 keyboard, #35 nav/failure, #36 onboarding/copy, #37 Today cancellation, #38 performance, #39
 usability gaps).
+
+### Mode colours, reserved gold, and mode icons (issue #26)
+
+The four mode identity hues are in ModeColors (light/dark each): General 2E7A52/6FD19E, Logic
+2F5D8C/7FB3E0, Brainstorm 9A3B33/E2705F (a deep maroon red, held red not pink by saturation),
+Workbench B0851C/C9A44E (deep mustard). Discover, a source not a mode, gets its own identity
+6A4A9C/B79CE6 (Part 11B). Mode colour is identity only, never general UI state, and always paired with
+the name or icon so colour is never the sole carrier of meaning.
+
+The reserved amber moved to a brighter, more saturated gold so it never reads as Workbench's mustard:
+gold is luminous, mustard is deep and dull. Light EFA913 for fills/icons/dots/support, deeper gold for
+text and glyphs on ivory, soft fill FCEFC6. Dark FFD166 for everything, soft fill 332812. Gold stays
+reserved for saved items, locked tiers, the support button, and destructive labels. All prior uses of
+the old amber token now resolve to gold (the KamColors fields flagAmber, goldText, amberFill).
+
+Contrast verification (WCAG, measured): the spec's light gold text 96690F measured 4.41 on ivory, just
+under the 4.5 AA text threshold, so goldText was nudged to 8A5F0D (5.12 on ivory, 5.64 on white) and
+that deviation is recorded here. The bright gold EFA913 is luminous by design and so has low luminance
+contrast with ivory (1.84), which is fine for the support button fill (dark text sits on it) and for
+small identity dots, but would be faint as a glyph; gold icons and text on light therefore use the
+deeper goldText, and the token switch was applied across the app (bookmark tints, destructive labels,
+counts, warnings). Dark theme gold FFD166 clears comfortably (12.82 on pine). The four mode hues each
+clear 3:1 as UI colour on their ground in both themes (Workbench light is 3.07, the tightest). Pairwise
+RGB separation between the four modes and the gold is comfortable (smallest 65, General vs Logic).
+Colourblind safety rests on never using colour alone: every mode colour appears with its name or icon.
+
+Mode icons are simple line glyphs, deliberately not the overused lightbulb (Brainstorm) or wrench
+(Workbench), and no sparkles: General a speech bubble, Logic a balance scale, Brainstorm a hub with
+spokes, Workbench lines of text. Provided via modeIcon(mode) with a shared ModeDot composable.

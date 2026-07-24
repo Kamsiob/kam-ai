@@ -372,7 +372,7 @@ private fun ConversationHeader(
                     onClick = { menuOpen = false; onArchive() },
                 )
                 androidx.compose.material3.DropdownMenuItem(
-                    text = { Text("Delete", style = KamTheme.type.body, color = colors.flagAmber) },
+                    text = { Text("Delete", style = KamTheme.type.body, color = colors.goldText) },
                     onClick = { menuOpen = false; onDelete() },
                 )
             }
@@ -809,7 +809,7 @@ private fun ActionRow(
                 icon = if (flagged) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
                 description = if (flagged) "Bookmarked for follow-up" else "Bookmark for follow-up",
                 onClick = onFlag,
-                tint = if (flagged) colors.flagAmber else colors.textTertiary,
+                tint = if (flagged) colors.goldText else colors.textTertiary,
             )
         }
         IconAction(
@@ -1036,7 +1036,7 @@ private fun NoticeBar(text: String, onDismiss: () -> Unit) {
             .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text, style = KamTheme.type.secondary, color = colors.flagAmber, modifier = Modifier.weight(1f))
+        Text(text, style = KamTheme.type.secondary, color = colors.goldText, modifier = Modifier.weight(1f))
     }
 }
 

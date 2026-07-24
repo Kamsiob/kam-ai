@@ -211,7 +211,7 @@ private fun MomentCard(
                     // Saving is one action everywhere, so a saved bookmark is the
                     // reserved amber here just as it is on a chat response, not the
                     // accent (issue 23).
-                    tint = if (saved) colors.flagAmber else colors.textSecondary,
+                    tint = if (saved) colors.goldText else colors.textSecondary,
                     modifier = Modifier.size(20.dp),
                 )
             }

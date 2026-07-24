@@ -298,7 +298,7 @@ private fun FollowUpCard(
                 Icon(
                     Icons.Rounded.Delete,
                     contentDescription = null,
-                    tint = colors.flagAmber,
+                    tint = colors.goldText,
                     modifier = Modifier.size(19.dp),
                 )
             }
