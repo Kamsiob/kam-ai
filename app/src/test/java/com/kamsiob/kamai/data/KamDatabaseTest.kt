@@ -40,7 +40,7 @@ class KamDatabaseTest {
         projectId: String? = null,
     ): ConversationEntity {
         val c = ConversationEntity(
-            id = id, title = title, mode = Mode.CHAT, projectId = projectId,
+            id = id, title = title, mode = Mode.GENERAL, projectId = projectId,
             createdAt = now, updatedAt = updatedAt, pinned = pinned, archived = archived,
         )
         db.conversations().upsert(c)

@@ -49,7 +49,7 @@ internal object LlamaBridge {
     external fun nativeSystemInfo(): String
 
     /** Returns an empty string on success, or a plain reason on failure. */
-    external fun nativeLoad(path: String, nCtx: Int, nThreads: Int, nGpuLayers: Int): String
+    external fun nativeLoad(path: String, nCtx: Int, nThreads: Int, nThreadsBatch: Int, nGpuLayers: Int): String
 
     external fun nativeConfigureSampler(
         temperature: Float,

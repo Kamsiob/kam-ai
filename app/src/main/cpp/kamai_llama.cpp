@@ -30,11 +30,20 @@ struct Session {
     // The context parameters, kept so the context (and its KV cache) can be
     // freed under memory pressure and recreated later without reloading the
     // memory-mapped model weights. Two-stage pressure response.
-    int n_ctx     = 0;
-    int n_threads = 0;
+    int n_ctx           = 0;
+    int n_threads       = 0;
+    // Prefill (prompt ingestion) is compute-bound and parallelises across cores,
+    // unlike the memory-bandwidth-bound decode, so it gets its own, larger count.
+    int n_threads_batch = 0;
 
     // Position of the next token in the sequence.
     int n_past = 0;
+
+    // The exact token sequence currently held in the KV cache (prompt tokens plus
+    // any generated so far). On the next turn the new prompt is diffed against
+    // this, and only the divergent suffix is decoded, so a long conversation does
+    // not re-prefill its whole history every turn. See DECISIONS.md (#38).
+    std::vector<llama_token> cached_tokens;
 
     // Set from Kotlin to interrupt a decode that is already running.
     std::atomic<bool> abort{false};
@@ -73,13 +82,16 @@ bool build_context_locked() {
     cparams.n_batch         = 512;
     cparams.n_ubatch        = 512;
     cparams.n_threads       = g_session.n_threads;
-    cparams.n_threads_batch = g_session.n_threads;
+    cparams.n_threads_batch = g_session.n_threads_batch > 0
+        ? g_session.n_threads_batch : g_session.n_threads;
     cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_AUTO;
 
     g_session.ctx = llama_init_from_model(g_session.model, cparams);
     if (g_session.ctx == nullptr) return false;
     llama_set_abort_callback(g_session.ctx, abort_callback, &g_session.abort);
     g_session.n_past = 0;
+    // A freshly built context has an empty KV cache, so no tokens are reusable.
+    g_session.cached_tokens.clear();
     return true;
 }
 
@@ -118,7 +130,7 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeSystemInfo(JNIEnv * env, jobject) {
 JNIEXPORT jstring JNICALL
 Java_com_kamsiob_kamai_llm_LlamaBridge_nativeLoad(
         JNIEnv * env, jobject,
-        jstring jpath, jint n_ctx, jint n_threads, jint n_gpu_layers) {
+        jstring jpath, jint n_ctx, jint n_threads, jint n_threads_batch, jint n_gpu_layers) {
 
     std::call_once(g_backend_once, []() { llama_backend_init(); });
     std::lock_guard<std::mutex> lock(g_session.mu);
@@ -143,8 +155,9 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeLoad(
 
     g_session.model     = model;
     g_session.ctx       = nullptr;
-    g_session.n_ctx     = n_ctx;
-    g_session.n_threads = n_threads;
+    g_session.n_ctx           = n_ctx;
+    g_session.n_threads       = n_threads;
+    g_session.n_threads_batch = n_threads_batch;
     g_session.n_past    = 0;
     g_session.abort.store(false);
 
@@ -262,15 +275,32 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeIngest(
     tokens.resize(n_tokens);
 
     const int n_ctx = (int) llama_n_ctx(g_session.ctx);
-    if (g_session.n_past + n_tokens >= n_ctx) {
+    if (n_tokens >= n_ctx) {
         return -3; // Caller turns this into the plain over-length message.
     }
 
+    // Reuse the longest prefix already sitting in the KV cache. A normal next
+    // turn is the same system prompt and history with one new message appended,
+    // so the common prefix is almost everything and only the new turn is decoded.
+    int prefix = 0;
+    const int cached = (int) g_session.cached_tokens.size();
+    const int maxp = std::min(cached, n_tokens);
+    while (prefix < maxp && g_session.cached_tokens[prefix] == tokens[prefix]) prefix++;
+    // Always leave at least one token to decode, so the model has a fresh position
+    // to generate the next token from even when the prompt is unchanged.
+    if (prefix >= n_tokens) prefix = n_tokens - 1;
+
+    // Drop the KV entries after the common prefix and trim our record to match.
+    llama_memory_t mem = llama_get_memory(g_session.ctx);
+    llama_memory_seq_rm(mem, 0, prefix, -1);
+    g_session.n_past = prefix;
+    g_session.cached_tokens.resize(prefix);
+
     g_session.abort.store(false);
 
-    // Feed in batches so a long prompt does not exceed n_batch.
+    // Feed the divergent suffix in batches so a long prompt does not exceed n_batch.
     const int n_batch = (int) llama_n_batch(g_session.ctx);
-    for (int i = 0; i < n_tokens; i += n_batch) {
+    for (int i = prefix; i < n_tokens; i += n_batch) {
         const int chunk = std::min(n_batch, n_tokens - i);
         llama_batch batch = llama_batch_get_one(tokens.data() + i, chunk);
         const int rc = llama_decode(g_session.ctx, batch);
@@ -279,9 +309,12 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeIngest(
             return -4;
         }
         g_session.n_past += chunk;
+        for (int k = 0; k < chunk; k++) g_session.cached_tokens.push_back(tokens[i + k]);
     }
 
-    return n_tokens;
+    // The count actually processed this turn (the new work), so the perf log and
+    // the caller reflect real cost rather than the whole prompt length.
+    return n_tokens - prefix;
 }
 
 // Samples exactly one token and decodes it back into the context. Returns the
@@ -313,6 +346,9 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeNextToken(JNIEnv * env, jobject) {
         return nullptr;
     }
     g_session.n_past += 1;
+    // Record the generated token too, so it is part of the history the next turn
+    // can reuse rather than re-prefill.
+    g_session.cached_tokens.push_back(token);
 
     return env->NewStringUTF(piece.c_str());
 }
@@ -329,6 +365,7 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeResetContext(JNIEnv *, jobject) {
     if (g_session.ctx == nullptr) return;
     llama_memory_clear(llama_get_memory(g_session.ctx), true);
     g_session.n_past = 0;
+    g_session.cached_tokens.clear();
     g_session.abort.store(false);
 }
 

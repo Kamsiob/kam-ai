@@ -317,9 +317,12 @@ class ChatViewModel(
         val memories = repository.relevantMemory(lastUser, memBudgetChars, MEMORY_LIMIT)
         system = SystemPrompts.withMemory(system, memories)
 
-        // Inject the real current date, which the model otherwise gets wrong.
+        // Inject the real current date, which the model otherwise gets wrong. Day
+        // granularity, not the time: a minute-precise stamp would change every
+        // turn and, sitting before the history, would break the KV-cache prefix
+        // reuse that keeps a long conversation fast (issue #38).
         val now = java.util.Date()
-        val fmt = java.text.SimpleDateFormat("EEEE, d MMMM yyyy, h:mm a", java.util.Locale.getDefault())
+        val fmt = java.text.SimpleDateFormat("EEEE, d MMMM yyyy", java.util.Locale.getDefault())
         system = SystemPrompts.withDate(system, fmt.format(now))
 
         // A document the user attached, given to the model as context. It gets

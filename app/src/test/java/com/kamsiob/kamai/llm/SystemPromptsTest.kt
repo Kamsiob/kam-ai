@@ -20,7 +20,7 @@ class SystemPromptsTest {
 
     @Test
     fun `withDate keeps the base rules intact`() {
-        val base = SystemPrompts.forMode(com.kamsiob.kamai.data.Mode.CHAT)
+        val base = SystemPrompts.forMode(com.kamsiob.kamai.data.Mode.GENERAL)
         val out = SystemPrompts.withDate(base, "Tuesday, 1 January 2030, 12:00 PM")
         assertTrue(out.contains("You are Kam AI"))
         // The instruction not to contradict the injected date is present, so the

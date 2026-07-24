@@ -27,7 +27,7 @@ class BackupDbRoundTripTest {
         // Start clean so counts are deterministic.
         repo.deleteEverything(includeDownloads = false)
 
-        val convId = repo.createConversation(Mode.CHAT)
+        val convId = repo.createConversation(Mode.GENERAL)
         repo.addMessage(convId, Role.USER, "a backup test question")
         repo.addMessage(convId, Role.ASSISTANT, "a backup test answer", incomplete = false)
         repo.remember("the user is testing backups", convId, auto = false)

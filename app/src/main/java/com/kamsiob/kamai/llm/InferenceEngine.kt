@@ -83,12 +83,16 @@ class InferenceEngine(
             // it shrinks when the phone is already hot rather than being fixed.
             val contextTokens = thermal.contextFor(model.contextTokens)
 
+            val loadStart = System.nanoTime()
             val failure = LlamaBridge.nativeLoad(
                 path = file.absolutePath,
                 nCtx = contextTokens,
                 nThreads = threadCount(),
+                nThreadsBatch = batchThreadCount(),
                 nGpuLayers = 0,
             )
+            val loadMs = (System.nanoTime() - loadStart) / 1_000_000.0
+            Log.i("KamPerf", "load model=${model.id} ctx=$contextTokens threads=${threadCount()}/${batchThreadCount()} in ${"%.0f".format(loadMs)}ms")
 
             if (failure.isNotEmpty()) {
                 _state.value = EngineState.Failed(failure)
@@ -140,7 +144,11 @@ class InferenceEngine(
             return@callbackFlow
         }
 
-        LlamaBridge.nativeResetContext()
+        // The context is deliberately not reset here: nativeIngest keeps the
+        // longest common prefix already in the KV cache and decodes only the new
+        // tokens, so a long conversation does not re-prefill its whole history
+        // every turn (issue #38). A fresh or divergent conversation simply finds a
+        // short common prefix and decodes the rest.
         LlamaBridge.nativeConfigureSampler(
             temperature = values.temperature,
             topP = values.topP,
@@ -173,6 +181,9 @@ class InferenceEngine(
         var produced = 0
         var reason: StopReason = StopReason.Finished
         val decodeStart = System.nanoTime()
+        // Time to first token: what a user actually waits through before anything
+        // appears. The generateStart is captured at the top of the flow.
+        var firstTokenMs = -1.0
 
         while (isActive && produced < maxTokens) {
             // Checked every few tokens rather than every token, because reading
@@ -194,6 +205,7 @@ class InferenceEngine(
                 break
             }
 
+            if (firstTokenMs < 0) firstTokenMs = (System.nanoTime() - prefillStart) / 1_000_000.0
             produced++
             trySend(Chunk(piece))
         }
@@ -210,9 +222,9 @@ class InferenceEngine(
         val prefillTps = if (prefillMs > 0 && ingested > 0) ingested * 1000.0 / prefillMs else 0.0
         Log.i(
             "KamPerf",
-            "threads=${threadCount()} ctx=${contextSize} prefill=${ingested}tok/${"%.0f".format(prefillMs)}ms" +
+            "TTFT=${"%.0f".format(firstTokenMs)}ms prefill=${ingested}tok/${"%.0f".format(prefillMs)}ms" +
                 " (${"%.1f".format(prefillTps)} tok/s) decode=${produced}tok/${"%.0f".format(decodeMs)}ms" +
-                " (${"%.1f".format(decodeTps)} tok/s)",
+                " (${"%.1f".format(decodeTps)} tok/s) threads=${threadCount()} ctx=${contextSize}",
         )
 
         onStop(reason)
@@ -263,6 +275,17 @@ class InferenceEngine(
         // far faster than eight. So use the performance cores but cap at four.
         // See DECISIONS.md for the figures.
         return performanceCoreCount().coerceIn(2, 4)
+    }
+
+    /**
+     * Threads for prefill (prompt ingestion). Unlike decode, prefill is a
+     * compute-bound matrix multiply that parallelises well, so it uses all the
+     * performance cores rather than the decode cap of four. This directly cuts
+     * time to first token, which the prefill dominates. See DECISIONS.md (#38).
+     */
+    private fun batchThreadCount(): Int {
+        sysPropInt("debug.kamai.batchthreads")?.let { return it.coerceIn(1, 8) }
+        return performanceCoreCount().coerceIn(4, 8)
     }
 
     /**

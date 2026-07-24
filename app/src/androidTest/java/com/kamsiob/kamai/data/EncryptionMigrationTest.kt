@@ -48,7 +48,7 @@ class EncryptionMigrationTest {
             repeat(7) { i ->
                 db.conversations().upsert(
                     ConversationEntity(
-                        id = "c$i", title = "Conversation $i", mode = Mode.CHAT,
+                        id = "c$i", title = "Conversation $i", mode = Mode.GENERAL,
                         createdAt = now, updatedAt = now + i,
                     ),
                 )

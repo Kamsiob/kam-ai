@@ -38,7 +38,7 @@ class FollowUpStateTest {
     private suspend fun flag(id: String, snippet: String = "something to check") {
         db.followUps().upsert(
             FollowUpEntity(
-                id = id, snippet = snippet, sourceMode = Mode.CHAT, createdAt = now,
+                id = id, snippet = snippet, sourceMode = Mode.GENERAL, createdAt = now,
             ),
         )
     }
@@ -128,13 +128,13 @@ class FollowUpStateTest {
     fun `deleting the source conversation keeps the follow up but drops the link`() = runTest {
         db.conversations().upsert(
             ConversationEntity(
-                id = "c1", title = "t", mode = Mode.CHAT,
+                id = "c1", title = "t", mode = Mode.GENERAL,
                 createdAt = now, updatedAt = now,
             ),
         )
         db.followUps().upsert(
             FollowUpEntity(
-                id = "f1", snippet = "s", sourceMode = Mode.CHAT,
+                id = "f1", snippet = "s", sourceMode = Mode.GENERAL,
                 conversationId = "c1", createdAt = now,
             ),
         )

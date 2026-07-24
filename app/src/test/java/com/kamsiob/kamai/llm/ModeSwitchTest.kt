@@ -14,9 +14,9 @@ class ModeSwitchTest {
 
     @Test
     fun `chat and logic apply different system instructions`() {
-        val chat = SystemPrompts.forMode(Mode.CHAT)
+        val chat = SystemPrompts.forMode(Mode.GENERAL)
         val logic = SystemPrompts.forMode(Mode.LOGIC)
-        assertThat(chat).contains("This is Chat")
+        assertThat(chat).contains("This is General")
         assertThat(logic).contains("Logic Partner")
         assertThat(logic).contains("test the user's thinking")
         assertThat(logic).isNotEqualTo(chat)
@@ -25,7 +25,7 @@ class ModeSwitchTest {
     @Test
     fun `the inline notice names the mode being entered`() {
         assertThat(SystemPrompts.modeSwitchNotice(Mode.LOGIC)).contains("Logic Partner is on")
-        assertThat(SystemPrompts.modeSwitchNotice(Mode.CHAT)).contains("Back to Chat")
+        assertThat(SystemPrompts.modeSwitchNotice(Mode.GENERAL)).contains("Back to General")
     }
 
     @Test

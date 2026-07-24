@@ -2070,3 +2070,56 @@ pursue (the flag path derives it from the conversation mode), everything else to
 one tap. The empty-state and screen copy now acknowledge both kinds. Verified on device: an existing
 Discover-sourced follow-up shows the "To check" chip beside its source chip. Remaining in #33: a filter
 by kind alongside the existing source filter (small follow-on).
+
+## Inference performance: time to first token (issue #38, Part 11C)
+
+Treated as a defect, not tuning. Measured TTFT and tokens/second separately (KamPerf logcat) on the
+Pixel with Gemma 4 E2B, and found the causes rather than guessing.
+
+Measurements (fresh conversation, short prompt), before -> after the fixes:
+- Model load (cold): ~3-4s (mmap; unchanged).
+- Turn 1 (cold, full prompt): prefill 795 tok @ ~60 tok/s = TTFT 11.7s  ->  486 tok @ ~70 tok/s = 7.1s.
+- Turn 3 (warm, cache reused): prefill 795 tok, TTFT ~11s (re-prefilled everything)  ->  35 tok, TTFT
+  0.8s. This is the headline win: ~10x on every ongoing turn.
+- Decode throughput: ~10-12 tok/s throughout (unchanged; this was already tuned in item 3).
+
+The two prime suspects from Part 11C, checked first:
+1. Model reload per message: NOT happening. ModelManager.ensureLoaded keeps the model resident between
+   messages within a session; it only reloads on a genuine switch or after pressure/backgrounding. Ruled
+   out by the load log firing once per session, not per message.
+2. Conversation reprocessed from scratch every turn: YES, this was the bug. generate() called
+   nativeResetContext() then nativeIngest(full prompt) every turn, so a long conversation re-prefilled
+   its entire history each message. With prefill at ~60-70 tok/s, a 2000-token multi-turn prompt is the
+   reported 30-45s.
+
+Fixes, each measured:
+- KV-cache prefix reuse (the core fix). The native session now records the exact token sequence held in
+  the KV cache (prompt plus generated tokens). On each turn nativeIngest diffs the new prompt against it,
+  keeps the longest common prefix (llama_memory_seq_rm trims the rest), and decodes only the divergent
+  suffix. generate() no longer resets the context. A normal next turn is the same system prompt and
+  history with one message appended, so only the new turn is decoded: turn 3 dropped from ~11s to 0.8s.
+- Prompt bloat. The fixed system prompts were large (795 tokens of General for a one-word message).
+  Tightened HARD_RULES and every mode prompt: General 795 -> 486 tokens (turn 1 11.7s -> 7.1s). Brainstorm
+  was ~2000 tokens (a ~28s turn-1 prefill on its own) and Logic ~1071; trimmed to ~1500 and ~940
+  (estimator) while keeping every method and rule. A regression test (PromptBudgetTest, pure JVM) fails
+  the build if any mode prompt bloats past its budget.
+- The injected date was minute-precise and sat before the history, so it changed every turn and would
+  have broken prefix reuse for any turn a minute later. Changed to day granularity, stable within a
+  session. The test guards that the date instruction carries no time component.
+- Prefill (batch) thread count decoupled from decode: prefill is compute-bound and parallelises, so it
+  uses all performance cores (6 on the G5) rather than the decode cap of 4. Small gain alone (60 -> ~68
+  tok/s); the token-count and cache fixes dominate.
+
+Known remaining costs, documented not yet fixed:
+- Turn 1 is still ~7s (cold, full prompt at ~70 tok/s). Prefill throughput is the model's CPU ceiling;
+  the remaining lever is fewer prompt tokens.
+- The background auto-titling pass shares the one context and pollutes the KV cache between turn 1 and
+  turn 2, so turn 2 re-prefills once. A one-time cost per conversation. A proper fix (run titling on a
+  separate KV sequence, or snapshot/restore the state around it) is a follow-up on #38.
+- GPU offload not pursued: the prior decision (item 3) kept CPU because the mobile GPU backends are
+  inconsistent; TTFT is prefill-bound and the wins here were on the app side, matching Part 11C's
+  guidance to fix loading/prompt/caching before chasing the backend.
+
+Targets: warm-turn TTFT under ~1s (met, 0.8s); cold turn-1 TTFT for a short prompt in the low single
+digits (7s, acceptable and improvable via further prompt trimming). KamPerf logs TTFT, prefill tok/s,
+and decode tok/s per request as the ongoing regression signal; PromptBudgetTest guards prompt size.

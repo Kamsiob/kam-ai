@@ -14,7 +14,7 @@ class InstructionPrecedenceTest {
 
     @Test
     fun `composition order is hard rules, user, project, memory`() {
-        var s = SystemPrompts.forMode(Mode.CHAT)
+        var s = SystemPrompts.forMode(Mode.GENERAL)
         s = SystemPrompts.withUserInstructions(s, "USERMARK")
         s = SystemPrompts.withProject(s, "PROJECTMARK")
         s = SystemPrompts.withMemory(s, listOf("MEMORYMARK"))
