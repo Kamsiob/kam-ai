@@ -167,3 +167,16 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
 - Conversation view models are Activity-scoped and not cleared on back-pop, so each opened or new
   chat leaks a lightweight ChatViewModel for the session. Correctness is fine after item 1. A
   proper fix is per-back-stack-entry ViewModelStoreOwner (nav-compose style). Low priority.
+
+## Handoff, 24 July 2026
+
+HANDOFF.md in the repository root is the current state of the whole project, written for a session
+with no memory of the ones before it. It carries the approaches that failed and must not be retried,
+every measurement with its actual numbers, the reasoning behind decisions that look wrong from
+outside, and an honest item-by-item status of the Four Mode Update, this worklist, and the phase
+plan. Read it before picking anything up.
+
+Three defects found by code reading during that handoff are now issues #40 (stopping a response
+loses its stop reason), #41 (exports attribute mode-change notices to the assistant), and #42
+(onboarding and the Q&A still describe the old three modes). #42 first: the app currently tells
+every new user something false about its own core feature.

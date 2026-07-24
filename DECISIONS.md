@@ -2134,3 +2134,139 @@ only while scrolled up, arriving and leaving on the standard spring; tapping it 
 message. It covers neither the messages nor the input, and carries a screen-reader label. Remaining in
 #35: per-conversation scroll-position restoration, and the honest incomplete-generation state with
 retry/continue/discard (a larger piece).
+
+## Session handoff, 24 July 2026: what a fresh session must not relearn
+
+HANDOFF.md in the repository root is the full document. This entry records the parts that must
+survive even if that file is deleted, plus the things decided in conversation with the owner that
+were never written into a specification.
+
+### Owner instructions given verbally, recorded nowhere else until now
+
+- Assistant overlay visuals must work in both light and dark mode. Either one design that works in
+  both, or two variants of the same type. A single-theme design is not acceptable.
+- The Today tab is cancelled outright, not deferred. Do not resurrect it because an older document
+  mentions it.
+- Treat the inference delay as a defect, not as tuning. This framing is what found the bug: it
+  forced measuring time to first token and tokens per second separately, and checking the two named
+  suspects before touching anything else.
+- No release build without an explicit go-ahead. No signed APK, no app bundle, no store upload.
+  Debug builds installed on the phone for testing are expected and correct.
+- The phone is off limits beyond this one app. No file transfers, no deletions, no reads or writes
+  outside installing and testing Kam AI. Never capture the screen unless Kam AI is in the foreground.
+- Work unattended and do not stop for approval. Surface something only if it is a genuine blocker
+  only the owner can resolve, an irreversible decision with real cost, or a safety or privacy issue.
+- "Keep optimizing the tokens and building" was the last standing direction on the performance work,
+  which is why the Bench, Overlay, and Discover prompts are named as the next trims.
+
+### Three genuine test failures were hiding inside the Robolectric noise
+
+The documented state of this build machine is that 39 unit tests fail with
+`IllegalArgumentException at ClassReader.java:200` because Robolectric 4.16.1 cannot instrument
+against the only installed JDK, which is 26. That is true and unfixable here. The trap is that it
+makes the suite red by default, so a real failure looks like more of the same.
+
+Three real failures sat in that noise for most of a session:
+
+- `DesignTokensTest` still pinned the pre-four-mode amber (`#C98A22` light, `#E4B05A` dark). That
+  test exists precisely to fail the build when the palette is edited, and it did exactly its job
+  when the reserved colour moved to gold. Nobody read the failure, because the run was assumed to be
+  the Robolectric problem. Now pinned to the gold values, with the `goldText` token it never covered.
+- `FormattingGuidanceTest` asserted the phrase "Match the format to the content", which the issue #38
+  prompt trim reworded to "match the length to the question". The guidance is still present in every
+  mode prompt; only the wording moved.
+- `ModeSwitchTest` asserted "test the user's thinking" against a prompt where the trim made it
+  sentence-initial and therefore capitalised. Now compared case-insensitively rather than pinning a
+  capital letter.
+
+The lesson worth keeping: **filter failures by cause, never by count.** The command that separates
+real failures from the toolchain noise is
+
+    ./gradlew testDebugUnitTest --console=plain 2>&1 > /tmp/t.txt
+    grep -A1 "FAILED$" /tmp/t.txt | grep -v "ClassReader.java:200" | grep -E "^\s+[a-z]" | sort -u
+
+If that prints nothing the run is genuinely clean. The suite now stands at 148 run, 39 failed, every
+one of them the ClassReader mismatch.
+
+A second lesson, about process: closing an issue after verifying it on the device is not sufficient
+when a test encodes the same contract. Issue #26 was closed correctly (the colours are right in the
+app) while the test that guards those colours stayed red. Run the suite before closing.
+
+### Three defects found by reading the code, not by using the app
+
+Opened as issues during the handoff inventory. None of them was reported, and none would have been
+found by continuing to build features.
+
+- **#40. Stopping a response loses its stop reason and hides the message actions.**
+  `ChatViewModel.stop()` calls `engine.requestStop()` and then immediately `generation?.cancel()`.
+  The `finally` block in `respond()` is not wrapped in `NonCancellable`, so its suspending writes
+  throw at the first suspension point inside an already-cancelled coroutine. The message stays
+  `incomplete = true` with a null reason, which makes ChatScreen hide the whole action row, so a
+  stopped answer has no copy, no share, no regenerate, and no "You stopped this one." line. If zero
+  tokens were produced it renders as nothing at all. On the next launch the recovery pass relabels it
+  "Kam AI was closed while this was being written.", which is untrue. The graceful path in
+  InferenceEngine already sets `StopReason.UserStopped` correctly; the immediate cancel preempts it.
+  This is also an instance of the very thing issue #5 exists to prevent.
+- **#41. Exports attribute mode-change notices to the assistant.** `ui/Share.kt` branches only on
+  `role == Role.USER`, so `Role.SYSTEM` markers export as "Kam AI: Logic Partner is on...". Every
+  other consumer filters SYSTEM correctly. The Four Mode Update requires exports to include mode
+  changes, so the fix is to render them as notices, not to drop them. Two smaller defects in the same
+  file: `onShareThread` passes a null title so every shared thread heads "Kam AI conversation" even
+  when the conversation has a real one, and `onExportThread` derives its filename from the first
+  message, which after a mode switch at the top can be a SYSTEM notice.
+- **#42. Onboarding and the Q&A still describe the old three modes.** `OnboardingCopy.kt` slide 3
+  says "One AI, four modes" and then lists Chat, Logic Partner, Workbench, and Discover: it names
+  General wrongly, omits Brainstorm entirely, counts Discover as a mode when the code treats it as a
+  source, and points at "pills at the top of a chat", a control that no longer exists. The Q&A entry
+  has the same three defects. DESIGN.md section 9 already carried the corrected copy while section 10
+  still carried the stale paragraph, so the design document contradicted itself; section 10 is
+  corrected in this same commit.
+
+### Code that deliberately does something unusual, so it is not tidied away
+
+- `nativeIngest` returns the number of tokens actually decoded this turn, not the prompt length. It
+  is the work done after prefix reuse, which is what the performance logging needs.
+- `generate()` deliberately does not call `nativeResetContext()`. That call was the bug. Adding it
+  back re-breaks KV cache reuse and restores the thirty to forty five second delay.
+- The `cached_tokens` vector must stay exactly in sync with the KV cache. If it drifts, the model
+  silently reads a stale context and answers from the wrong history, which is far worse than being
+  slow. A debug assertion comparing its length against `n_past` would be cheap insurance and does not
+  exist yet.
+- The injected date carries day granularity and no time. A minute-precise timestamp sits before the
+  history and would change the prefix every minute, silently destroying cache reuse. This looks like
+  a cosmetic choice and is a performance invariant. `PromptBudgetTest` guards it.
+- Prefill and decode use different thread counts on purpose: prefill is compute-bound and uses all
+  six performance cores, decode is memory-bandwidth bound and is capped at four. The asymmetry is
+  correct, not an oversight.
+- Three separate legacy `"CHAT"` mappings exist (the Room type converter, the backup codec, and the
+  CSV parsers) for data the migration cannot reach, such as a backup file made before the rename.
+  They look like dead defensive code. They are not.
+- `ui/components/ModeSegmentedControl.kt` is referenced from exactly one place, `ChatsScreen.kt`,
+  by fully qualified name rather than an import, so a grep for the file name finds nothing and it
+  looks orphaned. It is live. Do not delete it.
+- `android.disallowKotlinSourceSets=false` and `compileSdk` sitting ahead of `targetSdk` both look
+  like mistakes and are both deliberate, explained earlier in this file.
+
+### Two known duplications, neither urgent
+
+`KamRepository.kt` and `ui/components/ModeUi.kt` each carry an independent copy of the `modesUsed`
+CSV parser with its own legacy-name mapping. They agree today and will drift. Consolidate the next
+time either is edited.
+
+Conversation view models remain Activity-scoped and are not cleared on back-pop, so each opened chat
+leaks a lightweight ChatViewModel for the session. Correctness is fine. The proper fix is a
+per-back-stack-entry ViewModelStoreOwner. Still low priority.
+
+### The largest verification debt
+
+Eleven of the twelve ordered mode-switch pairs have never been exercised on the phone. Only General
+to Logic has. The pairs are General to Logic, Brainstorm, Workbench; Logic to General, Brainstorm,
+Workbench; Brainstorm to General, Logic, Workbench; and Workbench to General, Logic, Brainstorm.
+Each needs context carried forward, the right notice inserted, the banner correct, the bottom
+indicator updated, and the model's behaviour actually changing. Tracked under #39.
+
+Alongside it: the version 4 to version 5 database migration has never been verified on a real
+upgrade from a pre-migration database. The app running with existing conversations intact is strong
+evidence, and `SchemaMigrationTest` covers it, but that test is one of the six that cannot execute on
+this machine. This is the only outstanding item that could cost a user their data, so it should be
+verified before any release.
