@@ -1836,3 +1836,44 @@ chat (banner gone, honest note added, mode = Chat), reopened the conversation an
 
 This advances item 21 (scope stated up front + out-of-scope escape carrying context). The scoped
 slide-up surface (item 11) and a broader audit for other invisible walls remain.
+
+## Documentation reconciliation and two standing process rules (2026-07-23)
+
+MASTER_SPEC.md and DESIGN.md had drifted from the built app: they still described the follow-up
+flag (now a bookmark), a bottom-nav "New" item (removed; new chat lives on the Chats screen, nav is
+Projects/Chats/Follow-ups/Discover with Today planned first), generic "research a model per tier"
+(now Gemma 4 across every tier with declared per-model capabilities), a plaintext database (now
+SQLCipher-encrypted with an optional app lock), a separate Discover saved-cards store (now unified
+into the single Follow-ups list with source filtering), and a plain grounded chat (now with a scope
+banner and a one-tap Continue in open chat). Both documents were rewritten to describe the app as it
+now is and as it is intended to be, correcting every superseded instruction in place and marking
+pending work as pending, with the open GitHub issues left as the record of what remains. A precedence
+statement was added at the top of MASTER_SPEC.md.
+
+Two process rules now apply permanently:
+
+1. Living documents. Every commit updates MASTER_SPEC.md, DESIGN.md, and any other spec or design
+   document so they always describe the app as it currently is and as it is intended to be.
+   Superseded instructions are corrected, not left beside their replacements; anything still pending
+   is marked pending, not described as built. This is part of the definition of done for every
+   change, not periodic cleanup.
+
+2. GitHub Issues used fully, the way a working developer would. Open an issue for every bug, feature,
+   or enhancement, including ones found rather than reported. Label and categorize them. Keep real
+   working notes on each issue as progress is made rather than only closing them at the end.
+   Reference issue numbers in commit messages so commits and issues link together. Close an issue
+   only when the work is genuinely finished and verified on the device. Open issues are the
+   authoritative record of what remains, so anyone picking up the project, including an outside
+   contributor, can see its real state.
+
+Precedence for future sessions: MASTER_SPEC.md, DESIGN.md, DECISIONS.md, and the open GitHub issues
+are the current source of truth. Anything in older prompts or earlier conversation that conflicts
+with them is superseded. The built app, git history, DECISIONS.md, and the issues win over any
+document wherever they disagree, and the documents are then corrected to match.
+
+### A discrepancy found during reconciliation, logged as an issue
+
+The bookmark on a chat response fills amber when set (the reserved amber rule for saved items), but
+the save bookmark on a Discover card fills with the accent colour instead. With saving unified, both
+are the same save-to-Follow-ups action and should look the same. This is a real inconsistency, left
+in the code and tracked as a GitHub issue rather than fixed under this documentation-only task.
