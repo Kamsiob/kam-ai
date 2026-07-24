@@ -35,6 +35,7 @@ class KamRepository(
         const val WORKBENCH_OUTPUT = "workbench.output"
         const val SYSTEM_INSTRUCTIONS = "system.instructions"
         const val ASSISTANT_DEFAULT_VOICE = "assistant.default.voice"
+        const val AUTO_ARCHIVE = "chats.autoarchive"
     }
 
     /** The cap on the user's system-wide instructions, in characters. Roughly
@@ -550,6 +551,53 @@ class KamRepository(
 
     suspend fun setArchived(id: String, archived: Boolean) =
         db.conversations().setArchived(id, archived, System.currentTimeMillis())
+
+    // Auto-archive (#31).
+
+    /** The chosen window, live, for the settings row to reflect. */
+    fun observeAutoArchive(): Flow<AutoArchive> =
+        observeSetting(Keys.AUTO_ARCHIVE).map { AutoArchive.fromStored(it) }
+
+    suspend fun autoArchive(): AutoArchive =
+        AutoArchive.fromStored(setting(Keys.AUTO_ARCHIVE))
+
+    suspend fun setAutoArchive(value: AutoArchive) =
+        putSetting(Keys.AUTO_ARCHIVE, value.stored)
+
+    /**
+     * Which conversations an auto-archive pass would take right now, without
+     * taking them.
+     *
+     * Separate from [runAutoArchive] so the setting can say how many it is about
+     * to move before the user commits to it, which is the count-before-confirm
+     * the issue asks for.
+     */
+    suspend fun autoArchiveCandidates(
+        policy: AutoArchive? = null,
+        openConversationId: String? = null,
+    ): List<String> = AutoArchivePolicy.due(
+        conversations = db.conversations().activeForAutoArchive(),
+        // Null means "whatever is currently set". Read here rather than in a
+        // default argument, which cannot call a suspend function.
+        policy = policy ?: autoArchive(),
+        now = System.currentTimeMillis(),
+        openConversationId = openConversationId,
+    )
+
+    /**
+     * Runs a pass and returns what it took, so the caller can offer an undo over
+     * that exact set rather than guessing at it afterwards.
+     */
+    suspend fun runAutoArchive(openConversationId: String? = null): List<String> {
+        val ids = autoArchiveCandidates(openConversationId = openConversationId)
+        if (ids.isNotEmpty()) db.conversations().setArchivedBulk(ids, archived = true)
+        return ids
+    }
+
+    /** Puts back exactly what a pass took. Timestamps were never touched. */
+    suspend fun undoAutoArchive(ids: List<String>) {
+        if (ids.isNotEmpty()) db.conversations().setArchivedBulk(ids, archived = false)
+    }
 
     suspend fun deleteConversation(id: String) = db.conversations().delete(id)
 

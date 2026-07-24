@@ -387,6 +387,8 @@ fun EmptyState(
 fun KamToast(
     message: String?,
     modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
 ) {
     AnimatedVisibility(
         visible = message != null,
@@ -399,12 +401,42 @@ fun KamToast(
             color = Color(0xFF1B241E).copy(alpha = 0.94f),
             modifier = Modifier.padding(bottom = 16.dp),
         ) {
-            Text(
-                text = message.orEmpty(),
-                style = KamTheme.type.label,
-                color = Color(0xFFF2FBF4),
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 11.dp),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = message.orEmpty(),
+                    style = KamTheme.type.label,
+                    color = Color(0xFFF2FBF4),
+                    modifier = Modifier.padding(
+                        start = 18.dp,
+                        end = if (actionLabel == null) 18.dp else 10.dp,
+                        top = 11.dp,
+                        bottom = 11.dp,
+                    ),
+                )
+                // An optional action, for the things that are worth undoing rather
+                // than merely announcing. Auto-archive (#31) is the first: it moves
+                // conversations without being asked each time, so the confirmation
+                // has to carry the way back.
+                if (actionLabel != null && onAction != null) {
+                    // The same light colour as the message rather than the accent.
+                    // This surface is a fixed dark green whatever the theme, and
+                    // the accent is one of sixteen user-chosen colours, none of
+                    // which has been contrast-checked against it. Weight and the
+                    // tap target carry the affordance instead, so colour is not
+                    // doing the work alone either way.
+                    Text(
+                        text = actionLabel,
+                        style = KamTheme.type.label.copy(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                        ),
+                        color = Color(0xFFF2FBF4),
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(onClick = onAction)
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                    )
+                }
+            }
         }
     }
 }

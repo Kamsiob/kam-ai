@@ -98,6 +98,7 @@ private sealed interface Pushed {
     data object Appearance : Pushed
     data object Safety : Pushed
     data object AppLock : Pushed
+    data object AutoArchive : Pushed
     data object Archived : Pushed
     data object CustomInstructions : Pushed
     data class Project(val id: String) : Pushed
@@ -135,6 +136,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
     val ready by app.ready.collectAsStateWithLifecycle()
     val onboardingDone by app.onboardingDone.collectAsStateWithLifecycle()
     val toast by app.toast.collectAsStateWithLifecycle()
+    val toastAction by app.toastAction.collectAsStateWithLifecycle()
 
     // A stack rather than a single value, so back always goes where it came from.
     val stack = remember { mutableStateListOf<Pushed>() }
@@ -148,9 +150,27 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
 
     LaunchedEffect(toast) {
         if (toast != null) {
-            delay(2200)
+            // Longer when there is something to undo. 2.2 seconds is fine for an
+            // acknowledgement nobody needs to act on, and far too short to read a
+            // message, decide, and reach the control.
+            delay(if (toastAction != null) 6000 else 2200)
             app.clearToast()
         }
+    }
+
+    // Auto-archive runs on launch and whenever Chats comes to the front (#31).
+    // Both, because the app can sit open for days: a launch-only pass would never
+    // fire for somebody who never closes it. The pass is silent when it finds
+    // nothing, which is the ordinary case after the first sweep.
+    LaunchedEffect(ready) {
+        if (ready) app.runAutoArchive()
+    }
+    LaunchedEffect(tab, stack.size) {
+        // Only when Chats is actually on screen, not merely selected behind a
+        // pushed screen, and never while a conversation is open: the open one is
+        // exempt anyway, but sweeping underneath somebody mid-read is not the
+        // moment for it.
+        if (tab == NavItem.CHATS && stack.isEmpty()) app.runAutoArchive()
     }
 
     // The assistant overlay hands a conversation off by id. Open it once it lands,
@@ -289,6 +309,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.Appearance -> AppearanceHost(app)
                     Pushed.Safety -> SafetyScreen()
                     Pushed.AppLock -> LockSettingsHost(app)
+                    Pushed.AutoArchive -> AutoArchiveHost(app)
                     Pushed.Archived -> ArchivedHost(app, stack)
                     Pushed.CustomInstructions -> CustomInstructionsHost(app, stack)
                     is Pushed.Project -> ProjectHost(app, stack, pushed.id)
@@ -308,7 +329,12 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
             }
         }
 
-        KamToast(toast, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+        KamToast(
+            message = toast,
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
+            actionLabel = toastAction?.label,
+            onAction = toastAction?.onAction,
+        )
     }
 
     val confirm by app.confirm.collectAsStateWithLifecycle()
@@ -579,6 +605,7 @@ private fun SettingsHost(
     val activeModel by app.activeModel.collectAsStateWithLifecycle()
     val confirmChatDelete by app.confirmChatDelete.collectAsStateWithLifecycle()
     val installedStt by app.installedStt.collectAsStateWithLifecycle()
+    val autoArchive by app.autoArchive.collectAsStateWithLifecycle()
 
     SettingsScreen(
         activeModel = activeModel,
@@ -598,6 +625,8 @@ private fun SettingsHost(
         onConfirmChatDelete = app::setConfirmChatDelete,
         appLockEnabled = com.kamsiob.kamai.lock.AppLock.enabled,
         onAppLock = { stack.add(Pushed.AppLock) },
+        onAutoArchive = { stack.add(Pushed.AutoArchive) },
+        autoArchive = autoArchive,
         isDefaultAssistant = com.kamsiob.kamai.assist.AssistantRole.isDefault(context),
         onAssistant = {
             if (!com.kamsiob.kamai.assist.AssistantRole.openSettings(context)) {
@@ -1117,4 +1146,15 @@ private fun AnimatedContentTransitionScope<Pushed?>.screenTransition(
         slideOutHorizontally(KamMotion.standard()) { if (forward) -distance else distance } +
             fadeOut(tween(KamMotion.FAST_MS))
         ) using SizeTransform(clip = false)
+}
+
+
+/** The auto-archive window (#31). */
+@Composable
+private fun AutoArchiveHost(app: AppViewModel) {
+    val value by app.autoArchive.collectAsStateWithLifecycle()
+    com.kamsiob.kamai.ui.settings.AutoArchiveScreen(
+        value = value,
+        onChange = { app.setAutoArchive(it) },
+    )
 }

@@ -101,6 +101,34 @@ interface ConversationDao {
     @Query("UPDATE conversations SET archived = :archived, updatedAt = :now WHERE id = :id")
     suspend fun setArchived(id: String, archived: Boolean, now: Long)
 
+    /**
+     * Everything not archived, oldest activity first. Feeds the auto-archive pass
+     * (#31), which needs pinned and updatedAt to decide and ids to undo with.
+     */
+    @Query(
+        """
+        SELECT c.id, c.title, c.mode, c.modesUsed, c.projectId, c.updatedAt, c.pinned, c.archived,
+               NULL AS snippet, 0 AS messageCount
+          FROM conversations c
+         WHERE c.archived = 0
+         ORDER BY c.updatedAt ASC
+        """,
+    )
+    suspend fun activeForAutoArchive(): List<ConversationSummary>
+
+    /**
+     * Archives or restores a set in one statement, **without touching
+     * `updatedAt`**, unlike [setArchived].
+     *
+     * That difference is the point rather than an oversight. An automatic pass is
+     * not activity: stamping the rows it touches would reorder the archived list
+     * by when the sweep happened rather than by when the user last used anything,
+     * and undo would then restore conversations to the top of Chats instead of
+     * where they were. Preserving the timestamp is what makes undo exact.
+     */
+    @Query("UPDATE conversations SET archived = :archived WHERE id IN (:ids)")
+    suspend fun setArchivedBulk(ids: List<String>, archived: Boolean)
+
     /** Auto-title. Leaves a manually renamed conversation alone. */
     @Query("UPDATE conversations SET title = :title WHERE id = :id AND titleIsManual = 0")
     suspend fun autoTitle(id: String, title: String)

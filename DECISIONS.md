@@ -2959,3 +2959,56 @@ Asked the overlay a question, dragged the handle up: the app opened in that exac
 conversation with the question and answer intact, already titled "Primary colours pigment
 light", and it sat at the top of Chats exactly once, with no duplicate on returning. Dragging
 down dismissed the panel. Tapping expanded it.
+
+## Issue #31: auto-archive
+
+Off by default and off unless the user chooses otherwise. Archiving is not deletion and the
+archived view keeps everything, but a setting that quietly moves somebody's conversations
+should be one they turned on deliberately.
+
+**The decision is a pure function.** `AutoArchivePolicy.due` takes the conversations, the
+window, a `now` passed in rather than read, and the open conversation id. Four exclusions,
+each a rule rather than an accident: nothing at all when Off, never pinned, never the
+conversation on screen, never anything already archived so a repeated pass is a no-op. The
+boundary is inclusive, so "3 days" means three days have passed rather than three days and a
+millisecond. Thirteen tests, including both sides of the boundary to the millisecond, pinned
+alongside non-pinned, the open conversation, and a second pass finding nothing.
+
+**The bulk update deliberately does not touch `updatedAt`**, unlike the existing per-row
+`setArchived`. An automatic sweep is not activity. Stamping the rows it takes would order the
+archived list by when the sweep ran rather than by when the user last used anything, and undo
+would then restore conversations to the top of Chats instead of to where they were.
+Preserving the timestamp is what makes undo exact rather than approximate.
+
+**Count before confirming, and no ceremony when there is nothing to say.** Choosing a window
+counts what it would move first. If that is zero, or the choice is Off, the setting simply
+changes. If it is not, a confirmation names the number and says what is exempt. The pass
+afterwards is silent when it finds nothing, which is the ordinary case once the first sweep
+has run.
+
+**The toast gained an action**, since undo needs one and it had none. It uses the same fixed
+light colour as the message rather than the accent: that surface is a fixed dark green
+whatever the theme, and the accent is one of sixteen user-chosen colours, none contrast
+checked against it. Weight and the tap target carry the affordance. The dismiss delay goes
+from 2.2 to 6 seconds when an action is present, because 2.2 is fine for an acknowledgement
+nobody needs to act on and far too short to read, decide, and reach the control.
+
+**Runs on launch and whenever Chats comes to the front**, not just launch: the app can sit
+open for days, and a launch-only pass would never fire for somebody who never closes it. Not
+while a conversation is open, since sweeping underneath somebody mid-read is not the moment
+for it even though the open conversation is exempt anyway.
+
+### What device testing could and could not reach
+
+Verified on the phone: the settings row shows the current window and updates, the screen and
+its segmented control render correctly in dark theme, choosing 3 days applies and rewrites the
+explanatory line, and the row then reads "After 3 days". Set back to Off afterwards, since it
+is the owner's setting.
+
+**The archive pass itself was not exercised on the device, and could not be honestly.** Every
+conversation on that phone is from the last two days, so no window matches anything and the
+count is always zero. That is exactly why no confirmation appeared when 3 days was chosen,
+which is itself the correct no-ceremony path, but it means the archive, the count dialog, the
+toast and the undo have only been proven by the unit tests. **Manufacturing old rows in the
+owner's real database to force a demonstration is not a reasonable thing to do**, so this is
+recorded rather than faked. Worth watching the first time it genuinely fires.

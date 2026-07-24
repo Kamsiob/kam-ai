@@ -91,6 +91,8 @@ fun SettingsScreen(
     onConfirmChatDelete: (Boolean) -> Unit,
     appLockEnabled: Boolean,
     onAppLock: () -> Unit,
+    onAutoArchive: () -> Unit = {},
+    autoArchive: com.kamsiob.kamai.data.AutoArchive = com.kamsiob.kamai.data.AutoArchive.OFF,
     isDefaultAssistant: Boolean = false,
     onAssistant: () -> Unit = {},
     onReplayOnboarding: () -> Unit,
@@ -159,6 +161,11 @@ fun SettingsScreen(
                 title = "App lock",
                 subtitle = if (appLockEnabled) "On" else "Off",
                 onClick = onAppLock,
+            )
+            SettingsRow(
+                title = "Archive old chats",
+                subtitle = autoArchive.days?.let { "After $it days" } ?: "Off",
+                onClick = onAutoArchive,
             )
             SettingsToggleRow(
                 title = "Confirm before deleting a chat",
@@ -1026,5 +1033,74 @@ fun CustomInstructionsScreen(
 
         Spacer(Modifier.height(18.dp))
         PrimaryButton("Save", onClick = { onSave(text.text.trim()) }, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/**
+ * Auto-archive (#31). Off by default and off unless the user says otherwise:
+ * archiving is not deletion, but a setting that quietly moves somebody's things
+ * should be one they chose.
+ */
+@Composable
+fun AutoArchiveScreen(
+    value: com.kamsiob.kamai.data.AutoArchive,
+    onChange: (com.kamsiob.kamai.data.AutoArchive) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = KamTheme.colors
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = screenPad)) {
+        Text("Archive old chats", style = KamTheme.type.screenTitle, color = colors.textPrimary)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Conversations you have not touched for a while move to Archived on their " +
+                "own. Nothing is deleted, and Archived keeps all of it.",
+            style = KamTheme.type.body,
+            color = colors.textSecondary,
+        )
+        Spacer(Modifier.height(16.dp))
+
+        Eyebrow("Archive after")
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().clip(CircleShape)
+                .background(colors.surfaceSecondary).padding(3.dp),
+        ) {
+            listOf(
+                com.kamsiob.kamai.data.AutoArchive.OFF to "Off",
+                com.kamsiob.kamai.data.AutoArchive.DAYS_3 to "3 days",
+                com.kamsiob.kamai.data.AutoArchive.DAYS_7 to "7 days",
+                com.kamsiob.kamai.data.AutoArchive.DAYS_30 to "30 days",
+            ).forEach { (option, label) ->
+                val on = option == value
+                val bg by androidx.compose.animation.animateColorAsState(
+                    if (on) colors.surface else androidx.compose.ui.graphics.Color.Transparent,
+                    label = "auto-archive",
+                )
+                Box(
+                    modifier = Modifier.weight(1f).clip(CircleShape).background(bg)
+                        .clickable { onChange(option) }.padding(vertical = 9.dp)
+                        .semantics { selected = on },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        label,
+                        style = KamTheme.type.secondary,
+                        color = if (on) colors.textPrimary else colors.textTertiary,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            when (value) {
+                com.kamsiob.kamai.data.AutoArchive.OFF ->
+                    "Nothing is archived on its own. You can still archive any chat yourself."
+                else ->
+                    "Chats untouched for ${value.days} days move to Archived. Pinned chats " +
+                        "stay, the chat you have open stays, and you can undo a whole pass."
+            },
+            style = KamTheme.type.secondary,
+            color = colors.textTertiary,
+        )
     }
 }

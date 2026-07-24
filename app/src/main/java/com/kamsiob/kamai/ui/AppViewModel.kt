@@ -55,6 +55,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _toast = MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast.asStateFlow()
 
+    /** An optional action carried by the current toast, for things worth undoing. */
+    data class ToastAction(val label: String, val onAction: () -> Unit)
+
+    private val _toastAction = MutableStateFlow<ToastAction?>(null)
+    val toastAction: StateFlow<ToastAction?> = _toastAction.asStateFlow()
+
     private val _chatsView = MutableStateFlow(ChatsView.COMPACT)
     val chatsView: StateFlow<ChatsView> = _chatsView.asStateFlow()
 
@@ -151,10 +157,84 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun showToast(message: String) {
         _toast.value = message
+        _toastAction.value = null
+    }
+
+    /** A toast that carries a way back, for something that moved the user's things. */
+    fun showToast(message: String, actionLabel: String, onAction: () -> Unit) {
+        _toast.value = message
+        _toastAction.value = ToastAction(actionLabel) {
+            onAction()
+            clearToast()
+        }
     }
 
     fun clearToast() {
         _toast.value = null
+        _toastAction.value = null
+    }
+
+    // Auto-archive (#31).
+
+    val autoArchive: StateFlow<com.kamsiob.kamai.data.AutoArchive> =
+        repository.observeAutoArchive()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.kamsiob.kamai.data.AutoArchive.OFF)
+
+    /**
+     * Changes the window, counting first.
+     *
+     * Turning this on can move a lot of conversations at once, so it says how
+     * many before it does anything and lets the user decline. Turning it off, or
+     * choosing a window that would move nothing, needs no ceremony.
+     */
+    fun setAutoArchive(value: com.kamsiob.kamai.data.AutoArchive, openConversationId: String? = null) {
+        viewModelScope.launch {
+            val candidates =
+                if (value == com.kamsiob.kamai.data.AutoArchive.OFF) emptyList()
+                else repository.autoArchiveCandidates(value, openConversationId)
+
+            if (candidates.isEmpty()) {
+                repository.setAutoArchive(value)
+                return@launch
+            }
+
+            requestConfirm(
+                ConfirmRequest(
+                    tier = ConfirmTier.SINGLE,
+                    title = "Archive ${candidates.size} ${if (candidates.size == 1) "chat" else "chats"} now?",
+                    body = "Setting this to ${value.days} days will archive " +
+                        "${candidates.size} ${if (candidates.size == 1) "conversation" else "conversations"} " +
+                        "you have not touched since then. Pinned chats stay where they are, " +
+                        "and archived chats are still in Archived.",
+                    confirmLabel = "Archive ${candidates.size}",
+                    onConfirm = {
+                        viewModelScope.launch {
+                            repository.setAutoArchive(value)
+                            runAutoArchive(openConversationId)
+                        }
+                    },
+                ),
+            )
+        }
+    }
+
+    /**
+     * Runs a pass and offers the whole thing back.
+     *
+     * Quiet by design: nothing at all happens visibly when there is nothing to
+     * take, which is the ordinary case once the first sweep has run.
+     */
+    fun runAutoArchive(openConversationId: String? = null) {
+        viewModelScope.launch {
+            val ids = repository.runAutoArchive(openConversationId)
+            if (ids.isEmpty()) return@launch
+            showToast(
+                message = "Archived ${ids.size}",
+                actionLabel = "Undo",
+            ) {
+                viewModelScope.launch { repository.undoAutoArchive(ids) }
+            }
+        }
     }
 
     fun setChatsView(view: ChatsView) {
