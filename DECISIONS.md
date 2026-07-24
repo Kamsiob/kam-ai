@@ -2777,3 +2777,49 @@ Verified on the phone instead, which is what the issue asked for. Stopped a long
 mid-stream: the partial text stayed, "You stopped this one." appeared, and the full action
 row including regenerate was there. Then force-stopped and relaunched the app: the message
 still reads "You stopped this one." rather than the closed-while-writing label.
+
+## Issue #41: an export that puts words in the assistant's mouth
+
+`Share.kt` branched on two roles when the data has three. Both render paths asked only
+whether `role == Role.USER` and labelled everything else "Kam AI", so a `SYSTEM` entry, a
+mode-change notice or the Discover continue-in-open-chat note, was exported as though the
+assistant had said it:
+
+    Kam AI: Logic Partner is on. Kam AI will argue the other side...
+
+Every other consumer already filtered SYSTEM correctly (`ChatFormat`, `ConversationTitler`,
+`ChatViewModel`'s turn assembly) and `ChatScreen` draws it as a distinct centred note, so
+Share was the only place that got it wrong.
+
+**Not dropped, rendered.** The four-mode update requires an export to show where the mode
+changed, so a SYSTEM entry now appears as what it is: `[ ... ]` on its own line in plain
+text, and an italic aside in Markdown. Neither carries a speaker.
+
+Two smaller defects in the same file went with it. `onShareThread` passed `title = null`, so
+a shared thread always headed "Kam AI conversation" even when the conversation had a real
+title; it now passes `conversationTitle`, which was already in scope a few lines above.
+`onExportThread` derived the filename from the first message, which after a mode switch at
+the top is a SYSTEM notice; `Share.exportName` now prefers the title and falls back to the
+first non-SYSTEM message, treating a blank title as absent.
+
+### Testing
+
+`ShareRenderTest` had no SYSTEM case at all, which is why this shipped. Eight tests added,
+covering the notice never being attributed, the notice still being present, the Markdown
+aside, the title, and each export-name fallback including the empty thread.
+
+**Checked by breaking it**: reverting the three fixes failed five of them. Worth noting
+which one does *not* fail, because it says something about the limits of the suite:
+`aSharedThreadKeepsItsOwnTitle` passes either way, since `renderThread` always honoured the
+title it was given and the defect was the call site passing null. A unit test of a pure
+renderer cannot see a caller passing the wrong argument. That half is guarded only by the
+change in `KamAiApp.kt`.
+
+Verified on the phone against the real exported files rather than the share sheet, by
+exporting a conversation that has a Logic Partner switch in it and reading the results back
+out of the app's cache with `run-as`:
+
+- the file is named `Rules for responding.txt`, from the title, not the first message
+- the text heads `Rules for responding`, not `Kam AI conversation`
+- the notice reads `[ Logic Partner is on. ... ]`, with no `Kam AI:` prefix anywhere near it
+- the Markdown version heads `# Rules for responding` and renders the notice as `_..._`

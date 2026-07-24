@@ -68,9 +68,14 @@ answer, says "You stopped this one.", keeps the whole action row including regen
 survives a relaunch without being relabelled. This unblocks #35's failure-state half, which
 builds on the same code path.
 
-**Next concrete step:** **#41** (exports attribute mode-change notices to the assistant,
-shared threads lose their title, and an export filename can come from a SYSTEM notice),
-which unblocks the export half of #28. Full order in section 4.
+**Also finished: #41, verified on the phone and closed.** Exports render a SYSTEM notice as
+a note rather than as something the assistant said, shared threads keep their own title, and
+an export filename comes from the title rather than a mode-change notice. This unblocks the
+export half of #28.
+
+**Next concrete step:** the overlay set, **#45, #46 and #47**, done together since they
+touch one surface, and #60 (the leftover "flag" wording) belongs with them. Full order in
+section 4.
 
 **Two things were found along the way and are recorded, not fixed.** Read both before
 picking up performance or export work.
@@ -92,13 +97,12 @@ said there was nothing outstanding.
    content descriptions, after the unified-saving decision made everything a bookmark. The
    onboarding and Q&A copy is fixed (#42) and guarded; these surfaces are not, and
    `PublicCopyTest` does not reach them.
-2. **Exports attribute mode-change notices to the assistant.** Issue #41.
-3. **Workbench promises a linked session it does not implement.** The copy is correct
+2. **Workbench promises a linked session it does not implement.** The copy is correct
    about the intent; #32 makes it true. Do not weaken the copy in the meantime.
-4. **The mode rename is complete in code, not in copy.** Every `Mode.CHAT` is gone.
-5. **`ui/components/ModeSegmentedControl.kt` is live**, referenced from `ChatsScreen.kt`
+3. **The mode rename is complete in code, not in copy.** Every `Mode.CHAT` is gone.
+4. **`ui/components/ModeSegmentedControl.kt` is live**, referenced from `ChatsScreen.kt`
    by fully qualified name, so a grep for the file name finds nothing. Do not delete it.
-6. **Three legacy `"CHAT"` mappings exist on purpose** (Room type converter, backup codec,
+5. **Three legacy `"CHAT"` mappings exist on purpose** (Room type converter, backup codec,
    CSV parsers) for data the migration cannot reach, such as an older backup file.
 
 ---
@@ -183,7 +187,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 |---|---|---|
 | #49 | Chat template tokens leak into responses in longer conversations | **closed, verified on the phone** with adversarial labelled-dialogue prompts |
 | #40 | Stopping a response loses its reason, hides the action row, then gets mislabelled | **closed, verified on the phone**, including across a relaunch |
-| #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | not started |
+| #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | **closed, verified on the phone** against the real exported files |
 | #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | **closed, verified on the phone.** Guarded by PublicCopyTest |
 | #45 | Overlay shows a memory warning and then works anyway | not started |
 | #59 | Template tokens leaked before the #49 fix are still stored and still displayed | not started. Sanitise on read; do not rewrite user rows |

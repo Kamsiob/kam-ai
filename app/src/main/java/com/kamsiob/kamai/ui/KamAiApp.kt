@@ -494,10 +494,17 @@ private fun ConversationScreen(
         onReport = { message -> reportResponse(context, message.content, app) },
         onShareResponse = { message -> Share.text(context, message.content) },
         onShareThread = {
-            Share.text(context, Share.renderThread(null, messages))
+            // The conversation's real title, not null: a shared thread used to
+            // head "Kam AI conversation" even when it had one (#41).
+            Share.text(context, Share.renderThread(conversationTitle, messages))
         },
         onExportThread = { asMarkdown ->
-            Share.exportThread(context, messages.firstOrNull()?.content?.take(40), messages, asMarkdown)
+            Share.exportThread(
+                context,
+                Share.exportName(conversationTitle, messages),
+                messages,
+                asMarkdown,
+            )
         },
         onShareText = { text -> Share.text(context, text) },
         onFollowUpSelection = { message, text ->

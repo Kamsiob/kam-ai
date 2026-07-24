@@ -23,13 +23,28 @@ object Share {
         context.startActivity(Intent.createChooser(intent, "Share").addNewTaskIfNeeded(context))
     }
 
-    /** A whole conversation as clean, readable plain text. */
+    /**
+     * A whole conversation as clean, readable plain text.
+     *
+     * Three roles, not two. A SYSTEM entry is a mode-change notice or the
+     * Discover continue-in-open-chat note: something that happened *to* the
+     * conversation, not something anybody said. Branching only on USER, as this
+     * did, exported those as though the assistant had said them, which put words
+     * in its mouth that no model produced (issue #41).
+     *
+     * They are not dropped either. The four-mode update requires an export to
+     * show where the mode changed, so they are rendered as what they are: a note
+     * on its own line, set off by brackets, with no speaker.
+     */
     fun renderThread(title: String?, messages: List<MessageEntity>): String = buildString {
         appendLine(title ?: "Kam AI conversation")
         appendLine()
         messages.forEach { m ->
-            append(if (m.role == Role.USER) "You: " else "Kam AI: ")
-            appendLine(m.content.trim())
+            when (m.role) {
+                Role.SYSTEM -> appendLine("[ ${m.content.trim()} ]")
+                Role.USER -> appendLine("You: ${m.content.trim()}")
+                else -> appendLine("Kam AI: ${m.content.trim()}")
+            }
             appendLine()
         }
     }.trim()
@@ -63,17 +78,34 @@ object Share {
         context.startActivity(Intent.createChooser(intent, "Export").addNewTaskIfNeeded(context))
     }
 
-    private fun renderThreadMarkdown(title: String?, messages: List<MessageEntity>): String =
+    /** The same three roles as [renderThread]; a SYSTEM notice becomes an aside. */
+    internal fun renderThreadMarkdown(title: String?, messages: List<MessageEntity>): String =
         buildString {
             appendLine("# ${title ?: "Kam AI conversation"}")
             appendLine()
             messages.forEach { m ->
-                appendLine("**${if (m.role == Role.USER) "You" else "Kam AI"}**")
-                appendLine()
-                appendLine(m.content.trim())
+                if (m.role == Role.SYSTEM) {
+                    appendLine("_${m.content.trim()}_")
+                } else {
+                    appendLine("**${if (m.role == Role.USER) "You" else "Kam AI"}**")
+                    appendLine()
+                    appendLine(m.content.trim())
+                }
                 appendLine()
             }
         }.trim()
+
+    /**
+     * The name an exported file should carry.
+     *
+     * The conversation's own title when it has one. Falling back to the first
+     * thing anybody actually said, skipping SYSTEM notices: a conversation whose
+     * mode was switched at the top used to export as a file named after the
+     * mode-change notice (issue #41).
+     */
+    fun exportName(title: String?, messages: List<MessageEntity>): String? =
+        title?.takeIf { it.isNotBlank() }
+            ?: messages.firstOrNull { it.role != Role.SYSTEM }?.content?.trim()?.take(40)
 
     private fun Intent.addNewTaskIfNeeded(context: Context): Intent {
         if (context !is android.app.Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
