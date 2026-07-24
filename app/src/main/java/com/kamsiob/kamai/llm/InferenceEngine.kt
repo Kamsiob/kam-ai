@@ -121,10 +121,12 @@ class InferenceEngine(
     /**
      * Streams a response to [prompt].
      *
-     * The whole prompt is re-ingested each time rather than kept warm across
-     * turns. It costs a prefill on every message, but it means the system
-     * prompt is genuinely re-injected every request, which is what keeps a small
-     * model from drifting out of its guardrails after a few turns.
+     * The whole prompt is passed every time, so the system prompt is genuinely
+     * re-injected on every request, which is what keeps a small model from
+     * drifting out of its guardrails after a few turns. It is not re-computed
+     * every time: nativeIngest keeps the longest prefix already in the KV cache
+     * and decodes only what is new (issue #38), which is the difference between
+     * an eleven second wait and under a second on an ongoing turn.
      */
     fun generate(
         prompt: String,
@@ -180,6 +182,7 @@ class InferenceEngine(
 
         var produced = 0
         var reason: StopReason = StopReason.Finished
+        val guard = StreamGuard()
         val decodeStart = System.nanoTime()
         // Time to first token: what a user actually waits through before anything
         // appears. The generateStart is captured at the top of the flow.
@@ -200,14 +203,27 @@ class InferenceEngine(
                 reason = StopReason.Finished
                 break
             }
-            if (PromptBuilder.isStopMarker(piece)) {
+
+            // The guard holds back any tail that could still become a control
+            // marker, so a marker typed out across several tokens stops the
+            // answer instead of appearing in it (issue #49).
+            val step = guard.accept(piece)
+            if (step.emit.isNotEmpty()) {
+                if (firstTokenMs < 0) {
+                    firstTokenMs = (System.nanoTime() - prefillStart) / 1_000_000.0
+                }
+                produced++
+                trySend(Chunk(step.emit))
+            }
+            if (step.stop) {
                 reason = StopReason.Finished
                 break
             }
+        }
 
-            if (firstTokenMs < 0) firstTokenMs = (System.nanoTime() - prefillStart) / 1_000_000.0
-            produced++
-            trySend(Chunk(piece))
+        // Whatever is still held back was ordinary text after all.
+        if (reason != StopReason.UserStopped) {
+            guard.flush().takeIf { it.isNotEmpty() }?.let { trySend(Chunk(it)) }
         }
 
         if (produced >= maxTokens) reason = StopReason.Finished

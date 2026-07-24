@@ -39,6 +39,10 @@ object PromptBuilder {
     private val ALL_STOP_MARKERS: List<String> =
         ChatFormat.entries.flatMap { it.stopMarkers }.distinct()
 
+    /** The same list, for StreamGuard, which watches the stream for a marker
+     *  arriving in fragments rather than in one piece. */
+    fun controlMarkers(): List<String> = ALL_STOP_MARKERS
+
     /**
      * Strips control tokens and any stray thinking block from streamed output.
      * Small models occasionally emit these despite the template.

@@ -61,6 +61,24 @@ bool abort_callback(void * data) {
     return flag != nullptr && flag->load();
 }
 
+// llama.cpp's own log, forwarded to logcat under its own tag. What the loader
+// decides is otherwise invisible on a phone: whether weight repacking engaged,
+// whether flash attention is on, how the sliding-window cache was sized. Those
+// are exactly the things that must be read rather than assumed (issues #49 and
+// #51). Debug-level lines are dropped, since they are per-tensor and enormous.
+//   adb logcat -s KamAI-llama
+void llama_log_to_logcat(ggml_log_level level, const char * text, void *) {
+    if (text == nullptr) return;
+    int priority = ANDROID_LOG_INFO;
+    switch (level) {
+        case GGML_LOG_LEVEL_ERROR: priority = ANDROID_LOG_ERROR; break;
+        case GGML_LOG_LEVEL_WARN:  priority = ANDROID_LOG_WARN;  break;
+        case GGML_LOG_LEVEL_DEBUG: return;
+        default: break;
+    }
+    __android_log_print(priority, "KamAI-llama", "%s", text);
+}
+
 std::string jstring_to_utf8(JNIEnv * env, jstring s) {
     if (s == nullptr) return {};
     const char * chars = env->GetStringUTFChars(s, nullptr);
@@ -85,6 +103,16 @@ bool build_context_locked() {
     cparams.n_threads_batch = g_session.n_threads_batch > 0
         ? g_session.n_threads_batch : g_session.n_threads;
     cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_AUTO;
+    // Gemma interleaves local sliding-window attention with periodic global
+    // attention. With a sliding-window KV cache, cells that fall behind the
+    // window are overwritten, so trimming the tail of the sequence and decoding
+    // again from that point leaves a hole the model reads as garbage: it loses
+    // the turn structure and starts improvising delimiters into its answer.
+    // That is issue #49, and it is why it only showed up in long conversations.
+    // The prefix reuse in nativeIngest (issue #38) depends on the cache holding
+    // exactly what cached_tokens says it holds, so the SWA cache is given the
+    // full context size. It costs KV memory and buys a correct cache.
+    cparams.swa_full = true;
 
     g_session.ctx = llama_init_from_model(g_session.model, cparams);
     if (g_session.ctx == nullptr) return false;
@@ -116,7 +144,10 @@ extern "C" {
 
 JNIEXPORT jstring JNICALL
 Java_com_kamsiob_kamai_llm_LlamaBridge_nativeSystemInfo(JNIEnv * env, jobject) {
-    std::call_once(g_backend_once, []() { llama_backend_init(); });
+    std::call_once(g_backend_once, []() {
+        llama_log_set(llama_log_to_logcat, nullptr);
+        llama_backend_init();
+    });
     std::string info;
     info += "llama.cpp bridge ready";
     info += ", mmap=";  info += llama_supports_mmap()  ? "yes" : "no";
@@ -132,7 +163,10 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeLoad(
         JNIEnv * env, jobject,
         jstring jpath, jint n_ctx, jint n_threads, jint n_threads_batch, jint n_gpu_layers) {
 
-    std::call_once(g_backend_once, []() { llama_backend_init(); });
+    std::call_once(g_backend_once, []() {
+        llama_log_set(llama_log_to_logcat, nullptr);
+        llama_backend_init();
+    });
     std::lock_guard<std::mutex> lock(g_session.mu);
 
     if (g_session.ctx != nullptr) {
@@ -291,8 +325,19 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeIngest(
     if (prefix >= n_tokens) prefix = n_tokens - 1;
 
     // Drop the KV entries after the common prefix and trim our record to match.
+    //
+    // The removal can genuinely fail: llama_memory_seq_rm returns false when a
+    // partial sequence cannot be removed. If that is ignored, the cache still
+    // holds the old tail while cached_tokens and n_past say it does not, and
+    // every following token is generated against a context that is quietly
+    // wrong. That is worse than being slow, so a failure here throws the whole
+    // sequence away and re-prefills honestly. See issue #49.
     llama_memory_t mem = llama_get_memory(g_session.ctx);
-    llama_memory_seq_rm(mem, 0, prefix, -1);
+    if (!llama_memory_seq_rm(mem, 0, prefix, -1)) {
+        LOGE("seq_rm(%d, -1) refused; clearing the sequence and re-prefilling", prefix);
+        llama_memory_clear(mem, true);
+        prefix = 0;
+    }
     g_session.n_past = prefix;
     g_session.cached_tokens.resize(prefix);
 
@@ -305,11 +350,31 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeIngest(
         llama_batch batch = llama_batch_get_one(tokens.data() + i, chunk);
         const int rc = llama_decode(g_session.ctx, batch);
         if (rc != 0) {
-            LOGE("llama_decode failed during ingest: %d", rc);
+            // Whatever was processed before the failure stays in the cache, so
+            // the bookkeeping no longer matches it. Clear both rather than leave
+            // a lie behind for the next turn to reuse.
+            LOGE("llama_decode failed during ingest: %d; clearing the sequence", rc);
+            llama_memory_clear(mem, true);
+            g_session.n_past = 0;
+            g_session.cached_tokens.clear();
             return -4;
         }
         g_session.n_past += chunk;
         for (int k = 0; k < chunk; k++) g_session.cached_tokens.push_back(tokens[i + k]);
+    }
+
+    // Cheap insurance against the failure mode this file most needs to avoid:
+    // cached_tokens drifting out of step with the cache means the model answers
+    // from the wrong history, silently. Positions are zero based, so the last
+    // position plus one is the number of tokens held.
+    const llama_pos held = llama_memory_seq_pos_max(mem, 0);
+    if (held + 1 != (int) g_session.cached_tokens.size()) {
+        LOGE("cache desync: memory holds %d tokens, record says %d; clearing",
+             (int) held + 1, (int) g_session.cached_tokens.size());
+        llama_memory_clear(mem, true);
+        g_session.n_past = 0;
+        g_session.cached_tokens.clear();
+        return -4;
     }
 
     // The count actually processed this turn (the new work), so the perf log and

@@ -24,24 +24,37 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
-**Just finished:** issue #24, the version 4 to version 5 migration, verified at last. The
-migration SQL now lives in `KamDatabase.MIGRATION_4_5_SQL`, which the shipped `Migration`
-object executes, and `MigrationSqlTest` (pure JVM, real SQLite over JDBC) drives those
-exact statements over a populated version 4 database. Five tests pass, including an
-interrupted migration rolling back cleanly and re-running. Full detail in DECISIONS.md,
-"Where migrations get tested". What is still not covered: Room's version bookkeeping and
-the SQLCipher layer, which need a device or an emulator, so **#24 stays open**.
+**Just finished:** issue #24, the version 4 to version 5 migration. The migration SQL now
+lives in `KamDatabase.MIGRATION_4_5_SQL`, which the shipped `Migration` object executes,
+and `MigrationSqlTest` (pure JVM, real SQLite over JDBC) drives those exact statements over
+a populated version 4 database. Five tests pass, including an interrupted migration rolling
+back cleanly and re-running. Full detail in DECISIONS.md, "Where migrations get tested".
+**#24 is closed.** What it does not cover is Room's version bookkeeping and the SQLCipher
+layer, which need a device or an emulator; `MigrationToV5Test` and `EncryptionMigrationTest`
+in `androidTest` are written and waiting for a machine that can run them. That residual is
+tracked on its own, not inside the closed #24, so it cannot hide there.
+
+**Correction, recorded after a mid-session machine crash:** an earlier revision of this file
+said "#24 stays open". It was written before the issue was closed and was stale within the
+hour. Trust `gh issue view` over this file for issue state, always.
 
 **Next concrete step:** issue #49, chat template tokens leaking into responses in longer
-conversations. Start by checking the `cached_tokens` vector against `n_past` in the native
-session, because a drift there is the likeliest cause and is the failure mode this
-codebase most needs to rule out. Add the debug assertion while you are in there.
+conversations. **The fix is written and committed, and is not yet device-verified.** Three
+causes were found and addressed together: the sliding-window KV cache silently discarding
+cells the prefix-reuse path assumed were present (`swa_full`), an ignored
+`llama_memory_seq_rm` failure leaving the cache and `cached_tokens` disagreeing, and the
+stop-marker check looking at one streamed piece at a time so a marker typed out across
+several tokens was never matched. `StreamGuard` handles the last of these and is unit
+tested. **What remains is watching a long conversation on the phone.** #49 closes then, not
+before.
 
 **Then:** #43 (streaming scroll latch), #44 (new conversation at the top of Chats), #42
 (stale onboarding and Q&A copy), #40 (stop loses its reason), #41 (export attribution).
 Full order in section 4.
 
-**Nothing is uncommitted and nothing is stashed** unless `git status` says otherwise.
+**Check `git status` before believing any claim in this file about what is committed.** The
+crash that produced the correction above left a full feature uncommitted while this section
+said there was nothing outstanding.
 
 ### Things that would break if you assumed they were finished
 
@@ -120,7 +133,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 
 | # | Item | State |
 |---|---|---|
-| #49 | Chat template tokens leak into responses in longer conversations | not started, **next** |
+| #49 | Chat template tokens leak into responses in longer conversations | fix committed, **never watched on the phone**. Verify on a long conversation, then close |
 | #40 | Stopping a response loses its reason, hides the action row, then gets mislabelled | not started |
 | #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | not started |
 | #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | not started |
@@ -141,7 +154,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 
 | # | Item | State |
 |---|---|---|
-| #24 | Version 4 to 5 migration | SQL **verified** by MigrationSqlTest; Room and SQLCipher path unverified, needs a device or emulator |
+| #24 | Version 4 to 5 migration | **closed.** SQL verified by MigrationSqlTest. Room and SQLCipher path still unverified, needs a device or emulator, tracked separately |
 | #25 | Brainstorm behaviour on the device: ten methods, selection checklist, four hard rules | prompt done, **behaviour never watched**. Budget a full session |
 | #28 | First-time per-mode explainers (needs a "seen once" key that does not exist anywhere yet), per-mode Q&A entries, export markers (#41) | partial |
 | #29 | Per-mode empty-state nudges: wash, four hand-drawn double-stroke sketches, per-mode type | not started, largest UI piece. Serif now decided: **Fraunces**, or Lora if Fraunces is awkward at that size, both SIL OFL. **Subset it to only the glyphs the one line needs** and record the file size in DECISIONS.md. Horizontal `edgeFade` variant belongs to the same pass (three chip rows need it) |
