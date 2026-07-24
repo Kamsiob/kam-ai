@@ -51,18 +51,26 @@ two-speaker dialogue and then a continuation of it, in a long existing conversat
 E4B: no template syntax in either answer, no desync, and the context stayed coherent
 across the reuse path. Detail on the issue.
 
-**Next concrete step:** **#43** (streaming scroll latch), then **#44** (new conversation
-at the top of Chats). Both small, both in the most used surface. Then #42 (stale
-onboarding and Q&A copy), #40 (stop loses its reason), #41 (export attribution). Full
-order in section 4.
+**Also finished: #43 and #44, both verified on the phone and closed.** #43 needed an
+explicit per-response latch on top of #35's at-bottom rule, and an honest `atBottom` that
+asks where the last item *ends* rather than only whether it is visible. #44 turned out to
+be position, not ordering: the ordering was right all along and both lists were simply
+restoring the scroll offset the user left behind.
 
-**Read the new #38 comment before doing any performance work.** Verifying #49 accidentally
-measured the auto-titling pass, and it is destroying the KV reuse that #38 bought: turn 2
-of a conversation re-prefilled all 1068 tokens in 30.8s where it should have done about
-110 tokens in about 3s, because titling ran in between with a different prompt and
-overwrote the cache. That is roughly 28 seconds per turn, and it substantially negates
-#38's headline result. It also re-titled an already-titled conversation, which looks like a
-defect of its own.
+**Next concrete step:** **#42** (onboarding slide 3 and the "What are the modes?" Q&A still
+describe three modes and a dead switcher), then **#40** (stopping loses its reason), then
+**#41** (export attribution, which unblocks the export half of #28). Full order in
+section 4.
+
+**Two things were found along the way and are recorded, not fixed.** Read both before
+picking up performance or export work.
+- **The auto-titling pass is destroying #38's KV reuse**, costing roughly 28 seconds per
+  turn. See the #38 comment. **Fix it before any of #51 to #56**, or those measurements
+  are taken against a defeated cache and mean nothing.
+- **#59: template tokens that leaked before the #49 fix are still in stored messages and
+  still on screen**, visible in the chat list right now. Not a regression of #49, which
+  stops new leaks; this is the residue. Sanitising on read is the option that does not
+  touch user data.
 
 **Check `git status` before believing any claim in this file about what is committed.** The
 crash that produced the correction above left a full feature uncommitted while this section
@@ -90,7 +98,7 @@ said there was nothing outstanding.
 Everything here has cost someone an hour at least once.
 
 - **The test suite is green. A failure means a failure.** `./gradlew testDebugUnitTest`
-  gives 26 classes, 160 tests, 0 failures, 0 skipped. Read the count.
+  gives 174 tests across 27 classes, 0 failures, 0 skipped. Read the count.
   **Fixed 24 July 2026, and the old advice is obsolete.** For a long time thirty-nine tests
   failed at `ClassReader.java:200`, because Robolectric 4.16.1 cannot instrument against
   this machine's default JDK 26, and every session was told to filter failures by cause and
@@ -168,14 +176,15 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | not started |
 | #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | not started |
 | #45 | Overlay shows a memory warning and then works anyway | not started |
+| #59 | Template tokens leaked before the #49 fix are still stored and still displayed | not started. Sanitise on read; do not rewrite user rows |
 | #46 | Assistant voice-first setting has no effect | not started |
 
 ### Daily-use friction from live testing, all not started
 
 | # | Item | State |
 |---|---|---|
-| #43 | Scrolling is fought during a long streaming response; needs a per-response latch | not started, refines #35 |
-| #44 | A new conversation is not at the top of Chats, and the list does not return to the top | not started |
+| #43 | Scrolling is fought during a long streaming response; needs a per-response latch | **closed, verified on the phone.** Per-response latch plus an offset-based atBottom, in ui/chat/ScrollFollow.kt, 13 tests |
+| #44 | A new conversation is not at the top of Chats, and the list does not return to the top | **closed, verified on the phone** in list and grid. Ordering was already right; the lists were restoring their old scroll offset |
 | #47 | The overlay drag handle is decorative; make it expand into the full app | not started |
 | #48 | Archived conversations unreachable in grid view; audit all three views against each other | not started |
 | #50 | Projects screen has no view options | not started |
@@ -366,7 +375,7 @@ Memory: E2B loaded and generating is 3.92 GB PSS, but `MemAvailable` drops only 
 is about 186 to 203 MB PSS. The fit check is deliberately conservative anyway: an early
 build that trusted the optimistic figure was SIGKILLed.
 
-Test suite: **160 unit tests across 26 classes, all passing, nothing skipped**, once the
+Test suite: **174 unit tests across 27 classes, all passing, nothing skipped**, once the
 test task moved to JDK 21. The thirty-nine Robolectric failures are gone rather than
 filtered. On the phone, 11 instrumented tests covering the three migration classes.
 
