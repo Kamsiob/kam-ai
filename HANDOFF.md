@@ -89,8 +89,16 @@ unconditionally, so closing the assistant in a process that never loaded it thre
 `UnsatisfiedLinkError` and showed "Kam AI keeps stopping". Guarded now. The app has a
 `files/crash` directory on the device, so this may account for crashes nobody had explained.
 
-**Next concrete step:** **#31 auto-archive**, the next item in section 4's order and
-self-contained: one DAO query, one preference, one settings row. Still open against the
+**Also finished: #31 auto-archive**, committed with one honest gap: **the archive pass itself
+has never run on the device**, because every conversation on that phone is from the last two
+days so no window matches anything and the count is always zero. The settings row, the screen
+and the no-ceremony path are verified; the archive, the count dialog, the toast and the undo
+are proven by unit tests only. Watch it the first time it genuinely fires. Do not manufacture
+old rows in the owner's database to force a demonstration.
+
+**Next concrete step:** **#29 per-mode empty-state nudges**, the largest UI piece, which
+section 4 puts before #36 so the nudge copy and the public copy are written once and agree.
+Fraunces or Lora, subsetted, with the file size recorded. Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
 button drawing in the reserved gold) and **#60** (the leftover "flag" wording). Full order in
 section 4.
@@ -230,7 +238,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #25 | Brainstorm behaviour on the device: ten methods, selection checklist, four hard rules | prompt done, **behaviour never watched**. Budget a full session |
 | #28 | First-time per-mode explainers (needs a "seen once" key that does not exist anywhere yet), per-mode Q&A entries, export markers (#41) | partial |
 | #29 | Per-mode empty-state nudges: wash, four hand-drawn double-stroke sketches, per-mode type | not started, largest UI piece. Serif now decided: **Fraunces**, or Lora if Fraunces is awkward at that size, both SIL OFL. **Subset it to only the glyphs the one line needs** and record the file size in DECISIONS.md. Horizontal `edgeFade` variant belongs to the same pass (three chip rows need it) |
-| #31 | Auto-archive: Off / 3 / 7 / 30 days, pinned exempt, count before confirming, undo | not started. No time-based or bulk query, no preference key, no settings row exist |
+| #31 | Auto-archive: Off / 3 / 7 / 30 days, pinned exempt, count before confirming, undo | **built, 13 tests.** Settings verified on the phone; **the pass itself has never fired there**, since nothing on that device is old enough to match. Issue left open until it is watched working |
 | #32 | Workbench linking, both directions | not started. **Touches the data model, needs MIGRATION_5_6.** No Workbench entity exists; it persists two strings through the settings table |
 | #33 | Filter follow-ups by kind alongside source | not started. Brainstorm-defaults-to-pursue path also unverified |
 | #34 | Keyboard and reachability audit | not started. Nothing in the app reacts to the keyboard opening and the message list has no IME padding. Do after #29 |
