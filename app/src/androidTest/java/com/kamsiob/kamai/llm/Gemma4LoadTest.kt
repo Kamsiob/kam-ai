@@ -57,6 +57,7 @@ class Gemma4LoadTest {
             path = file.absolutePath,
             nCtx = 1024,
             nThreads = 4,
+            nThreadsBatch = 4,
             nGpuLayers = 0,
         )
         assertThat(failure).isEmpty()

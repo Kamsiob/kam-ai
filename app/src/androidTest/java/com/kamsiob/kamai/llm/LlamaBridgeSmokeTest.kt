@@ -77,6 +77,7 @@ class LlamaBridgeSmokeTest {
             path = modelPath,
             nCtx = 512,
             nThreads = 4,
+            nThreadsBatch = 4,
             nGpuLayers = 0,
         )
         assertThat(failure).isEmpty()
@@ -114,7 +115,7 @@ class LlamaBridgeSmokeTest {
 
     @Test
     fun countsTokensWithoutTouchingTheContext() {
-        assertThat(LlamaBridge.nativeLoad(modelPath, 512, 4, 0)).isEmpty()
+        assertThat(LlamaBridge.nativeLoad(modelPath, 512, 4, 4, 0)).isEmpty()
 
         val before = LlamaBridge.nativeContextUsed()
         val count = LlamaBridge.nativeCountTokens("Once upon a time there was a lighthouse")
@@ -124,7 +125,7 @@ class LlamaBridgeSmokeTest {
 
     @Test
     fun resetClearsTheSequence() {
-        assertThat(LlamaBridge.nativeLoad(modelPath, 512, 4, 0)).isEmpty()
+        assertThat(LlamaBridge.nativeLoad(modelPath, 512, 4, 4, 0)).isEmpty()
         LlamaBridge.nativeIngest("Once upon a time", addSpecial = true)
         assertThat(LlamaBridge.nativeContextUsed()).isGreaterThan(0)
 
@@ -134,7 +135,7 @@ class LlamaBridgeSmokeTest {
 
     @Test
     fun refusesTextThatCannotFitTheContext() {
-        assertThat(LlamaBridge.nativeLoad(modelPath, 512, 4, 0)).isEmpty()
+        assertThat(LlamaBridge.nativeLoad(modelPath, 512, 4, 4, 0)).isEmpty()
 
         // Comfortably past a 512 token context.
         val tooLong = "lighthouse ".repeat(4000)

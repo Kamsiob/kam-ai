@@ -29,10 +29,13 @@ lives in `KamDatabase.MIGRATION_4_5_SQL`, which the shipped `Migration` object e
 and `MigrationSqlTest` (pure JVM, real SQLite over JDBC) drives those exact statements over
 a populated version 4 database. Five tests pass, including an interrupted migration rolling
 back cleanly and re-running. Full detail in DECISIONS.md, "Where migrations get tested".
-**#24 is closed.** What it does not cover is Room's version bookkeeping and the SQLCipher
-layer, which need a device or an emulator; `MigrationToV5Test` and `EncryptionMigrationTest`
-in `androidTest` are written and waiting for a machine that can run them. That residual is
-tracked on its own, not inside the closed #24, so it cannot hide there.
+**#24 is closed, and now on evidence rather than inference.** The Room and SQLCipher path,
+which the SQL test could not reach, has since been verified on the phone:
+`MigrationToV5Test`, `SchemaMigrationTest` and `EncryptionMigrationTest` ran there and
+passed, **OK (11 tests)**. Nothing about the version 4 to 5 migration is unverified now.
+How that was done without breaching the one-copy rule is in section 2 and in full in
+DECISIONS.md, "Resolved 24 July 2026". **There is no longer any outstanding item that can
+destroy user data.**
 
 **Correction, recorded after a mid-session machine crash:** an earlier revision of this file
 said "#24 stays open". It was written before the issue was closed and was stale within the
@@ -110,6 +113,16 @@ Everything here has cost someone an hour at least once.
   annoyance; the restore commands are in DECISIONS.md, Phase 4.
 - **Never run `connectedAndroidTest` against the phone.** It uninstalls and reinstalls,
   which once wiped a 5 GB model download. Use `adb install -r`, which preserves data.
+- **Instrumented tests can still be run on the phone, through `am instrument` directly.**
+  That is the way around the line above, and it is how the migration was finally proven.
+  Build with `assembleDebugAndroidTest`, `adb install -r` the test APK only, run the named
+  classes, then `adb uninstall com.kamsiob.kamai.test`. Exact commands in DECISIONS.md,
+  "Resolved 24 July 2026". Read a test's setup and teardown for the database name it opens
+  before running it, and **ask the owner first**: the instrumentation package is not a
+  second copy of the app, but the one-copy rule is written absolutely and is meant to be.
+- **`./gradlew assembleDebugAndroidTest` needs no device and takes seconds.** Run it after
+  changing any signature the instrumented tests call. The set had rotted and would not
+  compile, because nothing here had built it since the emulator stopped working.
 - **Pinned and deliberate:** Kotlin 2.2.10 (AGP 9.3.0 carries it; the Compose plugin and
   KSP must match exactly), no standalone Kotlin Android plugin (hard error under AGP 9),
   `android.disallowKotlinSourceSets=false` (required by KSP under AGP 9), CMake 3.31.6
@@ -154,7 +167,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 
 | # | Item | State |
 |---|---|---|
-| #24 | Version 4 to 5 migration | **closed.** SQL verified by MigrationSqlTest. Room and SQLCipher path still unverified, needs a device or emulator, tracked separately |
+| #24 | Version 4 to 5 migration | **closed and fully verified.** SQL by MigrationSqlTest on the JVM, Room and SQLCipher by the three androidTest classes run on the phone, 11 tests passing |
 | #25 | Brainstorm behaviour on the device: ten methods, selection checklist, four hard rules | prompt done, **behaviour never watched**. Budget a full session |
 | #28 | First-time per-mode explainers (needs a "seen once" key that does not exist anywhere yet), per-mode Q&A entries, export markers (#41) | partial |
 | #29 | Per-mode empty-state nudges: wash, four hand-drawn double-stroke sketches, per-mode type | not started, largest UI piece. Serif now decided: **Fraunces**, or Lora if Fraunces is awkward at that size, both SIL OFL. **Subset it to only the glyphs the one line needs** and record the file size in DECISIONS.md. Horizontal `edgeFade` variant belongs to the same pass (three chip rows need it) |

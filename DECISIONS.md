@@ -2393,6 +2393,73 @@ that path over the real Room migration object and should be run on any machine w
 working emulator or a spare device. Until then, issue #24 stays honest: the SQL is proven,
 the full Room and SQLCipher path is not.
 
+### Resolved 24 July 2026: the full path is now proven, on the phone, without a second copy
+
+The paragraph above is superseded. The Room and SQLCipher path has been verified.
+
+The emulator was retried exactly once, to confirm rather than assume. It still dies:
+`qemu-system-x86_64-headless` took SIGSEGV within about thirty seconds of launch, headless
+with `-gpu off`, and `coredumpctl` recorded the core. It was not memory pressure, since
+19 GB was available at the time. **Do not retry it again.** That conclusion is now twice
+measured.
+
+What worked instead is running the instrumented tests on the phone **through
+`am instrument` directly, never through `connectedAndroidTest`.** The distinction is the
+whole point. `connectedAndroidTest` uninstalls and reinstalls the app under test, which is
+what once wiped a large model download. `am instrument` does neither. The sequence:
+
+```bash
+./gradlew assembleDebugAndroidTest
+adb -s 57241FDCQ0000H install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb -s 57241FDCQ0000H shell am instrument -w -r \
+  -e class 'com.kamsiob.kamai.data.MigrationToV5Test,com.kamsiob.kamai.data.SchemaMigrationTest,com.kamsiob.kamai.data.EncryptionMigrationTest' \
+  com.kamsiob.kamai.test/androidx.test.runner.AndroidJUnitRunner
+adb -s 57241FDCQ0000H uninstall com.kamsiob.kamai.test
+```
+
+The app APK is not reinstalled at all: the installed build already matched the working
+tree, so `assembleDebug` was up to date and the digital-assistant role survived untouched.
+
+**Why this does not breach the one-copy rule.** What was banned was
+`com.kamsiob.kamai.migtest`, a suffixed application id that put a second, launchable Kam AI
+on the phone. `com.kamsiob.kamai.test` is the standard instrumentation package: it has no
+launcher activity, no icon, no app data of its own, it cannot be opened, it runs inside the
+target app's process, and it is removed the moment the run ends. It was installed with the
+owner's explicit approval, asked for beforehand because the rule is written absolutely, and
+uninstalled within the same minute. **Still ask before doing this again**; the rule is
+strict on purpose and the exception is narrow.
+
+**Safety established before anything was installed**, by reading each test's setup and
+teardown rather than trusting their names. All three use dedicated database names,
+`migration-v4-to-v5-test.db`, `migration-schema-test.db` and `migration-test.db`, each
+deleted in both setup and teardown. Production is `KamDatabase.NAME`, `kam-ai.db`. No test
+opens it. Verified afterwards too: `kam-ai.db` was byte-identical at 225280 bytes with an
+unchanged modification time, the 20 GB of models under `files/models` were untouched, and
+no test database was left behind.
+
+**Result: OK (11 tests), 8.1 seconds.** The version 4 to version 5 migration is now proven
+over the real Room migration object on real Android SQLite, alongside the version 1 to 2
+and 2 to 3 migrations, and `EncryptionMigrationTest` proves the SQLCipher layer: plaintext
+data survives migration intact, the migrated file is unreadable as plaintext, the wrong
+passphrase cannot open it, and an interrupted migration restarts from untouched plaintext.
+Nothing about the version 4 to 5 migration is now unverified, and issue #24 is closed on
+evidence rather than on inference.
+
+### The androidTest source set had silently rotted
+
+Building it for the first time in a long while failed to compile. `LlamaBridge.nativeLoad`
+gained `nThreadsBatch` and `nGpuLayers` during the #38 performance work and five call sites
+in `Gemma4LoadTest` and `LlamaBridgeSmokeTest` were never updated, because nothing on this
+machine had compiled `androidTest` since: the emulator does not run, and
+`connectedAndroidTest` is forbidden. The fix was mechanical, passing the same thread count
+for batch as for decode.
+
+The lesson is the general one, not the specific one. **A source set nothing ever compiles
+will rot silently, and its tests are worth nothing at the moment you finally need them.**
+`./gradlew assembleDebugAndroidTest` compiles the whole set without a device attached and
+takes seconds. Run it as part of any change that touches a signature the instrumented tests
+call, so the next person who needs these tests can actually run them.
+
 A useful correction to the earlier record while here: **`SchemaMigrationTest` is an
 instrumented test in `app/src/androidTest`, not one of the six Robolectric classes.** The
 handoff, this file, and issue #24 all said or implied it could not run on this machine
