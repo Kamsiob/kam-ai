@@ -110,9 +110,15 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       resident, else the instant excerpt fallback). Display fallback uses the snippet, not "New
       conversation". Tests: ConversationTitlerTest. Device-verified: interrupted "tell me about paris"
       now titled; new chats get model titles.
-- [~] 18. Power button assistant (input locks while generating, reactive mic, default-mode setting; quiet visual polish + on-device mic-via-gesture confirm remain). Orig: quiet visual character; disable input while generating + stop
-      control; fix greyed-out mic (diagnose real cause); Settings default input mode (voice/text,
-      default text).
+- [x] 18. Power button assistant. DONE: input locks while generating with a Stop control; the mic is
+      reactive from the active-speech-model flow (same source the chat mic uses); Settings toggle for
+      default input mode (text default; voice leaves the mic prominent). Quiet visual character added
+      to the sheet: a grabber handle, the "on device" mono tag next to the name (DESIGN section 7), the
+      mark breathes while thinking (DESIGN section 2), a faint scrim so the panel reads as lifted, and
+      a slide-up arrival on the expressive spring (DESIGN section 6). All from theme tokens, so it
+      works in both light and dark. Verified on device via the real assist gesture (KEYCODE_ASSIST,
+      the same routing as long-press power): overlay renders in light and dark, mic present in the
+      empty state, input locks and send becomes Stop while thinking, keyboard adaptation correct.
 - [x] 19. Hidden fourth swipe action fixed. RAIL_WIDTH widened (175->232dp) to fit all four
       actions (Rename, Pin, Archive, Delete), each an equal share of the width; none hidden under
       the row at rest. Verified on device in two views.

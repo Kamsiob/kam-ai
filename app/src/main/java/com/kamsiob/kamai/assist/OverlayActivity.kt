@@ -2,6 +2,10 @@ package com.kamsiob.kamai.assist
 
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.tween
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -46,7 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -121,6 +127,13 @@ private fun OverlayPanel(
     var flagged by remember { mutableStateOf(false) }
     val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
 
+    // The panel arrives on the expressive spring, the one signature moment here,
+    // rising into place rather than snapping. Collapses to instant under reduced
+    // motion. See DESIGN.md section 6, "the sheet arriving".
+    val reduced = com.kamsiob.kamai.ui.theme.reducedMotion()
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
     // Open in the input the user chose: text brings up the keyboard focused;
     // voice leaves the microphone prominent, one tap away (item 18). Never grab
     // the keyboard when voice is the default.
@@ -135,10 +148,12 @@ private fun OverlayPanel(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> if (granted) vm.startRecording() }
 
-    // The scrim: tapping outside the panel dismisses the overlay.
+    // The scrim: a faint dim so the panel reads as lifted over whatever was
+    // behind it, and tapping it dismisses the overlay.
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.32f))
             .clickable(
                 interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                 indication = null,
@@ -146,6 +161,15 @@ private fun OverlayPanel(
             ),
         contentAlignment = Alignment.BottomCenter,
     ) {
+      AnimatedVisibility(
+          visible = visible,
+          enter = if (reduced) {
+              fadeIn(tween(0))
+          } else {
+              slideInVertically(com.kamsiob.kamai.ui.theme.expressiveSpec<IntOffset>()) { it } +
+                  fadeIn(com.kamsiob.kamai.ui.theme.standardSpec())
+          },
+      ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -157,12 +181,34 @@ private fun OverlayPanel(
                     onClick = {},
                 )
                 .imePadding()
-                .padding(horizontal = 18.dp, vertical = 18.dp),
+                .padding(horizontal = 18.dp, vertical = 14.dp),
         ) {
+            // A quiet grabber at the top, matching the app's other bottom sheets.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 12.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .size(width = 34.dp, height = 4.dp)
+                    .background(colors.textTertiary.copy(alpha = 0.4f)),
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                com.kamsiob.kamai.ui.components.KamMark(size = 22.dp)
+                // The mark breathes while an answer is being written, its
+                // status-indicator behaviour from DESIGN.md section 2.
+                com.kamsiob.kamai.ui.components.KamMark(size = 22.dp, breathing = streaming)
                 Spacer(Modifier.width(8.dp))
                 Text("Kam AI", style = KamTheme.type.sectionTitle, color = colors.textPrimary)
+                Spacer(Modifier.width(8.dp))
+                // The on device tag from DESIGN.md section 7: quiet, mono, a fact
+                // about where the thinking happens.
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(colors.tonalFill)
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                ) {
+                    Text("on device", style = KamTheme.type.mono, color = colors.tonalText)
+                }
             }
             Spacer(Modifier.height(12.dp))
 
@@ -308,6 +354,7 @@ private fun OverlayPanel(
             }
             Spacer(Modifier.height(6.dp))
         }
+      }
     }
 }
 

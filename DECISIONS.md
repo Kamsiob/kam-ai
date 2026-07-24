@@ -1877,3 +1877,24 @@ The bookmark on a chat response fills amber when set (the reserved amber rule fo
 the save bookmark on a Discover card fills with the accent colour instead. With saving unified, both
 are the same save-to-Follow-ups action and should look the same. This is a real inconsistency, left
 in the code and tracked as a GitHub issue rather than fixed under this documentation-only task.
+
+## Item 18 — Power button assistant polish (quiet visual character, both themes)
+
+The earlier pass fixed the functional gaps (input locks while generating with a Stop control, the mic
+made reactive from the active-speech-model flow, and a Settings toggle for the default input mode).
+What remained was quiet visual character on the overlay sheet and confirming it via the real gesture.
+
+Added, all from theme tokens so a single implementation works in both light and dark (the owner's
+requirement): a small grabber handle matching the app's other bottom sheets; the "on device" mono tag
+next to the name that DESIGN.md section 7 always called for and the overlay was missing; the mark
+breathing while an answer streams, its status-indicator behaviour from section 2; a faint black scrim
+(0.32 alpha, theme-neutral, dims whatever is behind in either theme) so the panel reads as lifted; and
+a slide-up arrival on the expressive spring, the "sheet arriving" signature moment from section 6, that
+collapses to instant under reduced motion.
+
+Verified on device via the real assist gesture (adb KEYCODE_ASSIST, which the OS routes through the
+registered assistant service to OverlayActivity, the same path as long-press power, not the blocked
+non-exported am-start path). The overlay renders correctly in both light and dark: header, tag,
+handle, and accent buttons all adapt; the mic is present in the empty state and hides once the field
+has text; asking locks the input and turns send into Stop while thinking; the keyboard pushes the panel
+up cleanly. This closes issue #18.
