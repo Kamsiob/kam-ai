@@ -20,8 +20,15 @@ class BackupRoundTripTest {
 
     private fun sampleSnapshot() = BackupCodec.Snapshot(
         conversations = listOf(
-            ConversationEntity("c1", "A title", Mode.CHAT, null, 1, 2, pinned = true, groundingMomentId = "a passage"),
-            ConversationEntity("c2", null, Mode.DISCOVER, "p1", 3, 4),
+            ConversationEntity(
+                id = "c1", title = "A title", mode = Mode.LOGIC, modesUsed = "GENERAL,LOGIC",
+                projectId = null, createdAt = 1, updatedAt = 2, pinned = true,
+                groundingMomentId = "a passage",
+            ),
+            ConversationEntity(
+                id = "c2", title = null, mode = Mode.DISCOVER, modesUsed = "DISCOVER",
+                projectId = "p1", createdAt = 3, updatedAt = 4,
+            ),
         ),
         messages = listOf(
             MessageEntity("m1", "c1", Role.USER, "hello", 1),
@@ -39,6 +46,11 @@ class BackupRoundTripTest {
             FollowUpEntity(
                 id = "f2", snippet = "Title", sourceMode = Mode.DISCOVER,
                 packId = "history", momentId = "moment-2", createdAt = 5,
+            ),
+            // A pursue-kind follow-up saved from Brainstorm.
+            FollowUpEntity(
+                id = "f3", snippet = "an idea worth chasing", sourceMode = Mode.BRAINSTORM,
+                kind = FollowUpKind.PURSUE, createdAt = 6,
             ),
         ),
         drawn = listOf(DrawnMomentEntity("history", "moment-1", 1, readerOpened = true)),
@@ -87,6 +99,32 @@ class BackupRoundTripTest {
         assertEquals("history", fu.packId)
         assertEquals("m9", fu.momentId)
         assertEquals(42L, fu.createdAt)
+    }
+
+    @Test
+    fun legacyChatModeImportsAsGeneral() {
+        // A backup written before the four-mode update stores mode "CHAT" and has
+        // no modesUsed or follow-up kind. Importing must map CHAT to GENERAL and
+        // default the missing fields rather than throwing on an unknown enum.
+        val legacy = JSONObject(
+            """
+            {
+              "formatVersion": 2,
+              "conversations": [
+                {"id": "c1", "title": "t", "mode": "CHAT", "createdAt": 1, "updatedAt": 2,
+                 "pinned": false, "archived": false, "titleIsManual": false}
+              ],
+              "followUps": [
+                {"id": "f1", "snippet": "s", "sourceMode": "CHAT", "completed": false, "createdAt": 1}
+              ]
+            }
+            """.trimIndent(),
+        )
+        val restored = BackupCodec.decode(legacy)
+        assertEquals(Mode.GENERAL, restored.conversations.first().mode)
+        assertEquals("GENERAL", restored.conversations.first().modesUsed)
+        assertEquals(Mode.GENERAL, restored.followUps.first().sourceMode)
+        assertEquals(FollowUpKind.CHECK, restored.followUps.first().kind)
     }
 
     @Test

@@ -360,7 +360,7 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
     fun explore(onReady: (String) -> Unit) {
         val m = _current.value ?: return
         viewModelScope.launch {
-            val id = repository.createConversation(Mode.CHAT)
+            val id = repository.createConversation(Mode.GENERAL)
             repository.addMessage(id, Role.USER, "Tell me more about ${m.title}.")
             onReady(id)
         }

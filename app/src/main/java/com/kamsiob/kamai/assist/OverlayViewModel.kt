@@ -166,7 +166,7 @@ class OverlayViewModel(app: Application) : AndroidViewModel(app) {
         val q = _question.value
         val a = _answer.value
         viewModelScope.launch {
-            val id = repository.createConversation(Mode.CHAT)
+            val id = repository.createConversation(Mode.GENERAL)
             if (q.isNotBlank()) repository.addMessage(id, Role.USER, q)
             if (a.isNotBlank()) repository.addMessage(id, Role.ASSISTANT, a, incomplete = false)
             // Title it here, through the shared path, so an overlay conversation

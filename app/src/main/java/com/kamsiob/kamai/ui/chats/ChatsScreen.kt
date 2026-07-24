@@ -106,7 +106,7 @@ fun ChatsScreen(
     val colors = KamTheme.colors
     var query by remember { mutableStateOf("") }
     var pinnedExpanded by remember { mutableStateOf(true) }
-    var newChatMode by remember { mutableStateOf(Mode.CHAT) }
+    var newChatMode by remember { mutableStateOf(Mode.GENERAL) }
 
     // Bulk selection. Long-pressing a row enters it; tapping toggles a row.
     val selected = remember { mutableStateListOf<String>() }
@@ -595,11 +595,11 @@ private fun NewChatBar(
             else -> "Chat"
         }
         val next = when (mode) {
-            Mode.CHAT -> Mode.LOGIC
+            Mode.GENERAL -> Mode.LOGIC
             Mode.LOGIC -> Mode.BENCH
-            else -> Mode.CHAT
+            else -> Mode.GENERAL
         }
-        val tonal = mode != Mode.CHAT
+        val tonal = mode != Mode.GENERAL
         Row(
             modifier = Modifier
                 .clip(CircleShape)

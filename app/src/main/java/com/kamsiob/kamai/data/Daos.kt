@@ -15,6 +15,8 @@ data class ConversationSummary(
     val id: String,
     val title: String?,
     val mode: Mode,
+    /** Comma-separated mode names in first-use order; drives the row's mode dots. */
+    val modesUsed: String,
     val projectId: String?,
     val updatedAt: Long,
     val pinned: Boolean,
@@ -44,7 +46,7 @@ interface ConversationDao {
      */
     @Query(
         """
-        SELECT c.id, c.title, c.mode, c.projectId, c.updatedAt, c.pinned, c.archived,
+        SELECT c.id, c.title, c.mode, c.modesUsed, c.projectId, c.updatedAt, c.pinned, c.archived,
                (SELECT m.content FROM messages m
                  WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
                  ORDER BY m.createdAt DESC LIMIT 1) AS snippet,
@@ -59,7 +61,7 @@ interface ConversationDao {
 
     @Query(
         """
-        SELECT c.id, c.title, c.mode, c.projectId, c.updatedAt, c.pinned, c.archived,
+        SELECT c.id, c.title, c.mode, c.modesUsed, c.projectId, c.updatedAt, c.pinned, c.archived,
                (SELECT m.content FROM messages m
                  WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
                  ORDER BY m.createdAt DESC LIMIT 1) AS snippet,
@@ -78,7 +80,7 @@ interface ConversationDao {
      */
     @Query(
         """
-        SELECT c.id, c.title, c.mode, c.projectId, c.updatedAt, c.pinned, c.archived,
+        SELECT c.id, c.title, c.mode, c.modesUsed, c.projectId, c.updatedAt, c.pinned, c.archived,
                (SELECT m.content FROM messages m
                  WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
                  ORDER BY m.createdAt DESC LIMIT 1) AS snippet,
@@ -112,6 +114,12 @@ interface ConversationDao {
 
     @Query("UPDATE conversations SET mode = :mode, updatedAt = :now WHERE id = :id")
     suspend fun setMode(id: String, mode: Mode, now: Long)
+
+    @Query("UPDATE conversations SET modesUsed = :modesUsed WHERE id = :id")
+    suspend fun setModesUsed(id: String, modesUsed: String)
+
+    @Query("SELECT modesUsed FROM conversations WHERE id = :id")
+    suspend fun modesUsed(id: String): String?
 
     @Query("UPDATE conversations SET projectId = :projectId, updatedAt = :now WHERE id = :id")
     suspend fun setProject(id: String, projectId: String?, now: Long)
@@ -270,6 +278,9 @@ interface FollowUpDao {
 
     @Query("UPDATE follow_ups SET note = :note WHERE id = :id")
     suspend fun setNote(id: String, note: String?)
+
+    @Query("UPDATE follow_ups SET kind = :kind WHERE id = :id")
+    suspend fun setKind(id: String, kind: FollowUpKind)
 
     @Query("UPDATE follow_ups SET projectId = :projectId WHERE id = :id")
     suspend fun setProject(id: String, projectId: String?)

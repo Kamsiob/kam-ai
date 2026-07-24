@@ -23,17 +23,32 @@ object BackupCodec {
     private fun JSONObject.l(k: String) = optLong(k)
     private fun JSONObject.i(k: String) = optInt(k)
 
+    /** "CHAT" is the pre-four-modes name for GENERAL; map it so an older backup
+     *  imports rather than throwing on an unknown enum value. */
+    private fun parseMode(name: String): Mode =
+        if (name == "CHAT") Mode.GENERAL else Mode.valueOf(name)
+
     private fun conv(e: ConversationEntity) = JSONObject().apply {
         put("id", e.id); put("title", e.title); put("mode", e.mode.name)
+        put("modesUsed", e.modesUsed)
         put("projectId", e.projectId); put("createdAt", e.createdAt); put("updatedAt", e.updatedAt)
         put("pinned", e.pinned); put("archived", e.archived); put("titleIsManual", e.titleIsManual)
         put("groundingMomentId", e.groundingMomentId)
     }
-    private fun conv(o: JSONObject) = ConversationEntity(
-        o.getString("id"), o.s("title"), Mode.valueOf(o.getString("mode")), o.s("projectId"),
-        o.l("createdAt"), o.l("updatedAt"), o.b("pinned"), o.b("archived"),
-        o.b("titleIsManual"), o.s("groundingMomentId"),
-    )
+    private fun conv(o: JSONObject): ConversationEntity {
+        val mode = parseMode(o.getString("mode"))
+        // Older backups predate modesUsed; seed it from the single mode, mapping
+        // CHAT to GENERAL in the stored list too.
+        val modesUsed = o.s("modesUsed")
+            ?.split(",")?.joinToString(",") { if (it == "CHAT") "GENERAL" else it }
+            ?: mode.name
+        return ConversationEntity(
+            id = o.getString("id"), title = o.s("title"), mode = mode, modesUsed = modesUsed,
+            projectId = o.s("projectId"), createdAt = o.l("createdAt"), updatedAt = o.l("updatedAt"),
+            pinned = o.b("pinned"), archived = o.b("archived"),
+            titleIsManual = o.b("titleIsManual"), groundingMomentId = o.s("groundingMomentId"),
+        )
+    }
 
     private fun msg(e: MessageEntity) = JSONObject().apply {
         put("id", e.id); put("conversationId", e.conversationId); put("role", e.role.name)
@@ -67,15 +82,18 @@ object BackupCodec {
         put("id", e.id); put("snippet", e.snippet); put("sourceMode", e.sourceMode.name)
         put("conversationId", e.conversationId); put("messageId", e.messageId); put("projectId", e.projectId)
         put("note", e.note); put("packId", e.packId); put("momentId", e.momentId)
+        put("kind", e.kind.name)
         put("completed", e.completed); put("createdAt", e.createdAt)
         put("completedAt", e.completedAt)
     }
     private fun fu(o: JSONObject) = FollowUpEntity(
         id = o.getString("id"), snippet = o.getString("snippet"),
-        sourceMode = Mode.valueOf(o.getString("sourceMode")),
+        sourceMode = parseMode(o.getString("sourceMode")),
         conversationId = o.s("conversationId"), messageId = o.s("messageId"),
         projectId = o.s("projectId"), note = o.s("note"),
         packId = o.s("packId"), momentId = o.s("momentId"),
+        // Older backups predate the kind; default to check.
+        kind = o.s("kind")?.let { runCatching { FollowUpKind.valueOf(it) }.getOrNull() } ?: FollowUpKind.CHECK,
         completed = o.b("completed"), createdAt = o.l("createdAt"),
         completedAt = if (o.isNull("completedAt")) null else o.l("completedAt"),
     )

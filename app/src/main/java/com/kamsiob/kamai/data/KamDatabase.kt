@@ -11,7 +11,13 @@ import androidx.room.TypeConverters
 
 class Converters {
     @TypeConverter fun modeToString(mode: Mode): String = mode.name
-    @TypeConverter fun stringToMode(value: String): Mode = Mode.valueOf(value)
+    @TypeConverter fun stringToMode(value: String): Mode =
+        // "CHAT" is the pre-four-modes name for GENERAL. The migration rewrites
+        // stored rows, but map it here too so any stray value stays safe.
+        if (value == "CHAT") Mode.GENERAL else Mode.valueOf(value)
+
+    @TypeConverter fun followUpKindToString(kind: FollowUpKind): String = kind.name
+    @TypeConverter fun stringToFollowUpKind(value: String): FollowUpKind = FollowUpKind.valueOf(value)
 
     @TypeConverter fun roleToString(role: Role): String = role.name
     @TypeConverter fun stringToRole(value: String): Role = Role.valueOf(value)
@@ -41,7 +47,7 @@ class Converters {
         ArtifactEntity::class,
         SettingEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -109,6 +115,29 @@ abstract class KamDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * The four-mode update. Chat becomes General, Brainstorm is added, and a
+         * conversation now records every mode it has used (modesUsed), which the
+         * chat-row dots and the mode filter read. Follow-ups gain a kind (check or
+         * pursue). A real migration: existing conversations keep their mode as
+         * their only recorded mode, Chat rows become General everywhere, and
+         * existing follow-ups default to check.
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Chat -> General, in both places a mode name is stored.
+                db.execSQL("UPDATE conversations SET mode = 'GENERAL' WHERE mode = 'CHAT'")
+                db.execSQL("UPDATE follow_ups SET sourceMode = 'GENERAL' WHERE sourceMode = 'CHAT'")
+                // Record every mode used. Existing rows have used exactly their
+                // current mode, so seed the set from it (already General for the
+                // former Chat rows above).
+                db.execSQL("ALTER TABLE conversations ADD COLUMN modesUsed TEXT NOT NULL DEFAULT 'GENERAL'")
+                db.execSQL("UPDATE conversations SET modesUsed = mode")
+                // Follow-up kind, defaulting existing items to check.
+                db.execSQL("ALTER TABLE follow_ups ADD COLUMN kind TEXT NOT NULL DEFAULT 'CHECK'")
+            }
+        }
+
         @Volatile
         private var instance: KamDatabase? = null
 
@@ -142,7 +171,7 @@ abstract class KamDatabase : RoomDatabase() {
             val factory = DatabaseEncryption.openHelperFactory(context, dbFile, passphrase)
             return Room.databaseBuilder(context, KamDatabase::class.java, NAME)
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
         }
     }

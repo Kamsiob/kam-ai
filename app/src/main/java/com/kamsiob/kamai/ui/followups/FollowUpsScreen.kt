@@ -182,8 +182,9 @@ fun FollowUpsScreen(
 /** Short label for a source filter value; null is everything. */
 private fun filterLabel(mode: com.kamsiob.kamai.data.Mode?): String = when (mode) {
     null -> "All"
-    com.kamsiob.kamai.data.Mode.CHAT -> "Chat"
+    com.kamsiob.kamai.data.Mode.GENERAL -> "General"
     com.kamsiob.kamai.data.Mode.LOGIC -> "Logic"
+    com.kamsiob.kamai.data.Mode.BRAINSTORM -> "Brainstorm"
     com.kamsiob.kamai.data.Mode.DISCOVER -> "Discover"
     com.kamsiob.kamai.data.Mode.BENCH -> "Workbench"
     com.kamsiob.kamai.data.Mode.OVERLAY -> "Quick ask"
@@ -391,8 +392,9 @@ private fun FollowUpCard(
 /** The mono source chip: which mode or surface it came from, and when. */
 private fun sourceLabel(item: FollowUpEntity): String {
     val where = when (item.sourceMode) {
-        com.kamsiob.kamai.data.Mode.CHAT -> "CHAT"
+        com.kamsiob.kamai.data.Mode.GENERAL -> "GENERAL"
         com.kamsiob.kamai.data.Mode.LOGIC -> "LOGIC"
+        com.kamsiob.kamai.data.Mode.BRAINSTORM -> "BRAINSTORM"
         com.kamsiob.kamai.data.Mode.BENCH -> "BENCH"
         com.kamsiob.kamai.data.Mode.DISCOVER -> "DISCOVER"
         com.kamsiob.kamai.data.Mode.OVERLAY -> "QUICK PANEL"

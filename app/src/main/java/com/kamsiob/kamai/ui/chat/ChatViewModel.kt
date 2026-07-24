@@ -42,7 +42,7 @@ class ChatViewModel(
     private val _conversationId = MutableStateFlow<String?>(null)
     val conversationId: StateFlow<String?> = _conversationId.asStateFlow()
 
-    private val _mode = MutableStateFlow(Mode.CHAT)
+    private val _mode = MutableStateFlow(Mode.GENERAL)
     val mode: StateFlow<Mode> = _mode.asStateFlow()
 
     private val _streaming = MutableStateFlow(false)
@@ -187,10 +187,10 @@ class ChatViewModel(
         // passage left, its Discover mode would otherwise resolve to a grounded
         // prompt pointing at nothing. Set the mode directly (not setMode) so only
         // the one continue-open note is added, not a second mode-switch note.
-        _mode.value = Mode.CHAT
+        _mode.value = Mode.GENERAL
         viewModelScope.launch {
             repository.clearGrounding(convId)
-            repository.setConversationMode(convId, Mode.CHAT)
+            repository.setConversationMode(convId, Mode.GENERAL)
             repository.addMessage(convId, Role.SYSTEM, SystemPrompts.CONTINUE_OPEN_NOTICE)
         }
     }

@@ -487,7 +487,7 @@ class KamRepository(
         val id = UUID.randomUUID().toString()
         db.conversations().upsert(
             ConversationEntity(
-                id = id, title = null, mode = mode, projectId = projectId,
+                id = id, title = null, mode = mode, modesUsed = mode.name, projectId = projectId,
                 createdAt = now, updatedAt = now,
             ),
         )
@@ -513,8 +513,22 @@ class KamRepository(
     }
 
     /** Persists a conversation's mode so an in-chat switch survives reopening. */
-    suspend fun setConversationMode(id: String, mode: Mode) =
+    suspend fun setConversationMode(id: String, mode: Mode) {
         db.conversations().setMode(id, mode, System.currentTimeMillis())
+        // Record the mode in the conversation's used-set, appending in first-use
+        // order and never duplicating, so the row dots and the mode filter show
+        // every mode this conversation has been through.
+        val current = db.conversations().modesUsed(id)?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+        if (mode.name !in current) {
+            db.conversations().setModesUsed(id, (current + mode.name).joinToString(","))
+        }
+    }
+
+    /** The set of modes a conversation has used, parsed from its stored list. */
+    fun parseModesUsed(modesUsed: String): List<Mode> =
+        modesUsed.split(",").mapNotNull { name ->
+            runCatching { if (name == "CHAT") Mode.GENERAL else Mode.valueOf(name.trim()) }.getOrNull()
+        }.distinct()
 
     suspend fun updateMessage(id: String, content: String, incomplete: Boolean) =
         db.messages().setContent(id, content, incomplete)
@@ -563,18 +577,23 @@ class KamRepository(
         messageId: String?,
         packId: String? = null,
         momentId: String? = null,
+        kind: FollowUpKind = FollowUpKind.CHECK,
     ): String {
         val id = UUID.randomUUID().toString()
         db.followUps().upsert(
             FollowUpEntity(
                 id = id, snippet = snippet, sourceMode = mode,
                 conversationId = conversationId, messageId = messageId,
-                packId = packId, momentId = momentId,
+                packId = packId, momentId = momentId, kind = kind,
                 createdAt = System.currentTimeMillis(),
             ),
         )
         return id
     }
+
+    /** Change a follow-up's kind when the automatic guess was wrong (Part 5). */
+    suspend fun setFollowUpKind(id: String, kind: FollowUpKind) =
+        db.followUps().setKind(id, kind)
 
     suspend fun setFollowUpCompleted(id: String, completed: Boolean) =
         db.followUps().setCompleted(

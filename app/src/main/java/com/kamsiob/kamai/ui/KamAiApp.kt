@@ -174,7 +174,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
         when (req.target) {
             com.kamsiob.kamai.integrations.Intake.Target.CHAT -> {
                 tab = NavItem.CHATS
-                stack.add(Pushed.Conversation(NEW_CONVERSATION, Mode.CHAT, initialText = req.text))
+                stack.add(Pushed.Conversation(NEW_CONVERSATION, Mode.GENERAL, initialText = req.text))
             }
             com.kamsiob.kamai.integrations.Intake.Target.WORKBENCH -> {
                 app.setWorkbenchInput(req.text)
@@ -188,7 +188,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
         com.kamsiob.kamai.integrations.Intake.consumeNewChat()
         tab = NavItem.CHATS
         stack.clear()
-        stack.add(Pushed.Conversation(NEW_CONVERSATION, Mode.CHAT))
+        stack.add(Pushed.Conversation(NEW_CONVERSATION, Mode.GENERAL))
     }
 
     if (!ready) {

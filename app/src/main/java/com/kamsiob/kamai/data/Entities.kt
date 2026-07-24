@@ -11,8 +11,22 @@ import androidx.room.PrimaryKey
 // values so that Phase 7 can write the whole thing to one portable file and read
 // it back on a different phone.
 
-/** Which mode produced a conversation or a flagged snippet. */
-enum class Mode { CHAT, LOGIC, BENCH, DISCOVER, OVERLAY }
+/**
+ * Which mode produced a conversation or a flagged snippet. The four user-facing
+ * modes are GENERAL, LOGIC, BRAINSTORM, and BENCH (Workbench); DISCOVER and
+ * OVERLAY are internal surfaces. GENERAL was formerly named CHAT; the rename went
+ * with having four sibling modes, since calling one of them Chat implied the
+ * others were not conversations. See DB MIGRATION_4_5 for the data migration.
+ */
+enum class Mode { GENERAL, LOGIC, BRAINSTORM, BENCH, DISCOVER, OVERLAY }
+
+/**
+ * A follow-up is one of two kinds. CHECK is the original meaning: something
+ * flagged because it might be wrong and needs verifying. PURSUE is an idea,
+ * option, or direction worth returning to, saved mostly from Brainstorm. One
+ * list, told apart by a quiet label; the user can change an item's kind.
+ */
+enum class FollowUpKind { CHECK, PURSUE }
 
 @Entity(
     tableName = "projects",
@@ -44,7 +58,16 @@ data class ConversationEntity(
     @PrimaryKey val id: String,
     /** Null until the model has titled it after the first exchange. */
     val title: String?,
+    /** The mode the conversation is currently in. */
     val mode: Mode,
+    /**
+     * Every mode this conversation has used, in first-use order, as a comma
+     * separated list of mode names (for example "GENERAL,LOGIC"). This is what the
+     * chat-row mode dots and the mode filter read from, so a conversation that
+     * moved through several modes shows all of them. Kept denormalized here rather
+     * than in a join table because the list is tiny and always read with the row.
+     */
+    val modesUsed: String = "GENERAL",
     val projectId: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
@@ -147,6 +170,9 @@ data class FollowUpEntity(
      *  bookmark, one Follow-ups list, distinguished by source. */
     val packId: String? = null,
     val momentId: String? = null,
+    /** Check (verify later) or pursue (an idea worth returning to). Set from the
+     *  source at save time and overridable by the user. */
+    val kind: FollowUpKind = FollowUpKind.CHECK,
     val completed: Boolean = false,
     val createdAt: Long,
     val completedAt: Long? = null,

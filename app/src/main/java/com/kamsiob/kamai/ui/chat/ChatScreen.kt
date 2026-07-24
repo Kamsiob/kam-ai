@@ -528,7 +528,7 @@ private fun ModeSwitcher(
     val colors = KamTheme.colors
     // Only Chat and Logic live here; anything else shows as Chat for the flip.
     val isLogic = current == Mode.LOGIC
-    val next = if (isLogic) Mode.CHAT else Mode.LOGIC
+    val next = if (isLogic) Mode.GENERAL else Mode.LOGIC
     val label = if (isLogic) "Logic Partner" else "Chat"
     val bg by androidx.compose.animation.animateColorAsState(
         targetValue = if (isLogic) colors.tonalFill else colors.surfaceSecondary,

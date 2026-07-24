@@ -1898,3 +1898,46 @@ non-exported am-start path). The overlay renders correctly in both light and dar
 handle, and accent buttons all adapt; the mic is present in the empty state and hides once the field
 has text; asking locks the input and turns send into Stop while thinking; the keyboard pushes the panel
 up cleanly. This closes issue #18.
+
+## The Four-Mode Update (2026-07-24)
+
+A large update: a new Brainstorm mode, four sibling modes with new identity, and a set of usability
+gaps. Tracked as issues #24 through #39. This section records the decisions; each piece is landing as
+its own commit and issue.
+
+### Foundation: data model, Chat -> General, Brainstorm prompt (issues #24, #25, #28 copy)
+
+Mode enum is now GENERAL, LOGIC, BRAINSTORM, BENCH, DISCOVER, OVERLAY. Chat was renamed to General
+because, with four modes, calling one of them Chat implied the others were not conversations; the four
+are parallel siblings. The Chats bottom-nav tab keeps its name since it holds every conversation.
+
+A conversation now records every mode it has used, as a comma-separated ordered list (modesUsed) on the
+conversation row, seeded from the current mode and appended on each switch, never duplicating. This is
+what the chat-row mode dots and the mode filter read. Kept denormalized on the row rather than in a
+join table because the list is tiny and always read with the row.
+
+Follow-ups gained a kind (CHECK or PURSUE, Part 5), defaulting to check, set from the source at save
+time and overridable later.
+
+DB migration 4 -> 5 (MIGRATION_4_5): rewrites mode 'CHAT' -> 'GENERAL' in conversations and follow_ups,
+adds modesUsed seeded from each conversation's mode, and adds the follow-up kind column defaulting to
+check. A real migration, verified on the device's populated database: launched clean, every
+conversation intact, no data loss. The Room Converters and the backup codec both map a stray 'CHAT'
+string to GENERAL so older stored rows and older backup files import rather than throwing.
+
+Brainstorm's system prompt (Part 1) is written as short ordered rules, not a decision tree, because a
+small on-device model follows a checklist far more reliably. It encodes the defining rule (pull ideas
+out of the user, never hand them over), the never-rules (never open with a list, never be impressed,
+never answer its own question, always converge), one-question-at-a-time, the twelve-rule method
+selection checklist covering all ten methods plus wishing, the two-method cap, and the convergence step
+with the Logic handoff and save-to-Follow-ups. It runs at conversational sampling for range. This is
+the honest fit for a small model, which is weak at generating and strong at working with supplied
+material, which is the thesis of the whole app.
+
+Four-mode copy is in SystemPrompts: topBanner(mode) for the one-line banners and modeSwitchNotice(mode)
+for the midstream notices, with Workbench's notice worded as a linked session per Part 4.
+
+Remaining four-mode work is tracked in the open issues (#26 colors, #27 segmented control, #28 picker/
+notices UI, #29 nudges, #30 dots/filter, #31 auto-archive, #32 Workbench linking, #33 follow-up kinds
+UI, #34 keyboard, #35 nav/failure, #36 onboarding/copy, #37 Today cancellation, #38 performance, #39
+usability gaps).
