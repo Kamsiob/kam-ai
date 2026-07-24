@@ -28,8 +28,13 @@ class DesignTokensTest {
             assertThat(textTertiary.hex()).isEqualTo("#95A093")
             assertThat(accent.hex()).isEqualTo("#2E7A52")
             assertThat(onAccent.hex()).isEqualTo("#F2FBF4")
-            assertThat(flagAmber.hex()).isEqualTo("#C98A22")
-            assertThat(amberFill.hex()).isEqualTo("#F7EBD3")
+            // The reserved colour is gold since the four-mode update, moved away
+            // from the old amber so it never reads as Workbench's mustard. The
+            // bright gold is too light to read as a glyph on ivory, so text and
+            // icons use the deeper goldText. DESIGN.md section 3.
+            assertThat(flagAmber.hex()).isEqualTo("#EFA913")
+            assertThat(goldText.hex()).isEqualTo("#8A5F0D")
+            assertThat(amberFill.hex()).isEqualTo("#FCEFC6")
         }
     }
 
@@ -46,8 +51,11 @@ class DesignTokensTest {
             assertThat(textTertiary.hex()).isEqualTo("#5E6A60")
             assertThat(accent.hex()).isEqualTo("#6FD19E")
             assertThat(onAccent.hex()).isEqualTo("#0A1B11")
-            assertThat(flagAmber.hex()).isEqualTo("#E4B05A")
-            assertThat(amberFill.hex()).isEqualTo("#2E2515")
+            // One luminous gold works for fills, icons, and text on pine, so
+            // goldText is the same value here. DESIGN.md section 3.
+            assertThat(flagAmber.hex()).isEqualTo("#FFD166")
+            assertThat(goldText.hex()).isEqualTo("#FFD166")
+            assertThat(amberFill.hex()).isEqualTo("#332812")
         }
     }
 

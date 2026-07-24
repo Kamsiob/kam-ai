@@ -11,7 +11,11 @@ import org.junit.Test
  */
 class FormattingGuidanceTest {
 
-    private val marker = "Match the format to the content"
+    // The #38 trim reworded the first half of this guidance from "match the format
+    // to the content" to "match the length to the question", which says the same
+    // thing in fewer tokens. The guard is on the guidance being present in every
+    // mode, not on the exact sentence, so the marker moved with it.
+    private val marker = "match the length to the question"
     private val antiOverFormat = "Do not over-format"
 
     @Test

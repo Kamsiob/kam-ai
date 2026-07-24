@@ -18,7 +18,9 @@ class ModeSwitchTest {
         val logic = SystemPrompts.forMode(Mode.LOGIC)
         assertThat(chat).contains("This is General")
         assertThat(logic).contains("Logic Partner")
-        assertThat(logic).contains("test the user's thinking")
+        // Sentence-initial in the trimmed prompt, so compare case-insensitively
+        // rather than pinning the capitalisation.
+        assertThat(logic.lowercase()).contains("test the user's thinking")
         assertThat(logic).isNotEqualTo(chat)
     }
 
