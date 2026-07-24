@@ -14,6 +14,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,6 +89,15 @@ import com.kamsiob.kamai.ui.theme.expressiveSpec
 import com.kamsiob.kamai.ui.theme.reducedMotion
 import com.kamsiob.kamai.ui.theme.standardSpec
 
+/**
+ * A scroll offset larger than any message can be, in pixels. Asking to scroll an
+ * item to this offset lands past its end, which the list clamps to the bottom of
+ * the content. That is how "follow the newest text" is expressed: scrolling to
+ * the last item's *start* would sit at the top of a long answer while it grew
+ * below the fold.
+ */
+private const val FOLLOW_TO_END_OFFSET = 1_000_000
+
 @Composable
 fun ChatScreen(
     messages: List<MessageEntity>,
@@ -149,22 +159,56 @@ fun ChatScreen(
         onModeChange(m)
     }
 
-    // Whether the user is at (or almost at) the newest message. Drives the
-    // jump-to-latest control and decides whether streaming text follows down.
+    // Whether the newest message's end is on screen. Drives the jump-to-latest
+    // control and decides whether streaming text follows down. Asking only
+    // whether the last item is visible is not enough while that item is growing:
+    // its index stays the last index however far below the fold the new text has
+    // gone. See ScrollFollow, and issue #43.
     val atBottom by remember {
         androidx.compose.runtime.derivedStateOf {
             val info = listState.layoutInfo
             val last = info.visibleItemsInfo.lastOrNull()
-            last == null || last.index >= info.totalItemsCount - 1
+            ScrollFollow.isAtBottom(
+                lastVisibleIndex = last?.index,
+                lastVisibleItemEnd = if (last == null) 0 else last.offset + last.size,
+                totalItems = info.totalItemsCount,
+                viewportEnd = info.viewportEndOffset,
+            )
         }
     }
 
-    // Follow the stream as it writes, but only when the user is already at the
-    // bottom. If they have scrolled up to read earlier messages, a new or growing
-    // response must not yank them down (Part 7); the jump-to-latest control lets
-    // them return when they choose.
+    // Once the user takes over during a response, following stops for the rest of
+    // that response (#43). A drag is the signal, rather than "is the list
+    // scrolling", because the latter is also true while the code scrolls the list
+    // itself, which would latch against our own following.
+    val followLatch = remember { FollowLatch() }
+    LaunchedEffect(listState) {
+        listState.interactionSource.interactions.collect { interaction ->
+            if (interaction is DragInteraction.Start) followLatch.userDragged()
+        }
+    }
+
+    // Coming back to the bottom by hand is how following resumes.
+    LaunchedEffect(atBottom) {
+        if (atBottom) followLatch.returnedToBottom()
+    }
+
+    // A new message is a new response, which follows from the start again. This
+    // is declared before the effect below so it has already run when that one
+    // fires on the same change.
+    LaunchedEffect(messages.size) {
+        followLatch.newResponseStarted()
+    }
+
+    // Follow the stream as it writes, unless the user is reading elsewhere. The
+    // large offset asks for a position past the end of the last item, which the
+    // list clamps to the very bottom of the content: following has to mean the
+    // newest text, and scrolling to the item's start would sit at the top of a
+    // long answer while it grew below the fold.
     LaunchedEffect(messages.size, messages.lastOrNull()?.content?.length) {
-        if (messages.isNotEmpty() && atBottom) listState.animateScrollToItem(messages.lastIndex)
+        if (messages.isNotEmpty() && followLatch.shouldFollow(atBottom)) {
+            listState.animateScrollToItem(messages.lastIndex, FOLLOW_TO_END_OFFSET)
+        }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -284,7 +328,17 @@ fun ChatScreen(
                             .clip(CircleShape)
                             .background(colors.surface)
                             .border(1.dp, colors.border, CircleShape)
-                            .clickable { scope.launch { listState.animateScrollToItem(messages.lastIndex) } }
+                            .clickable {
+                                // Tapping this is the user asking to follow again,
+                                // so it releases the latch as well as scrolling.
+                                followLatch.jumpTapped()
+                                scope.launch {
+                                    listState.animateScrollToItem(
+                                        messages.lastIndex,
+                                        FOLLOW_TO_END_OFFSET,
+                                    )
+                                }
+                            }
                             .semantics { contentDescription = "Jump to the latest message" },
                         contentAlignment = Alignment.Center,
                     ) {
