@@ -1988,3 +1988,30 @@ rests on General, and tapping a segment opens a new conversation in that mode (c
 seeded into the ChatViewModel and createConversation/forMode use it, so Brainstorm's prompt applies).
 The in-conversation mode indicator/picker and per-mode empty-state nudges are separate (issues #28, #29);
 the old top mode pill is stale until #28 replaces it. Shared component so Projects can reuse it (#39).
+
+### Today tab cancelled (Four-Mode Update Part 9, issue #37)
+
+Every other part of Kam AI works on material the user brings; Today would have delivered content to the
+user. It duplicated the learning role Discover already fills, at a far higher cost in ongoing
+maintenance, background scheduling, additional permissions, and a privacy claim that would have needed
+weakening (a scheduled overnight fetch is a network request the user did not initiate that morning).
+This is scope creep, cut deliberately rather than deferred vaguely, and the privacy claim it would have
+cost is worth more than the feature.
+
+Done: no Today code existed (it was never built, only spec'd), so there was nothing to remove from
+navigation, view models, workers, or the data model. docs/TODAY_SPEC.md was deleted; every Today mention
+in MASTER_SPEC.md, DESIGN.md, WORKLIST.md, the Shell.kt nav comment, and the project memory files was
+scrubbed; Today was added to the Not planned screen with a plain reason. The bottom navigation stays
+Projects, Chats, Follow-ups, Discover.
+
+Network verification (the consequence worth preserving, Part 11C): audited the app for network use.
+There is no analytics, telemetry, crashlytics, or update check; no WorkManager, JobScheduler, or
+AlarmManager (the manifest even notes WorkManager was removed because nothing used it); no launch-time
+or background fetch. The only network entry points are OkHttp downloads the user starts (models, voices,
+Discover packs), the Discover pack manifest fetched when the user opens Discover to list packs, and the
+opt-in bring-your-own-endpoint search that is off by default. So once a user has downloaded what they
+want, the app never needs to connect again. The privacy claim stands as written everywhere it appears
+(PRIVACY.md, README, onboarding, Q&A, About): the app makes no network requests unless the user
+initiates them. It was never weakened in anticipation of Today, so nothing had to be reverted. A full
+runtime network-monitor regression test across a cold start and every mode remains as a follow-up under
+issue #38's verification work; the source-level audit is recorded here.

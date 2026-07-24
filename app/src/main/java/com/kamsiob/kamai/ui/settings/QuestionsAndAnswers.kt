@@ -152,6 +152,13 @@ object Roadmap {
             "Kam AI is a tool, not a character. This is a design commitment, not a " +
                 "feature gap.",
         ),
+        Item(
+            "A daily news or Today feed",
+            "Every part of Kam AI works on what you bring it. A daily feed would " +
+                "deliver content to you instead, and a scheduled fetch is a network " +
+                "request you did not start that morning. Discover already covers " +
+                "reading something new, offline and on your terms.",
+        ),
     )
 
     const val EXPECTATION =

@@ -123,8 +123,8 @@ fun IconAction(
 
 /**
  * The bottom navigation destinations, in display order. Settings is not one of
- * them. Today is added at the front when that feature ships; the final order is
- * Today, Projects, Chats, Follow-ups, Discover.
+ * them. The order is Projects, Chats, Follow-ups, Discover; there is no Today
+ * tab (cancelled, see DECISIONS.md and Not planned).
  */
 enum class NavItem(val label: String, val icon: ImageVector) {
     PROJECTS("Projects", Icons.Rounded.Folder),

@@ -21,9 +21,9 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       excludes project chats; 'In <project>' indicator in the open chat; delete-project moves chats
       back to Chats. Device-verified (pirate project). REMAINING: multi-select bulk 'move to project'
       from the chat list; add-existing-from-inside-a-project; optional project notes field (migration).
-      Original scope: Remove the bottom-nav "New" button to make room for BOTH Projects
-      and Today (owner). FINAL nav order (owner): Today, Projects, Chats, Follow-ups, Discover (Chats centered).
-      Build order now: Projects, Chats, Follow-ups, Discover; Today slots into position 1 when built. Build Projects (named container, persistent instructions + notes re-injected
+      Original scope: Remove the bottom-nav "New" button to make room for Projects
+      (owner). Nav order: Projects, Chats, Follow-ups, Discover (no Today; cancelled, see below).
+      Build Projects (named container, persistent instructions + notes re-injected
       each turn, assign/reassign conversations like Claude, move semantics not retroactive, delete
       asks about conversations, cap instruction length). ISOLATION (owner): project instructions are
       EXCLUSIVE to that project and never leak into system-wide instructions or into chats outside
@@ -147,19 +147,20 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       capability icons (tappable explain), measured speed rating /5, quality rating /5 (relative),
       real numbers. Active model visible in chat. Keep claims consistent everywhere.
 
-## Final steps (owner-directed, after the list AND the Today tab are done)
+## Final steps (owner-directed)
 
 - [ ] FINAL. Update everything for release: GitHub repo (push), store listing descriptions, fresh
       in-app screenshots (real, over ADB), README, website copy, Q&A — all of it, kept consistent
-      with the app's actual capabilities. Owner: "once this stuff is done including the Today tab, I
-      need you to update github, descriptions, screenshots, readme, all of it." Then the APK on
-      GitHub and the AAB on the computer are the very last steps (only when the owner says ready).
+      with the app's actual capabilities. Then the APK on GitHub and the AAB on the computer are the
+      very last steps (only when the owner says ready).
 
-## Deferred (owner-directed)
+## Cancelled
 
-- [defer] Today tab — full on-device newspaper. Spec in `docs/TODAY_SPEC.md`. Owner: "Build this
-      only when directed; should not interrupt finishing and shipping the core application."
-      When built, bottom nav grows to 5: Chats, Projects, Discover, Today, Saved.
+- [x] Today tab — CANCELLED (Four-Mode Update Part 9, issue #37). Every other part of the app works
+      on material the user brings; Today would have delivered content to the user, duplicating
+      Discover at a far higher cost in maintenance, background scheduling, permissions, and a privacy
+      claim that would have needed weakening. Cut deliberately, added to Not planned. The privacy
+      claim stands: the app makes no network requests unless the user initiates them. Spec doc removed.
 
 ## Notes / follow-ups discovered
 
