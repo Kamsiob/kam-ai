@@ -11,6 +11,7 @@ import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Hub
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -51,3 +52,40 @@ fun ModeDot(mode: Mode, modifier: Modifier = Modifier, size: Dp = 6.dp) {
             .background(ModeColors.of(mode, KamTheme.colors.isDark)),
     )
 }
+
+/** Parse the stored comma-separated modesUsed list into modes, in first-use order,
+ *  mapping the legacy CHAT name to GENERAL. */
+fun modesFromCsv(csv: String): List<Mode> =
+    csv.split(",").mapNotNull { raw ->
+        val name = raw.trim()
+        runCatching { if (name == "CHAT") Mode.GENERAL else Mode.valueOf(name) }.getOrNull()
+    }.distinct()
+
+/**
+ * The row of tiny mode dots for a chat list row: one per mode the conversation
+ * used, in first-use order. Genuinely small and quiet, closer to metadata than
+ * decoration. The mode names go into the row's accessibility label at the call
+ * site, since dots convey nothing to a screen reader. Explicitly not a coloured
+ * left bar, border, or background tint, which were rejected.
+ */
+@Composable
+fun ModeDots(
+    modesUsed: String,
+    modifier: Modifier = Modifier,
+    dot: Dp = 5.dp,
+    gap: Dp = 2.5.dp,
+) {
+    val modes = remember(modesUsed) { modesFromCsv(modesUsed) }
+    if (modes.isEmpty()) return
+    androidx.compose.foundation.layout.Row(
+        modifier = modifier,
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(gap),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        modes.forEach { ModeDot(it, size = dot) }
+    }
+}
+
+/** Plain names of the modes used, for an accessibility label. */
+fun modesLabel(modesUsed: String): String =
+    modesFromCsv(modesUsed).joinToString(", ") { ModeColors.name(it) }

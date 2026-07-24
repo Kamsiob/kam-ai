@@ -2015,3 +2015,23 @@ want, the app never needs to connect again. The privacy claim stands as written 
 initiates them. It was never weakened in anticipation of Today, so nothing had to be reverted. A full
 runtime network-monitor regression test across a cold start and every mode remains as a follow-up under
 issue #38's verification work; the source-level audit is recorded here.
+
+### Chat-row mode dots and mode filter (issue #30)
+
+Each chat row shows tiny mode dots (about 5dp, 2.5dp apart) near the timestamp, one per mode the
+conversation used, in first-use order, read from the conversation's modesUsed. Genuinely small and
+quiet, closer to metadata than decoration. Shown in all three list views (comfortable/compact via the
+shared row, and grid). The explicitly-rejected patterns (a coloured left bar or spine, a coloured
+border, a background tint, or named text tags) are not used. Mode names go into each row's
+accessibility label since dots convey nothing to a screen reader.
+
+The mode filter is a funnel inside the search field (no extra row). Tapping it opens a sheet listing
+the four modes plus Discover, multiple choice, with a Show all reset. When a filter is active the funnel
+fills with the accent and a plain "Showing: <modes>  Clear" line sits under the search field, so a user
+never wonders why they see fewer conversations. Filter and search combine: a query narrows within the
+filtered set. Filtering matches any mode a conversation used, consistent with the dots. Discover is
+offered as a filter option (it is a source, not one of the four modes) per Part 11B. The sheet is built
+so more filter types could be added later without restructuring. Verified on device: dots render per
+mode (green General, blue Logic seen on the real data), the sheet shows all five colour-coded options,
+selecting Logic shows only Logic conversations with the funnel active and the Showing line, and Clear
+restores all.

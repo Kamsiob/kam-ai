@@ -37,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DriveFileRenameOutline
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -115,14 +116,19 @@ fun ChatsScreen(
     // Rename target, driving the inline dialog.
     var renaming by remember { mutableStateOf<ConversationSummary?>(null) }
 
-    val filtered = remember(conversations, query) {
-        if (query.isBlank()) {
-            conversations
-        } else {
-            conversations.filter { row ->
+    // Filter by mode used. Empty means all. Combines with search: a query narrows
+    // within the mode-filtered set. Matches any mode a conversation has used, the
+    // same set the row dots read from.
+    var modeFilter by remember { mutableStateOf<Set<Mode>>(emptySet()) }
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val filtered = remember(conversations, query, modeFilter) {
+        conversations.filter { row ->
+            val matchesQuery = query.isBlank() ||
                 row.title?.contains(query, ignoreCase = true) == true ||
-                    row.snippet?.contains(query, ignoreCase = true) == true
-            }
+                row.snippet?.contains(query, ignoreCase = true) == true
+            val matchesMode = modeFilter.isEmpty() ||
+                com.kamsiob.kamai.ui.components.modesFromCsv(row.modesUsed).any { it in modeFilter }
+            matchesQuery && matchesMode
         }
     }
     val pinned = filtered.filter { it.pinned }
@@ -164,7 +170,37 @@ fun ChatsScreen(
                 Spacer(Modifier.weight(1f))
                 ViewSwitcher(view, onViewChange)
             }
-            SearchField(query, { query = it }, Modifier.padding(horizontal = KamTheme.dimens.screenPadding))
+            SearchField(
+                query, { query = it },
+                Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
+                filterActive = modeFilter.isNotEmpty(),
+                onFilter = { showFilterSheet = true },
+            )
+            // A plain, legible statement of an active filter, with a one-tap clear,
+            // so a user never wonders why they are seeing fewer conversations.
+            if (modeFilter.isNotEmpty()) {
+                val names = com.kamsiob.kamai.ui.theme.ModeColors.let { mc ->
+                    modeFilter.joinToString(", ") { mc.name(it) }
+                }
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = KamTheme.dimens.screenPadding)
+                        .padding(top = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Showing: $names", style = KamTheme.type.secondary, color = colors.textSecondary)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Clear",
+                        style = KamTheme.type.label,
+                        color = colors.accent,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable { modeFilter = emptySet() }
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
+                }
+            }
         }
 
         // The list fills the middle so the new-chat bar can live at the bottom,
@@ -277,6 +313,15 @@ fun ChatsScreen(
     }
 
     renaming?.let { RenameDialog(it, onRename) { renaming = null } }
+
+    if (showFilterSheet) {
+        ModeFilterSheet(
+            selectedModes = modeFilter,
+            onToggle = { m -> modeFilter = if (m in modeFilter) modeFilter - m else modeFilter + m },
+            onClear = { modeFilter = emptySet(); showFilterSheet = false },
+            onDismiss = { showFilterSheet = false },
+        )
+    }
 }
 
 /** A row that is either the swipe row (normal) or a selectable row (selecting). */
@@ -306,6 +351,8 @@ private fun SearchField(
     value: String,
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    filterActive: Boolean = false,
+    onFilter: () -> Unit = {},
 ) {
     val colors = KamTheme.colors
     Row(
@@ -314,7 +361,7 @@ private fun SearchField(
             .padding(vertical = 8.dp)
             .clip(CircleShape)
             .background(colors.surfaceSecondary)
-            .padding(horizontal = 14.dp, vertical = 11.dp),
+            .padding(start = 14.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -336,6 +383,92 @@ private fun SearchField(
                 modifier = Modifier.fillMaxWidth().semantics {
                     contentDescription = "Search conversations"
                 },
+            )
+        }
+        // The mode filter lives inside the search field, so it does not add a row.
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(if (filterActive) colors.tonalFill else androidx.compose.ui.graphics.Color.Transparent)
+                .clickable(onClick = onFilter)
+                .semantics {
+                    contentDescription = if (filterActive) "Filter by mode, active" else "Filter by mode"
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Rounded.FilterList,
+                contentDescription = null,
+                tint = if (filterActive) colors.accent else colors.textTertiary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The mode filter sheet. Multiple choice across the four modes plus Discover, with
+ * a clear reset to all. Designed so more filter types could be added later without
+ * restructuring; only mode filtering ships now.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ModeFilterSheet(
+    selectedModes: Set<Mode>,
+    onToggle: (Mode) -> Unit,
+    onClear: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = colors.background) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp),
+        ) {
+            Text("Filter by mode", style = KamTheme.type.sectionTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Show conversations that used any of these.",
+                style = KamTheme.type.secondary, color = colors.textSecondary,
+            )
+            Spacer(Modifier.height(12.dp))
+            val options = com.kamsiob.kamai.ui.theme.ModeColors.fourModes + Mode.DISCOVER
+            options.forEach { mode ->
+                val on = mode in selectedModes
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onToggle(mode) }
+                        .padding(horizontal = 8.dp, vertical = 12.dp)
+                        .semantics { selected = on },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    com.kamsiob.kamai.ui.components.ModeDot(mode, size = 9.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        com.kamsiob.kamai.ui.theme.ModeColors.name(mode),
+                        style = KamTheme.type.body,
+                        color = colors.textPrimary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (on) {
+                        Icon(
+                            Icons.Rounded.Check, contentDescription = "Selected",
+                            tint = colors.accent, modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Show all",
+                style = KamTheme.type.label,
+                color = colors.accent,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { onClear() }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             )
         }
     }
@@ -800,6 +933,13 @@ private fun ConversationRow(
         }
 
         Spacer(Modifier.width(10.dp))
+        com.kamsiob.kamai.ui.components.ModeDots(
+            row.modesUsed,
+            modifier = Modifier.semantics {
+                contentDescription = "Modes used: ${com.kamsiob.kamai.ui.components.modesLabel(row.modesUsed)}"
+            },
+        )
+        Spacer(Modifier.width(8.dp))
         Text(relativeTime(row.updatedAt), style = KamTheme.type.mono, color = colors.textTertiary)
     }
 }
@@ -863,6 +1003,13 @@ private fun GridCell(
                 color = colors.textSecondary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(7.dp))
+            com.kamsiob.kamai.ui.components.ModeDots(
+                row.modesUsed,
+                modifier = Modifier.semantics {
+                    contentDescription = "Modes used: ${com.kamsiob.kamai.ui.components.modesLabel(row.modesUsed)}"
+                },
             )
         }
 
