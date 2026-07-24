@@ -106,6 +106,8 @@ fun ChatScreen(
     onArchiveConversation: () -> Unit = {},
     onDeleteConversation: () -> Unit = {},
     onModeChange: (Mode) -> Unit,
+    onOpenModel: () -> Unit = {},
+    onOpenWorkbench: () -> Unit = {},
     onSend: (String) -> Unit,
     onStop: () -> Unit,
     onFlag: (MessageEntity) -> Unit,
@@ -134,6 +136,17 @@ fun ChatScreen(
     val colors = KamTheme.colors
     val listState = rememberLazyListState()
 
+    // The top banner is a switch-triggered reminder: it appears when the user
+    // changes mode in this session, and does not replay when an existing
+    // conversation is merely reopened. The persistent indicator (bottom bar) is
+    // always there regardless. See DESIGN.md, Four-Mode Update Part 2.
+    var switchedTo by remember { mutableStateOf<Mode?>(null) }
+    var showPicker by remember { mutableStateOf(false) }
+    val onModeSwitch: (Mode) -> Unit = { m ->
+        if (m != mode) switchedTo = m
+        onModeChange(m)
+    }
+
     // Follow the stream as it writes rather than leaving the user scrolling.
     LaunchedEffect(messages.size, messages.lastOrNull()?.content?.length) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
@@ -156,17 +169,12 @@ fun ChatScreen(
             )
         }
 
-        ModeSwitcher(
-            current = mode,
-            modelLabel = modelLabel,
-            onSelect = onModeChange,
-            modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
-        )
-
-        // While Logic Partner is active it stays visually unmistakable.
-        if (mode == Mode.LOGIC) {
+        // A one-line, mode-coloured banner appears at the top when the user just
+        // switched mode this session, as a reminder of what the mode does. It is
+        // not shown when simply opening an existing conversation.
+        if (switchedTo == mode && !grounded) {
             Box(Modifier.padding(horizontal = KamTheme.dimens.screenPadding, vertical = 4.dp)) {
-                LogicBanner()
+                ModeBanner(mode)
             }
         }
 
@@ -249,6 +257,20 @@ fun ChatScreen(
             NoticeBar(notice, onDismissNotice)
         }
 
+        // The persistent mode indicator sits at the bottom, adjacent to the input,
+        // so it is reachable one-handed. It always shows the current mode and the
+        // active model, and opens the deliberate mode picker when tapped. Hidden in
+        // a grounded Discover discussion, which is not one of the four modes.
+        if (!grounded) {
+            ModeBar(
+                mode = mode,
+                modelLabel = modelLabel,
+                onOpenPicker = { showPicker = true },
+                onOpenModel = onOpenModel,
+                modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
+            )
+        }
+
         Composer(
             enabled = true,
             streaming = streaming,
@@ -266,6 +288,171 @@ fun ChatScreen(
             onMicStop = onMicStop,
         )
     }
+
+    if (showPicker) {
+        ModePicker(
+            current = mode,
+            onSelect = { m ->
+                showPicker = false
+                if (m == Mode.BENCH) onOpenWorkbench() else onModeSwitch(m)
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+
+/**
+ * The persistent mode indicator at the bottom of a conversation, adjacent to the
+ * input so it is within thumb reach. Shows the current mode (dot plus name in its
+ * colour) and the active model, and opens the mode picker when tapped. Tapping the
+ * model name opens model settings (Part 11B).
+ */
+@Composable
+private fun ModeBar(
+    mode: Mode,
+    modelLabel: String?,
+    onOpenPicker: () -> Unit,
+    onOpenModel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = KamTheme.colors
+    val modeColor = com.kamsiob.kamai.ui.theme.ModeColors.of(mode, colors.isDark)
+    Row(
+        modifier = modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(colors.surfaceSecondary)
+                .clickable(onClick = onOpenPicker)
+                .padding(horizontal = 12.dp, vertical = 7.dp)
+                .semantics {
+                    contentDescription =
+                        "Mode: ${com.kamsiob.kamai.ui.theme.ModeColors.name(mode)}. Tap to change mode."
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            com.kamsiob.kamai.ui.components.ModeDot(mode, size = 7.dp)
+            Spacer(Modifier.width(7.dp))
+            Text(
+                com.kamsiob.kamai.ui.theme.ModeColors.name(mode),
+                style = KamTheme.type.label,
+                color = modeColor,
+            )
+            Spacer(Modifier.width(5.dp))
+            Icon(
+                Icons.Rounded.SwapHoriz,
+                contentDescription = null,
+                tint = colors.textTertiary,
+                modifier = Modifier.size(15.dp),
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        if (modelLabel != null) {
+            Text(
+                modelLabel,
+                style = KamTheme.type.mono,
+                color = colors.textTertiary,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(onClick = onOpenModel)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .semantics { contentDescription = "Model: $modelLabel. Tap to change model." },
+            )
+        }
+    }
+}
+
+/** The one-line, mode-coloured switch banner. Tonal fill in the mode's colour,
+ *  the mode glyph, and the mode's one-sentence description. */
+@Composable
+private fun ModeBanner(mode: Mode) {
+    val colors = KamTheme.colors
+    val modeColor = com.kamsiob.kamai.ui.theme.ModeColors.of(mode, colors.isDark)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(modeColor.copy(alpha = if (colors.isDark) 0.18f else 0.12f))
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            com.kamsiob.kamai.ui.components.modeIcon(mode),
+            contentDescription = null,
+            tint = modeColor,
+            modifier = Modifier.size(15.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            com.kamsiob.kamai.llm.SystemPrompts.topBanner(mode),
+            style = KamTheme.type.secondary,
+            color = modeColor,
+        )
+    }
+}
+
+/**
+ * The deliberate mode picker: a small sheet listing the four modes, each with its
+ * colour dot, name, and a short line describing what it does, the current one
+ * marked. Choosing applies and dismisses; dismissing changes nothing. Tapping the
+ * indicator opens this rather than switching immediately, since a switch changes
+ * how the assistant behaves for the rest of the conversation.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ModePicker(
+    current: Mode,
+    onSelect: (Mode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = colors.background) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
+            Text("Choose a mode", style = KamTheme.type.sectionTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Switching changes how Kam AI answers for the rest of this chat, and keeps what you have said so far.",
+                style = KamTheme.type.secondary, color = colors.textSecondary,
+            )
+            Spacer(Modifier.height(12.dp))
+            com.kamsiob.kamai.ui.theme.ModeColors.fourModes.forEach { mode ->
+                val isCurrent = mode == current
+                val modeColor = com.kamsiob.kamai.ui.theme.ModeColors.of(mode, colors.isDark)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(enabled = !isCurrent) { onSelect(mode) }
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    com.kamsiob.kamai.ui.components.ModeDot(mode, size = 10.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            com.kamsiob.kamai.ui.theme.ModeColors.name(mode),
+                            style = KamTheme.type.body, color = modeColor,
+                        )
+                        Text(modePickerBlurb(mode), style = KamTheme.type.secondary, color = colors.textSecondary)
+                    }
+                    if (isCurrent) {
+                        Text("Current", style = KamTheme.type.mono, color = colors.textTertiary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** One plain line per mode for the picker. Workbench states that it opens a linked
+ *  session rather than converting this conversation (Part 4). */
+private fun modePickerBlurb(mode: Mode) = when (mode) {
+    Mode.LOGIC -> "Argues the other side and tests your reasoning."
+    Mode.BRAINSTORM -> "Pulls ideas out of you instead of handing them over."
+    Mode.BENCH -> "Opens a linked Workbench to rework text, side by side."
+    else -> "Answers plainly and helps with whatever you are working on."
 }
 
 private fun whenEmptyTitle(mode: Mode) = when (mode) {
@@ -508,68 +695,6 @@ private fun ConversationRenameDialog(
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 )
             }
-        }
-    }
-}
-
-/**
- * The in-chat mode control: one little bubble that flips between Chat and Logic
- * Partner, not a three-way segmented control. Workbench is its own surface and
- * is deliberately never part of this. PART 4. Switching mid-conversation is
- * allowed and the existing context carries forward.
- */
-@Composable
-private fun ModeSwitcher(
-    current: Mode,
-    modelLabel: String?,
-    onSelect: (Mode) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = KamTheme.colors
-    // Only Chat and Logic live here; anything else shows as Chat for the flip.
-    val isLogic = current == Mode.LOGIC
-    val next = if (isLogic) Mode.GENERAL else Mode.LOGIC
-    val label = if (isLogic) "Logic Partner" else "Chat"
-    val bg by androidx.compose.animation.animateColorAsState(
-        targetValue = if (isLogic) colors.tonalFill else colors.surfaceSecondary,
-        animationSpec = expressiveSpec(),
-        label = "mode-bubble",
-    )
-
-    Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(bg)
-                .clickable { onSelect(next) }
-                .padding(horizontal = 15.dp, vertical = 9.dp)
-                .semantics {
-                    contentDescription = "Mode: $label. Tap to switch to " +
-                        (if (isLogic) "Chat." else "Logic Partner.")
-                },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Rounded.SwapHoriz,
-                contentDescription = null,
-                tint = if (isLogic) colors.tonalText else colors.textSecondary,
-                modifier = Modifier.size(16.dp),
-            )
-            Spacer(Modifier.width(7.dp))
-            Text(
-                label,
-                style = KamTheme.type.label,
-                color = if (isLogic) colors.tonalText else colors.textPrimary,
-            )
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        if (modelLabel != null) {
-            Text(modelLabel, style = KamTheme.type.mono, color = colors.textTertiary)
         }
     }
 }
@@ -902,37 +1027,6 @@ private fun ModeSwitchNote(text: String) {
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.surfaceSecondary)
                 .padding(horizontal = 14.dp, vertical = 8.dp),
-        )
-    }
-}
-
-/**
- * A calm, persistent marker shown while Logic Partner is active, so it is obvious
- * at a glance which mode is answering without shouting. Tonal fill and text from
- * the design system, no amber.
- */
-@Composable
-private fun LogicBanner() {
-    val colors = KamTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(colors.tonalFill)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            Icons.Rounded.SwapHoriz,
-            contentDescription = null,
-            tint = colors.tonalText,
-            modifier = Modifier.size(15.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            "Logic Partner is testing your reasoning, not agreeing with it.",
-            style = KamTheme.type.secondary,
-            color = colors.tonalText,
         )
     }
 }

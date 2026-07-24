@@ -271,6 +271,8 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     is Pushed.Conversation -> ConversationScreen(
                         app, pushed.id, pushed.startMode, pushed.initialText, pushed.vmKey,
                         onExit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) },
+                        onOpenModel = { stack.add(Pushed.Model) },
+                        onOpenWorkbench = { stack.add(Pushed.Workbench) },
                     )
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
@@ -383,6 +385,8 @@ private fun ConversationScreen(
     initialText: String? = null,
     vmKey: String = conversationId,
     onExit: () -> Unit = {},
+    onOpenModel: () -> Unit = {},
+    onOpenWorkbench: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val chat: ChatViewModel = viewModel(
@@ -475,6 +479,8 @@ private fun ConversationScreen(
         // Play is hidden until a reading voice exists, rather than shown doing nothing.
         ttsAvailable = ttsVoice != null,
         onModeChange = chat::setMode,
+        onOpenModel = onOpenModel,
+        onOpenWorkbench = onOpenWorkbench,
         // A new message stops any answer that is being read aloud.
         onSend = { text -> app.stopSpeaking(); chat.send(text) },
         onStop = chat::stop,

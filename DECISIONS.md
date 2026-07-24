@@ -2035,3 +2035,26 @@ so more filter types could be added later without restructuring. Verified on dev
 mode (green General, blue Logic seen on the real data), the sheet shows all five colour-coded options,
 selecting Logic shows only Logic conversations with the funnel active and the Showing line, and Clear
 restores all.
+
+### In-conversation mode indicator, picker, banner, and notice (issue #28)
+
+The stale top Chat/Logic flip pill is gone. The interactive mode control now lives at the bottom next to
+the input, reachable one-handed (the reason the mode chips moved to the bottom in the first place): a
+persistent mode indicator showing the current mode (dot plus name in its colour) and the active model,
+which opens a deliberate picker when tapped rather than switching on the spot. The picker is a small
+sheet listing the four modes with dot, name, and a one-line description, the current one marked;
+choosing applies and dismisses, dismissing changes nothing. Workbench in the picker states plainly that
+it opens a linked session (Part 4) and for now opens the Workbench surface; the seeding/linking is #32.
+Tapping the model name opens model settings (Part 11B).
+
+Switching keeps context and inserts the quiet centred system notice at the switch point (the existing
+Role.SYSTEM mechanism, with the four-mode copy). A one-line, mode-coloured banner also appears near the
+top as a switch reminder, carrying the mode glyph and the mode's one sentence; it is shown only on an
+actual switch this session, not when reopening an existing conversation, matching the spec. Verified on
+device: opening a General conversation shows General with no banner; the picker lists all four modes
+with descriptions and the Current marker; switching to Logic showed the blue Logic banner with the
+balance-scale glyph, updated the bottom indicator to Logic, and inserted the midstream notice.
+
+Remaining in #28, keeping it open: the first-time per-mode inline explainers (shown once ever, plus Q&A
+entries) and including the mode-change notices in exported conversations (which overlaps the export
+cleanup in #35). The core switch experience is done.
