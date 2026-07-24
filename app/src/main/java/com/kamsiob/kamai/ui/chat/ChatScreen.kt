@@ -34,6 +34,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.MenuBook
@@ -147,9 +149,22 @@ fun ChatScreen(
         onModeChange(m)
     }
 
-    // Follow the stream as it writes rather than leaving the user scrolling.
+    // Whether the user is at (or almost at) the newest message. Drives the
+    // jump-to-latest control and decides whether streaming text follows down.
+    val atBottom by remember {
+        androidx.compose.runtime.derivedStateOf {
+            val info = listState.layoutInfo
+            val last = info.visibleItemsInfo.lastOrNull()
+            last == null || last.index >= info.totalItemsCount - 1
+        }
+    }
+
+    // Follow the stream as it writes, but only when the user is already at the
+    // bottom. If they have scrolled up to read earlier messages, a new or growing
+    // response must not yank them down (Part 7); the jump-to-latest control lets
+    // them return when they choose.
     LaunchedEffect(messages.size, messages.lastOrNull()?.content?.length) {
-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
+        if (messages.isNotEmpty() && atBottom) listState.animateScrollToItem(messages.lastIndex)
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -248,6 +263,37 @@ fun ChatScreen(
                     val lastMsg = messages.lastOrNull()
                     if (showThinkingIndicator(streaming, lastMsg?.role, lastMsg?.content)) {
                         item { TypingIndicator() }
+                    }
+                }
+
+                // Jump to latest, shown only when scrolled up away from the newest
+                // message, positioned so it covers neither the messages nor the
+                // input. Arrives and leaves on the standard spring.
+                val scope = androidx.compose.runtime.rememberCoroutineScope()
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !atBottom && messages.isNotEmpty(),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
+                    enter = androidx.compose.animation.fadeIn(standardSpec()) +
+                        androidx.compose.animation.scaleIn(standardSpec(), initialScale = 0.8f),
+                    exit = androidx.compose.animation.fadeOut(standardSpec()) +
+                        androidx.compose.animation.scaleOut(standardSpec(), targetScale = 0.8f),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(colors.surface)
+                            .border(1.dp, colors.border, CircleShape)
+                            .clickable { scope.launch { listState.animateScrollToItem(messages.lastIndex) } }
+                            .semantics { contentDescription = "Jump to the latest message" },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            androidx.compose.material.icons.Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(22.dp),
+                        )
                     }
                 }
             }

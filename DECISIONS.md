@@ -2123,3 +2123,14 @@ Known remaining costs, documented not yet fixed:
 Targets: warm-turn TTFT under ~1s (met, 0.8s); cold turn-1 TTFT for a short prompt in the low single
 digits (7s, acceptable and improvable via further prompt trimming). KamPerf logs TTFT, prefill tok/s,
 and decode tok/s per request as the ongoing regression signal; PromptBudgetTest guards prompt size.
+
+### Conversation navigation: jump-to-latest and non-yanking scroll (issue #35, Part 7/11B)
+
+The message list now tracks whether the user is at the bottom (derivedStateOf over the lazy list's
+layout info). Two behaviours follow. First, streaming text follows down only when the user is already at
+the bottom: if they have scrolled up to read earlier messages, a new or growing response no longer yanks
+them to the newest one. Second, a small jump-to-latest control appears, bottom-centre above the input,
+only while scrolled up, arriving and leaving on the standard spring; tapping it scrolls to the newest
+message. It covers neither the messages nor the input, and carries a screen-reader label. Remaining in
+#35: per-conversation scroll-position restoration, and the honest incomplete-generation state with
+retry/continue/discard (a larger piece).
