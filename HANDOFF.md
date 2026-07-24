@@ -81,10 +81,19 @@ refusal could not be forced; reopen it rather than treating a recurrence as new.
 timing bug: the overlay decided how to open before the setting had loaded, so it always chose
 text. Verified end to end on the phone, opening already listening.
 
-**Next concrete step:** **#47**, the overlay drag handle, the last of the overlay set. **#61**
-(the recording button drawing in the reserved gold) and **#60** (the leftover "flag" wording)
-both belong with it, since all three touch that surface and it should be opened once. Full
-order in section 4.
+**Also finished: #47, verified on the phone and closed.** The overlay handle now expands the
+exchange into the full app on drag-up or tap, and dismisses on drag-down. It also uncovered a
+**long-standing crash**, not a regression: `OverlayActivity.onPause` calls `stop()` every time
+the overlay closes, and `requestStop()` has always called into the native library
+unconditionally, so closing the assistant in a process that never loaded it threw
+`UnsatisfiedLinkError` and showed "Kam AI keeps stopping". Guarded now. The app has a
+`files/crash` directory on the device, so this may account for crashes nobody had explained.
+
+**Next concrete step:** **#31 auto-archive**, the next item in section 4's order and
+self-contained: one DAO query, one preference, one settings row. Still open against the
+overlay surface, to be done together whenever it is next touched: **#61** (the recording
+button drawing in the reserved gold) and **#60** (the leftover "flag" wording). Full order in
+section 4.
 
 **Two things were found along the way and are recorded, not fixed.** Read both before
 picking up performance or export work.
@@ -209,7 +218,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 |---|---|---|
 | #43 | Scrolling is fought during a long streaming response; needs a per-response latch | **closed, verified on the phone.** Per-response latch plus an offset-based atBottom, in ui/chat/ScrollFollow.kt, 13 tests |
 | #44 | A new conversation is not at the top of Chats, and the list does not return to the top | **closed, verified on the phone** in list and grid. Ordering was already right; the lists were restoring their old scroll offset |
-| #47 | The overlay drag handle is decorative; make it expand into the full app | not started |
+| #47 | The overlay drag handle is decorative; make it expand into the full app | **closed, verified on the phone.** Also fixed a long-standing crash on closing the overlay from a cold process |
 | #48 | Archived conversations unreachable in grid view; audit all three views against each other | not started |
 | #50 | Projects screen has no view options | not started |
 
