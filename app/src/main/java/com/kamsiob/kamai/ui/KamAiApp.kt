@@ -372,6 +372,7 @@ private fun TabContent(
                 onOpenMoment = { packId, momentId ->
                     app.openSavedMoment(packId, momentId) { stack.add(Pushed.Conversation(it)) }
                 },
+                onSetKind = app::setFollowUpKind,
             )
         }
     }

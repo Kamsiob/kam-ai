@@ -75,6 +75,7 @@ fun FollowUpsScreen(
     onRemove: (String) -> Unit,
     onOpenSource: (String) -> Unit,
     onOpenMoment: (String, String) -> Unit,
+    onSetKind: (String, com.kamsiob.kamai.data.FollowUpKind) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -100,9 +101,10 @@ fun FollowUpsScreen(
 
         if (open.isEmpty() && completed.isEmpty()) {
             EmptyState(
-                title = "Nothing flagged yet",
-                body = "Tap the bookmark under any answer you want to check properly " +
-                    "later. It lands here so it does not get lost.",
+                title = "Nothing saved yet",
+                body = "This holds two things: answers to check later, and ideas worth " +
+                    "returning to. Tap the bookmark under any answer, or save ideas from " +
+                    "a Brainstorm, and they land here.",
                 modifier = Modifier.fillMaxWidth(),
             )
             return@Column
@@ -145,6 +147,7 @@ fun FollowUpsScreen(
                             else -> item.conversationId?.let(onOpenSource)
                         }
                     },
+                    onSetKind = { onSetKind(item.id, it) },
                 )
             }
 
@@ -171,6 +174,7 @@ fun FollowUpsScreen(
                             else -> item.conversationId?.let(onOpenSource)
                         }
                     },
+                            onSetKind = { onSetKind(item.id, it) },
                         )
                     }
                 }
@@ -266,6 +270,7 @@ private fun FollowUpCard(
     onToggle: () -> Unit,
     onRemove: () -> Unit,
     onOpenSource: () -> Unit,
+    onSetKind: (com.kamsiob.kamai.data.FollowUpKind) -> Unit = {},
 ) {
     val colors = KamTheme.colors
     val density = LocalDensity.current
@@ -370,6 +375,33 @@ private fun FollowUpCard(
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // A quiet kind chip: check (verify) or pursue (an idea worth
+                    // returning to). Tap it to change the kind if the guess was
+                    // wrong (Part 5). Neutral surfaces, no colour of its own.
+                    val pursue = item.kind == com.kamsiob.kamai.data.FollowUpKind.PURSUE
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(colors.surfaceSecondary)
+                            .clickable {
+                                onSetKind(
+                                    if (pursue) com.kamsiob.kamai.data.FollowUpKind.CHECK
+                                    else com.kamsiob.kamai.data.FollowUpKind.PURSUE,
+                                )
+                            }
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .semantics {
+                                contentDescription = (if (pursue) "Kind: pursue" else "Kind: check") +
+                                    ". Tap to change."
+                            },
+                    ) {
+                        Text(
+                            if (pursue) "To pursue" else "To check",
+                            style = KamTheme.type.mono,
+                            color = colors.textSecondary,
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
                     Text(
                         sourceLabel(item),
                         style = KamTheme.type.mono,

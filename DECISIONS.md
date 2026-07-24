@@ -2058,3 +2058,15 @@ balance-scale glyph, updated the bottom indicator to Logic, and inserted the mid
 Remaining in #28, keeping it open: the first-time per-mode inline explainers (shown once ever, plus Q&A
 entries) and including the mode-change notices in exported conversations (which overlaps the export
 cleanup in #35). The core switch experience is done.
+
+### Follow-ups: check vs pursue kinds (issue #33)
+
+Follow-ups now hold two mental categories: things to check (a response that might be wrong, needs
+verifying) and things to pursue (an idea or direction worth returning to, mostly from Brainstorm). Kept
+light per the spec, not two screens or a taxonomy: one list, with a small quiet kind chip on each item
+("To check" / "To pursue") that the user taps to change if the guess was wrong. The kind is set
+automatically from the source at save time, no prompt: saving from a Brainstorm conversation defaults to
+pursue (the flag path derives it from the conversation mode), everything else to check, so saving stays
+one tap. The empty-state and screen copy now acknowledge both kinds. Verified on device: an existing
+Discover-sourced follow-up shows the "To check" chip beside its source chip. Remaining in #33: a filter
+by kind alongside the existing source filter (small follow-on).
