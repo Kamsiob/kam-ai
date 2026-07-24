@@ -2580,3 +2580,80 @@ work is staged as the document specifies and sits after the small correctness fi
    trimming. Real argument analysis will not fit for free. It will be written as compactly
    as possible, and if the budget must rise, that is paid for by the caching work in #52
    and recorded here rather than the number being quietly raised.
+
+## #49 verified on the device, and what the trace accidentally revealed (24 July 2026)
+
+### How #49 was verified, since "it looked fine" is not verification
+
+The fix landed in 595f6d9 but the bug only ever appeared in long conversations, so watching
+a fresh chat behave would have proved nothing. The verification used an existing long
+conversation on Gemma 4 E4B at ctx 6144, and prompts chosen to be adversarial rather than
+representative: first "write a short imagined dialogue between Jefferson and Lincoln about
+federal power, with each speaker clearly labelled", then "continue that exact dialogue for
+four more exchanges, keeping the same speaker labels". **Asking a model for labelled
+speaker turns is as close as you can get to inviting it to type its own turn delimiters**,
+which is the behaviour `StreamGuard` exists to catch.
+
+Both answers came back as clean `Jefferson:` / `Lincoln:` prose, ended on complete
+sentences, and were not truncated. Zero occurrences of `start_of_turn`, `end_of_turn` or
+`im_end` in the captured logcat. The desync assertion never fired, nor the `seq_rm` refusal
+path, nor the failed-decode path.
+
+The strongest single piece of evidence is not the absence of markers but the presence of
+sense: turn 2 opened with "Jefferson: Your definition of strength seems perilously close to
+despotism", answering Lincoln's "Unity requires strength from above" from turn 1. **A model
+reading a holed KV cache does not do that.** It loses the turn structure, which was the
+original symptom. The context survived the prefix-reuse path intact.
+
+Verified at the same time, and struck off the never-watched list: jump-to-latest in its
+visible state, and the non-yanking scroll. A reply arriving in a long conversation did not
+yank the list, the control appeared, and tapping it went to the latest message.
+
+### The auto-titling pass is destroying the KV reuse from #38
+
+This was not what the session set out to measure. The `KamPerf` trace, in order:
+
+| Time | What | Prefill | Decode |
+|---|---|---|---|
+| 17:04:42 | model load, cold | | 5792ms |
+| 17:05:31 | turn 1 answer | 956 tok / 36306ms (26.3 tok/s) | 75 tok |
+| 17:05:42 | titling pass | 465 tok / 11488ms | 1 tok |
+| 17:08:52 | turn 2 answer | **1068 tok / 30840ms** (34.6 tok/s) | 94 tok |
+| 17:08:59 | titling pass | 219 tok / 5808ms | 6 tok |
+
+Turn 2 re-prefilled the entire conversation. With the prefix reuse working it should have
+processed only what was new, the 75-token turn-1 answer plus a ~20-token question, roughly
+110 tokens and about 3 seconds. **It did 1068 tokens and 30.8 seconds**, because titling ran
+in between with a different prompt, overwrote the cache, and left no reusable prefix.
+
+**About 28 seconds per turn, on top of titling's own 6 to 12 seconds.** That substantially
+negates the headline result of #38. The 0.8s warm turn recorded in HANDOFF's measurements
+table is real, but it only holds when nothing titles in between, and something almost always
+does.
+
+Two corrections to the earlier record. Titling was described as polluting the cache **once**,
+between turns 1 and 2; it ran after **both** turns here, so it is per-turn. And it re-titled
+an already-titled conversation mid-session, "Comparing Founding Fathers Political Views"
+becoming "Comparing Founding Fathers Political Stances", which is a defect in its own right
+and is what paid the second 5.8 seconds.
+
+**Do not run the round 3 performance work (#51 to #56) before fixing this.** Every
+measurement taken while titling defeats the cache is a measurement of the wrong thing.
+
+Options, none chosen yet: give titling its own context or sequence so it cannot touch the
+conversation's KV; run it on a separate short-lived context; defer it until the conversation
+goes idle rather than immediately after a turn; or skip it when a title already exists. The
+last is cheapest and fixes the retitling at the same time, but only helps from the second
+turn onward.
+
+### First E4B figures on this device
+
+The measurements table covered E2B only. E4B: **decode 5.3 to 6.5 tok/s, prefill 26 to 40
+tok/s**, cold model load 5.8s at ctx 6144. Slower than E2B's 10 to 12 and roughly 68 to 70,
+as the size implies.
+
+### The llama.cpp log forwarding works
+
+Added in 595f6d9 and confirmed live under tag `KamAI-llama`: the loader's own output now
+reaches logcat, including the full metadata dump. That is what #51 needs in order to read
+whether repacking and flash attention actually engaged, rather than assuming they did.

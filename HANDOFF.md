@@ -41,19 +41,28 @@ destroy user data.**
 said "#24 stays open". It was written before the issue was closed and was stale within the
 hour. Trust `gh issue view` over this file for issue state, always.
 
-**Next concrete step:** issue #49, chat template tokens leaking into responses in longer
-conversations. **The fix is written and committed, and is not yet device-verified.** Three
-causes were found and addressed together: the sliding-window KV cache silently discarding
-cells the prefix-reuse path assumed were present (`swa_full`), an ignored
-`llama_memory_seq_rm` failure leaving the cache and `cached_tokens` disagreeing, and the
-stop-marker check looking at one streamed piece at a time so a marker typed out across
-several tokens was never matched. `StreamGuard` handles the last of these and is unit
-tested. **What remains is watching a long conversation on the phone.** #49 closes then, not
-before.
+**Also finished: issue #49, verified on the phone and closed.** Three causes, fixed
+together in 595f6d9: the sliding-window KV cache discarding cells the prefix-reuse path
+assumed were present (`swa_full`), an ignored `llama_memory_seq_rm` failure leaving the
+cache and `cached_tokens` disagreeing, and the stop-marker check looking at one streamed
+piece at a time so a marker typed across several tokens was never matched (`StreamGuard`,
+7 unit tests). Verified with deliberately adversarial prompts, asking for a labelled
+two-speaker dialogue and then a continuation of it, in a long existing conversation on
+E4B: no template syntax in either answer, no desync, and the context stayed coherent
+across the reuse path. Detail on the issue.
 
-**Then:** #43 (streaming scroll latch), #44 (new conversation at the top of Chats), #42
-(stale onboarding and Q&A copy), #40 (stop loses its reason), #41 (export attribution).
-Full order in section 4.
+**Next concrete step:** **#43** (streaming scroll latch), then **#44** (new conversation
+at the top of Chats). Both small, both in the most used surface. Then #42 (stale
+onboarding and Q&A copy), #40 (stop loses its reason), #41 (export attribution). Full
+order in section 4.
+
+**Read the new #38 comment before doing any performance work.** Verifying #49 accidentally
+measured the auto-titling pass, and it is destroying the KV reuse that #38 bought: turn 2
+of a conversation re-prefilled all 1068 tokens in 30.8s where it should have done about
+110 tokens in about 3s, because titling ran in between with a different prompt and
+overwrote the cache. That is roughly 28 seconds per turn, and it substantially negates
+#38's headline result. It also re-titled an already-titled conversation, which looks like a
+defect of its own.
 
 **Check `git status` before believing any claim in this file about what is committed.** The
 crash that produced the correction above left a full feature uncommitted while this section
@@ -154,7 +163,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 
 | # | Item | State |
 |---|---|---|
-| #49 | Chat template tokens leak into responses in longer conversations | fix committed, **never watched on the phone**. Verify on a long conversation, then close |
+| #49 | Chat template tokens leak into responses in longer conversations | **closed, verified on the phone** with adversarial labelled-dialogue prompts |
 | #40 | Stopping a response loses its reason, hides the action row, then gets mislabelled | not started |
 | #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | not started |
 | #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | not started |
@@ -185,7 +194,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #34 | Keyboard and reachability audit | not started. Nothing in the app reacts to the keyboard opening and the message list has no IME padding. Do after #29 |
 | #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll landed but **only ever seen in their hidden state**. The failure-state half is blocked behind #40 |
 | #36 | Onboarding and public copy for four modes | not started. Do after #29 and #42 |
-| #38 | Titling KV pollution (cost never measured), Bench/Overlay/Discover prompt trims, runtime network monitor | partial |
+| #38 | Titling KV pollution (**now measured, and severe**), Bench/Overlay/Discover prompt trims, runtime network monitor | partial. Titling costs ~28s per turn by destroying the prefix reuse, and runs after every turn rather than once. Numbers in the issue comment. Fix it before any round 3 perf work, or every measurement taken there is against a defeated cache |
 | #39 | Usability gaps and end-to-end workflows, **including eleven of the twelve mode-switch pairs never exercised** | not started |
 
 ### Performance, round 3
@@ -227,8 +236,11 @@ never watched on the device), **partial**, **not started**, **blocked**.
 
 ### Written but never verified on the device
 
-- Jump-to-latest in its **visible** state, and non-yanking scroll on a genuinely long
-  conversation (#35, and now #43 changes the rule anyway).
+- ~~Jump-to-latest in its **visible** state~~ **seen working 24 July 2026**: after a reply
+  arrived in a long conversation the list did not yank, the control appeared, and tapping
+  it moved to the latest message. The non-yanking behaviour was seen at the same time. What
+  is still unverified is scroll **restoration** when reopening a conversation, and #43
+  changes the rule for streaming anyway.
 - Eleven of twelve mode-switch pairs (#39). Only General to Logic has been exercised.
 - The Brainstorm prompt's actual behaviour (#25).
 - Follow-up kind auto-assignment from a Brainstorm conversation (#33).
@@ -323,6 +335,16 @@ The warm-turn figure is the headline: roughly 10x on every ongoing turn, and it 
 actually killed the 30 to 45 second complaint. The earlier thread-count change alone took
 decode from 6.9 to 10.6 tok/s, about +54%.
 
+**Caveat added 24 July 2026, and it matters: the warm-turn figure only holds when nothing
+titles in between.** Measured on E4B, turn 2 of a real conversation re-prefilled all 1068
+tokens in 30.8s, because the auto-titling pass ran after turn 1 with a different prompt and
+overwrote the cache. It should have been about 110 new tokens and about 3s. Titling runs
+after **every** turn, not once as earlier notes claimed. See the #38 comment.
+
+E4B on the same device, first figures taken for this tier: **decode 5.3 to 6.5 tok/s,
+prefill 26 to 40 tok/s**, cold model load 5.8s at ctx 6144. Slower than E2B across the
+board, as expected for the size.
+
 System prompt sizes, by the app's own `chars / 3.6` estimator (overshoots the real
 tokenizer by roughly 15%), guarded by `PromptBudgetTest`:
 
@@ -402,12 +424,19 @@ a debug reinstall, and the Play Console account actions.
 
 **Open questions, in the order worth answering:**
 
-1. Is the leaking-template-token bug (#49) the `cached_tokens` drift? If so, what else has
-   it silently corrupted?
+1. ~~Is the leaking-template-token bug (#49) the `cached_tokens` drift?~~ **Answered.** It
+   was three things, and the cache was central to two: a sliding-window cache discarding
+   cells the prefix reuse assumed were held, and an ignored `seq_rm` refusal. The third was
+   a stop-marker check that only ever saw one streamed piece at a time. Fixed and verified.
+   The "what else has it silently corrupted" half stands: any answer given in a long
+   conversation before 595f6d9 may have been generated against a holed cache.
 2. Did the prompt trim cost behavioural quality in Logic and Brainstorm? Tokens came out;
    the tests only guard size.
-3. How much does the auto-titling pass actually cost? Known to pollute the cache once
-   between turns 1 and 2, never measured. Read the KamPerf line for turn 2 against turn 3.
+3. ~~How much does the auto-titling pass actually cost?~~ **Answered, and it is bad.**
+   About 28 seconds per turn, because it overwrites the KV cache and forces the next turn
+   to re-prefill the whole conversation, plus its own 6 to 12 seconds. It runs after every
+   turn, not once. Numbers in the #38 comment. It also re-titles conversations that already
+   have a title.
 4. Does `cached_tokens` stay in sync under model switching, out-of-room, a stopped
    generation, and the titling pass interleaving?
 5. Does the mode reach the model on every entry path? Unverified for search, follow-ups,
