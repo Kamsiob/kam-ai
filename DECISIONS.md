@@ -3796,3 +3796,26 @@ runs. Code that looks like it works is worse than code that says it does not.
 Selecting text **while a response is still streaming** works. The selection survives the text
 changing underneath it and the follow-scroll does not fight it. Checked on the phone against a
 two-hundred word answer mid-flight.
+
+## Issue #39, eleventh finding: DESIGN and the code disagreed about the composer
+
+DESIGN said "Input is disabled while a response is streaming". `Composer(enabled = true, ...)`
+is hardcoded, with no comment, and has never disabled anything. Verified on the phone: you can
+type a whole sentence while the model is mid-answer.
+
+This one goes the other way from the rest of tonight's findings. The code is right and the
+document was wrong.
+
+An answer on this phone takes the better part of a minute. Disabling input for that long stops
+somebody typing the thought they had while reading, for no benefit anybody can name. Sending is
+already what waits: Stop replaces send until the response finishes, and the typed text is still
+sitting there when it does, which I checked. So the behaviour is coherent, and the rule in DESIGN
+was the mistake.
+
+DESIGN now describes what the app does and why. The call site says the same thing, because
+`enabled = true` with no explanation is precisely how this became a question at half past one in
+the morning.
+
+Recording the shape of it as much as the decision: a spec sentence and an unexplained constant
+disagreed for a long time, and nothing failed, because neither one is executable. The fix for
+that class of drift is a comment at the constant, not a better memory.

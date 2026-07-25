@@ -481,6 +481,13 @@ fun ChatScreen(
         }
 
         Composer(
+            // Deliberately always enabled, including while a response streams.
+            // DESIGN used to say input was disabled during streaming, and the
+            // code has never done that. An on-device answer can take the better
+            // part of a minute, so locking the keyboard for that long stops
+            // somebody typing the thought they had while reading. Sending is
+            // what waits: Stop replaces send until the answer finishes, and the
+            // typed text is still there when it does. DESIGN now says this.
             enabled = true,
             streaming = streaming,
             onSend = { text ->
