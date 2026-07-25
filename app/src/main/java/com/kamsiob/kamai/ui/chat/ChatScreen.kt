@@ -845,7 +845,7 @@ private fun ConversationHeader(
     }
 
     if (picking) {
-        ProjectPickerDialog(
+        com.kamsiob.kamai.ui.components.ProjectPickerDialog(
             options = projectOptions,
             currentProjectId = currentProjectId,
             onPick = { picking = false; onMoveToProject(it) },
@@ -854,120 +854,6 @@ private fun ConversationHeader(
     }
 }
 
-/**
- * Picks which project a conversation belongs to. Moving applies from here on, not
- * retroactively, which the dialog states plainly.
- */
-@Composable
-private fun ProjectPickerDialog(
-    options: List<Pair<String, String>>,
-    currentProjectId: String?,
-    onPick: (String?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val colors = KamTheme.colors
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(colors.surface)
-                .border(1.dp, colors.border, RoundedCornerShape(24.dp)).padding(20.dp),
-        ) {
-            Text("Move to project", style = KamTheme.type.cardTitle, color = colors.textPrimary)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "The project's instructions apply from now on, not to messages already sent.",
-                style = KamTheme.type.secondary, color = colors.textTertiary,
-            )
-            Spacer(Modifier.height(12.dp))
-            if (options.isEmpty()) {
-                Text(
-                    "No projects yet. Make one in the Projects tab first.",
-                    style = KamTheme.type.body, color = colors.textSecondary,
-                )
-            } else {
-                options.forEach { (id, name) ->
-                    val selected = id == currentProjectId
-                    Text(
-                        name,
-                        style = KamTheme.type.body,
-                        color = if (selected) colors.accent else colors.textPrimary,
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .clickable { onPick(id) }.padding(vertical = 12.dp, horizontal = 4.dp),
-                    )
-                }
-            }
-            Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Text(
-                    "Cancel", style = KamTheme.type.label, color = colors.textSecondary,
-                    modifier = Modifier.clip(CircleShape).clickable(onClick = onDismiss)
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                )
-            }
-        }
-    }
-}
-
-/** A plain rename dialog for the open conversation, matching the list's style. */
-@Composable
-private fun ConversationRenameDialog(
-    initial: String,
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val colors = KamTheme.colors
-    var text by remember {
-        mutableStateOf(
-            androidx.compose.ui.text.input.TextFieldValue(
-                initial, androidx.compose.ui.text.TextRange(initial.length),
-            ),
-        )
-    }
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(colors.surface)
-                .border(1.dp, colors.border, RoundedCornerShape(24.dp))
-                .padding(22.dp),
-        ) {
-            Text("Rename chat", style = KamTheme.type.cardTitle, color = colors.textPrimary)
-            Spacer(Modifier.height(14.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colors.surfaceSecondary)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-            ) {
-                BasicTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    singleLine = true,
-                    textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
-                    cursorBrush = SolidColor(colors.accent),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            Spacer(Modifier.height(18.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Text(
-                    "Cancel", style = KamTheme.type.label, color = colors.textSecondary,
-                    modifier = Modifier.clip(CircleShape).clickable(onClick = onDismiss)
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "Save", style = KamTheme.type.label,
-                    color = if (text.text.isNotBlank()) colors.accent else colors.textTertiary,
-                    modifier = Modifier.clip(CircleShape)
-                        .then(if (text.text.isNotBlank()) Modifier.clickable { onConfirm(text.text.trim()) } else Modifier)
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                )
-            }
-        }
-    }
-}
 
 /** Bubbles animate in from below with slight scale. */
 @Composable
@@ -1716,5 +1602,67 @@ private fun Composer(
             )
         }
       }
+    }
+}
+
+/** A plain rename dialog for the open conversation, matching the list's style. */
+@Composable
+private fun ConversationRenameDialog(
+    initial: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    var text by remember {
+        mutableStateOf(
+            androidx.compose.ui.text.input.TextFieldValue(
+                initial, androidx.compose.ui.text.TextRange(initial.length),
+            ),
+        )
+    }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                .padding(22.dp),
+        ) {
+            Text("Rename chat", style = KamTheme.type.cardTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(14.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.surfaceSecondary)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            ) {
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
+                    cursorBrush = SolidColor(colors.accent),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Text(
+                    "Cancel", style = KamTheme.type.label, color = colors.textSecondary,
+                    modifier = Modifier.clip(CircleShape).clickable(onClick = onDismiss)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Save", style = KamTheme.type.label,
+                    color = if (text.text.isNotBlank()) colors.accent else colors.textTertiary,
+                    modifier = Modifier.clip(CircleShape)
+                        .then(if (text.text.isNotBlank()) Modifier.clickable { onConfirm(text.text.trim()) } else Modifier)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            }
+        }
     }
 }

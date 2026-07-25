@@ -105,6 +105,9 @@ fun ChatsScreen(
     onArchive: (String) -> Unit,
     onDelete: (String) -> Unit,
     onDeleteMany: (List<String>) -> Unit = {},
+    /** Projects to offer in the bulk move picker, as id to name (item 2). */
+    projectOptions: List<Pair<String, String>> = emptyList(),
+    onMoveMany: (List<String>, String?) -> Unit = { _, _ -> },
     onNewChat: (Mode) -> Unit = {},
     onRename: (String, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
@@ -117,6 +120,9 @@ fun ChatsScreen(
     val selected = remember { mutableStateListOf<String>() }
     var selecting by remember { mutableStateOf(false) }
     fun exitSelection() { selecting = false; selected.clear() }
+
+    /** Open while the bulk "Move" picker is showing. */
+    var movingMany by remember { mutableStateOf(false) }
 
     // Rename target, driving the inline dialog.
     var renaming by remember { mutableStateOf<ConversationSummary?>(null) }
@@ -183,11 +189,29 @@ fun ChatsScreen(
                 onSelectAll = { selected.clear(); selected.addAll(filtered.map { it.id }) },
                 onSelectNone = { selected.clear() },
                 onCancel = { exitSelection() },
+                onMove = { movingMany = true },
                 onDelete = {
                     onDeleteMany(selected.toList())
                     exitSelection()
                 },
             )
+
+            if (movingMany) {
+                com.kamsiob.kamai.ui.components.ProjectPickerDialog(
+                    options = projectOptions,
+                    currentProjectId = null,
+                    title = "Move ${selected.size} to project",
+                    // A bulk move has no overflow menu to carry "remove from
+                    // project", so the destination list carries it instead.
+                    allowNone = true,
+                    onPick = { projectId ->
+                        movingMany = false
+                        onMoveMany(selected.toList(), projectId)
+                        exitSelection()
+                    },
+                    onDismiss = { movingMany = false },
+                )
+            }
         } else {
             Row(
                 modifier = Modifier
@@ -711,6 +735,7 @@ private fun SelectionBar(
     onSelectAll: () -> Unit,
     onSelectNone: () -> Unit,
     onCancel: () -> Unit,
+    onMove: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val colors = KamTheme.colors
@@ -733,6 +758,18 @@ private fun SelectionBar(
             modifier = Modifier
                 .clip(CircleShape)
                 .clickable { if (allSelected) onSelectNone() else onSelectAll() }
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+        // Bulk move, which selection mode could always have done: the repository
+        // has taken a list of ids since projects were built, and only the way in
+        // was missing (item 2).
+        Text(
+            "Move",
+            style = KamTheme.type.label,
+            color = if (count > 0) colors.accent else colors.textTertiary,
+            modifier = Modifier
+                .clip(CircleShape)
+                .then(if (count > 0) Modifier.clickable(onClick = onMove) else Modifier)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         )
         Text(

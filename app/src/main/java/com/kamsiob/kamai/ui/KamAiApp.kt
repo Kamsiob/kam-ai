@@ -357,6 +357,7 @@ private fun TabContent(
             val conversations by app.conversations.collectAsStateWithLifecycle()
             val archived by app.archivedConversations.collectAsStateWithLifecycle()
             val view by app.chatsView.collectAsStateWithLifecycle()
+            val chatsProjects by app.projects.collectAsStateWithLifecycle()
             ChatsScreen(
                 conversations = conversations,
                 archivedCount = archived.size,
@@ -383,6 +384,8 @@ private fun TabContent(
                     app.deleteConversation(id, conversations.firstOrNull { it.id == id }?.title)
                 },
                 onDeleteMany = app::deleteConversations,
+                projectOptions = chatsProjects.map { p -> p.id to p.name },
+                onMoveMany = app::assignConversationsToProject,
             )
         }
 

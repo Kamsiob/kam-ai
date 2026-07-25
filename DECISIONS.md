@@ -4358,3 +4358,26 @@ was said. Silence now gets the honest "That did not come through clearly" and an
 The known cost is written into the tests: somebody dictating "the total (before tax) was twelve"
 loses the parenthetical. Accepted, because whisper rarely produces bracketed punctuation from
 speech and the alternative is a list that rots.
+
+## Item 2: bulk move to project, which the data layer could always do
+
+Selection mode on Chats offered Select all, Delete and Cancel. Moving several conversations into a
+project needed doing one at a time through each chat's overflow menu.
+
+`assignConversationsToProject(ids, projectId)` has taken a list since projects were built. Only the
+way in was missing, which is why this was a small change rather than a feature.
+
+`ProjectPickerDialog` moved out of `ChatScreen` into `ui/components` and is now shared, the same
+move `ViewSwitcher` needed for #50. Two screens have now wanted a composable that was private to a
+third; worth noticing as a pattern rather than fixing twice by accident.
+
+It gained two parameters. A `title`, so the bulk version can say "Move 3 to project" rather than
+leaving the count invisible at the moment it matters most. And `allowNone`, which offers "Chats,
+no project" as a destination: the chat header has a separate "Remove from project" menu item, and a
+bulk move has no menu to put one in, so the destination list carries it instead.
+
+Verified on the phone: selected a conversation, moved it into a project, found it under "Chats in
+this project", and moved it back out.
+
+The other two things left on item 2, adding an existing chat from inside a project and a project
+notes field, are untouched. The notes field needs a migration, so it wants doing deliberately.
