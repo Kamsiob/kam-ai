@@ -109,11 +109,20 @@ class WorkbenchViewModel(
 
     init {
         viewModelScope.launch {
-            // The two settings strings are still read once, so a session that was
-            // in progress when this shipped is not thrown away. Nothing writes
-            // them any more; a run now becomes a conversation instead.
-            _input.value = repository.setting(KamRepository.Keys.WORKBENCH_INPUT).orEmpty()
-            _output.value = repository.setting(KamRepository.Keys.WORKBENCH_OUTPUT).orEmpty()
+            // Reopen on the session last worked on, so coming back to Workbench
+            // finds the text and result that were there (#32).
+            val recent = repository.mostRecentWorkbenchSession()
+            if (recent != null) {
+                openSession(recent)
+            } else {
+                // Nothing recorded yet, so fall back to the two legacy settings
+                // strings once. They are how Workbench stored its state before
+                // sessions existed, and reading them here means an in-progress
+                // scratchpad from the previous version is not thrown away on
+                // upgrade. Nothing writes them any more.
+                _input.value = repository.setting(KamRepository.Keys.WORKBENCH_INPUT).orEmpty()
+                _output.value = repository.setting(KamRepository.Keys.WORKBENCH_OUTPUT).orEmpty()
+            }
         }
     }
 

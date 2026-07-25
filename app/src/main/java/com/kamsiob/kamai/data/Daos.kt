@@ -109,6 +109,13 @@ interface ConversationDao {
     @Query("SELECT linkedConversationId FROM conversations WHERE id = :id")
     suspend fun linkOf(id: String): String?
 
+    /** The Workbench session last worked on, so the surface reopens on it (#32). */
+    @Query(
+        "SELECT id FROM conversations WHERE mode = 'BENCH' AND archived = 0 " +
+            "ORDER BY updatedAt DESC LIMIT 1",
+    )
+    suspend fun mostRecentWorkbenchSession(): String?
+
     /**
      * Everything not archived, oldest activity first. Feeds the auto-archive pass
      * (#31), which needs pinned and updatedAt to decide and ids to undo with.

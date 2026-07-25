@@ -3337,3 +3337,19 @@ with `adjustResize` the window itself shrinks.
 
 The rule being followed here is the one in this file already: when the same thing fails twice
 in the same way, record it and move rather than looping on it.
+
+### Workbench reopens on the session it left
+
+Found immediately after the sessions work landed: restarting the app showed the Workbench with
+stale text from the legacy settings strings and no result, because the init block still read
+those strings while nothing wrote them any more. An inconsistency introduced by the change
+rather than one it inherited.
+
+The surface now reopens on the most recently updated BENCH session, falling back to the two
+legacy strings only when there is no session at all. That fallback is deliberate rather than
+dead code: it is how Workbench stored its state before sessions existed, so reading it once
+means an in-progress scratchpad from the previous version survives the upgrade.
+
+Verified across process death: force-stopped the app, reopened Workbench, and it came back
+with its input, its result, and **"Open the discussion"** rather than "Discuss this", so the
+pairing was restored too.

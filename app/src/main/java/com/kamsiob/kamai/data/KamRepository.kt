@@ -600,6 +600,9 @@ class KamRepository(
 
     suspend fun linkedConversation(id: String): String? = db.conversations().linkOf(id)
 
+    suspend fun mostRecentWorkbenchSession(): String? =
+        db.conversations().mostRecentWorkbenchSession()
+
     fun observeLinkedConversation(id: String): Flow<String?> =
         observeConversation(id).map { it?.linkedConversationId }
 
