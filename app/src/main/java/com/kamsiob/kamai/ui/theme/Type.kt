@@ -39,6 +39,21 @@ val ManropeFamily = FontFamily(
     Font(R.font.manrope_variable, FontWeight.W800, variationSettings = weight(800)),
 )
 
+/**
+ * The one serif in the app, italic, for the single Brainstorm nudge line and
+ * nothing else (DESIGN.md sections 4 and 7, issue #29).
+ *
+ * A static cut rather than the variable original: it renders one fixed line at
+ * one size in one place, so the four axes Fraunces ships with are unreachable
+ * weight. Pinned at opsz 24, wght 400, SOFT 0, WONK 1, then subset to only the
+ * glyphs that line needs. 415 KB down to 5.8 KB, 18 glyphs. Regenerate with
+ * `tools/subset_fraunces.py` if the line ever changes, because a character that
+ * is not in the subset will not render at all.
+ */
+val SerifItalicFamily = FontFamily(
+    Font(R.font.fraunces_brainstorm_subset, FontWeight.W400),
+)
+
 val MonoFamily = FontFamily(
     Font(R.font.jetbrains_mono_variable, FontWeight.W400, variationSettings = weight(400)),
     Font(R.font.jetbrains_mono_variable, FontWeight.W500, variationSettings = weight(500)),
@@ -89,6 +104,28 @@ object KamType {
     )
 
     /** Facts about the machine: sizes, versions, timestamps, source chips. */
+    /**
+     * The Brainstorm nudge, and only that. Italic is genuine here rather than a
+     * synthetic slant, which is the whole reason a fourth face was bundled.
+     */
+    val nudgeSerif = TextStyle(
+        fontFamily = SerifItalicFamily, fontWeight = FontWeight.W400,
+        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+        fontSize = 20.sp, lineHeight = 27.sp,
+    )
+
+    /** The nudge line for every other mode, in the app's ordinary voice. */
+    val nudge = TextStyle(
+        fontFamily = ManropeFamily, fontWeight = FontWeight.W500,
+        fontSize = 19.sp, lineHeight = 26.sp,
+    )
+
+    /** Workbench's nudge, in mono, because it describes where output lands. */
+    val nudgeMono = TextStyle(
+        fontFamily = MonoFamily, fontWeight = FontWeight.W500,
+        fontSize = 17.sp, lineHeight = 24.sp,
+    )
+
     val mono = TextStyle(
         fontFamily = MonoFamily, fontWeight = FontWeight.W500,
         fontSize = 12.sp, lineHeight = 16.sp,

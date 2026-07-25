@@ -3012,3 +3012,71 @@ which is itself the correct no-ceremony path, but it means the archive, the coun
 toast and the undo have only been proven by the unit tests. **Manufacturing old rows in the
 owner's real database to force a demonstration is not a reasonable thing to do**, so this is
 recorded rather than faked. Worth watching the first time it genuinely fires.
+
+## Issue #29: per-mode empty-state nudges, and the serif that was blocking them
+
+The largest remaining piece of interface work, and the one with a hard dependency: DESIGN.md
+had listed an italic serif as "pending" and as "the one hard dependency inside issue #29".
+
+### The serif, and its size
+
+Fraunces Italic, SIL Open Font License 1.1, credited in Settings, Licenses.
+
+It renders **one fixed line, at one size, in one place**, so shipping the family would have
+been 415 KB of a face nobody can otherwise reach. It is pinned to a single static instance
+(opsz 24, wght 400, SOFT 0, WONK 1) and then subset to only the glyphs "All right. What have
+you got?" needs.
+
+**414,904 bytes to 5,792 bytes. 18 glyphs.** That is the figure DESIGN.md asked to have
+recorded here.
+
+`tools/subset_fraunces.py` rebuilds it from upstream and reproduces the same file, so the
+number above is checkable rather than a claim. **Rerun it if the Brainstorm line ever
+changes**: a character outside the subset does not fall back to another face, it simply does
+not render, so editing that copy without regenerating silently drops letters. The script
+fails loudly if the line contains a character the subset would miss.
+
+Two notes for anyone regenerating it. `updateFontNames=True` throws for opsz 24, because
+Fraunces' STAT table has no axis value there, so the instance is named by hand instead.
+And `fontTools` is not on this machine by default; `pip install --user fonttools brotli`.
+
+### The nudges
+
+Screen-owned rather than messages, so nothing here can be mistaken for something the model
+said. Three parts in the mode's own colour: a faint vertical wash fading to nothing before
+the composer, a hand-drawn double-stroke sketch, and one line in the voice that mode speaks
+in. Copy is taken verbatim from DESIGN.md section 7.
+
+The sketches are **drawn as Compose paths rather than shipped as assets**, so they take the
+mode colour directly and cost nothing in the APK. "Double stroke" is the hand-drawn part:
+every shape is drawn twice, the under-stroke offset down and right and lighter, the way a pen
+goes round a line again. The offset is deliberately not symmetric, since a uniform one reads
+as a printing error rather than as a hand. The scales' beam is tipped slightly off level so it
+reads as weighing rather than as settled.
+
+The whole nudge is `clearAndSetSemantics {}`, decorative: the sketch carries nothing the line
+does not, and the line is announced once rather than twice.
+
+**Where each one lives** turned out not to be uniform, which the issue implies but does not
+spell out. General, Logic and Brainstorm are chat empty states. **Workbench is not a
+conversation**, it is the paste-and-transform surface, so its nudge sits where the result will
+appear and says where output lands rather than asking a question. Not shown in the assistant
+overlay or in Discover, neither being a mode a user picks, and not in a grounded Discover
+discussion either, which already carries its own scope banner and does not need a second
+explanation of the same screen.
+
+### The horizontal fade
+
+`Modifier.edgeFadeHorizontal`, a sibling of the existing vertical `edgeFade` rather than more
+booleans on it, because a caller wants one or the other and a four-boolean version reads as a
+puzzle. Same destination-in blend, so it masks whatever is behind rather than painting the
+background colour over it, and therefore survives sitting on a card as well as on the page.
+Applied to both Workbench chip rows, which is what the issue asked for.
+
+### Verified on the phone
+
+All four, in dark theme: the General bubble with "So. What's on your mind?", the Logic scales
+with "What claim do you want tested?", the Brainstorm brain with "All right. What have you
+got?" in genuine italic serif with every glyph present, and the Workbench anvil and hammer
+with "The result lands here." in mono. The chip-row fade is visible on the Workbench actions,
+with "Fix gramma..." fading off the right edge.

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import com.kamsiob.kamai.ui.components.edgeFadeHorizontal
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
@@ -160,7 +161,9 @@ fun WorkbenchScreen(
         // Transform actions
         val actions = WorkbenchViewModel.Action.entries
         Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxWidth()
+                .edgeFadeHorizontal()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             actions.forEach { action ->
@@ -203,6 +206,16 @@ fun WorkbenchScreen(
         }
 
         // Result
+        if (!running && output.isEmpty()) {
+            // Workbench's nudge says where output will appear rather than asking
+            // a question, because this surface is not a conversation. In mono,
+            // like everything in the app that states a fact about the machine.
+            // DESIGN.md section 7, issue #29.
+            Spacer(Modifier.height(20.dp))
+            com.kamsiob.kamai.ui.components.ModeNudge(
+                mode = com.kamsiob.kamai.data.Mode.BENCH,
+            )
+        }
         if (running || output.isNotEmpty()) {
             Spacer(Modifier.height(20.dp))
             com.kamsiob.kamai.ui.components.Eyebrow("Result")
@@ -242,7 +255,9 @@ fun WorkbenchScreen(
                 )
                 Spacer(Modifier.height(6.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxWidth()
+                        .edgeFadeHorizontal()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     WorkbenchViewModel.Action.entries.forEach { action ->

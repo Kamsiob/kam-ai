@@ -277,11 +277,22 @@ fun ChatScreen(
 
         Box(Modifier.weight(1f)) {
             if (messages.isEmpty()) {
-                EmptyState(
-                    title = whenEmptyTitle(mode),
-                    body = whenEmptyBody(mode),
-                    modifier = Modifier.align(Alignment.Center),
-                )
+                // Per mode, not generic (#29). A grounded Discover discussion is
+                // excluded: it is not one of the four modes and it already carries
+                // its own scope banner, so a second large decorative panel would
+                // be two explanations of the same screen.
+                if (grounded) {
+                    EmptyState(
+                        title = whenEmptyTitle(mode),
+                        body = whenEmptyBody(mode),
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                } else {
+                    com.kamsiob.kamai.ui.components.ModeNudge(
+                        mode = mode,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
+                }
             } else {
                 LazyColumn(
                     state = listState,

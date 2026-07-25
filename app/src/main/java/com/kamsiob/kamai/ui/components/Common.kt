@@ -344,6 +344,46 @@ fun Modifier.edgeFade(
     }
 
 /**
+ * The same mask, sideways, for horizontally scrolling rows of chips.
+ *
+ * Its own function rather than more parameters on [edgeFade], because a caller
+ * wants one or the other and a four-boolean version reads as a puzzle. The
+ * blend-mode reasoning above applies unchanged: this masks whatever is behind
+ * rather than painting the background colour over it, so it survives sitting on
+ * a card as well as on the page. Issue #29.
+ */
+fun Modifier.edgeFadeHorizontal(
+    start: Boolean = false,
+    end: Boolean = true,
+    width: Dp = KamTheme.dimens.edgeFade,
+): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val px = width.toPx()
+        if (start) {
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(Color.Transparent, Color.Black),
+                    startX = 0f,
+                    endX = px,
+                ),
+                blendMode = BlendMode.DstIn,
+            )
+        }
+        if (end) {
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(Color.Black, Color.Transparent),
+                    startX = size.width - px,
+                    endX = size.width,
+                ),
+                blendMode = BlendMode.DstIn,
+            )
+        }
+    }
+
+/**
  * Every list has an empty state, written as an invitation to the obvious next
  * action. Never a blank screen.
  */

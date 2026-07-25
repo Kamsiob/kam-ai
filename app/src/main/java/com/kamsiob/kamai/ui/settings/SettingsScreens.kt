@@ -825,6 +825,7 @@ fun LicensesScreen(
         add("Sora" to "SIL Open Font License 1.1")
         add("Manrope" to "SIL Open Font License 1.1")
         add("JetBrains Mono" to "SIL Open Font License 1.1")
+        add("Fraunces" to "SIL Open Font License 1.1")
         models.forEach { add(it.displayName to it.licence) }
         add("Discover content, from Wikipedia" to "CC BY-SA 4.0")
     }
