@@ -5029,3 +5029,20 @@ next to a machine label got it exactly backwards. The two type sizes also refuse
 so the label floated above the sentence it belonged to.
 
 It is one line of ordinary prose now: "You said: <what they said>".
+
+## Owner feedback: onboarding did not describe the app
+
+It ran privacy, what it is good at, the four modes, pick a model, what it costs. Somebody finishing
+it had never been told that Discover, Projects, Follow-ups, voice input, document attachments or
+the power-button panel exist, which is most of the product.
+
+A sixth slide, "More than a chat box", names six things in the order somebody is likely to meet
+them: hold the power button, talk instead of typing, attach a document, Discover, Projects,
+Follow-ups. Each gets one line saying what it is for rather than what it is called. The closing
+line covers memory and where to read or delete it.
+
+Tighter type than the modes slide on purpose: those are four behaviours to understand before
+choosing between them, these are six places to know exist.
+
+The slide sits after the modes and before picking a model, so the last thing before a download is
+what the app can do rather than a list of file sizes.

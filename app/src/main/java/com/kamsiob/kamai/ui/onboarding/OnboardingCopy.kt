@@ -73,6 +73,46 @@ object OnboardingCopy {
         "Modes are chosen when starting a chat and can be switched at any time. " +
             "Discover has its own tab."
 
+    /**
+     * The rest of the app, which onboarding never mentioned.
+     *
+     * The first three slides sold privacy, what it is good at, and the four
+     * modes, and then went straight to picking a model. Somebody finishing
+     * onboarding had not been told that Discover, Projects, Follow-ups, voice,
+     * documents or the power-button panel exist, which is most of the product
+     * (owner feedback).
+     *
+     * Six lines, each naming the thing and what it is for, in the order somebody
+     * is likely to meet them.
+     */
+    val slideExtras = Slide(
+        eyebrow = "The rest of it",
+        title = "More than a chat box",
+        button = "Continue",
+    )
+
+    val slideExtrasItems = listOf(
+        "Hold the power button" to
+            "Ask something without leaving what you are doing. Speak or type, and it answers " +
+                "over the top.",
+        "Talk instead of typing" to
+            "Your voice becomes text on the phone itself, then the AI tidies the ramble into " +
+                "notes or a draft.",
+        "Attach a document" to
+            "Give it a file and ask about what is in it. The file never leaves your phone.",
+        "Discover" to
+            "Short reads from Wikipedia, offline, with a quiz and a discussion held to the " +
+                "passage.",
+        "Projects" to
+            "Keep related chats together under instructions they all follow.",
+        "Follow-ups" to
+            "Bookmark anything worth checking or coming back to, from anywhere in the app.",
+    )
+
+    const val SLIDE_EXTRAS_CLOSING =
+        "It also remembers the things worth remembering, and you can read or delete any of it " +
+            "in Settings."
+
     val slide4 = Slide(
         eyebrow = "Setup",
         title = "Pick a model that fits",
@@ -101,5 +141,5 @@ object OnboardingCopy {
 
     const val SUPPORT_BUTTON = "Support this work"
 
-    const val SLIDE_COUNT = 5
+    const val SLIDE_COUNT = 6
 }

@@ -120,14 +120,15 @@ fun OnboardingScreen(
                 0 -> SlideOne(advance)
                 1 -> SlideTwo(advance)
                 2 -> SlideThree(advance)
-                3 -> SlideFour(
+                3 -> SlideExtras(advance)
+                4 -> SlideFour(
                     totalRamGb = totalRamGb,
                     tiers = tiers,
                     downloadProgress = downloadProgress,
                     onDownload = onDownload,
                     onContinue = advance,
                 )
-                4 -> SlideFive(onSupport = onSupport, onFinish = onFinish)
+                5 -> SlideFive(onSupport = onSupport, onFinish = onFinish)
             }
         }
 
@@ -367,6 +368,48 @@ private fun MarkedLine(text: String, positive: Boolean) {
             color = if (positive) colors.textPrimary else colors.textSecondary,
         )
     }
+}
+
+@Composable
+private fun SlideExtras(onContinue: () -> Unit) {
+    val colors = KamTheme.colors
+    SlideScaffold(
+        eyebrow = OnboardingCopy.slideExtras.eyebrow,
+        title = OnboardingCopy.slideExtras.title,
+        body = {
+            // Tighter than the modes slide, because there are six of these and
+            // they are places to find rather than behaviours to understand.
+            OnboardingCopy.slideExtrasItems.forEachIndexed { i, (name, description) ->
+                Staggered(2 + i) {
+                    Column {
+                        Text(name, style = KamTheme.type.cardTitle, color = colors.textPrimary)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            description,
+                            style = KamTheme.type.secondary,
+                            color = colors.textSecondary,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+            Spacer(Modifier.height(4.dp))
+            Staggered(8) {
+                Text(
+                    OnboardingCopy.SLIDE_EXTRAS_CLOSING,
+                    style = KamTheme.type.secondary,
+                    color = colors.textTertiary,
+                )
+            }
+        },
+        footer = {
+            PrimaryButton(
+                OnboardingCopy.slideExtras.button,
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
 }
 
 @Composable
