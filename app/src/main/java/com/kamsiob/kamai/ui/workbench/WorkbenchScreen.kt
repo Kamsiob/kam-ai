@@ -70,6 +70,11 @@ fun WorkbenchScreen(
     onFlag: (String) -> Unit,
     onMicStart: () -> Unit,
     onMicStop: () -> Unit,
+    /** Whether this session already has a chat paired with it (#32). */
+    linked: Boolean = false,
+    onDiscuss: () -> Unit = {},
+    onOpenLinked: () -> Unit = {},
+    onNewSession: () -> Unit = {},
     onDismissNotice: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -246,6 +251,19 @@ fun WorkbenchScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     SecondaryButton("Flag", onClick = { onFlag(output) }, modifier = Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(8.dp))
+                Row {
+                    // The link the mode picker has been promising. One chat per
+                    // session: once paired, this opens it rather than making
+                    // another, so the pair stays a pair (#32).
+                    SecondaryButton(
+                        if (linked) "Open the discussion" else "Discuss this",
+                        onClick = { if (linked) onOpenLinked() else onDiscuss() },
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    SecondaryButton("New session", onClick = onNewSession, modifier = Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(

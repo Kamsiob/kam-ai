@@ -186,6 +186,18 @@ class ChatViewModel(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /**
+     * The Workbench session this chat was started from, if any (#32). The link is
+     * stored on both rows, so this is a plain read rather than a search.
+     */
+    val linkedSessionId: StateFlow<String?> =
+        _conversationId
+            .flatMapLatest { id ->
+                if (id == null) flowOf(null)
+                else repository.observeConversation(id).map { it?.linkedConversationId }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     /** Whether this is a Discover discussion confined to a passage. Drives the
      *  scope banner and its one-tap escape into an open chat (item 21). */
     val grounded: StateFlow<Boolean> =

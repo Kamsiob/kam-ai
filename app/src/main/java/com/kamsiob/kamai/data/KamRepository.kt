@@ -552,6 +552,57 @@ class KamRepository(
     suspend fun setArchived(id: String, archived: Boolean) =
         db.conversations().setArchived(id, archived, System.currentTimeMillis())
 
+    // Workbench sessions and links (#32).
+
+    /**
+     * Records a Workbench run as a conversation so it appears in Chats with the
+     * rest of the user's work rather than living in two settings strings that the
+     * next run overwrites.
+     *
+     * The session is an ordinary conversation in BENCH mode holding two messages:
+     * what was pasted in, and what came back. That is deliberate rather than a new
+     * table. Everything the chat list already does, titling, pinning, archiving,
+     * search, export, mode dots, then works on a Workbench session for free, and
+     * the alternative was reimplementing all of it against a parallel store.
+     *
+     * Returns the session id, creating one on the first run and updating it
+     * afterwards, so repeated transforms of the same text stay one session rather
+     * than filling the list with near-duplicates.
+     */
+    suspend fun saveWorkbenchSession(
+        sessionId: String?,
+        instruction: String,
+        input: String,
+        output: String,
+    ): String {
+        val id = sessionId ?: createConversation(Mode.BENCH)
+        // Rewritten rather than appended, because a Workbench session is the
+        // current state of one piece of text, not a transcript of every attempt.
+        db.messages().deleteForConversation(id)
+        addMessage(id, Role.USER, "$instruction\n\n$input")
+        addMessage(id, Role.ASSISTANT, output, incomplete = false)
+        return id
+    }
+
+    /** The two halves of a Workbench pairing, each pointing at the other. */
+    suspend fun linkConversations(a: String, b: String) {
+        db.conversations().setLink(a, b)
+        db.conversations().setLink(b, a)
+    }
+
+    /** Breaks the pairing from both sides, so neither is left pointing at a
+     *  conversation that no longer considers itself linked. */
+    suspend fun unlinkConversation(id: String) {
+        val other = db.conversations().linkOf(id)
+        db.conversations().setLink(id, null)
+        if (other != null) db.conversations().setLink(other, null)
+    }
+
+    suspend fun linkedConversation(id: String): String? = db.conversations().linkOf(id)
+
+    fun observeLinkedConversation(id: String): Flow<String?> =
+        observeConversation(id).map { it?.linkedConversationId }
+
     // Auto-archive (#31).
 
     /** The chosen window, live, for the settings row to reflect. */

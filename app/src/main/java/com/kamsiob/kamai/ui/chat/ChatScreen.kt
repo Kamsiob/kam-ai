@@ -132,6 +132,9 @@ fun ChatScreen(
     onMoveToProject: (String?) -> Unit = {},
     onRenameConversation: (String) -> Unit = {},
     onArchiveConversation: () -> Unit = {},
+    /** Set when this chat was started from a Workbench session, so the pair can
+     *  be walked from this side too (#32). */
+    onOpenWorkbenchSession: (() -> Unit)? = null,
     onDeleteConversation: () -> Unit = {},
     onModeChange: (Mode) -> Unit,
     onOpenModel: () -> Unit = {},
@@ -293,6 +296,7 @@ fun ChatScreen(
                 currentProjectId = conversationProjectId,
                 onMoveToProject = onMoveToProject,
                 onRename = onRenameConversation,
+                onOpenWorkbenchSession = onOpenWorkbenchSession,
                 onArchive = onArchiveConversation,
                 onDelete = onDeleteConversation,
                 modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
@@ -672,6 +676,7 @@ private fun ConversationHeader(
     currentProjectId: String?,
     onMoveToProject: (String?) -> Unit,
     onRename: (String) -> Unit,
+    onOpenWorkbenchSession: (() -> Unit)? = null,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -743,6 +748,19 @@ private fun ConversationHeader(
                     androidx.compose.material3.DropdownMenuItem(
                         text = { Text("Remove from project", style = KamTheme.type.body, color = colors.textPrimary) },
                         onClick = { menuOpen = false; onMoveToProject(null) },
+                    )
+                }
+                // Only for a chat that came from a Workbench session, which is
+                // the other half of the pair (#32).
+                if (onOpenWorkbenchSession != null) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Open the Workbench session",
+                                style = KamTheme.type.body, color = colors.textPrimary,
+                            )
+                        },
+                        onClick = { menuOpen = false; onOpenWorkbenchSession() },
                     )
                 }
                 androidx.compose.material3.DropdownMenuItem(

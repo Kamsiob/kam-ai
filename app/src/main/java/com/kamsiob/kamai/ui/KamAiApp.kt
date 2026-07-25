@@ -93,7 +93,7 @@ private sealed interface Pushed {
     data object Licenses : Pushed
     data object CrashReport : Pushed
     data object Voice : Pushed
-    data object Workbench : Pushed
+    data class Workbench(val sessionId: String? = null) : Pushed
     data object Backup : Pushed
     data object Appearance : Pushed
     data object Safety : Pushed
@@ -198,7 +198,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
             }
             com.kamsiob.kamai.integrations.Intake.Target.WORKBENCH -> {
                 app.setWorkbenchInput(req.text)
-                stack.add(Pushed.Workbench)
+                stack.add(Pushed.Workbench())
             }
         }
     }
@@ -292,12 +292,13 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                         app, pushed.id, pushed.startMode, pushed.initialText, pushed.vmKey,
                         onExit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) },
                         onOpenModel = { stack.add(Pushed.Model) },
-                        onOpenWorkbench = { stack.add(Pushed.Workbench) },
+                        onOpenWorkbench = { stack.add(Pushed.Workbench()) },
+                        onOpenWorkbenchSession = { stack.add(Pushed.Workbench(it)) },
                     )
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
                     Pushed.Voice -> VoiceHost(app)
-                    Pushed.Workbench -> WorkbenchHost(app)
+                    is Pushed.Workbench -> WorkbenchHost(app, stack, pushed.sessionId)
                     Pushed.Backup -> BackupHost(app)
                     Pushed.Storage -> StorageHost(app)
                     Pushed.Memory -> MemoryHost(app)
@@ -360,9 +361,17 @@ private fun TabContent(
                 onOpenArchived = { stack.add(Pushed.Archived) },
                 view = view,
                 onViewChange = app::setChatsView,
-                onOpen = { stack.add(Pushed.Conversation(it)) },
+                onOpen = { id ->
+                    // A Workbench session is a conversation, but it is not a chat:
+                    // reopening one has to land back on the surface that made it,
+                    // with its text and result, rather than on a transcript of two
+                    // messages nobody typed as a conversation (#32).
+                    val row = conversations.firstOrNull { it.id == id }
+                    if (row?.mode == Mode.BENCH) stack.add(Pushed.Workbench(id))
+                    else stack.add(Pushed.Conversation(id))
+                },
                 onNewChat = { mode ->
-                    if (mode == Mode.BENCH) stack.add(Pushed.Workbench)
+                    if (mode == Mode.BENCH) stack.add(Pushed.Workbench())
                     else stack.add(Pushed.Conversation(NEW_CONVERSATION, mode))
                 },
                 onRename = app::renameConversation,
@@ -414,6 +423,8 @@ private fun ConversationScreen(
     onExit: () -> Unit = {},
     onOpenModel: () -> Unit = {},
     onOpenWorkbench: () -> Unit = {},
+    /** Opens the Workbench session this chat is paired with, when it has one. */
+    onOpenWorkbenchSession: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val chat: ChatViewModel = viewModel(
@@ -444,6 +455,7 @@ private fun ConversationScreen(
     val conversationTitle by chat.title.collectAsStateWithLifecycle()
     val conversationProjectId by chat.projectId.collectAsStateWithLifecycle()
     val grounded by chat.grounded.collectAsStateWithLifecycle()
+    val linkedSessionId by chat.linkedSessionId.collectAsStateWithLifecycle()
     val allProjects by app.projects.collectAsStateWithLifecycle()
 
     val pickFile = rememberLauncherForActivityResult(
@@ -522,6 +534,9 @@ private fun ConversationScreen(
         onFlag = { message ->
             flagged.add(message.id)
             app.flag(message.content, mode, chat.conversationId.value, message.id)
+        },
+        onOpenWorkbenchSession = linkedSessionId?.let { session ->
+            { onOpenWorkbenchSession(session) }
         },
         onRegenerate = chat::regenerate,
         onContinueIncomplete = chat::continueLast,
@@ -842,7 +857,11 @@ private fun DiscoverHost(
 }
 
 @Composable
-private fun WorkbenchHost(app: AppViewModel) {
+private fun WorkbenchHost(
+    app: AppViewModel,
+    stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+    sessionId: String? = null,
+) {
     val context = LocalContext.current
     val bench: com.kamsiob.kamai.ui.workbench.WorkbenchViewModel = viewModel(
         factory = com.kamsiob.kamai.ui.workbench.WorkbenchViewModel.factory(
@@ -863,9 +882,26 @@ private fun WorkbenchHost(app: AppViewModel) {
         if (granted) bench.startRecording()
         else app.showToast("Voice input needs the microphone. You can turn it on in Settings.")
     }
+    val linkedId by bench.linkedId.collectAsStateWithLifecycle()
+
+    // Reopening a recorded session loads its text and result back in (#32).
+    LaunchedEffect(sessionId) { if (sessionId != null) bench.openSession(sessionId) }
+
     DisposableEffect(Unit) { onDispose { bench.cancelRecording() } }
 
     com.kamsiob.kamai.ui.workbench.WorkbenchScreen(
+        linked = linkedId != null,
+        onDiscuss = {
+            bench.discussResult { chatId ->
+                // Replaces this screen rather than stacking on it, so back from
+                // the discussion goes to Chats rather than into the session the
+                // user has just moved on from.
+                stack.removeLastOrNull()
+                stack.add(Pushed.Conversation(chatId))
+            }
+        },
+        onOpenLinked = { linkedId?.let { stack.add(Pushed.Conversation(it)) } },
+        onNewSession = bench::newSession,
         input = input,
         output = output,
         running = running,

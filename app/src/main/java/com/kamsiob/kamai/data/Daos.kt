@@ -101,6 +101,14 @@ interface ConversationDao {
     @Query("UPDATE conversations SET archived = :archived, updatedAt = :now WHERE id = :id")
     suspend fun setArchived(id: String, archived: Boolean, now: Long)
 
+    /** One half of a Workbench pairing. Both rows are written, so either side can
+     *  follow the link without a lookup table (#32). */
+    @Query("UPDATE conversations SET linkedConversationId = :other WHERE id = :id")
+    suspend fun setLink(id: String, other: String?)
+
+    @Query("SELECT linkedConversationId FROM conversations WHERE id = :id")
+    suspend fun linkOf(id: String): String?
+
     /**
      * Everything not archived, oldest activity first. Feeds the auto-archive pass
      * (#31), which needs pinned and updatedAt to decide and ids to undo with.
@@ -209,6 +217,12 @@ interface MessageDao {
      */
     @Query("DELETE FROM messages WHERE conversationId = :conversationId AND createdAt > :after")
     suspend fun deleteAfter(conversationId: String, after: Long)
+
+    /** Every message in one conversation. Used when a Workbench session is
+     *  rewritten, since a session is the current state of one piece of text
+     *  rather than a transcript of every attempt (#32). */
+    @Query("DELETE FROM messages WHERE conversationId = :conversationId")
+    suspend fun deleteForConversation(conversationId: String)
 
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun delete(id: String)

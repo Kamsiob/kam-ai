@@ -3184,3 +3184,44 @@ deliberate act.
 
 That second one predates this work, but it was hard to reach while every conversation opened
 at the newest message anyway. Making restoration work is what made it reachable.
+
+## Issue #32: Workbench sessions are conversations
+
+Workbench was entirely standalone: it kept one input and one output in two settings strings,
+which the next run overwrote, and never touched conversations. The mode picker has been
+promising a linked session the whole time, so the app described a link it did not implement.
+
+**A Workbench session is now an ordinary conversation in BENCH mode** holding two messages:
+what was pasted in, and what came back. That is deliberately not a new table. Everything the
+chat list already does, titling, pinning, archiving, search, export, mode dots, then works on
+a Workbench session for free, and the alternative was reimplementing all of it against a
+parallel store. It is recorded only once a run has produced something, because an empty
+session is not worth a row.
+
+The session is **rewritten rather than appended** on each run, because a session is the
+current state of one piece of text rather than a transcript of every attempt. Repeated
+transforms of the same text stay one row instead of filling the list with near-duplicates.
+
+**Reopening one lands back on the Workbench surface**, not on a chat transcript. It is a
+conversation in the storage sense and not in the reading sense: two messages nobody typed as
+a conversation would read as nonsense in a chat bubble.
+
+**The link is stored on both rows** rather than in a lookup table, so it can be followed from
+either side with a plain read. Breaking it clears both, so neither half is left pointing at a
+conversation that no longer considers itself linked. One chat per session: once paired,
+"Discuss this" becomes "Open the discussion" rather than making another.
+
+The chat is seeded with the result, because the alternative is asking the user to paste it a
+second time into an app that already has it. Starting the discussion replaces the Workbench
+screen in the stack rather than sitting on top of it, so back goes to Chats rather than into
+the session they have just moved on from.
+
+Verified end to end on the phone: ran Tighten on a sentence, the session appeared in Chats as
+"Tightening text for conciseness" with the Workbench dot and the result as its snippet,
+reopening it restored both the text and the result on the Workbench surface, "Discuss this"
+created a chat seeded with the result, and that chat's overflow menu offers "Open the
+Workbench session".
+
+**MIGRATION_5_6 ran against the owner's real database** on the first install carrying it.
+Every conversation, title, mode dot, timestamp and snippet came through unchanged, and no
+crash. That is the version 6 migration verified on real data rather than only on seeded data.

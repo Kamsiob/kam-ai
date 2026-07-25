@@ -92,11 +92,56 @@ class WorkbenchViewModel(
         if (_recording.value) { recorder.cancel(); _recording.value = false }
     }
 
+    /**
+     * The conversation this session is recorded as, once it has produced
+     * something. Null for a session that has not been run yet, which is not worth
+     * a row in the chat list (#32).
+     */
+    private val _sessionId = MutableStateFlow<String?>(null)
+    val sessionId: StateFlow<String?> = _sessionId.asStateFlow()
+
+    /** The chat paired with this session, if the user has started one. */
+    private val _linkedId = MutableStateFlow<String?>(null)
+    val linkedId: StateFlow<String?> = _linkedId.asStateFlow()
+
+    /** The last instruction run, kept so a session can be re-saved as it changes. */
+    private var lastInstruction: String = "Workbench"
+
     init {
         viewModelScope.launch {
+            // The two settings strings are still read once, so a session that was
+            // in progress when this shipped is not thrown away. Nothing writes
+            // them any more; a run now becomes a conversation instead.
             _input.value = repository.setting(KamRepository.Keys.WORKBENCH_INPUT).orEmpty()
             _output.value = repository.setting(KamRepository.Keys.WORKBENCH_OUTPUT).orEmpty()
         }
+    }
+
+    /** Opens an existing Workbench session from the chat list. */
+    fun openSession(conversationId: String) {
+        if (_sessionId.value == conversationId) return
+        _sessionId.value = conversationId
+        viewModelScope.launch {
+            val messages = repository.messages(conversationId)
+            val asked = messages.firstOrNull { it.role == Role.USER }?.content.orEmpty()
+            // The stored user message is the instruction and the text, separated
+            // by a blank line, so the pasted text is everything after the first.
+            _input.value = asked.substringAfter("\n\n", asked)
+            lastInstruction = asked.substringBefore("\n\n").ifBlank { "Workbench" }
+            _output.value = messages.lastOrNull { it.role == Role.ASSISTANT }?.content.orEmpty()
+            _linkedId.value = repository.linkedConversation(conversationId)
+        }
+    }
+
+    /** Starts a fresh session, leaving the recorded one alone in the chat list. */
+    fun newSession() {
+        job?.cancel()
+        _sessionId.value = null
+        _linkedId.value = null
+        _input.value = ""
+        _output.value = ""
+        _notice.value = null
+        lastInstruction = "Workbench"
     }
 
     fun setInput(text: String) {
@@ -105,6 +150,33 @@ class WorkbenchViewModel(
     }
 
     fun dismissNotice() { _notice.value = null }
+
+    /**
+     * Opens a chat about this session's result, linked both ways so either can
+     * be reached from the other (#32).
+     *
+     * The result is seeded as the first thing the chat has to work with, because
+     * the alternative is asking the user to paste it a second time into an app
+     * that already has it.
+     */
+    fun discussResult(onReady: (String) -> Unit) {
+        val session = _sessionId.value ?: return
+        val text = _output.value
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            val existing = repository.linkedConversation(session)
+            if (existing != null) {
+                _linkedId.value = existing
+                onReady(existing)
+                return@launch
+            }
+            val chat = repository.createConversation(Mode.GENERAL)
+            repository.addMessage(chat, Role.USER, text)
+            repository.linkConversations(session, chat)
+            _linkedId.value = chat
+            onReady(chat)
+        }
+    }
 
     /** Runs [action] on the current input. */
     fun run(action: Action) = transform(action.instruction, _input.value)
@@ -175,7 +247,23 @@ class WorkbenchViewModel(
             } finally {
                 val text = PromptBuilder.cleanOutput(builder.toString())
                 _output.value = text
-                repository.putSetting(KamRepository.Keys.WORKBENCH_OUTPUT, text)
+                // Recorded as a conversation so it appears in Chats with everything
+                // else, rather than living in a settings string the next run
+                // overwrites (#32). Only once it has produced something: an empty
+                // session is not worth a row.
+                if (text.isNotBlank()) {
+                    val id = repository.saveWorkbenchSession(
+                        sessionId = _sessionId.value,
+                        instruction = instruction,
+                        input = source,
+                        output = text,
+                    )
+                    _sessionId.value = id
+                    lastInstruction = instruction
+                    runCatching {
+                        com.kamsiob.kamai.llm.ConversationTitler.titleIfNeeded(repository, engine, id)
+                    }
+                }
                 when (val r = stop) {
                     is InferenceEngine.StopReason.OutOfRoom -> _notice.value = r.message
                     is InferenceEngine.StopReason.Overheating -> _notice.value = r.message
