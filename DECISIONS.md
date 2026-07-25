@@ -3473,3 +3473,34 @@ opening restatement was a verbatim echo rather than a strengthened one.
 Worth trying next: making "name the kind of disagreement" earlier and more imperative, and
 testing whether the analysis list is simply too long for E4B to hold alongside everything else.
 Iterating prompt wording against a phone is a slow loop and was not finished tonight.
+
+## Issue #58: two Brainstorm shaping fixes, one landed and one did not
+
+Both came from watching the mode on the device under #25, so these are observed defects rather
+than speculative improvements.
+
+**Landed, and verified with the identical input that produced the defect.** Given only a bare
+topic, Brainstorm used to emit all six STARBURSTING dimensions in one message, which is close
+to the listing behaviour the mode exists not to do. The cause was in the method description
+itself: "questions across who/what/when/where/why/how" reads as a set to produce, and it
+overrode the general one-question rule. The method now says one of those per turn and never the
+whole set, and the general rule says explicitly that it holds inside a method as well as
+between them. Re-running "I want to start a weekend bread bakery" now gives the method name,
+the plan, and exactly one question: "Who is your ideal customer for this weekend bread
+bakery."
+
+**Did not land: converging when asked.** Told "that is enough, wrap it up", the mode sometimes
+converges correctly and sometimes refuses and asks another question instead, once saying "I
+need more material to move forward" and once starting SCAMPER. Two prompt attempts, the second
+making the instruction unconditional and adding "never answer a request to wrap up by asking
+another question", and it still happens. Both attempts were verified on the device and neither
+worked reliably.
+
+It is inconsistent rather than always wrong: the same phrasing did converge correctly in a
+longer conversation. The pattern looks like a small model attending to the new content in a
+message and dropping the instruction attached to it, which is not something more prompt wording
+seems likely to fix.
+
+**Recorded and stopped rather than looped on**, per the rule already in this file. Worth trying
+from the app side rather than the prompt: a conversation this far in could offer an explicit
+converge action instead of relying on the model to notice the request in prose.
