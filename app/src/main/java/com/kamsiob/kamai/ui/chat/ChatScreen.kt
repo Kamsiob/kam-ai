@@ -111,6 +111,13 @@ private const val FOLLOW_TO_END_OFFSET = 1_000_000
  */
 private const val COMPOSER_MAX_LINES = 8
 
+/** A recording length, read out loud as a person would say it. */
+private fun elapsed(seconds: Int): String = when {
+    seconds < 60 -> "$seconds sec"
+    seconds % 60 == 0 -> "${seconds / 60} min"
+    else -> "${seconds / 60} min ${seconds % 60} sec"
+}
+
 /**
  * Scrolls to the true bottom of the list.
  *
@@ -184,6 +191,7 @@ fun ChatScreen(
     onRemoveAttachment: () -> Unit = {},
     voiceAvailable: Boolean = false,
     recording: Boolean = false,
+    recordedSeconds: Int = 0,
     transcribing: Boolean = false,
     transcribed: kotlinx.coroutines.flow.SharedFlow<String>? = null,
     onMicStart: () -> Unit = {},
@@ -521,6 +529,7 @@ fun ChatScreen(
             onRemoveAttachment = onRemoveAttachment,
             voiceAvailable = voiceAvailable,
             recording = recording,
+            recordedSeconds = recordedSeconds,
             transcribing = transcribing,
             transcribed = transcribed,
             onMicStart = onMicStart,
@@ -1496,6 +1505,7 @@ private fun Composer(
     onRemoveAttachment: () -> Unit = {},
     voiceAvailable: Boolean = false,
     recording: Boolean = false,
+    recordedSeconds: Int = 0,
     transcribing: Boolean = false,
     transcribed: kotlinx.coroutines.flow.SharedFlow<String>? = null,
     onMicStart: () -> Unit = {},
@@ -1561,7 +1571,7 @@ private fun Composer(
             if (value.isEmpty()) {
                 Text(
                     when {
-                        recording -> "Listening. Tap stop when you are done."
+                        recording -> "Listening, ${elapsed(recordedSeconds)}. Tap stop when done."
                         transcribing -> "Turning your voice into text..."
                         else -> "Ask, paste, or talk it out"
                     },

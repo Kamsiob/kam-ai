@@ -128,10 +128,31 @@ class ChatViewModel(
     private val _transcribed = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 1)
     val transcribed: kotlinx.coroutines.flow.SharedFlow<String> = _transcribed
 
+    /**
+     * Seconds captured so far, while recording.
+     *
+     * `AudioRecorder.seconds` existed, documented as being "for a live duration
+     * read-out", and nothing read it. Talking into a phone that says only
+     * "Listening" tells you nothing about whether it is still going or how much
+     * you have given it, which matters most for exactly the long brain dump the
+     * flagship voice flow is built around (#39).
+     */
+    private val _recordedSeconds = MutableStateFlow(0)
+    val recordedSeconds: StateFlow<Int> = _recordedSeconds.asStateFlow()
+
     fun startRecording() {
         if (_recording.value || _transcribing.value) return
         if (recorder.start(viewModelScope)) {
             _recording.value = true
+            _recordedSeconds.value = 0
+            viewModelScope.launch {
+                // Polls rather than pushes: the recorder counts samples on its own
+                // thread and this only needs to be right to the second.
+                while (_recording.value) {
+                    _recordedSeconds.value = recorder.seconds.toInt()
+                    kotlinx.coroutines.delay(250)
+                }
+            }
         } else {
             _notice.value = "The microphone could not be opened. Check it is not in use elsewhere."
         }

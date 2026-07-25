@@ -14,15 +14,27 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Records microphone audio as the 16 kHz mono float PCM whisper.cpp expects.
  *
  * whisper wants exactly 16 kHz mono, which is also the rate AudioRecord is
- * guaranteed to support, so there is no resampling to get wrong. The recorded
- * samples accumulate in memory; a voice note is short, and holding a minute of
- * 16 kHz mono is under two megabytes.
+ * guaranteed to support, so there is no resampling to get wrong.
+ *
+ * The samples accumulate in memory, in chunks of primitive [FloatArray]. They
+ * used to accumulate in an `ArrayList<Float>`, whose doc claimed a minute cost
+ * under two megabytes. That is true of the floats and badly wrong about the
+ * list: every sample becomes a boxed `java.lang.Float`, so a minute is closer to
+ * nineteen megabytes and five minutes is most of a hundred, next to a model that
+ * is already using most of the phone. The flagship voice flow in MASTER_SPEC is
+ * a long ramble, which is exactly the case that estimate got wrong (#39).
+ *
+ * Chunks rather than one growing array, so a long recording never has to copy
+ * the whole thing to make room.
  */
 class AudioRecorder {
 
     private val recording = AtomicBoolean(false)
     private var job: Job? = null
-    private val samples = ArrayList<Float>(SAMPLE_RATE * 8)
+    /** Captured audio, in the order recorded. Guarded by [lock]. */
+    private val chunks = ArrayList<FloatArray>()
+    private var sampleCount = 0
+    private val lock = Any()
 
     val isRecording: Boolean get() = recording.get()
 
@@ -65,7 +77,7 @@ class AudioRecorder {
             return false
         }
 
-        synchronized(samples) { samples.clear() }
+        synchronized(lock) { chunks.clear(); sampleCount = 0 }
 
         job = scope.launch(Dispatchers.Default) {
             val buffer = ShortArray(bufferSize / 2)
@@ -74,11 +86,11 @@ class AudioRecorder {
                 while (recording.get()) {
                     val read = record.read(buffer, 0, buffer.size)
                     if (read > 0) {
-                        synchronized(samples) {
-                            for (i in 0 until read) {
-                                // 16-bit PCM to float in [-1, 1].
-                                samples.add(buffer[i] / 32768.0f)
-                            }
+                        // 16-bit PCM to float in [-1, 1], into a chunk of its own.
+                        val chunk = FloatArray(read) { buffer[it] / 32768.0f }
+                        synchronized(lock) {
+                            chunks.add(chunk)
+                            sampleCount += read
                         }
                     }
                 }
@@ -98,7 +110,15 @@ class AudioRecorder {
         recording.set(false)
         job?.cancel()
         job = null
-        return synchronized(samples) { samples.toFloatArray() }
+        return synchronized(lock) {
+            val out = FloatArray(sampleCount)
+            var at = 0
+            chunks.forEach { chunk ->
+                chunk.copyInto(out, at)
+                at += chunk.size
+            }
+            out
+        }
     }
 
     /** Abandons the recording and its samples, for example when a call arrives. */
@@ -106,12 +126,12 @@ class AudioRecorder {
         recording.set(false)
         job?.cancel()
         job = null
-        synchronized(samples) { samples.clear() }
+        synchronized(lock) { chunks.clear(); sampleCount = 0 }
     }
 
     /** Seconds captured so far, for a live duration read-out. */
     val seconds: Float
-        get() = synchronized(samples) { samples.size.toFloat() / SAMPLE_RATE }
+        get() = synchronized(lock) { sampleCount.toFloat() / SAMPLE_RATE }
 
     private companion object {
         const val SAMPLE_RATE = 16_000

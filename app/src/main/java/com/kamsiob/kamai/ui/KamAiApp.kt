@@ -448,6 +448,7 @@ private fun ConversationScreen(
 
     // Voice typing. Available only when a speech model is installed and active.
     val recording by chat.recording.collectAsStateWithLifecycle()
+    val recordedSeconds by chat.recordedSeconds.collectAsStateWithLifecycle()
     val transcribing by chat.transcribing.collectAsStateWithLifecycle()
     val sttModel by app.activeSttModel.collectAsStateWithLifecycle()
     val ttsVoice by app.activeTtsVoice.collectAsStateWithLifecycle()
@@ -503,6 +504,7 @@ private fun ConversationScreen(
         onRemoveAttachment = chat::removeAttachment,
         voiceAvailable = voiceAvailable,
         recording = recording,
+        recordedSeconds = recordedSeconds,
         transcribing = transcribing,
         transcribed = chat.transcribed,
         onMicStart = {

@@ -3881,3 +3881,41 @@ why this was worth three attempts rather than a decision to drop landscape.
 Testing needed `accelerometer_rotation` off and `user_rotation` forced. Both are restored:
 rotation is back to automatic and the phone is in portrait. If auto-rotate was deliberately off
 before tonight, that is the one setting to put back.
+
+## Issue #39, thirteenth finding: what a long voice recording actually costs
+
+`AudioRecorder` accumulated samples in an `ArrayList<Float>`, under a doc comment reading
+"a voice note is short, and holding a minute of 16 kHz mono is under two megabytes".
+
+That is true of the audio and wrong about the container. Every sample became a boxed
+`java.lang.Float`: object header, value, and the reference the list holds, call it twenty bytes
+against four. A minute is nearer nineteen megabytes than two, and a five-minute dump runs to most
+of a hundred, sitting beside a model already using most of the phone.
+
+The estimate was wrong about precisely the case that matters. MASTER_SPEC calls the long voice
+ramble the flagship flow: "the user talks, on-device transcription lands in the input, and the
+model transforms the ramble into clean notes". Short voice notes were never the risk.
+
+Now chunks of primitive `FloatArray`, concatenated once at the end. Chunks rather than one
+growing array so a long recording never copies the whole thing to make room.
+
+`AudioRecorderMemoryTest` pins the arithmetic rather than the recorder, which would need a
+microphone. It exists so nobody quietly puts the boxing back on the strength of the old comment.
+
+### A read-out that was written and never wired
+
+`AudioRecorder.seconds` existed, documented as "for a live duration read-out", and nothing in the
+app read it. The composer said "Listening. Tap stop when you are done." and nothing else, so a
+long recording gave no sign it was still going or how much had been captured. That is the one
+piece of feedback that makes talking for three minutes feel safe rather than like shouting into a
+box.
+
+It now reads "Listening, 6 sec. Tap stop when done." Polled four times a second rather than
+pushed, since the recorder counts samples on its own thread and this only has to be right to the
+second. Verified on the phone; the recording was cancelled rather than transcribed.
+
+### Still needs the owner
+
+Whether a genuinely long dump transcribes well, and how long whisper takes over three minutes of
+speech on this phone, cannot be tested from here: it needs somebody to talk into the microphone.
+Everything around it is verified. That one measurement is not.
