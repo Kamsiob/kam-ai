@@ -1088,6 +1088,7 @@ private fun ProjectHost(
 ) {
     val project by app.observeProject(projectId).collectAsStateWithLifecycle(initialValue = null)
     val conversations by app.conversationsInProject(projectId).collectAsStateWithLifecycle(initialValue = emptyList())
+    val unassignedChats by app.conversations.collectAsStateWithLifecycle()
     com.kamsiob.kamai.ui.projects.ProjectScreen(
         project = project,
         conversations = conversations,
@@ -1099,6 +1100,10 @@ private fun ProjectHost(
         },
         onOpenConversation = { stack.add(Pushed.Conversation(it)) },
         onRemoveFromProject = { id -> app.assignConversationToProject(id, null) },
+        // Only chats that are not already in a project. app.conversations is the
+        // main list, which excludes project chats, so it is exactly that set.
+        unassigned = unassignedChats,
+        onAddExisting = { id -> app.assignConversationToProject(id, projectId) },
         onDelete = {
             app.deleteProject(projectId, project?.name, conversations.size) {
                 if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex)

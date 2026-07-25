@@ -4381,3 +4381,27 @@ this project", and moved it back out.
 
 The other two things left on item 2, adding an existing chat from inside a project and a project
 notes field, are untouched. The notes field needs a migration, so it wants doing deliberately.
+
+## Item 2: adding an existing chat from inside a project
+
+Every row under "Chats in this project" carried a **Remove**, and there was no matching way in. The
+only route was to open a chat and use its overflow menu, which means knowing which chat you want
+before you go looking, from a screen that is showing you the ones you do not want.
+
+"Add an existing chat" sits next to the section heading, and is hidden entirely when there is
+nothing to add rather than opening an empty picker.
+
+**Only chats that are not in any project are offered.** `app.conversations` is the main Chats list,
+which already excludes project chats, so it is exactly the right set with no extra query. Taking a
+conversation out of *another* project is deliberately not offered here: it would move something out
+of somewhere the user deliberately put it, from a screen that never mentions the other project.
+That move stays with the chat's own options, or with bulk move on Chats where the user can see
+what they are moving.
+
+The empty-state line changes with it. It used to say "Start one above, or move an existing chat
+into this project from its options", which pointed at a menu on another screen. It now says "add an
+existing chat" when there is something to add, and just "Start one above" when there is not, rather
+than describing a route to nowhere.
+
+Verified on the phone: the action appears beside the heading, the picker lists only unassigned
+chats and scrolls, and it is absent when everything is already assigned.

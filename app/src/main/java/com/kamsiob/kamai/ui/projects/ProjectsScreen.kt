@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -145,6 +146,9 @@ fun ProjectScreen(
     onNewChatHere: (com.kamsiob.kamai.data.Mode) -> Unit,
     onOpenConversation: (String) -> Unit,
     onRemoveFromProject: (String) -> Unit,
+    /** Chats not in any project, offered by "Add an existing chat" (item 2). */
+    unassigned: List<ConversationSummary> = emptyList(),
+    onAddExisting: (String) -> Unit = {},
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -152,6 +156,7 @@ fun ProjectScreen(
     val pad = KamTheme.dimens.screenPadding
     var menuOpen by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
+    var adding by remember { mutableStateOf(false) }
     var instructions by remember(project?.id, project?.instructions) {
         mutableStateOf(TextFieldValue(project?.instructions.orEmpty()))
     }
@@ -221,13 +226,31 @@ fun ProjectScreen(
         )
 
         Spacer(Modifier.height(20.dp))
-        Text("Chats in this project", style = KamTheme.type.label, color = colors.textSecondary)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Chats in this project", style = KamTheme.type.label, color = colors.textSecondary)
+            Spacer(Modifier.weight(1f))
+            // The other half of Remove, which has been sitting on every row here
+            // with no matching way in (item 2). Hidden when there is nothing to
+            // add, rather than offering an empty picker.
+            if (unassigned.isNotEmpty()) {
+                Text(
+                    "Add an existing chat",
+                    style = KamTheme.type.label,
+                    color = colors.accent,
+                    modifier = Modifier.clip(CircleShape).clickable { adding = true }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
+        }
         Spacer(Modifier.height(8.dp))
 
         if (conversations.isEmpty()) {
             Text(
-                "No chats here yet. Start one above, or move an existing chat into this project " +
-                    "from its options.",
+                if (unassigned.isEmpty()) {
+                    "No chats here yet. Start one above."
+                } else {
+                    "No chats here yet. Start one above, or add an existing chat."
+                },
                 style = KamTheme.type.secondary, color = colors.textTertiary,
             )
         } else {
@@ -261,6 +284,14 @@ fun ProjectScreen(
                 }
             }
         }
+    }
+
+    if (adding) {
+        ExistingChatPicker(
+            options = unassigned,
+            onPick = { id -> adding = false; onAddExisting(id) },
+            onDismiss = { adding = false },
+        )
     }
 
     if (renaming) {
@@ -361,6 +392,58 @@ private fun ProjectCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+}
+
+/**
+ * Picks a chat to pull into this project (item 2).
+ *
+ * Only chats that are not already in a project are offered. Moving one out of
+ * another project is deliberately not offered here, because it would take a
+ * conversation out of somewhere the user put it without saying so; that move
+ * belongs to the chat's own options, or to bulk move on the Chats list.
+ */
+@Composable
+private fun ExistingChatPicker(
+    options: List<ConversationSummary>,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(colors.surface)
+                .border(1.dp, colors.border, RoundedCornerShape(24.dp)).padding(20.dp),
+        ) {
+            Text("Add an existing chat", style = KamTheme.type.cardTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "The project's instructions apply from now on, not to messages already sent.",
+                style = KamTheme.type.secondary, color = colors.textTertiary,
+            )
+            Spacer(Modifier.height(12.dp))
+            LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                items(options, key = { it.id }) { row ->
+                    Text(
+                        row.title ?: row.snippet?.take(40) ?: "Untitled chat",
+                        style = KamTheme.type.body,
+                        color = colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                            .clickable { onPick(row.id) }.padding(vertical = 12.dp, horizontal = 4.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Text(
+                    "Cancel", style = KamTheme.type.label, color = colors.textSecondary,
+                    modifier = Modifier.clip(CircleShape).clickable(onClick = onDismiss)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            }
         }
     }
 }
