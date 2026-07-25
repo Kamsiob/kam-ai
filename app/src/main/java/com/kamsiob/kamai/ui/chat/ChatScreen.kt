@@ -51,6 +51,7 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.CircularProgressIndicator
@@ -1008,7 +1009,13 @@ private fun MessageRow(
                                 Modifier
                             },
                         )
-                        .clickable(enabled = message.role == Role.USER) { editing = true }
+                        // Tapping your own message still edits it. The label is
+                        // what a screen reader announces after "double tap to",
+                        // so the gesture stops being a silent, unexplained one.
+                        .clickable(
+                            enabled = message.role == Role.USER,
+                            onClickLabel = "Edit and ask again",
+                        ) { editing = true }
                         .padding(14.dp),
                 ) {
                     if (message.role == Role.ASSISTANT) {
@@ -1059,6 +1066,21 @@ private fun MessageRow(
                         IncompleteAction("Discard", onDiscard)
                     }
                 }
+            }
+
+            // Every assistant response carries a row of actions under it, and a
+            // user message carried none: editing one was a tap on the bubble
+            // with nothing anywhere saying so (#39). One action, in the same
+            // shape and the same place as the assistant's, so the gesture has
+            // something visible standing for it.
+            if (message.role == Role.USER && !editing) {
+                Spacer(Modifier.height(1.dp))
+                IconAction(
+                    icon = Icons.Rounded.Edit,
+                    description = "Edit and ask again",
+                    onClick = { editing = true },
+                    tint = colors.textTertiary,
+                )
             }
 
             if (message.role == Role.ASSISTANT && !message.incomplete) {

@@ -3694,3 +3694,24 @@ Drafts survive navigating away and coming back, and are lost on process death. T
 in `ChatViewModel.draft` as a deliberate trade, with the reasoning written beside it: persisting
 would mean a write per keystroke or a drafts table, and the common case is a glance at another
 screen. Confirmed both halves on the phone. Behaving as designed, so nothing to change.
+
+## Issue #39, seventh finding: editing a message was an unmarked gesture
+
+Every assistant response carries a row of actions under it. A user message carried none, and yet
+tapping one replaced it with an editor. Nothing on screen said so, and a screen reader announced
+a clickable element with no idea what clicking it would do.
+
+Two changes, both small:
+
+- The bubble's click carries a label, so the gesture is announced as "double tap to Edit and ask
+  again" instead of being silent.
+- A single pencil action sits under a user message, in the same shape and position as the
+  assistant's action row. The gesture now has something visible standing for it, and the screen
+  reads as symmetric: both kinds of message have actions, they are just different actions.
+
+Tapping the bubble still works. This adds a way in rather than replacing one, since anybody who
+already knows the gesture should not have it taken away.
+
+The editor itself was already right: it opens with the text in place and says "Editing removes
+everything after this and answers again" above Cancel and Send again, so the destructive part is
+stated before it happens rather than after.
