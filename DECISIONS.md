@@ -4667,3 +4667,43 @@ at another mode, which is the kind of thing the four modes exist for.
 Typing "wrap it up" still goes through the ordinary path and can still misfire. That is the
 model's behaviour and this does not claim to fix it; it gives the user a control that works every
 time instead of a phrasing that works sometimes.
+
+## The two export formats, read as files
+
+The plain-text export fix from the copy work was verified from the unit tests. Exporting a real
+conversation and reading both files off the device closes it properly.
+
+Plain text:
+
+    Answer in markdown with a level two heading
+
+    You: Answer in markdown with a level two heading and a bulleted list of three fruits. Make the first fruit bold.
+
+    Kam AI: Fruits
+
+    - Apple
+    - Banana
+    - Orange
+
+Markdown:
+
+    # Answer in markdown with a level two heading
+
+    **You**
+
+    Answer in markdown with a level two heading and a bulleted list of three fruits. Make the first fruit bold.
+
+    **Kam AI**
+
+    ## Fruits
+    * **Apple**
+    * Banana
+    * Orange
+
+The two are genuinely different now, which is the whole point: before this the plain-text branch
+emitted the same Markdown source and the choice between the formats changed only the file
+extension. The plain file keeps its list markers and loses the heading and emphasis syntax, and
+the Markdown file keeps everything.
+
+The file is also named from the conversation title rather than the first thing anybody said, which
+is the #41 fix still holding.
