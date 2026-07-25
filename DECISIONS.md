@@ -3943,3 +3943,33 @@ plainly better than telling somebody their two minutes are gone. It needs the `S
 model file, which the screen supplies and the view model does not hold, so it is a real change
 rather than a tidy-up, and it wants doing deliberately rather than at the end of an audit. Filed
 as its own issue.
+
+## Verifying the announcements, and what could not be verified
+
+The live regions added for #39 were committed with the honest caveat that the property was set but
+nothing had been heard. Closing as much of that gap as can be closed from here.
+
+**What was tried and abandoned.** `uiautomator dump` fails on this app with "could not get idle
+state", twice, which is the known behaviour of uiautomator against a Compose app rather than
+anything wrong here. Recorded so the next person does not spend the same ten minutes on it. The
+app's own infinite animations were checked while looking into it and are all properly gated: the
+brand mark breathes only while `breathing` is passed, the typing dots exist only while the
+indicator is shown, and the onboarding ripple only during onboarding. Nothing animates forever on
+an idle screen.
+
+**What was deliberately not done.** TalkBack is installed on the phone and could have been enabled
+over adb. It was not. Turning it on makes the owner's phone start speaking out loud, at two in the
+morning, and changes touch handling for everything afterwards. That is not a thing to do to
+somebody's personal phone unannounced to save myself a caveat.
+
+**What is now verified.** `AnnouncementsTest`, an instrumented Compose test run on the phone with
+`am instrument`, asserts against the real semantics tree that a toast carries
+`LiveRegion.Polite`, that the one with an Undo does too, and that no live region exists when there
+is no toast, so it cannot sit there announcing nothing. Three tests, all passing. The test package
+was uninstalled immediately afterwards and `pm list packages` shows one Kam AI again.
+
+**What remains unverified, and needs the owner.** Whether the announcements *sound* right: the
+wording, the order they arrive in relative to the rest of the screen, and whether the mode banner
+interrupts something more useful. That needs a person with TalkBack on and their ears. The mode
+banner in particular has the identical modifier to the toast and renders correctly, but it is a
+different composable and I am not going to claim it was heard when it was not.
