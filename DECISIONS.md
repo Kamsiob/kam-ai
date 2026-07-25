@@ -4861,3 +4861,14 @@ and both passed while doing it. The common cause is that instrumentation tests r
 app's own process, so `getApplicationContext()` is not a fixture, it is the user's install. Any
 test that deletes, wipes or destroys needs to own what it is destroying, or refuse to run where
 there is something to lose.
+
+## Final regression check
+
+After the night's changes, drove the core journey once more end to end: new chat from the Chats
+control, a question, a correct answer, bookmark, then Follow-ups. The item arrives with the
+GENERAL source chip, the "To check" kind chosen automatically because it did not come from
+Brainstorm, and a timestamp. The bookmark itself fills and turns gold, which is one of the four
+permitted uses.
+
+Nothing regressed. That is the check worth doing last, since a lot of the night's work touched
+the chat surface.
