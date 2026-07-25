@@ -45,6 +45,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -439,7 +442,13 @@ fun KamToast(
         Surface(
             shape = CircleShape,
             color = Color(0xFF1B241E).copy(alpha = 0.94f),
-            modifier = Modifier.padding(bottom = 16.dp),
+            // A toast is the app's whole answer to "did that work?", and it was
+            // visual only: every confirmation, every undo offer, and every
+            // failure notice went unannounced. Polite, so it waits its turn
+            // rather than cutting across what is being read.
+            modifier = Modifier
+                .padding(bottom = 16.dp)
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

@@ -3715,3 +3715,29 @@ already knows the gesture should not have it taken away.
 The editor itself was already right: it opens with the text in place and says "Editing removes
 everything after this and answers again" above Cancel and Send again, so the destructive part is
 stated before it happens rather than after.
+
+## Issue #39, eighth finding: nothing in the app was ever announced
+
+`liveRegion` appeared nowhere in the codebase. Everything the app tells you about something that
+just happened was visual only:
+
+- **The mode banner.** Switching mode changes how every following answer behaves, and the only
+  thing saying so was a coloured strip appearing near the top. A screen reader user got no signal
+  at all unless they went hunting for it.
+- **Every toast.** The toast is the app's entire answer to "did that work?", so copy
+  confirmations, undo offers, and failure notices all passed silently.
+
+Both are now polite live regions. Polite rather than assertive on purpose: these should follow
+whatever the user is already being told rather than cut across it, and none of them is urgent
+enough to interrupt.
+
+**Not yet verified by ear.** The change is a standard Compose semantics property and the screens
+render unchanged, but I have not had TalkBack read either of them aloud, so what is verified is
+that the property is set, not that the announcement sounds right. A screen reader pass over the
+whole app is part of the acceptance testing still to come, and this is the first thing to check
+in it.
+
+### Checked and already correct
+
+The model name beside the mode indicator is tappable and carries "Model: <name>. Tap to change
+model.", which is what DESIGN asks for. No change needed.

@@ -72,7 +72,9 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -594,7 +596,13 @@ private fun ModeBanner(mode: Mode) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(modeColor.copy(alpha = if (colors.isDark) 0.18f else 0.12f))
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+            // Switching mode changes how every following answer behaves, and the
+            // only thing that said so was a coloured strip appearing. A screen
+            // reader user got no signal at all unless they went looking for it.
+            // Polite rather than assertive: it should follow whatever the user
+            // is being told, not interrupt it.
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
