@@ -83,8 +83,34 @@ Raised rather than changed:
   `SelectionContainer` no longer consults `LocalTextToolbar`. The issue carries the
   replacement API and the open problem of getting the selected text out of it.
 
-Still to do on #39: Discover mode identity, long voice brain dump, timed-exercise
-interruption. Test suite stands at 271 passing, no failures.
+**#39 is closed.** Everything on its list is either fixed and verified on the device or has a
+successor issue (#63, #64, #65).
+
+### After #39, same session
+
+Closed: **#5** (nothing processes silently), **#28** (mode explainers), **#48** (Chats view
+parity), **#50** (Projects views), **#59** (stored template tokens), **#60** ("flag" wording),
+**#61** (reserved gold), **#62** (landscape). Advanced: **#2** (bulk move and add-existing both
+done, only the notes field left), **#22** (measured speed done), **#51** (both tiers baselined,
+CPU features verified).
+
+Things worth knowing:
+
+- **A test used to wipe the phone.** `BackupDbRoundTripTest` opened the real database and called
+  `deleteEverything()`. `./gradlew connectedAndroidTest` would have destroyed every conversation on
+  any device with the app installed. It now owns an in-memory database. See the top of this file.
+- **A replace-mode restore could half-finish**, leaving everything deleted and only part of the
+  backup written. Now one transaction, and the call is `NonCancellable`.
+- **The decode figure everyone was quoting is the Basic tier.** Balanced, which the app
+  recommends on a 16 GB phone, runs at about six tokens a second, not ten. Both tiers are now
+  measured in Section 6, and the model picker shows what this phone actually does.
+- **KleidiAI cannot be built here.** ggml fetches it from GitHub at configure time and that
+  download does not happen in this environment. The flag is explicitly OFF with the reason beside
+  it. Removing the line is not enough to recover, since it had been forced into the CMake cache.
+- Filed and not started: **#63** ("Storm"), **#64** (selection menu never appeared), **#65**
+  (keep an interrupted recording), **#66** (Settings groups vs DESIGN).
+
+Test suite stands at **322 passing, no failures**, plus 5 instrumentation tests run on the phone.
 
 **Just finished:** issue #24, the version 4 to version 5 migration. The migration SQL now
 lives in `KamDatabase.MIGRATION_4_5_SQL`, which the shipped `Migration` object executes,
