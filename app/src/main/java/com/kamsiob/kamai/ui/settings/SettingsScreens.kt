@@ -1056,6 +1056,16 @@ fun CustomInstructionsScreen(
 fun AutoArchiveScreen(
     value: com.kamsiob.kamai.data.AutoArchive,
     onChange: (com.kamsiob.kamai.data.AutoArchive) -> Unit,
+    /**
+     * How many chats the current setting would take right now, or null while
+     * that is still being counted (#31).
+     *
+     * A setting that moves the user's things should say what it is about to do
+     * before it does it. The count-before-confirm dialog already does that at
+     * the moment of switching; this says it while you are looking at the
+     * setting, which is where somebody decides whether to trust it.
+     */
+    dueNow: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -1113,5 +1123,21 @@ fun AutoArchiveScreen(
             style = KamTheme.type.secondary,
             color = colors.textTertiary,
         )
+
+        // What it would do right now. Usually nothing, because a pass runs at
+        // launch, and "usually nothing" is exactly the reassurance somebody
+        // turning this on is looking for.
+        if (value != com.kamsiob.kamai.data.AutoArchive.OFF && dueNow != null) {
+            Spacer(Modifier.height(14.dp))
+            Text(
+                when (dueNow) {
+                    0 -> "Nothing is old enough right now."
+                    1 -> "One chat would move now."
+                    else -> "$dueNow chats would move now."
+                },
+                style = KamTheme.type.body,
+                color = colors.textSecondary,
+            )
+        }
     }
 }

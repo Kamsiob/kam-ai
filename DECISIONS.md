@@ -5411,3 +5411,27 @@ restores as a project with no notes rather than as an exception.
 
 Device-verified over the real database: existing projects survived the upgrade,
 notes typed into a project persist across leaving and returning to the screen.
+
+## Auto-archive, proved end to end and made legible (#31)
+
+The feature was built and the issue stayed open because only the decision was
+tested. `AutoArchivePolicyTest` covers the boundary, the exemptions and the
+repeated pass, and it is a pure function over a list, which leaves untested the
+two things either side of it: the query deciding what the policy even sees, and
+the bulk update carrying the decision out.
+
+Both can fail in ways the policy test cannot notice. A query that filtered pinned
+rows out itself would look identical from the outside and would quietly make the
+policy's pinned rule dead code. A bulk archive that touched `updatedAt` would
+make undo restore conversations to the top of Chats instead of where the user
+left them. `AutoArchiveRoundTripTest` drives a real Room database through a whole
+pass and its undo, and asserts both.
+
+The screen also now says what the setting would do right now — "Nothing is old
+enough right now", or a count. The count-before-confirm dialog says that at the
+moment of switching; this says it while somebody is looking at the setting, which
+is where they decide whether to trust it. It is recounted per option, so moving
+between 3, 7 and 30 days answers "and what would that do?" without committing.
+
+Device-verified: the setting persists, switching recounts, and with nothing old
+enough the switch is silent rather than showing an empty confirmation.

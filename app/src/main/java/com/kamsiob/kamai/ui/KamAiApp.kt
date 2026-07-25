@@ -1328,10 +1328,16 @@ private fun AnimatedContentTransitionScope<Pushed?>.screenTransition(
 /** The auto-archive window (#31). */
 @Composable
 private fun AutoArchiveHost(app: AppViewModel) {
-    val value by app.autoArchive.collectAsStateWithLifecycle()
+    val setting by app.autoArchive.collectAsStateWithLifecycle()
+    // Recounted whenever the setting changes, so switching between 3, 7 and 30
+    // days answers "and what would that do?" without having to commit to it.
+    val dueNow by androidx.compose.runtime.produceState<Int?>(null, setting) {
+        value = app.repository.autoArchiveCandidates(setting).size
+    }
     com.kamsiob.kamai.ui.settings.AutoArchiveScreen(
-        value = value,
+        value = setting,
         onChange = { app.setAutoArchive(it) },
+        dueNow = dueNow,
     )
 }
 
