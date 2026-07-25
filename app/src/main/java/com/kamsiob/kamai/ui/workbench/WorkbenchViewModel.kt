@@ -116,6 +116,14 @@ class WorkbenchViewModel(
      * declaration is still null when the init block runs and the app crashed on
      * opening Workbench at all.
      */
+    /**
+     * True once the screen has asked for a blank Workbench. Declared up here with
+     * `_linkTo` for the same reason: `init` reads it, and Kotlin initialises
+     * properties in declaration order.
+     */
+    @Volatile
+    private var deliberatelyEmpty = false
+
     private val _linkTo = MutableStateFlow<String?>(null)
 
     /** The last instruction run, kept so a session can be re-saved as it changes. */
@@ -131,7 +139,7 @@ class WorkbenchViewModel(
             // openForConversation while this coroutine is still suspended on that
             // read; checking the guard before suspending let the restore resume
             // afterwards and pull an unrelated session in over the empty one.
-            if (_linkTo.value != null || _sessionId.value != null) return@launch
+            if (_linkTo.value != null || _sessionId.value != null || deliberatelyEmpty) return@launch
             if (recent != null) {
                 openSession(recent)
             } else {
@@ -173,6 +181,7 @@ class WorkbenchViewModel(
      */
     fun openForConversation(conversationId: String) {
         if (_linkTo.value == conversationId) return
+        deliberatelyEmpty = true
         _linkTo.value = conversationId
         job?.cancel()
         _sessionId.value = null
@@ -185,6 +194,12 @@ class WorkbenchViewModel(
 
     /** Starts a fresh session, leaving the recorded one alone in the chat list. */
     fun newSession() {
+        // Marks this Workbench as deliberately empty, which the init restore has
+        // to respect. Without it the same race as `openForConversation` applies:
+        // the screen asks for a blank Workbench while the restore is still
+        // suspended on its database read, and the restore resumes afterwards and
+        // pulls the last session in over the top.
+        deliberatelyEmpty = true
         job?.cancel()
         _linkTo.value = null
         _sessionId.value = null
