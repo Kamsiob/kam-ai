@@ -113,11 +113,17 @@ scrolled up did nothing visible. All three fixed.
 real data. A Workbench session is now an ordinary BENCH conversation, listed in Chats,
 reopening to the Workbench surface, linked both ways with a chat.
 
-**Next concrete step:** **the titling fix inside #38**, which has to come before any of
-#51 to #56: the auto-titling pass overwrites the KV cache and costs about 28 seconds per turn,
-so every performance measurement taken before it is fixed measures the wrong thing. Then
-#34 (keyboard and reachability, unblocked by #29), #36 (public copy), #39 (the workflow
-audit). Still open against the
+**Also finished: the titling cost inside #38.** Two causes: a conversation sitting at exactly
+the refresh milestone re-titled itself on **every open**, and the first title ran the model
+mid-flow. **Measured after the fix: a warm turn is now prefill 36 tokens, 1.4 seconds**,
+against 1068 tokens and 30.8 seconds this afternoon. #38's prefix reuse is finally doing in
+practice what it was built to do.
+
+**Next concrete step:** **#34** (keyboard and reachability, unblocked by #29), then **#36**
+(public copy), then **#39** (the end-to-end workflow audit). **#51 to #56 are no longer
+gated**, but the first thing to do there is give titling its own KV sequence, which is the
+proper fix and a native change; the current fix trades title quality on short conversations
+for it and is marked in the code to revert. Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
 button drawing in the reserved gold) and **#60** (the leftover "flag" wording). Full order in
 section 4.
@@ -263,7 +269,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #34 | Keyboard and reachability audit | not started. Nothing in the app reacts to the keyboard opening and the message list has no IME padding. #29 is done, so this is unblocked |
 | #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll are now **seen working on the phone** (#43). The failure-state half is **unblocked**: #40 is closed and the stop reason is now recorded honestly. Scroll restoration on reopening is still not done |
 | #36 | Onboarding and public copy for four modes | not started. Do after #29 and #42 |
-| #38 | Titling KV pollution (**now measured, and severe**), Bench/Overlay/Discover prompt trims, runtime network monitor | partial. Titling costs ~28s per turn by destroying the prefix reuse, and runs after every turn rather than once. Numbers in the issue comment. Fix it before any round 3 perf work, or every measurement taken there is against a defeated cache |
+| #38 | Titling KV pollution **fixed and measured**, Bench/Overlay/Discover prompt trims, runtime network monitor | partial. **Warm turn is now 36 tok / 1.4s**, from 1068 tok / 30.8s. Remaining: titling on its own KV sequence (native), which lets the title-quality trade be reverted |
 | #39 | Usability gaps and end-to-end workflows, **including eleven of the twelve mode-switch pairs never exercised** | not started |
 
 ### Performance, round 3
@@ -404,11 +410,11 @@ The warm-turn figure is the headline: roughly 10x on every ongoing turn, and it 
 actually killed the 30 to 45 second complaint. The earlier thread-count change alone took
 decode from 6.9 to 10.6 tok/s, about +54%.
 
-**Caveat added 24 July 2026, and it matters: the warm-turn figure only holds when nothing
-titles in between.** Measured on E4B, turn 2 of a real conversation re-prefilled all 1068
-tokens in 30.8s, because the auto-titling pass ran after turn 1 with a different prompt and
-overwrote the cache. It should have been about 110 new tokens and about 3s. Titling runs
-after **every** turn, not once as earlier notes claimed. See the #38 comment.
+**Resolved the same day.** That caveat was real: turn 2 re-prefilled all 1068 tokens in 30.8s
+because titling overwrote the cache between turns. Both causes are fixed (a conversation
+re-titled itself on every open, and the first title ran the model mid-flow), and the warm turn
+now measures **prefill 36 tokens, 1.4 seconds** with no titling pass between turns. The
+headline figure in the table above is now true of the app and not only of the mechanism.
 
 E4B on the same device, first figures taken for this tier: **decode 5.3 to 6.5 tok/s,
 prefill 26 to 40 tok/s**, cold model load 5.8s at ctx 6144. Slower than E2B across the
