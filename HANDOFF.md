@@ -26,6 +26,15 @@ issue.
 
 ### Read this first: a data-loss hazard that was armed, and is now disarmed
 
+**Two** instrumentation tests destroyed real user data when run the standard way, and both passed
+while doing it. Instrumentation runs inside the app's own process, so `getApplicationContext()` is
+not a fixture, it is the user's install.
+
+`PassphraseLayerTest` was the worse of the two: its `@Before @After` deleted the wrapped database
+key **and the Android Keystore entry that unwraps it**, which is permanent. The conversations stay
+on disk as ciphertext that nothing can ever decrypt. It now refuses to run when a Kam AI database
+exists.
+
 `BackupDbRoundTripTest` used to open the **real** database and call `deleteEverything()` on it.
 Instrumentation tests run in the app's own process, so `./gradlew connectedAndroidTest` on any
 phone with Kam AI installed would have deleted every conversation, memory, follow-up, project and
