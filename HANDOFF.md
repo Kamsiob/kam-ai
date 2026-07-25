@@ -109,9 +109,15 @@ the same pass and is on both Workbench chip rows.
 position was being overwritten ~90ms later by the streaming-follow effect, and sending while
 scrolled up did nothing visible. All three fixed.
 
-**Next concrete step:** **#32 Workbench linking**, which touches the data model and needs
-MIGRATION_5_6, so it lands before anything else that reads conversation structure. Then #34
-(keyboard and reachability, unblocked by #29), #36 (public copy), #39 (the workflow audit). Still open against the
+**Also finished: #32**, with **database version 6** and MIGRATION_5_6 verified on the owner's
+real data. A Workbench session is now an ordinary BENCH conversation, listed in Chats,
+reopening to the Workbench surface, linked both ways with a chat.
+
+**Next concrete step:** **the titling fix inside #38**, which has to come before any of
+#51 to #56: the auto-titling pass overwrites the KV cache and costs about 28 seconds per turn,
+so every performance measurement taken before it is fixed measures the wrong thing. Then
+#34 (keyboard and reachability, unblocked by #29), #36 (public copy), #39 (the workflow
+audit). Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
 button drawing in the reserved gold) and **#60** (the leftover "flag" wording). Full order in
 section 4.
@@ -252,7 +258,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #28 | First-time per-mode explainers (needs a "seen once" key that does not exist anywhere yet), per-mode Q&A entries, export markers (#41) | partial |
 | #29 | Per-mode empty-state nudges | **closed, verified on the phone** in all four modes. Fraunces Italic bundled and subset to 5.8 KB; sketches are Compose paths rather than assets; `edgeFadeHorizontal` landed with it |
 | #31 | Auto-archive: Off / 3 / 7 / 30 days, pinned exempt, count before confirming, undo | **built, 13 tests.** Settings verified on the phone; **the pass itself has never fired there**, since nothing on that device is old enough to match. Issue left open until it is watched working |
-| #32 | Workbench linking, both directions | not started. **Touches the data model, needs MIGRATION_5_6.** No Workbench entity exists; it persists two strings through the settings table |
+| #32 | Workbench linking, both directions | **closed, verified on the phone.** Sessions are BENCH conversations; MIGRATION_5_6 shipped and verified on real data |
 | #33 | Filter follow-ups by kind alongside source | **closed, verified on the phone.** The Brainstorm-defaults-to-pursue path is verified and now covered by tests |
 | #34 | Keyboard and reachability audit | not started. Nothing in the app reacts to the keyboard opening and the message list has no IME padding. #29 is done, so this is unblocked |
 | #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll are now **seen working on the phone** (#43). The failure-state half is **unblocked**: #40 is closed and the stop reason is now recorded honestly. Scroll restoration on reopening is still not done |
