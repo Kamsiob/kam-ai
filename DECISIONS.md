@@ -4827,3 +4827,37 @@ Verified on the phone, both branches. "Syrian Wars" has a passage identical to i
 Quiz me now goes straight to "Question 1 of 4" with no prompt. "Duchy of Brittany" and "Portuguese
 Empire" both have longer passages and still show "Read the full moment first?", which is the case
 the prompt was written for.
+
+## A second armed test, and this one destroyed the key rather than the rows
+
+Audited the rest of `androidTest` after `BackupDbRoundTripTest` turned out to be wiping the real
+database. `PassphraseLayerTest` is worse.
+
+Its `@Before @After fun clean()` deleted the wrapped key file and called `DatabaseKey.destroy`,
+which deletes that file **and the Android Keystore entry that unwraps it**. On a phone with a real
+database that is not clearing test state. It is permanent: the conversations stay on disk as
+ciphertext and nothing can ever decrypt them again, because the hardware-backed key is gone.
+
+Worse than the first one, which deleted rows and left a working app with an honest empty list.
+This leaves an app that cannot open its own data. And being in both `@Before` and `@After`, it
+fired twice per test method.
+
+So `./gradlew connectedAndroidTest` on a phone with Kam AI installed would have wiped the
+conversations and then destroyed the key. Neither had happened, because every instrumentation run
+in this project has been `-e class` filtered. Twice now that is luck rather than design.
+
+The test now refuses to run when a Kam AI database exists, via `Assume` rather than a failure: on
+a clean device or emulator, which is where an instrumentation suite belongs, there is nothing to
+lose and the test runs and means something. Guarding rather than rewriting because the thing it
+tests, that a forgotten passphrase is genuinely unrecoverable, is real and worth keeping.
+
+Verified on the phone: all six tests skip, in 0.042 seconds, and the app afterwards still opens
+its database with every conversation intact.
+
+### The pattern worth taking away
+
+Two tests, written at different times, both destroyed real user data when run the standard way,
+and both passed while doing it. The common cause is that instrumentation tests run inside the
+app's own process, so `getApplicationContext()` is not a fixture, it is the user's install. Any
+test that deletes, wipes or destroys needs to own what it is destroying, or refuse to run where
+there is something to lose.
