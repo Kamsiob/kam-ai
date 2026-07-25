@@ -130,11 +130,15 @@ the README had no modes section. Both fixed, the positioning line ("it thinks wi
 for you") is one constant used on About, in the README and in the listing, and `PublicCopyTest`
 now reads the listing and README off disk so they cannot drift from the app.
 
-**Next concrete step:** **#25** (Brainstorm behaviour on the device: ten methods, the selection
-checklist, the four hard rules). It has already been seen behaving correctly three times
-today, naming STARBURSTING twice, HUB AND SPOKE once, and refusing a direct request for a
-list. Then **#57 and #58** (the Logic and Brainstorm method rebuilds), then **#39** (the
-end-to-end workflow audit, which verifies everything and so goes last).
+**Also finished: #25.** Brainstorm watched across four conversations on the device; all four
+hard rules hold, and method selection varies correctly. Two prompt-shaping deviations recorded
+on **#58**: given only a bare topic it front-loads all six method dimensions instead of asking
+one question, and it narrates the convergence procedure rather than performing it.
+
+**Next concrete step:** **#57 and #58**, the Logic and Brainstorm method rebuilds. **#57
+conflicts with the token budget, see DECISIONS.md**, so read that before starting it. Then
+**#39** (the end-to-end workflow audit, which verifies everything and so goes last), then the
+older issues #2, #3, #5, #11, #13, #16, #21, #22.
 **#51 to #56 are no longer gated**, and the first thing to do there is give titling its own KV
 sequence, which lets the title-quality trade in ConversationTitler be reverted. Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
@@ -273,7 +277,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | # | Item | State |
 |---|---|---|
 | #24 | Version 4 to 5 migration | **closed and fully verified.** SQL by MigrationSqlTest on the JVM, Room and SQLCipher by the three androidTest classes run on the phone, 11 tests passing |
-| #25 | Brainstorm behaviour on the device: ten methods, selection checklist, four hard rules | prompt done, **behaviour never watched**. Budget a full session |
+| #25 | Brainstorm behaviour on the device | **closed.** All four hard rules verified across four conversations; two shaping deviations moved to #58 |
 | #28 | First-time per-mode explainers (needs a "seen once" key that does not exist anywhere yet), per-mode Q&A entries, export markers (#41) | partial |
 | #29 | Per-mode empty-state nudges | **closed, verified on the phone** in all four modes. Fraunces Italic bundled and subset to 5.8 KB; sketches are Compose paths rather than assets; `edgeFadeHorizontal` landed with it |
 | #31 | Auto-archive: Off / 3 / 7 / 30 days, pinned exempt, count before confirming, undo | **built, 13 tests.** Settings verified on the phone; **the pass itself has never fired there**, since nothing on that device is old enough to match. Issue left open until it is watched working |
