@@ -119,11 +119,18 @@ mid-flow. **Measured after the fix: a warm turn is now prefill 36 tokens, 1.4 se
 against 1068 tokens and 30.8 seconds this afternoon. #38's prefix reuse is finally doing in
 practice what it was built to do.
 
-**Next concrete step:** **#34** (keyboard and reachability, unblocked by #29), then **#36**
-(public copy), then **#39** (the end-to-end workflow audit). **#51 to #56 are no longer
-gated**, but the first thing to do there is give titling its own KV sequence, which is the
-proper fix and a native change; the current fix trades title quality on short conversations
-for it and is marked in the code to revert. Still open against the
+**Also finished: #34.** Keyboard handling in portrait was already correct; the segmented mode
+control was clipping every label at the largest font size and is fixed. One finding split out
+as **#62**: landscape plus keyboard squeezes the message list to zero height, and I could not
+get a working IME signal in that composable, so it is filed with what was tried rather than
+left half-guarded.
+
+**Next concrete step:** **#36** (onboarding and public copy for four modes, now unblocked
+since #29 and #42 are both done), then **#39** (the end-to-end workflow audit, which verifies
+everything and so goes late), then **#25** (Brainstorm behaviour, though it has been seen
+behaving correctly three times today: STARBURSTING, HUB AND SPOKE, and a refusal to list).
+**#51 to #56 are no longer gated**, and the first thing to do there is give titling its own KV
+sequence, which lets the title-quality trade in ConversationTitler be reverted. Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
 button drawing in the reserved gold) and **#60** (the leftover "flag" wording). Full order in
 section 4.
@@ -266,7 +273,8 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #31 | Auto-archive: Off / 3 / 7 / 30 days, pinned exempt, count before confirming, undo | **built, 13 tests.** Settings verified on the phone; **the pass itself has never fired there**, since nothing on that device is old enough to match. Issue left open until it is watched working |
 | #32 | Workbench linking, both directions | **closed, verified on the phone.** Sessions are BENCH conversations; MIGRATION_5_6 shipped and verified on real data |
 | #33 | Filter follow-ups by kind alongside source | **closed, verified on the phone.** The Brainstorm-defaults-to-pursue path is verified and now covered by tests |
-| #34 | Keyboard and reachability audit | not started. Nothing in the app reacts to the keyboard opening and the message list has no IME padding. #29 is done, so this is unblocked |
+| #34 | Keyboard and reachability audit | **closed.** Portrait was already correct; the mode control clipped at large font and is fixed. Landscape plus keyboard split out as #62 |
+| #62 | Landscape plus keyboard leaves the conversation with zero height | not started. Filed with what was tried; use a measured BoxWithConstraints height rather than the IME insets |
 | #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll are now **seen working on the phone** (#43). The failure-state half is **unblocked**: #40 is closed and the stop reason is now recorded honestly. Scroll restoration on reopening is still not done |
 | #36 | Onboarding and public copy for four modes | not started. Do after #29 and #42 |
 | #38 | Titling KV pollution **fixed and measured**, Bench/Overlay/Discover prompt trims, runtime network monitor | partial. **Warm turn is now 36 tok / 1.4s**, from 1068 tok / 30.8s. Remaining: titling on its own KV sequence (native), which lets the title-quality trade be reverted |
