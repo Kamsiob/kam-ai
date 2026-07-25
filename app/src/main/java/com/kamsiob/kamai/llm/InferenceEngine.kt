@@ -178,6 +178,15 @@ class InferenceEngine(
             close()
             return@callbackFlow
         }
+        // Stopping while the prompt is still being read in is a stop, not a
+        // fault. It used to surface as "Something went wrong reading that", which
+        // is both untrue and alarming: the user did it on purpose.
+        if (ingested == ABORTED) {
+            userStopRequested = true
+            onStop(StopReason.UserStopped)
+            close()
+            return@callbackFlow
+        }
         if (ingested < 0) {
             onStop(StopReason.Failed("Something went wrong reading that. Try again."))
             close()
@@ -377,6 +386,13 @@ class InferenceEngine(
 
     private companion object {
         const val OVER_LENGTH = -3
+
+        /**
+         * The prompt was still being read in when the user pressed stop.
+         * llama.cpp reports an aborted decode, which is not a fault: the abort
+         * flag is ours and the user raised it on purpose.
+         */
+        const val ABORTED = -5
         const val THERMAL_CHECK_EVERY = 32
         const val SEED_ANY = -1
     }

@@ -55,7 +55,55 @@ class ChatViewModel(
     private val _notice = MutableStateFlow<String?>(null)
     val notice: StateFlow<String?> = _notice.asStateFlow()
 
+    /**
+     * An unsent draft, kept so leaving the conversation and coming back does not
+     * throw away what the user was part way through writing (#35, "always
+     * recover input").
+     *
+     * A sent message is never at risk: it is written to the database before the
+     * model is even asked, so a turn that fails to start still leaves it in the
+     * transcript. What was genuinely lost was the half-typed message somebody
+     * navigated away from.
+     *
+     * Held in the view model, which is keyed by conversation id, so each
+     * conversation keeps its own draft. **Not persisted across process death**,
+     * which would mean either a write per keystroke or a drafts table; neither is
+     * worth it for the common case, which is a glance at another screen.
+     */
+    var draft: String = ""
+
+    fun rememberDraft(text: String) {
+        draft = text
+    }
+
     private var generation: Job? = null
+
+    /**
+     * Where this conversation was scrolled to, so reopening it returns the user
+     * where they were rather than to the top (#35).
+     *
+     * Held here rather than in the composable because a `rememberLazyListState`
+     * dies when the screen leaves the stack, which is precisely the moment this
+     * needs to survive. The view model is keyed by conversation id, so each
+     * conversation keeps its own position and a different one cannot inherit it.
+     *
+     * Plain vars, not state: nothing recomposes when the user scrolls, and making
+     * these observable would recompose the whole message list on every frame of
+     * every scroll.
+     */
+    var scrollIndex: Int = 0
+        private set
+    var scrollOffset: Int = 0
+        private set
+
+    /** True until the saved position has been applied once, so restoring happens
+     *  on opening rather than fighting the user later. */
+    var scrollRestored: Boolean = false
+
+    fun rememberScroll(index: Int, offset: Int) {
+        scrollIndex = index
+        scrollOffset = offset
+    }
 
     // Voice typing. The recorder captures 16 kHz mono; transcription runs through
     // the injected SttEngine, which loads and unloads whisper within the call so
@@ -220,6 +268,42 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Picks up an answer that stopped early, appending to it rather than
+     * starting a second one (#35).
+     *
+     * The instruction goes in the prompt and is never written to the transcript,
+     * so the conversation does not gain a message the user did not send. The
+     * partial answer is already in the history, so the model can see exactly what
+     * it was part way through.
+     */
+    fun continueLast() {
+        if (_streaming.value) return
+        val id = _conversationId.value ?: return
+        viewModelScope.launch {
+            val last = repository.messages(id).lastOrNull { it.role == Role.ASSISTANT }
+            if (last == null || last.stoppedReason == null) return@launch
+            repository.finishMessage(last.id, null)
+            respond(
+                conversationId = id,
+                continueFrom = last,
+                continuePrompt = "Carry straight on from where your previous answer stopped. " +
+                    "Do not repeat what you already wrote and do not start again.",
+            )
+        }
+    }
+
+    /** Throws away an answer that stopped early, leaving the question in place. */
+    fun discardLast() {
+        if (_streaming.value) return
+        val id = _conversationId.value ?: return
+        viewModelScope.launch {
+            val last = repository.messages(id).lastOrNull { it.role == Role.ASSISTANT }
+            if (last == null || last.stoppedReason == null) return@launch
+            repository.deleteMessage(last.id)
+        }
+    }
+
     /** Replaces the last response rather than adding another one. */
     fun regenerate() {
         if (_streaming.value) return
@@ -296,7 +380,12 @@ class ChatViewModel(
         }
     }
 
-    private suspend fun buildPrompt(conversationId: String): String {
+    private suspend fun buildPrompt(
+        conversationId: String,
+        /** An instruction included in the prompt but never written to the
+         *  transcript, used by [continueLast]. */
+        pending: String? = null,
+    ): String {
         val conversation = repository.conversation(conversationId)
         val history = repository.messages(conversationId)
 
@@ -381,7 +470,7 @@ class ChatViewModel(
                 "Start a new chat for a clean slate."
         }
 
-        return PromptBuilder.build(chatFormat(), system, fitted.turns)
+        return PromptBuilder.build(chatFormat(), system, fitted.turns, pending)
     }
 
     /** The conversation we have already warned about context trimming for, so the
@@ -393,7 +482,11 @@ class ChatViewModel(
     private suspend fun chatFormat(): ChatFormat =
         repository.activeModel()?.format ?: ChatFormat.GEMMA
 
-    private fun respond(conversationId: String) {
+    private fun respond(
+        conversationId: String,
+        continueFrom: MessageEntity? = null,
+        continuePrompt: String? = null,
+    ) {
         // A background title pass must never share the engine with a live reply.
         titlingJob?.cancel()
         val previous = generation
@@ -440,12 +533,14 @@ class ChatViewModel(
                 }
             }
 
-            val prompt = buildPrompt(conversationId)
-            val messageId = repository.addMessage(
+            val prompt = buildPrompt(conversationId, pending = continuePrompt)
+            // Continuing appends to the answer that stopped rather than adding a
+            // second bubble, so the result reads as the one answer it is.
+            val messageId = continueFrom?.id ?: repository.addMessage(
                 conversationId, Role.ASSISTANT, "", incomplete = true,
             )
 
-            val builder = StringBuilder()
+            val builder = StringBuilder(continueFrom?.content.orEmpty())
             var stopReason: InferenceEngine.StopReason = InferenceEngine.StopReason.Finished
 
             try {

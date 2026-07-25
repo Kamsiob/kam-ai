@@ -140,6 +140,10 @@ fun ChatScreen(
     onStop: () -> Unit,
     onFlag: (MessageEntity) -> Unit,
     onRegenerate: () -> Unit,
+    /** The three ways out of an answer that stopped early (#35). Retry reuses
+     *  [onRegenerate], since replacing the answer is exactly what it does. */
+    onContinueIncomplete: () -> Unit = {},
+    onDiscardIncomplete: () -> Unit = {},
     onReport: (MessageEntity) -> Unit,
     onShareResponse: (MessageEntity) -> Unit,
     onShareThread: () -> Unit,
@@ -150,6 +154,12 @@ fun ChatScreen(
     onEdit: (MessageEntity, String) -> Unit,
     onDismissNotice: () -> Unit,
     initialComposerText: String? = null,
+    /** Where to open the list, and where to report it back to (#35). */
+    initialScrollIndex: Int = 0,
+    initialScrollOffset: Int = 0,
+    onScrollChanged: (Int, Int) -> Unit = { _, _ -> },
+    /** An unsent draft to restore, and where to report it back to (#35). */
+    onDraftChanged: (String) -> Unit = {},
     attachedName: String? = null,
     onAttach: () -> Unit = {},
     onRemoveAttachment: () -> Unit = {},
@@ -189,6 +199,29 @@ fun ChatScreen(
                 lastVisibleItemEnd = if (last == null) 0 else last.offset + last.size,
                 totalItems = info.totalItemsCount,
                 viewportEnd = info.viewportEndOffset,
+            )
+        }
+    }
+
+    // Per-conversation scroll restoration (#35). Applied once, on opening, and
+    // only when there is something to restore to: a fresh conversation and one
+    // last read at the bottom both want the default. Reported back on every
+    // settled scroll so the caller holds the position rather than this screen,
+    // which does not survive being navigated away from.
+    var scrollRestored by remember { mutableStateOf(false) }
+    LaunchedEffect(messages.isNotEmpty()) {
+        if (!scrollRestored && messages.isNotEmpty()) {
+            scrollRestored = true
+            if (initialScrollIndex > 0 || initialScrollOffset > 0) {
+                runCatching { listState.scrollToItem(initialScrollIndex, initialScrollOffset) }
+            }
+        }
+    }
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress && scrollRestored) {
+            onScrollChanged(
+                listState.firstVisibleItemIndex,
+                listState.firstVisibleItemScrollOffset,
             )
         }
     }
@@ -311,6 +344,8 @@ fun ChatScreen(
                             return@items
                         }
                         MessageRow(
+                            onContinue = onContinueIncomplete,
+                            onDiscard = onDiscardIncomplete,
                             message = message,
                             flagged = message.id in flaggedMessageIds,
                             ttsAvailable = ttsAvailable,
@@ -399,6 +434,7 @@ fun ChatScreen(
             onSend = onSend,
             onStop = onStop,
             initialText = initialComposerText,
+            onTextChanged = onDraftChanged,
             attachedName = attachedName,
             onAttach = onAttach,
             onRemoveAttachment = onRemoveAttachment,
@@ -824,6 +860,8 @@ private fun ConversationRenameDialog(
 /** Bubbles animate in from below with slight scale. */
 @Composable
 private fun MessageRow(
+    onContinue: () -> Unit = {},
+    onDiscard: () -> Unit = {},
     message: MessageEntity,
     flagged: Boolean,
     ttsAvailable: Boolean,
@@ -924,7 +962,10 @@ private fun MessageRow(
                 }
             }
 
-            // A stop reason is stated plainly under the message it belongs to.
+            // A stop reason is stated plainly under the message it belongs to,
+            // and, on the last answer, offers the three ways out (#35). Saying an
+            // answer stopped without offering anything to do about it is half a
+            // sentence: the point of the honest state is that it is actionable.
             message.stoppedReason?.let { reason ->
                 Spacer(Modifier.height(5.dp))
                 Text(
@@ -933,6 +974,17 @@ private fun MessageRow(
                     color = colors.textTertiary,
                     modifier = Modifier.widthIn(max = maxBubble),
                 )
+                if (isLast && message.role == Role.ASSISTANT) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // Continue first, because picking up where it stopped is
+                        // almost always what somebody wants after stopping it
+                        // themselves, and it keeps what was already written.
+                        IncompleteAction("Continue", onContinue)
+                        IncompleteAction("Retry", onRegenerate)
+                        IncompleteAction("Discard", onDiscard)
+                    }
+                }
             }
 
             if (message.role == Role.ASSISTANT && !message.incomplete) {
@@ -1257,6 +1309,22 @@ private fun NoticeBar(text: String, onDismiss: () -> Unit) {
 }
 
 /** Pill field, microphone, and a round accent send that becomes stop. */
+/** A quiet bordered pill, for the three ways out of a stopped answer (#35). */
+@Composable
+private fun IncompleteAction(label: String, onClick: () -> Unit) {
+    val colors = KamTheme.colors
+    Text(
+        label,
+        style = KamTheme.type.secondary,
+        color = colors.textSecondary,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(colors.surfaceSecondary)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    )
+}
+
 @Composable
 private fun Composer(
     enabled: Boolean,
@@ -1264,6 +1332,7 @@ private fun Composer(
     onSend: (String) -> Unit,
     onStop: () -> Unit,
     initialText: String? = null,
+    onTextChanged: (String) -> Unit = {},
     attachedName: String? = null,
     onAttach: () -> Unit = {},
     onRemoveAttachment: () -> Unit = {},
@@ -1276,6 +1345,10 @@ private fun Composer(
 ) {
     val colors = KamTheme.colors
     var value by remember { mutableStateOf(initialText.orEmpty()) }
+
+    // Reported on every change so the caller can hold the draft. This screen does
+    // not survive being navigated away from, so it cannot hold it itself (#35).
+    LaunchedEffect(value) { onTextChanged(value) }
 
     // Transcribed text lands in the field, appended to whatever is already there.
     LaunchedEffect(transcribed) {

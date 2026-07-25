@@ -469,7 +469,13 @@ private fun ConversationScreen(
     }
 
     ChatScreen(
-        initialComposerText = initialText,
+        // The draft wins over a fresh intake text, since a half-written message
+        // the user left behind is more theirs than one the share sheet supplied.
+        initialComposerText = chat.draft.ifEmpty { initialText.orEmpty() },
+        onDraftChanged = chat::rememberDraft,
+        initialScrollIndex = chat.scrollIndex,
+        initialScrollOffset = chat.scrollOffset,
+        onScrollChanged = chat::rememberScroll,
         attachedName = attachedName,
         onAttach = {
             pickFile.launch(
@@ -517,6 +523,8 @@ private fun ConversationScreen(
             app.flag(message.content, mode, chat.conversationId.value, message.id)
         },
         onRegenerate = chat::regenerate,
+        onContinueIncomplete = chat::continueLast,
+        onDiscardIncomplete = chat::discardLast,
         onReport = { message -> reportResponse(context, message.content, app) },
         onShareResponse = { message -> Share.text(context, message.content) },
         onShareThread = {

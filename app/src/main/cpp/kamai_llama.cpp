@@ -350,13 +350,24 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeIngest(
         llama_batch batch = llama_batch_get_one(tokens.data() + i, chunk);
         const int rc = llama_decode(g_session.ctx, batch);
         if (rc != 0) {
-            // Whatever was processed before the failure stays in the cache, so
+            // Whatever was processed before this stopped stays in the cache, so
             // the bookkeeping no longer matches it. Clear both rather than leave
-            // a lie behind for the next turn to reuse.
-            LOGE("llama_decode failed during ingest: %d; clearing the sequence", rc);
+            // a lie behind for the next turn to reuse. How much of the batch got
+            // through is not knowable from here, so clearing is the only honest
+            // option even though it costs the prefix.
             llama_memory_clear(mem, true);
             g_session.n_past = 0;
             g_session.cached_tokens.clear();
+
+            // rc == 2 is llama.cpp's "aborted", which here means the user pressed
+            // stop while the prompt was still being read in. That is not a
+            // failure and must not be reported as one: the caller turns this into
+            // an ordinary user stop. Anything else genuinely went wrong.
+            if (rc == 2) {
+                LOGI("ingest aborted by request; sequence cleared");
+                return -5;
+            }
+            LOGE("llama_decode failed during ingest: %d; clearing the sequence", rc);
             return -4;
         }
         g_session.n_past += chunk;

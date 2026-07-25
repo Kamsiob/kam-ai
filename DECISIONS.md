@@ -3115,3 +3115,47 @@ Incidentally verified at the same time, and worth recording because #25 is still
 **Brainstorm behaved exactly as specified.** Given only a topic it answered "Only a topic, no
 idea yet. I'll use STARBURSTING." and asked across who, what, when, where, why and how rather
 than handing over any ideas.
+
+## Issue #35 tail, and a stop that was reported as a fault
+
+Three remaining pieces, plus a bug the testing turned up.
+
+**Per-conversation scroll restoration.** The position is held in the view model, which is
+keyed by conversation id, rather than in the composable: a `rememberLazyListState` dies when
+the screen leaves the stack, which is exactly the moment this needs to survive. Restored once
+on opening and only when there is something to restore to, so a fresh conversation and a last
+read at the bottom both get the default. Plain vars rather than state, because nothing should
+recompose on every frame of every scroll.
+
+**A draft survives leaving the conversation.** A sent message was never at risk: it is written
+to the database before the model is asked, so even a turn that fails to start leaves it in the
+transcript. What was genuinely lost was the half-typed message somebody navigated away from.
+Held per conversation in the view model. Deliberately **not** persisted across process death,
+which would mean a write per keystroke or a drafts table, neither worth it for the common case
+of glancing at another screen.
+
+**Continue, Retry, Discard on an answer that stopped early.** Saying an answer stopped without
+offering anything to do about it is half a sentence. Continue is first because picking up
+where it stopped is almost always what somebody wants after stopping it themselves, and it is
+the only one that keeps what was already written. It appends to the same message rather than
+adding a second bubble, and its instruction goes in the prompt and is never written to the
+transcript, so the conversation does not gain a message the user did not send.
+
+### The bug: a user stop reported as a fault
+
+Stopping while the prompt was still being read in produced **"Something went wrong reading
+that. Try again."** The user pressed stop; nothing went wrong.
+
+`llama_decode` returns 2 for an aborted decode, and the abort flag is ours: `requestStop`
+raises it. The ingest path treated every non-zero return as a failure. Native now returns -5
+for the aborted case specifically, logged at info rather than error, and the engine turns that
+into an ordinary `UserStopped`.
+
+Worth noting what is not fixed, because it is a real cost rather than an oversight: an aborted
+decode still clears the whole KV cache. How much of the batch got through is not knowable from
+the caller, so clearing is the only honest option, and a stop during prefill therefore costs
+the prefix reuse for the next turn. Correctness over speed, consistent with the rest of that
+file.
+
+Verified on the phone: stopping eight seconds into a long prompt now logs "ingest aborted by
+request; sequence cleared" and shows **"You stopped this one."**
