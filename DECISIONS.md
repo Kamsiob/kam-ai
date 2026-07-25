@@ -4584,3 +4584,29 @@ thoughtful: "The quiz is drawn from the full passage, not just the preview. Read
 you a fair shot." The quiz asks, then reveals, then asks "Did you get it right?" with Yes and
 Missed it, which is honest self-assessment rather than pretending a small model can mark free
 text. The save action reads "Bookmark this for later", so the #60 wording landed here too.
+
+## The backup export, run for real
+
+The transaction and cancellation work earlier tonight was tested below the interface, so the flow
+itself was worth running.
+
+Settings, Backup and restore, a passphrase, Export backup. The system save sheet opens with a
+sensible default name, `kam-ai-backup-2026-07-25.kambackup`, and saving wrote a 131,520 byte
+encrypted file.
+
+Also visible: "Choose a backup file" is greyed until a restore passphrase is typed, which is the
+change from the item 5 work. Before it, the button was always live and picking a file with no
+passphrase simply failed later.
+
+The busy spinner could not be caught in a screenshot, because 131 KB exports faster than a
+screencap round trip. It is on the same `busy` flag as the disabled buttons, which were observed,
+so what is verified is the state rather than the animation.
+
+**The file was deleted afterwards.** It held the owner's conversations encrypted under a
+passphrase only I knew, sitting in their Downloads, and they had not asked for it. Testing the
+export does not require leaving one behind.
+
+The restore half was deliberately not run against the real database. Merge with a just-made backup
+would be close to a no-op, and "close to" is not a good enough reason to point an import at
+somebody's only copy of their data. It is covered by the instrumentation tests, which own their
+database.
