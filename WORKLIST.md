@@ -159,7 +159,11 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       Explore, with the plain explanation of each). REMAINING: the scoped slide-up surface itself
       (item 11) is now DONE, and the one-tap escape lives in the sheet header. REMAINING: broader
       audit for other invisible walls.
-- [~] 22. Capability transparency (declarative capabilities + model-picker chips with tap-to-explain done + verified; speed/quality ratings, input-bar gating, 3-state controls remain). Orig: declarative per-model capabilities in catalog; input bar adapts
+- [x] 22. Capability transparency. DONE: declarative per-model capabilities, model-picker chips with
+      tap-to-explain, measured decode speed from this phone (a number, not a score out of five), and
+      input-bar gating 25 July: the paperclip reads activeModel.supports(DOCUMENTS) and is hidden
+      when false or when nothing is installed. CapabilityGatingTest pins it, including that no model
+      claims images so the picker offers none. Orig: declarative per-model capabilities in catalog; input bar adapts
       (hide unsupported controls on every surface); three states (can't/can't-afford/not-installed);
       filter pickers; honest model switching with existing attachments. Model picker shows
       capability icons (tappable explain), measured speed rating /5, quality rating /5 (relative),

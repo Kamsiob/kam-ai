@@ -5519,3 +5519,29 @@ Device-verified: "remember that I no longer learning Spanish" reported
 "Forgotten: is interested in learning Spanish", the Memory screen lost that row
 and kept the unrelated one, and the next answer's line read "Used 1 thing it
 remembers about you" rather than 2.
+
+## The composer only offers what the model can do (#22)
+
+The last piece of capability transparency. Capabilities were already declared per
+model in the catalog and shown on the model card, and the composer ignored them:
+the paperclip was always there, whatever was answering.
+
+It now reads the same declaration the card does. `canAttachDocuments` comes from
+`activeModel.supports(Capability.DOCUMENTS)`, defaulting to false when nothing is
+installed, and the paperclip is hidden when it is false.
+
+Hidden rather than disabled. A greyed paperclip raises "why not?" and answers it
+nowhere. The model card is where what a model can do belongs, and it says so
+there in full, including the "No documents" state and its explanation.
+
+Every current model reads documents, so today this changes nothing on screen.
+That is the point: it is the arrangement that is wrong to leave unbuilt, because
+the failure it prevents is discovered by somebody who has already chosen a file,
+waited for it to be read, and asked their question before anything tells them the
+model cannot see it. `CapabilityGatingTest` pins it, including that no model
+currently claims images — which is also the reminder to widen the attachment
+picker if a vision model is ever added.
+
+Speed is reported as a measured number from this phone rather than a rating out
+of five, which was the original ask. A measurement somebody can check beats a
+score they cannot.

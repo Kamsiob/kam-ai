@@ -591,6 +591,11 @@ private fun ConversationScreen(
         streaming = streaming,
         notice = notice,
         modelLabel = activeModel?.displayName,
+        // Declared per model in the catalog, so a future text-only model hides
+        // the paperclip with no code change here (#22).
+        canAttachDocuments = activeModel?.supports(
+            com.kamsiob.kamai.model.Capability.DOCUMENTS,
+        ) ?: false,
         flaggedMessageIds = flagged.toSet(),
         // Play is hidden until a reading voice exists, rather than shown doing nothing.
         ttsAvailable = ttsVoice != null,

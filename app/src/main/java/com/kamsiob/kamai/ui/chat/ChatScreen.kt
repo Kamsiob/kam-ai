@@ -165,6 +165,15 @@ fun ChatScreen(
     streaming: Boolean,
     notice: String?,
     modelLabel: String?,
+    /**
+     * Whether the model answering can read an attached document (#22).
+     *
+     * The paperclip is hidden when it cannot. Offering a control that leads to a
+     * model saying it cannot see the file is worse than not offering it: the
+     * person has already chosen the file, waited for it to be read, and asked
+     * their question before anything tells them.
+     */
+    canAttachDocuments: Boolean = true,
     flaggedMessageIds: Set<String>,
     ttsAvailable: Boolean,
     speakingMessageId: String? = null,
@@ -565,6 +574,7 @@ fun ChatScreen(
             onTextChanged = onDraftChanged,
             attachedName = attachedName,
             onAttach = onAttach,
+            canAttachDocuments = canAttachDocuments,
             onRemoveAttachment = onRemoveAttachment,
             voiceAvailable = voiceAvailable,
             recording = recording,
@@ -1514,6 +1524,9 @@ private fun Composer(
     onTextChanged: (String) -> Unit = {},
     attachedName: String? = null,
     onAttach: () -> Unit = {},
+    /** False when the answering model cannot read documents, which hides the
+     *  paperclip rather than leading somewhere it cannot go (#22). */
+    canAttachDocuments: Boolean = true,
     onRemoveAttachment: () -> Unit = {},
     voiceAvailable: Boolean = false,
     recording: Boolean = false,
@@ -1615,8 +1628,13 @@ private fun Composer(
         Spacer(Modifier.width(8.dp))
 
         // Attach a document for the model to read. Hidden while streaming or
-        // recording, so the row stays uncluttered when it matters.
-        if (!streaming && !recording && !transcribing) {
+        // recording, so the row stays uncluttered when it matters, and hidden
+        // outright when the answering model cannot read documents (#22).
+        //
+        // Hidden rather than disabled. A greyed paperclip raises the question
+        // "why not?" and answers it nowhere; the model card in Settings is where
+        // what a model can do belongs, and it says so there in full.
+        if (!streaming && !recording && !transcribing && canAttachDocuments) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
