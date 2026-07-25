@@ -4910,3 +4910,22 @@ boundary puts the hard edge straight back.
 
 Alpha is per theme. The value that is barely visible on the dark background is a grey smudge on
 the light one.
+
+## Owner feedback: the Workbench screen was squished and uninviting
+
+Reported directly. The screen ran title, description, input box, a lone Speak pill, a chip row, an
+instruction field and the result together with small gaps and no labels, so nothing said which part
+was the text and which part was the instruction.
+
+- **Two sections, labelled.** "Your text" and "What to do with it". The screen now reads as two
+  steps rather than one dense stack of controls.
+- **The input is taller**, 140dp minimum rather than 96, with more padding inside it. It is the
+  thing the screen is for, and it was the same size as a search box.
+- **The chips wrap instead of scrolling sideways.** There are seven changes and the horizontal
+  scroller showed four and a half. The screen looked like it offered four, and the rest were behind
+  a gesture nothing advertised. Both sets are `FlowRow` now, including "Run another change on this
+  result", which is the least discoverable thing on the screen and the worst place to have been
+  hiding options.
+- **More air** between the sections and before the result.
+- "Or say what to do with it" became "Or describe the change yourself", which says what to type
+  rather than restating the section heading.

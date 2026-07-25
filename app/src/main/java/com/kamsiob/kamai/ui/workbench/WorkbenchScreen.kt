@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -97,7 +98,14 @@ fun WorkbenchScreen(
             style = KamTheme.type.body,
             color = colors.textSecondary,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
+
+        // Sections, so the screen reads as two steps rather than one dense
+        // stack of controls. It used to run title, box, pill, chips and field
+        // together with small gaps, which is why it felt squished and gave no
+        // clue which part was the text and which part was the instruction.
+        com.kamsiob.kamai.ui.components.Eyebrow("Your text")
+        Spacer(Modifier.height(8.dp))
 
         // Source
         Box(
@@ -106,7 +114,7 @@ fun WorkbenchScreen(
                 .clip(RoundedCornerShape(18.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.border, RoundedCornerShape(18.dp))
-                .padding(14.dp),
+                .padding(16.dp),
         ) {
             if (input.isEmpty()) {
                 Text(
@@ -123,12 +131,12 @@ fun WorkbenchScreen(
                 enabled = !recording && !transcribing,
                 textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
                 cursorBrush = SolidColor(colors.accent),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp),
             )
         }
 
         if (voiceAvailable) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -164,22 +172,26 @@ fun WorkbenchScreen(
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(26.dp))
 
-        // Transform actions
-        val actions = WorkbenchViewModel.Action.entries
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .edgeFadeHorizontal()
-                .horizontalScroll(rememberScrollState()),
+        com.kamsiob.kamai.ui.components.Eyebrow("What to do with it")
+        Spacer(Modifier.height(10.dp))
+
+        // Every action visible at once, wrapped onto as many lines as it takes.
+        // These used to sit in a horizontal scroller, which cut the last chip in
+        // half and hid the rest behind a gesture nothing advertised: the screen
+        // looked like it offered four changes when it offers seven.
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            actions.forEach { action ->
+            WorkbenchViewModel.Action.entries.forEach { action ->
                 ActionChip(label = action.label, enabled = !running) { onAction(action) }
             }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(14.dp))
 
         // Free instruction
         Row(verticalAlignment = Alignment.Bottom) {
@@ -192,7 +204,7 @@ fun WorkbenchScreen(
                     .padding(horizontal = 14.dp, vertical = 11.dp),
             ) {
                 if (custom.isEmpty()) {
-                    Text("Or say what to do with it", style = KamTheme.type.body, color = colors.textTertiary)
+                    Text("Or describe the change yourself", style = KamTheme.type.body, color = colors.textTertiary)
                 }
                 BasicTextField(
                     value = custom,
@@ -225,7 +237,7 @@ fun WorkbenchScreen(
             )
         }
         if (running || output.isNotEmpty()) {
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(28.dp))
             com.kamsiob.kamai.ui.components.Eyebrow("Result")
             Spacer(Modifier.height(8.dp))
             Box(
@@ -274,12 +286,15 @@ fun WorkbenchScreen(
                     style = KamTheme.type.secondary,
                     color = colors.textTertiary,
                 )
-                Spacer(Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .edgeFadeHorizontal()
-                        .horizontalScroll(rememberScrollState()),
+                Spacer(Modifier.height(8.dp))
+                // Wrapped, like the first set. Chaining a change onto a result is
+                // the least discoverable thing on this screen, so hiding half the
+                // options behind a sideways scroll was the wrong place to save
+                // room.
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     WorkbenchViewModel.Action.entries.forEach { action ->
                         ActionChip(label = action.label, enabled = true) { onChain(action) }
