@@ -52,7 +52,10 @@ fun DownloadControls(
                     Downloads.Status.DONE -> "Done"
                 },
                 style = KamTheme.type.mono,
-                color = if (item.status == Downloads.Status.FAILED) colors.goldText else colors.textSecondary,
+                // A failure is not a destructive label, so it is not gold (#61).
+                // It reads at full strength instead, which is what makes it stand
+                // out from the running and paused lines beside it.
+                color = if (item.status == Downloads.Status.FAILED) colors.textPrimary else colors.textSecondary,
                 modifier = Modifier.weight(1f),
             )
             when (item.status) {

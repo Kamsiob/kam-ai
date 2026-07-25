@@ -133,7 +133,10 @@ fun WorkbenchScreen(
                 Box(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(if (recording) colors.flagAmber else colors.surfaceSecondary)
+                        // Recording is none of the four permitted gold uses (#61). The
+                        // three recording buttons in the app change together, or
+                        // they end up disagreeing with each other.
+                        .background(if (recording) colors.tonalFill else colors.surfaceSecondary)
                         .clickable(enabled = !transcribing) { if (recording) onMicStop() else onMicStart() }
                         .padding(horizontal = 14.dp, vertical = 9.dp)
                         .semantics { contentDescription = if (recording) "Stop recording" else "Voice input" },

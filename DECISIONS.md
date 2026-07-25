@@ -4065,3 +4065,49 @@ and the result is `remember`ed against the content so it does not run per frame.
 
 Verified on the phone against the conversation named in the issue. The card now reads "Hello. How
 can I help you." and the bubble matches, with the stored row untouched.
+
+## Issue #61: gold put back inside its four uses
+
+DESIGN section 2 reserves gold for saved items, locked model tiers, the Support this work button,
+and destructive-action labels, and says it "must never appear anywhere else". The issue listed
+three violations and left the replacement colours to the owner, on the grounds that DESIGN
+specifies no treatment for a listening state, a notice, or a failure.
+
+Taking that decision rather than leaving it, because the rule being broken is not ambiguous even
+though the replacement is: gold is currently appearing in places DESIGN forbids, and that is true
+whatever it gets replaced with.
+
+Sweeping every use rather than only the three listed turned up **four more**:
+
+- A **third recording button**, in the Workbench. The audit had found the overlay's and I found
+  the chat composer's while testing voice, so all three had independently reached for gold.
+- Two **lock screen errors** and a **lock settings error**.
+- The custom-instructions **character counter** when it goes over the limit.
+
+Ten sites in all, and the pattern is the same every time: somebody wanted "the colour that means
+pay attention" and gold was the only one in the palette that looked like it.
+
+### What replaced it
+
+**Listening: the tonal fill.** Not gold, and deliberately not the accent either, which was my
+first choice and wrong. The accent is the send button sitting a thumb away, and two identical
+green circles side by side is how somebody taps send when they meant stop. Tonal is the app's own
+"active, but not the primary action" weight, already used by chips and user bubbles. All three
+recording buttons now match, which they did not before in any colour.
+
+**Notices: tonal fill and tonal text.** DESIGN already describes the grounded Discover banner as
+"tonal fill, book icon, no amber", so the app had a precedent for a quiet informational bar and
+the notice bar was simply not following it.
+
+**Failures and errors: full-strength text.** A failed download, a wrong PIN, an over-length
+counter. These read at `textPrimary` against the `textSecondary` of everything around them, so
+they stand out by weight rather than by borrowing a reserved colour.
+
+### The guard
+
+`GoldRuleTest` pins the set of files allowed to name a gold colour at all, each with the reason it
+qualifies. The rule is about meaning, so no test can really check it; what this checks is what
+actually went wrong, which is gold spreading into files nobody was thinking about. A new file
+using it fails the test, and the fix is either not to, or to add it and say in the commit which of
+the four uses it is. A second test pins the three recording buttons together, since they drifted
+apart once already.

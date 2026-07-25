@@ -1039,7 +1039,7 @@ fun CustomInstructionsScreen(
         Text(
             if (remaining <= 200) "$remaining characters left" else "Saved on this phone",
             style = KamTheme.type.secondary,
-            color = if (remaining <= 0) colors.goldText else colors.textTertiary,
+            color = if (remaining <= 0) colors.textPrimary else colors.textTertiary,
         )
 
         Spacer(Modifier.height(18.dp))

@@ -162,7 +162,7 @@ fun LockSettingsScreen(
 
         if (error != null) {
             Spacer(Modifier.height(10.dp))
-            Text(error.orEmpty(), style = KamTheme.type.secondary, color = colors.goldText)
+            Text(error.orEmpty(), style = KamTheme.type.secondary, color = colors.textPrimary)
         }
         Spacer(Modifier.height(28.dp))
     }

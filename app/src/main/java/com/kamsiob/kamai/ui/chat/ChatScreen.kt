@@ -1480,12 +1480,12 @@ private fun NoticeBar(text: String, onDismiss: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = KamTheme.dimens.screenPadding, vertical = 6.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(colors.amberFill)
+            .background(colors.tonalFill)
             .clickable(onClick = onDismiss)
             .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text, style = KamTheme.type.secondary, color = colors.goldText, modifier = Modifier.weight(1f))
+        Text(text, style = KamTheme.type.secondary, color = colors.tonalText, modifier = Modifier.weight(1f))
     }
 }
 
@@ -1645,7 +1645,11 @@ private fun Composer(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(if (recording) colors.flagAmber else colors.surface)
+                    // Listening is drawn in the tonal fill: not the reserved gold
+                    // (#61), and not the accent, which is the send button a thumb
+                    // away. Two identical circles side by side is how somebody
+                    // taps send when they meant stop.
+                    .background(if (recording) colors.tonalFill else colors.surface)
                     .border(1.dp, colors.border, CircleShape)
                     .clickable(enabled = !transcribing) {
                         if (recording) onMicStop() else onMicStart()
@@ -1665,7 +1669,7 @@ private fun Composer(
                     Icon(
                         if (recording) Icons.Rounded.Stop else Icons.Rounded.Mic,
                         contentDescription = null,
-                        tint = if (recording) colors.onAccent else colors.textSecondary,
+                        tint = if (recording) colors.tonalText else colors.textSecondary,
                         modifier = Modifier.size(21.dp),
                     )
                 }

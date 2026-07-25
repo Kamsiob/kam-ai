@@ -430,7 +430,7 @@ private fun OverlayPanel(
                             Icon(
                                 if (recording) Icons.Rounded.Stop else Icons.Rounded.Mic,
                                 contentDescription = null,
-                                tint = if (recording) colors.onAccent else colors.textSecondary,
+                                tint = if (recording) colors.tonalText else colors.textSecondary,
                                 modifier = Modifier.size(20.dp),
                             )
                         }
@@ -472,7 +472,12 @@ private fun RoundBtn(
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .background(if (surface) colors.flagAmber else colors.accent)
+            // Listening is drawn in the tonal fill, not the reserved gold (#61)
+            // and not the accent either: the accent is the Ask button sitting
+            // next to it, and two identical circles a thumb apart is how you tap
+            // send when you meant stop. Tonal is the app's own "active but not
+            // the primary action" weight, used by chips and user bubbles.
+            .background(if (surface) colors.tonalFill else colors.accent)
             .clickable(onClick = onClick)
             .semantics { contentDescription = desc },
         contentAlignment = Alignment.Center,
