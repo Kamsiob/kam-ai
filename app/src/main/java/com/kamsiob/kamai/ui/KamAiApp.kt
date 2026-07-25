@@ -93,7 +93,7 @@ private sealed interface Pushed {
     data object Licenses : Pushed
     data object CrashReport : Pushed
     data object Voice : Pushed
-    data class Workbench(val sessionId: String? = null) : Pushed
+    data class Workbench(val sessionId: String? = null, val forConversation: String? = null) : Pushed
     data object Backup : Pushed
     data object Appearance : Pushed
     data object Safety : Pushed
@@ -292,13 +292,15 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                         app, pushed.id, pushed.startMode, pushed.initialText, pushed.vmKey,
                         onExit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) },
                         onOpenModel = { stack.add(Pushed.Model) },
-                        onOpenWorkbench = { stack.add(Pushed.Workbench()) },
+                        onOpenWorkbench = { chatId ->
+                            stack.add(Pushed.Workbench(forConversation = chatId))
+                        },
                         onOpenWorkbenchSession = { stack.add(Pushed.Workbench(it)) },
                     )
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
                     Pushed.Voice -> VoiceHost(app)
-                    is Pushed.Workbench -> WorkbenchHost(app, stack, pushed.sessionId)
+                    is Pushed.Workbench -> WorkbenchHost(app, stack, pushed.sessionId, pushed.forConversation)
                     Pushed.Backup -> BackupHost(app)
                     Pushed.Storage -> StorageHost(app)
                     Pushed.Memory -> MemoryHost(app)
@@ -422,7 +424,7 @@ private fun ConversationScreen(
     vmKey: String = conversationId,
     onExit: () -> Unit = {},
     onOpenModel: () -> Unit = {},
-    onOpenWorkbench: () -> Unit = {},
+    onOpenWorkbench: (String) -> Unit = {},
     /** Opens the Workbench session this chat is paired with, when it has one. */
     onOpenWorkbenchSession: (String) -> Unit = {},
 ) {
@@ -526,7 +528,7 @@ private fun ConversationScreen(
         ttsAvailable = ttsVoice != null,
         onModeChange = chat::setMode,
         onOpenModel = onOpenModel,
-        onOpenWorkbench = onOpenWorkbench,
+        onOpenWorkbench = { chat.conversationId.value?.let(onOpenWorkbench) },
         // A new message stops any answer that is being read aloud.
         onSend = { text -> app.stopSpeaking(); chat.send(text) },
         onStop = chat::stop,
@@ -861,6 +863,7 @@ private fun WorkbenchHost(
     app: AppViewModel,
     stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
     sessionId: String? = null,
+    forConversation: String? = null,
 ) {
     val context = LocalContext.current
     val bench: com.kamsiob.kamai.ui.workbench.WorkbenchViewModel = viewModel(
@@ -884,8 +887,15 @@ private fun WorkbenchHost(
     }
     val linkedId by bench.linkedId.collectAsStateWithLifecycle()
 
-    // Reopening a recorded session loads its text and result back in (#32).
-    LaunchedEffect(sessionId) { if (sessionId != null) bench.openSession(sessionId) }
+    // Reopening a recorded session loads its text and result back in (#32). A
+    // Workbench opened from a chat instead starts empty and pairs with that chat
+    // once it has produced something (#39).
+    LaunchedEffect(sessionId, forConversation) {
+        when {
+            sessionId != null -> bench.openSession(sessionId)
+            forConversation != null -> bench.openForConversation(forConversation)
+        }
+    }
 
     DisposableEffect(Unit) { onDispose { bench.cancelRecording() } }
 

@@ -104,6 +104,17 @@ class WorkbenchViewModel(
     private val _linkedId = MutableStateFlow<String?>(null)
     val linkedId: StateFlow<String?> = _linkedId.asStateFlow()
 
+    /**
+     * The chat this Workbench was opened from, held until a session exists to
+     * pair it with.
+     *
+     * Declared here rather than beside the function that sets it, because `init`
+     * reads it: Kotlin initialises properties in declaration order, so a later
+     * declaration is still null when the init block runs and the app crashed on
+     * opening Workbench at all.
+     */
+    private val _linkTo = MutableStateFlow<String?>(null)
+
     /** The last instruction run, kept so a session can be re-saved as it changes. */
     private var lastInstruction: String = "Workbench"
 
@@ -112,6 +123,12 @@ class WorkbenchViewModel(
             // Reopen on the session last worked on, so coming back to Workbench
             // finds the text and result that were there (#32).
             val recent = repository.mostRecentWorkbenchSession()
+            // Re-checked here, after the database read, not before it. A Workbench
+            // opened from a chat starts empty and linked, and the screen calls
+            // openForConversation while this coroutine is still suspended on that
+            // read; checking the guard before suspending let the restore resume
+            // afterwards and pull an unrelated session in over the empty one.
+            if (_linkTo.value != null || _sessionId.value != null) return@launch
             if (recent != null) {
                 openSession(recent)
             } else {
@@ -142,9 +159,31 @@ class WorkbenchViewModel(
         }
     }
 
+    /**
+     * Opens a Workbench for [conversationId], which is a chat that asked for one.
+     *
+     * The mode picker offers "a linked Workbench to rework text, side by side",
+     * and until now that opened whichever session happened to be most recent, with
+     * no link to the chat at all. The chat is remembered here and the pairing is
+     * written when the first run produces something, so an empty Workbench nobody
+     * used does not leave a blank row and a dangling link behind (#32, #39).
+     */
+    fun openForConversation(conversationId: String) {
+        if (_linkTo.value == conversationId) return
+        _linkTo.value = conversationId
+        job?.cancel()
+        _sessionId.value = null
+        _linkedId.value = conversationId
+        _input.value = ""
+        _output.value = ""
+        _notice.value = null
+        lastInstruction = "Workbench"
+    }
+
     /** Starts a fresh session, leaving the recorded one alone in the chat list. */
     fun newSession() {
         job?.cancel()
+        _linkTo.value = null
         _sessionId.value = null
         _linkedId.value = null
         _input.value = ""
@@ -269,6 +308,13 @@ class WorkbenchViewModel(
                     )
                     _sessionId.value = id
                     lastInstruction = instruction
+                    // The chat that asked for this Workbench gets paired with it
+                    // now that there is a session worth pairing (#39).
+                    _linkTo.value?.let { chat ->
+                        repository.linkConversations(id, chat)
+                        _linkedId.value = chat
+                        _linkTo.value = null
+                    }
                     runCatching {
                         com.kamsiob.kamai.llm.ConversationTitler.titleIfNeeded(repository, engine, id)
                     }

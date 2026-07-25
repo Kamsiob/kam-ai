@@ -3504,3 +3504,35 @@ seems likely to fix.
 **Recorded and stopped rather than looped on**, per the rule already in this file. Worth trying
 from the app side rather than the prompt: a conversation this far in could offer an explicit
 converge action instead of relying on the model to notice the request in prose.
+
+## Issue #39, first finding: the mode picker's Workbench promise was still not true
+
+The picker offers Workbench as "Opens a linked Workbench to rework text, side by side". HANDOFF
+has carried a standing note that this copy was correct about the intent and that #32 would make
+it true, with an instruction not to weaken it in the meantime.
+
+#32 built the linking, but nothing connected it to the picker. Choosing Workbench from a chat
+pushed a bare Workbench, which then restored whichever session happened to be most recent, with
+no link to the chat at all. The user asked for a Workbench for *this* conversation and got
+somebody else's leftover text.
+
+It now opens empty and remembers the chat it came from, and the pairing is written when the
+first run produces something. Deliberately not on open: an empty Workbench nobody used should
+not leave a blank row in Chats and a dangling link behind.
+
+### Two defects found while building it, both mine
+
+**A crash on opening Workbench at all.** `_linkTo` was declared below the `init` block that
+reads it, and Kotlin initialises properties in declaration order, so it was still null when
+init ran. Straight `NullPointerException` at `WorkbenchViewModel.<init>`. Caught by opening the
+screen once.
+
+**A race that survived the first fix.** With the crash gone, the Workbench still opened on the
+old session. Both `openForConversation` and `openSession` were running, in that order. The init
+coroutine checks whether a chat has claimed this Workbench *before* it suspends on the database
+read, so the screen's call landed in the gap and the restore resumed afterwards and overwrote
+it. The guard is now re-checked after the read, against both the link and the session.
+
+Found by logging which branch actually ran rather than reasoning about it, which is the second
+time tonight that was faster than reading the code. The diagnostics came out once they had
+answered the question.
