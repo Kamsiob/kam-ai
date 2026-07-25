@@ -110,7 +110,23 @@ Things worth knowing:
 - Filed and not started: **#63** ("Storm"), **#64** (selection menu never appeared), **#65**
   (keep an interrupted recording), **#66** (Settings groups vs DESIGN).
 
-Test suite stands at **322 passing, no failures**, plus 5 instrumentation tests run on the phone.
+**#58 has an app-side fix.** "Wrap up this session" in the Brainstorm overflow puts the converge
+instruction in as the final user turn. Verified against the exact conversation that previously
+recited its own procedure back. Typing "wrap it up" still goes through the ordinary path and can
+still misfire; this gives a control that works every time rather than a phrasing that works
+sometimes.
+
+**#57 has a clean reproduction.** Claim, crux and warrant all land well, on the first turn of a
+fresh conversation. The values stop does not: the model locates the values disagreement and then
+argues anyway. Not a long-context problem, unlike #58, so rewording is unlikely to be the answer.
+
+**The overlay could not be tested.** `OverlayActivity` is `exported="false"` and reachable only
+through the assist role, so it needs Kam AI set as the phone's digital assistant. That is a system
+setting and the owner's call, not something to change from adb.
+
+Test suite stands at **327 passing, no failures**, plus 5 instrumentation tests run on the phone.
+The phone was left with one Kam AI installed, no test package, font scale 1.0, auto-rotate on,
+airplane mode off, microphone permission granted, System theme, and no test files in Downloads.
 
 **Just finished:** issue #24, the version 4 to version 5 migration. The migration SQL now
 lives in `KamDatabase.MIGRATION_4_5_SQL`, which the shipped `Migration` object executes,
