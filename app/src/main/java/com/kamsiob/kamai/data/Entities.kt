@@ -138,6 +138,20 @@ data class MessageEntity(
     val incomplete: Boolean = false,
     /** Set when generation stopped early, so the UI can say why in plain words. */
     val stoppedReason: String? = null,
+    /**
+     * How many remembered facts were put in front of the model for this answer
+     * (#16).
+     *
+     * The Memory screen shows what the app has stored and offers to delete it,
+     * which answers "what does it know" and not "did that change this answer".
+     * Without the second, memory is an invisible influence on everything, and
+     * an answer that seems to know something can only be explained by guessing.
+     *
+     * A count rather than the memories themselves: the answer is on screen next
+     * to a Memory screen listing all of them, and storing copies would mean a
+     * deleted memory living on in the transcript of every answer that used it.
+     */
+    val memoriesUsed: Int = 0,
 )
 
 @Entity(

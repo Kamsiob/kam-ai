@@ -5435,3 +5435,35 @@ between 3, 7 and 30 days answers "and what would that do?" without committing.
 
 Device-verified: the setting persists, switching recounts, and with nothing old
 enough the switch is silent rather than showing an empty confirmation.
+
+## An answer says when memory went into it (#16)
+
+The Memory screen lists everything the app has kept and offers to delete any of
+it, which answers "what does this know about me". It cannot answer "did that
+change this answer", and that is the question somebody actually has when a reply
+knows something they never said in this conversation. Until now the only way to
+find out was to guess.
+
+A finished answer that had memories in front of it now carries one quiet line
+under it: "Used 2 things it remembers about you", in tertiary text, tapping
+through to the Memory screen. Wording chosen carefully. "Used", not
+"Remembered": the claim is about this answer, and the app remembers those things
+whether or not they came anywhere near this reply.
+
+A count, not the memories themselves. The list is one tap away, it would repeat
+under every answer that used it, and storing copies would leave a deleted memory
+living on in the transcript of every answer that had used it.
+
+`MIGRATION_7_8` adds `memoriesUsed INTEGER NOT NULL DEFAULT 0` to `messages`.
+Zero is the honest default for everything already written: some of those answers
+did use memory, nothing recorded it at the time, and inventing a number would put
+a claim in the transcript that nobody can check. The count is captured in
+`buildPrompt` and written when the answer's row is created, a few lines later in
+the same coroutine.
+
+Only on finished answers. A line about memory beside a half-written response
+reads as part of the response.
+
+Device-verified: with two facts stored, asking about one of them produced an
+answer carrying "Used 2 things it remembers about you", and the line opens the
+Memory screen.

@@ -186,6 +186,8 @@ fun ChatScreen(
     /** Set when this chat was started from a Workbench session, so the pair can
      *  be walked from this side too (#32). */
     onOpenWorkbenchSession: (() -> Unit)? = null,
+    /** Opens the Memory screen from the memory line under an answer (#16). */
+    onOpenMemory: () -> Unit = {},
     onDeleteConversation: () -> Unit = {},
     onModeChange: (Mode) -> Unit,
     onOpenModel: () -> Unit = {},
@@ -466,6 +468,7 @@ fun ChatScreen(
                                     onFollowUpSelection = { text -> onFollowUpSelection(message, text) },
                                     onPlay = { onPlay(message) },
                                     onEdit = { onEdit(message, it) },
+                                    onOpenMemory = onOpenMemory,
                                 )
                             }
                         }
@@ -924,6 +927,8 @@ private fun MessageRow(
     onPlay: () -> Unit,
     onEdit: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens the Memory screen from the memory line under this answer (#16). */
+    onOpenMemory: () -> Unit,
 ) {
     // An answer that has not produced any text yet is represented by the thinking
     // indicator, so its empty bubble is not drawn (it would show as a bare pill).
@@ -1028,6 +1033,28 @@ private fun MessageRow(
                         )
                     }
                 }
+            }
+
+            // Memory that went into this answer, said once, quietly, under the
+            // answer it affected (#16). The Memory screen already answers "what
+            // does it know about me"; this answers "did that change this", which
+            // is the question somebody actually has when an answer knows
+            // something they never said in this conversation.
+            //
+            // Only on finished answers. A line about memory appearing beside a
+            // half-written response reads as part of the response.
+            if (message.role == Role.ASSISTANT && message.memoriesUsed > 0 && !message.incomplete) {
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    memoryNote(message.memoriesUsed),
+                    style = KamTheme.type.secondary,
+                    color = colors.textTertiary,
+                    modifier = Modifier
+                        .widthIn(max = maxBubble)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onOpenMemory)
+                        .padding(vertical = 2.dp),
+                )
             }
 
             // A stop reason is stated plainly under the message it belongs to,
@@ -1846,4 +1873,18 @@ private fun ExcerptDialog(
             }
         }
     }
+}
+
+/**
+ * What the memory line says under an answer (#16).
+ *
+ * "Used" rather than "remembered", because the claim being made is about this
+ * answer and not about the store: the app remembers those things whether or not
+ * they came anywhere near this reply. Counted rather than listed, since the list
+ * is one tap away on the Memory screen and would otherwise be repeated under
+ * every answer that used it.
+ */
+internal fun memoryNote(count: Int): String = when (count) {
+    1 -> "Used 1 thing it remembers about you"
+    else -> "Used $count things it remembers about you"
 }

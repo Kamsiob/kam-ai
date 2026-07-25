@@ -564,6 +564,8 @@ class KamRepository(
         role: Role,
         content: String,
         incomplete: Boolean = false,
+        /** Remembered facts put in front of the model for this answer (#16). */
+        memoriesUsed: Int = 0,
     ): String {
         val now = System.currentTimeMillis()
         val id = UUID.randomUUID().toString()
@@ -571,6 +573,7 @@ class KamRepository(
             MessageEntity(
                 id = id, conversationId = conversationId, role = role,
                 content = content, createdAt = now, incomplete = incomplete,
+                memoriesUsed = memoriesUsed,
             ),
         )
         db.conversations().touch(conversationId, now)

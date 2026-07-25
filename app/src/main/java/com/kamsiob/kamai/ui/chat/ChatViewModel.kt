@@ -575,6 +575,15 @@ class ChatViewModel(
      */
     private var pendingAttachment: Pair<String, String>? = null
 
+    /**
+     * How many remembered facts the last built prompt carried (#16).
+     *
+     * Written by [buildPrompt] and read immediately after, when the answer's row
+     * is created. A plain var because the two happen in the same coroutine, one
+     * after the other, with nothing in between.
+     */
+    private var lastMemoriesUsed: Int = 0
+
     fun attach(context: android.content.Context, uri: android.net.Uri) {
         viewModelScope.launch {
             when (val r = com.kamsiob.kamai.files.FileExtractor.extract(context, uri)) {
@@ -643,6 +652,10 @@ class ChatViewModel(
         val memBudgetChars = (contextSize * MEMORY_CTX_FRACTION * CHARS_PER_TOKEN).toInt()
         val memories = repository.relevantMemory(lastUser, memBudgetChars, MEMORY_LIMIT)
         system = SystemPrompts.withMemory(system, memories)
+        // Recorded on the answer that is about to be written, so the transcript
+        // can say that memory was involved (#16). Set here rather than returned
+        // because buildPrompt has one caller and four other things to say.
+        lastMemoriesUsed = memories.size
 
         // Inject the real current date, which the model otherwise gets wrong. Day
         // granularity, not the time: a minute-precise stamp would change every
@@ -760,6 +773,7 @@ class ChatViewModel(
             // second bubble, so the result reads as the one answer it is.
             val messageId = continueFrom?.id ?: repository.addMessage(
                 conversationId, Role.ASSISTANT, "", incomplete = true,
+                memoriesUsed = lastMemoriesUsed,
             )
 
             val builder = StringBuilder(continueFrom?.content.orEmpty())

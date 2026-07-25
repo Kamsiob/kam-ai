@@ -319,6 +319,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                             )
                         },
                         onOpenWorkbenchSession = { stack.add(Pushed.Workbench(it)) },
+                        onOpenMemory = { stack.add(Pushed.Memory) },
                     )
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
@@ -476,6 +477,8 @@ private fun ConversationScreen(
     onOpenWorkbenchSession: (String) -> Unit = {},
     /** True inside the Discover sheet, which supplies its own header (#11). */
     scoped: Boolean = false,
+    /** Opens the Memory screen from the memory line under an answer (#16). */
+    onOpenMemory: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val chat: ChatViewModel = viewModel(
@@ -651,6 +654,7 @@ private fun ConversationScreen(
         conversationProjectId = conversationProjectId,
         grounded = grounded,
         scoped = scoped,
+        onOpenMemory = onOpenMemory,
         onContinueOpen = chat::continueInOpenChat,
         onMoveToProject = { projectId ->
             chat.conversationId.value?.let { app.assignConversationToProject(it, projectId) }

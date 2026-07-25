@@ -47,7 +47,7 @@ class Converters {
         ArtifactEntity::class,
         SettingEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -200,6 +200,26 @@ abstract class KamDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * The statements MIGRATION_7_8 runs. See MigrationV7ToV8SqlTest.
+         *
+         * One column: how many remembered facts were put in front of the model
+         * for a given answer, so the answer can say that it used them (#16).
+         *
+         * Zero is the honest default for everything already written. Those
+         * answers may well have used memory; nothing recorded it at the time,
+         * and inventing a number for them would be worse than saying nothing.
+         */
+        val MIGRATION_7_8_SQL = listOf(
+            "ALTER TABLE messages ADD COLUMN memoriesUsed INTEGER NOT NULL DEFAULT 0",
+        )
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                MIGRATION_7_8_SQL.forEach(db::execSQL)
+            }
+        }
+
         @Volatile
         private var instance: KamDatabase? = null
 
@@ -235,7 +255,7 @@ abstract class KamDatabase : RoomDatabase() {
                 .openHelperFactory(factory)
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
-                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                 )
                 .build()
         }
