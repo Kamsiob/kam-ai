@@ -129,9 +129,30 @@ private fun elapsed(seconds: Int): String = when {
  * a live defect found on the phone, not in the tests: the old index-only
  * `atBottom` happened to tolerate it and the stricter one does not.
  */
-private suspend fun androidx.compose.foundation.lazy.LazyListState.followToEnd() {
+private suspend fun androidx.compose.foundation.lazy.LazyListState.followToEnd(
+    /**
+     * Animate the scroll, or jump straight there.
+     *
+     * **Following a stream must not animate.** The effect that follows the
+     * stream is keyed on the answer's length, so it is cancelled and restarted
+     * on every token. `animateScrollToItem` is a suspending animation, so each
+     * token killed the animation the previous token started and began a new one
+     * from wherever it had got to, which on a fast stream is nowhere. Short
+     * answers looked fine because the final token let one animation run to the
+     * end; long answers, where following actually matters, barely moved at all.
+     * That is the "it doesn't scroll down on longer replies" report.
+     *
+     * A jump to the end per token is not jarring, because the text has only
+     * grown by a word: it reads as the page keeping up. Animation is right for a
+     * deliberate move, like tapping jump-to-latest or sending, where the user is
+     * asking to travel a distance and wants to see it happen.
+     */
+    animate: Boolean = true,
+) {
     val last = layoutInfo.totalItemsCount - 1
-    if (last >= 0) animateScrollToItem(last, FOLLOW_TO_END_OFFSET)
+    if (last < 0) return
+    if (animate) animateScrollToItem(last, FOLLOW_TO_END_OFFSET)
+    else scrollToItem(last, FOLLOW_TO_END_OFFSET)
 }
 
 @Composable
@@ -303,9 +324,9 @@ fun ChatScreen(
         // restore above had just set. Sending sets streaming before it writes the
         // message, so a new turn is still followed.
         if (scrollRestored && streaming && messages.isNotEmpty() &&
-            followLatch.shouldFollow(atBottom)
+            followLatch.shouldFollow()
         ) {
-            listState.followToEnd()
+            listState.followToEnd(animate = false)
         }
     }
 

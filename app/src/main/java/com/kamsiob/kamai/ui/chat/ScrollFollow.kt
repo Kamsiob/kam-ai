@@ -93,6 +93,24 @@ class FollowLatch {
         userTookControl = false
     }
 
-    /** Whether streaming text should scroll itself into view right now. */
-    fun shouldFollow(atBottom: Boolean): Boolean = atBottom && !userTookControl
+    /**
+     * Whether streaming text should scroll itself into view right now.
+     *
+     * **Deliberately does not consult `atBottom`.** It used to, and that was the
+     * bug behind "a longer reply does not scroll down". Following exists exactly
+     * for the case where the newest text has grown past the bottom of the
+     * screen, which is the moment `atBottom` turns false: requiring it to be true
+     * meant the view would only follow while it did not need to. Short answers
+     * looked fine because each token moved the end by less than the tolerance,
+     * so it stayed "at the bottom" one token at a time; the first token that
+     * pushed a whole new line past the fold ended following for the rest of the
+     * answer.
+     *
+     * The latch is what stops following, and the user closing it by dragging is
+     * the only thing that should. `atBottom` still matters, but for *resuming*:
+     * the screen calls [returnedToBottom] when it becomes true again, which is
+     * how a user who scrolls back down gets following back without tapping
+     * anything.
+     */
+    fun shouldFollow(): Boolean = !userTookControl
 }

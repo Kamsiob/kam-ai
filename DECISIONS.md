@@ -5046,3 +5046,48 @@ choosing between them, these are six places to know exist.
 
 The slide sits after the modes and before picking a model, so the last thing before a download is
 what the app can do rather than a list of file sizes.
+
+## The scroll-follow bug, found properly this time
+
+Reported again: a longer reply does not scroll down with the text. Two separate causes, both real,
+and the second is the one that mattered.
+
+**The animation was cancelling itself.** `followToEnd` used `animateScrollToItem`, and the effect
+that follows the stream is keyed on the answer's length, so it is cancelled and restarted on every
+token. Each token killed the animation the previous token started and began a new one from wherever
+it had reached, which on a fast stream is nowhere. Following the stream now jumps rather than
+animates. A jump per token is not jarring, because the text has only grown by a word: it reads as
+the page keeping up. Animation stays for deliberate moves, tapping jump-to-latest or sending, where
+the user is asking to travel a distance and wants to see it happen.
+
+**The latch required being at the bottom.** `shouldFollow(atBottom) = atBottom && !userTookControl`.
+Following exists exactly for the case where the newest text has grown past the bottom of the
+screen, which is the moment `atBottom` turns false. So it would only follow while it did not need
+to.
+
+Short answers hid this: each token moves the end by less than the 8px tolerance, so it stayed "at
+the bottom" one token at a time. The first token that pushed a whole new line past the fold ended
+following for the rest of the answer. That is precisely why it looked like a bug about *long*
+replies.
+
+`shouldFollow()` takes no argument now. The latch is what stops following, and a user dragging is
+the only thing that should. `atBottom` still matters, for resuming: the screen already calls
+`returnedToBottom()` when it becomes true, which is how somebody who scrolls back down gets
+following back without tapping anything. That is what the class doc described all along; the
+`atBottom &&` was doing something else.
+
+## Issue #53: flash attention and a quantised KV cache
+
+Measured before: 336 MiB of KV at f16, 96 MiB for the non-SWA cache and 240 MiB for the SWA one.
+The SWA cache is that large because `swa_full` buys cache correctness with memory, which #49
+settled.
+
+After asking for flash attention explicitly and setting `type_k`/`type_v` to q8_0: **178.5 MiB**,
+51 MiB and 127.5 MiB. **157.5 MiB given back.**
+
+Decode measured 6.2 tok/s against a 5.9 to 6.4 baseline, so no regression, at 32.4 C. Kept: a large
+memory saving for no measurable speed cost, on a phone where memory is the binding constraint.
+
+Flash attention is a prerequisite for quantised KV in llama.cpp, so the two go in together. The
+fallback to AUTO and f16 is not decoration: if a future model or build cannot do flash attention,
+the app degrades to exactly today's behaviour rather than failing to open a context at all.

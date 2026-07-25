@@ -114,7 +114,34 @@ bool build_context_locked() {
     // full context size. It costs KV memory and buys a correct cache.
     cparams.swa_full = true;
 
+    // The KV cache is quantised to q8_0, and flash attention is asked for
+    // explicitly rather than left on AUTO (issue #53).
+    //
+    // Measured on this phone before the change: 336 MiB of KV at f16, 96 for the
+    // non-SWA cache and 240 for the SWA one, and the SWA cache is that large
+    // precisely because swa_full above buys cache correctness with memory. q8_0
+    // halves both. That matters twice over: it gives the memory back, and decode
+    // on a phone is bandwidth-bound, so a smaller cache is a faster one.
+    //
+    // Flash attention is a prerequisite for quantised KV in llama.cpp, so the two
+    // go in together or not at all.
+    //
+    // Kept only if it wins, per the rule on #51, and it is measured below in
+    // DECISIONS. The fallback is not decoration: if a future model or build
+    // cannot do flash attention, AUTO with f16 is exactly today's behaviour, so
+    // the app degrades to something known rather than failing to open a context.
+    cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED;
+    cparams.type_k = GGML_TYPE_Q8_0;
+    cparams.type_v = GGML_TYPE_Q8_0;
+
     g_session.ctx = llama_init_from_model(g_session.model, cparams);
+    if (g_session.ctx == nullptr) {
+        LOGE("context with flash attention and q8_0 KV failed; falling back to f16");
+        cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_AUTO;
+        cparams.type_k = GGML_TYPE_F16;
+        cparams.type_v = GGML_TYPE_F16;
+        g_session.ctx = llama_init_from_model(g_session.model, cparams);
+    }
     if (g_session.ctx == nullptr) return false;
     llama_set_abort_callback(g_session.ctx, abort_callback, &g_session.abort);
     g_session.n_past = 0;

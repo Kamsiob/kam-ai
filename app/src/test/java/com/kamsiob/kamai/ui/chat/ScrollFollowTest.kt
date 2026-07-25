@@ -78,16 +78,19 @@ class ScrollFollowTest {
     }
 
     @Test
-    fun followingIsOnByDefaultAtTheBottom() {
+    fun followingIsOnByDefault() {
         val latch = FollowLatch()
         assertThat(latch.userTookControl).isFalse()
-        assertThat(latch.shouldFollow(atBottom = true)).isTrue()
+        assertThat(latch.shouldFollow()).isTrue()
     }
 
     @Test
-    fun followingIsOffWhenTheUserIsReadingElsewhere() {
+    fun followingKeepsGoingOnceTheAnswerHasGrownPastTheFold() {
+        // The bug this replaced: following used to require being at the bottom,
+        // which is false the instant a long answer outgrows the screen. It could
+        // only follow while it did not need to.
         val latch = FollowLatch()
-        assertThat(latch.shouldFollow(atBottom = false)).isFalse()
+        assertThat(latch.shouldFollow()).isTrue()
     }
 
     @Test
@@ -96,7 +99,7 @@ class ScrollFollowTest {
         latch.userDragged()
         // Even back at the bottom, this response does not resume following on its
         // own. That is the whole point of the latch: no snapping back.
-        assertThat(latch.shouldFollow(atBottom = true)).isFalse()
+        assertThat(latch.shouldFollow()).isFalse()
     }
 
     @Test
@@ -114,7 +117,7 @@ class ScrollFollowTest {
         val latch = FollowLatch()
         latch.userDragged()
         latch.returnedToBottom()
-        assertThat(latch.shouldFollow(atBottom = true)).isTrue()
+        assertThat(latch.shouldFollow()).isTrue()
     }
 
     @Test
@@ -122,7 +125,7 @@ class ScrollFollowTest {
         val latch = FollowLatch()
         latch.userDragged()
         latch.jumpTapped()
-        assertThat(latch.shouldFollow(atBottom = true)).isTrue()
+        assertThat(latch.shouldFollow()).isTrue()
     }
 
     @Test
@@ -132,7 +135,7 @@ class ScrollFollowTest {
         val latch = FollowLatch()
         latch.userDragged()
         latch.newResponseStarted()
-        assertThat(latch.shouldFollow(atBottom = true)).isTrue()
+        assertThat(latch.shouldFollow()).isTrue()
     }
 
     @Test
@@ -141,7 +144,7 @@ class ScrollFollowTest {
         // content growth touches it; only the four explicit events do.
         val latch = FollowLatch()
         latch.userDragged()
-        repeat(200) { assertThat(latch.shouldFollow(atBottom = false)).isFalse() }
+        repeat(200) { assertThat(latch.shouldFollow()).isFalse() }
         assertThat(latch.userTookControl).isTrue()
     }
 }
