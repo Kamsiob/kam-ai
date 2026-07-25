@@ -3764,3 +3764,35 @@ going.
 Verified on the phone: tapping Logic in a project opens a Logic conversation inside that project.
 The empty-state line below it, "Start one above, or move an existing chat into this project from
 its options", was already written for a control above it and now reads correctly.
+
+## Issue #39, tenth finding: selection actions that have never once appeared
+
+Selecting part of an answer is supposed to offer Copy, Follow up, and Share for that excerpt.
+What actually appears is the platform's toolbar: Copy, Select all, Read aloud.
+
+`SelectionActions` installs a custom `TextToolbar` via `LocalTextToolbar` and draws its own popup
+when `showMenu` is called. `SelectionContainer` in Compose UI 1.11.4 never consults
+`LocalTextToolbar`, so `showMenu` is not called, the popup never renders, and the platform
+toolbar takes the screen. The file compiles, reads correctly, and has been wrong on the device
+the entire time.
+
+I tried the obvious theory first, that the six-argument `showMenu` overload with the default
+implementation was taking over, and overrode both. No change on the device. That is the second
+failure of the same kind, so I stopped and wrote it up as **#64** rather than keep pulling.
+
+The issue records the replacement API (`Modifier.appendTextContextMenuComponents` plus
+`TextContextMenuBuilderScope.item`), which adds items to the platform toolbar instead of
+replacing it, and the open problem: `TextContextMenuSession` exposes only `close()`, so nothing
+hands the callback the selected text, and the old clipboard trick depended on an
+`onCopyRequested` lambda the new API does not provide. It also names a third option worth
+weighing first: drop the idea of app actions inside the selection menu and put "Follow up on a
+quote" in the response overflow instead.
+
+`SelectionActions` keeps both overrides and gains a doc comment saying plainly that none of it
+runs. Code that looks like it works is worse than code that says it does not.
+
+### The other half of the item, which is fine
+
+Selecting text **while a response is still streaming** works. The selection survives the text
+changing underneath it and the follow-scroll does not fight it. Checked on the phone against a
+two-hundred word answer mid-flight.

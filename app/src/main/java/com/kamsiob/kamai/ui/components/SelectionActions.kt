@@ -42,6 +42,14 @@ import com.kamsiob.kamai.ui.theme.KamTheme
  * puts the selection on the clipboard, then reading it back. That keeps the
  * selection handles and drag behaviour exactly as the system provides them, and
  * only the floating menu changes.
+ *
+ * **None of this currently runs. See issue #64.** `SelectionContainer` no longer
+ * consults `LocalTextToolbar`, so the toolbar installed below is never asked for
+ * a menu and the platform's own toolbar appears instead: selecting part of an
+ * answer offers Copy, Select all and Read aloud, and never Follow up or Share.
+ * The code reads as though it works, compiles, and has always been wrong on the
+ * device. Kept rather than deleted because the actions and their wiring are
+ * still what is wanted; only the mechanism for showing them has to change.
  */
 @Composable
 fun SelectionActions(
@@ -65,6 +73,32 @@ fun SelectionActions(
                 onPasteRequested: (() -> Unit)?,
                 onCutRequested: (() -> Unit)?,
                 onSelectAllRequested: (() -> Unit)?,
+            ) {
+                status = TextToolbarStatus.Shown
+                menu = MenuState(rect, onCopyRequested)
+            }
+
+            /**
+             * The same thing, for the overload that carries autofill.
+             *
+             * `TextToolbar` grew a six-argument `showMenu` alongside the
+             * five-argument one, with a default implementation. Overriding both
+             * costs nothing and is correct for any caller that still goes
+             * through this interface.
+             *
+             * It is **not** what fixes issue #64, though. Neither override
+             * fires: `SelectionContainer` in this version of Compose does not
+             * consult `LocalTextToolbar` at all, so the whole class below is
+             * dead and the platform toolbar is what actually appears. See #64
+             * for the evidence and the API that replaces this.
+             */
+            override fun showMenu(
+                rect: Rect,
+                onCopyRequested: (() -> Unit)?,
+                onPasteRequested: (() -> Unit)?,
+                onCutRequested: (() -> Unit)?,
+                onSelectAllRequested: (() -> Unit)?,
+                onAutofillRequested: (() -> Unit)?,
             ) {
                 status = TextToolbarStatus.Shown
                 menu = MenuState(rect, onCopyRequested)
