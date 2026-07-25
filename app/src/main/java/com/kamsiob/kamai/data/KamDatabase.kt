@@ -47,7 +47,7 @@ class Converters {
         ArtifactEntity::class,
         SettingEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -153,6 +153,30 @@ abstract class KamDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * The statements MIGRATION_5_6 runs, exposed for the same reason as
+         * MIGRATION_4_5_SQL: so a pure JVM test can drive the exact statements
+         * that ship rather than a copy of them. See MigrationSqlTest.
+         *
+         * One column. A Workbench session and the conversation discussing it point
+         * at each other, so the link can be followed from either side (issue #32).
+         * Nullable, because most conversations have no link and a link is a fact
+         * about a pair rather than a property every row must carry.
+         *
+         * Adding a nullable column is the least destructive change available: no
+         * existing row is read, rewritten, or moved, and every existing
+         * conversation is simply unlinked, which is what it was.
+         */
+        val MIGRATION_5_6_SQL = listOf(
+            "ALTER TABLE conversations ADD COLUMN linkedConversationId TEXT DEFAULT NULL",
+        )
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                MIGRATION_5_6_SQL.forEach(db::execSQL)
+            }
+        }
+
         @Volatile
         private var instance: KamDatabase? = null
 
@@ -186,7 +210,7 @@ abstract class KamDatabase : RoomDatabase() {
             val factory = DatabaseEncryption.openHelperFactory(context, dbFile, passphrase)
             return Room.databaseBuilder(context, KamDatabase::class.java, NAME)
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
         }
     }

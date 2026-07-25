@@ -79,6 +79,14 @@ data class ConversationEntity(
      */
     val titleIsManual: Boolean = false,
     /**
+     * The other half of a Workbench pairing, if this conversation has one.
+     *
+     * A Workbench session and the chat discussing it each hold the other's id, so
+     * the link can be followed from either side without a lookup table. Null for
+     * everything else, which is nearly everything. Issue #32.
+     */
+    val linkedConversationId: String? = null,
+    /**
      * Holds the Discover passage a conversation is grounded in, so its system
      * instructions can confine the model to that text. Stores the passage itself,
      * not just a reference, so a grounded chat keeps working even if the pack it
