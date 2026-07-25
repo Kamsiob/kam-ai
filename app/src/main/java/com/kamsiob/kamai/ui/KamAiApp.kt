@@ -388,10 +388,13 @@ private fun TabContent(
 
         NavItem.PROJECTS -> {
             val projects by app.projects.collectAsStateWithLifecycle()
+            val projectsView by app.projectsView.collectAsStateWithLifecycle()
             com.kamsiob.kamai.ui.projects.ProjectsScreen(
                 projects = projects,
                 onOpen = { stack.add(Pushed.Project(it)) },
                 onCreate = { name -> app.createProject(name) { id -> stack.add(Pushed.Project(id)) } },
+                view = projectsView,
+                onViewChange = app::setProjectsView,
             )
         }
 

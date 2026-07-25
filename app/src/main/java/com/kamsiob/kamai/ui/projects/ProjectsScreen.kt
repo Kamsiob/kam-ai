@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import com.kamsiob.kamai.ui.AppViewModel.ChatsView
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,6 +55,10 @@ fun ProjectsScreen(
     projects: List<ProjectEntity>,
     onOpen: (String) -> Unit,
     onCreate: (String) -> Unit,
+    /** The same three densities Chats offers, remembered the same way (#50). */
+    view: ChatsView =
+        ChatsView.COMFORTABLE,
+    onViewChange: (ChatsView) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -68,6 +74,10 @@ fun ProjectsScreen(
                 modifier = Modifier.clip(CircleShape).clickable { creating = true }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             )
+            if (projects.isNotEmpty()) {
+                Spacer(Modifier.width(4.dp))
+                com.kamsiob.kamai.ui.components.ViewSwitcher(view, onViewChange)
+            }
         }
         Spacer(Modifier.height(6.dp))
         Text(
@@ -85,24 +95,26 @@ fun ProjectsScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 24.dp),
-            ) {
-                items(projects, key = { it.id }) { project ->
-                    Column(
-                        Modifier.fillMaxWidth()
-                            .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
-                            .background(colors.surface)
-                            .border(1.dp, colors.border, RoundedCornerShape(KamTheme.dimens.cardRadius))
-                            .clickable { onOpen(project.id) }
-                            .padding(15.dp),
-                    ) {
-                        Text(project.name, style = KamTheme.type.cardTitle, color = colors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        val sub = project.instructions.trim().ifBlank { "No instructions yet" }
-                        Spacer(Modifier.height(4.dp))
-                        Text(sub, style = KamTheme.type.secondary, color = colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (view == ChatsView.GRID) {
+                androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                    columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                ) {
+                    gridItems(projects, key = { it.id }) { project ->
+                        ProjectCard(project, view, onOpen)
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(if (view == ChatsView.COMPACT) 6.dp else 8.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                ) {
+                    items(projects, key = { it.id }) { project ->
+                        ProjectCard(project, view, onOpen)
                     }
                 }
             }
@@ -304,6 +316,51 @@ private fun NameDialog(
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 )
             }
+        }
+    }
+}
+
+/**
+ * One project, drawn at whichever density the screen is set to (#50).
+ *
+ * The same three the Chats list offers, meaning the same thing here: comfortable
+ * shows the instructions under the name, compact is the name alone, and grid is
+ * two to a row. Compact drops the subtitle rather than shrinking it, which is
+ * what makes it compact on Chats too.
+ */
+@Composable
+private fun ProjectCard(
+    project: ProjectEntity,
+    view: ChatsView,
+    onOpen: (String) -> Unit,
+) {
+    val colors = KamTheme.colors
+    val compact = view == ChatsView.COMPACT
+    Column(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
+            .background(colors.surface)
+            .border(1.dp, colors.border, RoundedCornerShape(KamTheme.dimens.cardRadius))
+            .clickable { onOpen(project.id) }
+            .padding(if (compact) 12.dp else 15.dp),
+    ) {
+        Text(
+            project.name,
+            style = KamTheme.type.cardTitle,
+            color = colors.textPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (!compact) {
+            val sub = project.instructions.trim().ifBlank { "No instructions yet" }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                sub,
+                style = KamTheme.type.secondary,
+                color = colors.textTertiary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

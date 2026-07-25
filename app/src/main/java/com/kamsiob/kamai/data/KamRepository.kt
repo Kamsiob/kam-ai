@@ -26,6 +26,11 @@ class KamRepository(
     object Keys {
         const val ONBOARDING_DONE = "onboarding.done"
         const val CHATS_VIEW = "chats.view"
+
+        /** Projects keeps its own density, since the two screens hold different
+         *  things and somebody may well want a grid of projects and a list of
+         *  chats (#50). */
+        const val PROJECTS_VIEW = "projects.view"
         const val THEME = "theme"
         const val WEB_SEARCH_ENABLED = "search.enabled"
         const val WEB_SEARCH_ENDPOINT = "search.endpoint"

@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import com.kamsiob.kamai.data.ConversationSummary
 import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.ui.AppViewModel.ChatsView
+import com.kamsiob.kamai.ui.components.ViewSwitcher
 import com.kamsiob.kamai.ui.components.EmptyState
 import com.kamsiob.kamai.ui.components.Eyebrow
 import com.kamsiob.kamai.ui.components.IconAction
@@ -537,46 +538,6 @@ private fun ModeFilterSheet(
 }
 
 /** A small three-icon pill next to the title. */
-@Composable
-private fun ViewSwitcher(current: ChatsView, onChange: (ChatsView) -> Unit) {
-    val colors = KamTheme.colors
-    val options = listOf(
-        ChatsView.COMFORTABLE to (Icons.Rounded.ViewAgenda to "Comfortable list"),
-        ChatsView.COMPACT to (Icons.Rounded.ViewList to "Compact list"),
-        ChatsView.GRID to (Icons.Rounded.GridView to "Grid"),
-    )
-
-    Row(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(colors.surfaceSecondary)
-            .padding(2.dp),
-    ) {
-        options.forEach { (option, iconAndLabel) ->
-            val (icon, label) = iconAndLabel
-            val selected = option == current
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(if (selected) colors.surface else androidx.compose.ui.graphics.Color.Transparent)
-                    .clickable { onChange(option) }
-                    .semantics {
-                        contentDescription = label
-                        this.selected = selected
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = if (selected) colors.textPrimary else colors.textTertiary,
-                    modifier = Modifier.size(17.dp),
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun SectionHeader(

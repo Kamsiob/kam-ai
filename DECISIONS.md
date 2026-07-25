@@ -4156,3 +4156,29 @@ compact, and the view picker names the three densities.
 diff: pinned a conversation from the list rail, switched to grid, and the Pinned section appeared
 with the card under it and Recent below. Scrolled to the bottom of grid and Archived (1) is there.
 Opened the grid long-press menu and confirmed all five actions, then unpinned from it.
+
+## Issue #50: Projects gets the same three views
+
+Chats offers three densities and remembers the last. Projects offered none, and the reason was
+structural rather than an oversight: `ViewSwitcher` was a private composable inside `ChatsScreen`,
+so the thing to reuse was not reachable from anywhere else.
+
+Moved to `ui/components/ViewSwitcher.kt` and shared. The enum is still `AppViewModel.ChatsView`,
+which now reads slightly wrong on Projects; renaming it touches a lot of call sites for no
+behaviour change, so it keeps the name and gains a doc comment saying it means "how a list of
+things is drawn" on both screens. Worth revisiting if a third screen ever wants it.
+
+**Its own setting**, `projects.view`, not the one Chats uses. The two screens hold different
+things, and wanting a grid of projects and a compact list of chats is an ordinary preference
+rather than an inconsistency. Defaults to comfortable, where Chats defaults to compact, because
+there are usually a handful of projects and a great many chats.
+
+What each density means is carried over rather than reinvented: comfortable shows the instructions
+under the name, compact is the name alone, grid is two to a row. Compact drops the subtitle rather
+than shrinking it, which is exactly what makes compact compact on Chats.
+
+The switcher is hidden when there are no projects, since offering three ways to look at nothing is
+not a choice.
+
+Verified on the phone: switched to grid, force-stopped the app, reopened, and Projects came back
+in grid.

@@ -64,6 +64,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _chatsView = MutableStateFlow(ChatsView.COMPACT)
     val chatsView: StateFlow<ChatsView> = _chatsView.asStateFlow()
 
+    private val _projectsView = MutableStateFlow(ChatsView.COMFORTABLE)
+    val projectsView: StateFlow<ChatsView> = _projectsView.asStateFlow()
+
     private val _download = MutableStateFlow<Downloader.Progress?>(null)
     val download: StateFlow<Downloader.Progress?> = _download.asStateFlow()
 
@@ -126,6 +129,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             repository.repairIncompleteMessages()
 
             _onboardingDone.value = repository.isOnboardingDone()
+            _projectsView.value = runCatching {
+                ChatsView.valueOf(repository.setting(KamRepository.Keys.PROJECTS_VIEW).orEmpty())
+            }.getOrDefault(ChatsView.COMFORTABLE)
             _chatsView.value = runCatching {
                 ChatsView.valueOf(repository.setting(KamRepository.Keys.CHATS_VIEW).orEmpty())
             }.getOrDefault(ChatsView.COMPACT)
@@ -243,6 +249,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             repository.putSetting(KamRepository.Keys.CHATS_VIEW, view.name)
         }
     }
+
+    /** The same, for Projects. Its own setting, so the two screens do not fight
+     *  over one density (#50). */
+    fun setProjectsView(view: ChatsView) {
+        _projectsView.value = view
+        viewModelScope.launch {
+            repository.putSetting(KamRepository.Keys.PROJECTS_VIEW, view.name)
+        }
+    }
+
 
     // Onboarding
 
