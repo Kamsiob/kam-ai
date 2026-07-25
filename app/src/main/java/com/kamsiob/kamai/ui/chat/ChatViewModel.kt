@@ -10,6 +10,7 @@ import com.kamsiob.kamai.data.MessageEntity
 import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.data.Role
 import com.kamsiob.kamai.llm.ChatFormat
+import com.kamsiob.kamai.llm.ContinuationJoin
 import com.kamsiob.kamai.llm.ConversationTitler
 import com.kamsiob.kamai.llm.InferenceEngine
 import com.kamsiob.kamai.llm.ModelManager
@@ -693,12 +694,27 @@ class ChatViewModel(
             )
 
             val builder = StringBuilder(continueFrom?.content.orEmpty())
+            // The stored text was trimmed on its way to the database, so an answer
+            // that stopped between words lost the space that said so. Put it back
+            // when the continuation arrives, rather than reading "to theoutside".
+            var needsJoinSpace = continueFrom != null && builder.isNotEmpty()
             var stopReason: InferenceEngine.StopReason = InferenceEngine.StopReason.Finished
 
             try {
                 engine.generate(prompt, _mode.value, onStop = { stopReason = it })
                     .collect { chunk ->
-                        builder.append(chunk.text)
+                        if (needsJoinSpace) {
+                            // The first chunk after a continuation is the one
+                            // that has to be joined on properly: spaced if it
+                            // needs it, and with any restart of the last word
+                            // dropped rather than printed twice.
+                            val joined = ContinuationJoin.join(builder.toString(), chunk.text)
+                            builder.setLength(0)
+                            builder.append(joined)
+                            needsJoinSpace = false
+                        } else {
+                            builder.append(chunk.text)
+                        }
                         repository.updateMessage(
                             messageId, PromptBuilder.cleanOutput(builder.toString()), true,
                         )

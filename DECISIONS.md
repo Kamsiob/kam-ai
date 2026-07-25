@@ -4496,3 +4496,41 @@ there is no such group: those three are spread across the other two. Several row
 grouping has clearly evolved rather than drifted by accident. Left alone, because regrouping
 Settings at four in the morning on a reading of a sentence is how a tidy-up becomes a regression.
 Worth an owner decision: either restore the group or update DESIGN.
+
+## Continuing an interrupted answer: two defects found by killing the app
+
+Killed the app mid-generation, reopened, and used Continue. The recovery itself is exactly what
+#35 promised: the partial answer is kept, the note says "Kam AI was closed while this was being
+written", and Continue, Retry and Discard are offered. Then the joins went wrong twice.
+
+**"to theoutside".** The stored partial goes through `cleanOutput`, which trims it, so an answer
+that stopped between words loses the space that said so. The continuation was appended directly.
+
+**"They They're caused by".** With that fixed, the next run showed the other half: the partial
+ended on the dangling word "They", and a model told to carry straight on reads a dangling word as
+a false start and begins it again.
+
+`ContinuationJoin` handles both at the point the first continued chunk arrives. It drops an
+overlap where the continuation restarts how the previous text ended, then adds a space if one is
+needed.
+
+The overlap rule is deliberately narrow: it must start at a word boundary in the existing text and
+run to its end, be at least two characters, and lie within the last forty. So "the moon" followed
+by "on the left" keeps both, because "on" inside "moon" is not a restart, while "sea levels. They"
+followed by "They're caused" drops the repeat.
+
+The space rule cannot be right every time and the test says so out loud: if an answer really did
+stop inside a word, this puts a space in the middle of it. The stored text cannot tell the two
+apart, because the space that would say so is exactly what was trimmed, and a model told to carry
+straight on begins at a word far more often than inside one.
+
+### And a third thing, about what to offer
+
+An answer killed before its first token has nothing to continue from, and Continue was offered
+anyway. Tapping it produced an answer that began in the middle of a thought, because the model was
+told to carry on from something that did not exist. Continue is now hidden when the partial is
+blank, leaving Retry and Discard, which is the honest pair.
+
+Verified on the phone: an empty partial offers only Retry and Discard; a partial ending mid-
+sentence offers Continue and joins with a space. The overlap removal is covered by unit tests
+rather than a device run, since reproducing a mid-word stop on demand is a matter of timing luck.

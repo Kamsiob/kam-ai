@@ -998,7 +998,16 @@ private fun MessageRow(
                         // Continue first, because picking up where it stopped is
                         // almost always what somebody wants after stopping it
                         // themselves, and it keeps what was already written.
-                        IncompleteAction("Continue", onContinue)
+                        //
+                        // Except when nothing was written. An answer killed
+                        // before its first token has nothing to continue from,
+                        // and continuing anyway produces one that begins in the
+                        // middle of a thought, because the model was told to
+                        // carry on from something that does not exist. Retry is
+                        // the honest offer there.
+                        if (message.content.isNotBlank()) {
+                            IncompleteAction("Continue", onContinue)
+                        }
                         IncompleteAction("Retry", onRegenerate)
                         IncompleteAction("Discard", onDiscard)
                     }
