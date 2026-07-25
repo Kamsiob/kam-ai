@@ -4124,3 +4124,35 @@ collapse to a single line, because a preview has one line and a heading followed
 otherwise arrives as a run of blank space.
 
 Still display only. The stored row is untouched.
+
+## Issue #48: the three Chats views audited against each other
+
+The report was that grid view has no way to reach the archive. It also asked for an audit of all
+three views against each other, and to close every gap found.
+
+**Two real gaps, both grid.**
+
+*The archived link.* It was written inline inside the list branch, so grid users had no route to
+the archive and no sign one existed. Pulled out into `ArchivedLink` and used by all three views;
+in grid it spans both columns, which is that layout's way of saying what a full-width row says in
+a list.
+
+*The Pinned section.* Grid laid every conversation out by recency, so pinning something in grid
+view did nothing visible at all: no header, no grouping, no count, and no way to tell a pinned
+conversation from an unpinned one. It now carries the same Pinned header with its count and
+collapse chevron, then a Recent eyebrow, then the rest, matching the lists exactly.
+
+**Checked and deliberately different.**
+
+*Per-conversation actions.* The lists use a swipe rail; grid uses a long-press menu. Different
+form, same five actions, and the issue explicitly asks for "a form that suits each layout". Both
+routes reach Rename, Pin, Archive, Delete and Select, so nothing is available in one view and
+absent in another.
+
+*The snippet.* Comfortable and grid show it, compact does not. That is what makes compact
+compact, and the view picker names the three densities.
+
+**Verified on the phone**, since the first two are exactly the kind of thing that reads fine in a
+diff: pinned a conversation from the list rail, switched to grid, and the Pinned section appeared
+with the card under it and Recent below. Scrolled to the bottom of grid and Archived (1) is there.
+Opened the grid long-press menu and confirmed all five actions, then unpinned from it.

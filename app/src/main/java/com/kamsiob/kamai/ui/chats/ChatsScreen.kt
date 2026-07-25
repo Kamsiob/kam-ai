@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -255,19 +256,63 @@ fun ChatsScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(filtered, key = { it.id }) { row ->
-                        // Swipe is replaced by a long-press menu in grid view.
-                        GridCell(
-                            row = row,
-                            selecting = selecting,
-                            selected = selected.contains(row.id),
-                            onOpen = { if (selecting) toggleSelect(row.id) else onOpen(row.id) },
-                            onEnterSelection = { enterSelection(row.id) },
-                            onPin = onPin,
-                            onArchive = onArchive,
-                            onDelete = onDelete,
-                            onRename = { renaming = row },
-                        )
+                    // Grid used to lay every conversation out by recency, so the
+                    // Pinned section and the way to the archive both existed only
+                    // in the two list views. Somebody who preferred the grid could
+                    // not tell pinned from unpinned and had no way of knowing the
+                    // archive was there at all (#48).
+                    //
+                    // Full-width rows for the headers, which is the grid's own way
+                    // of saying the same thing the lists say with a plain row.
+                    if (pinned.isNotEmpty() && !selecting) {
+                        item(key = "grid-pinned-header", span = { GridItemSpan(maxLineSpan) }) {
+                            SectionHeader(
+                                label = "Pinned",
+                                count = pinned.size,
+                                expanded = pinnedExpanded,
+                                onToggle = { pinnedExpanded = !pinnedExpanded },
+                            )
+                        }
+                        if (pinnedExpanded) {
+                            items(pinned, key = { "gp-${it.id}" }) { row ->
+                                // Swipe is replaced by a long-press menu in grid view.
+                                GridCell(
+                                row = row,
+                                selecting = selecting,
+                                selected = selected.contains(row.id),
+                                onOpen = { if (selecting) toggleSelect(row.id) else onOpen(row.id) },
+                                onEnterSelection = { enterSelection(row.id) },
+                                onPin = onPin,
+                                onArchive = onArchive,
+                                onDelete = onDelete,
+                                onRename = { renaming = row },
+                            )
+                            }
+                        }
+                        item(key = "grid-recent-label", span = { GridItemSpan(maxLineSpan) }) {
+                            Eyebrow("Recent", Modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp))
+                        }
+                    }
+
+                    val gridRows = if (selecting) filtered else recent
+                    items(gridRows, key = { it.id }) { row ->
+                            GridCell(
+                                row = row,
+                                selecting = selecting,
+                                selected = selected.contains(row.id),
+                                onOpen = { if (selecting) toggleSelect(row.id) else onOpen(row.id) },
+                                onEnterSelection = { enterSelection(row.id) },
+                                onPin = onPin,
+                                onArchive = onArchive,
+                                onDelete = onDelete,
+                                onRename = { renaming = row },
+                            )
+                    }
+
+                    if (archivedCount > 0 && !selecting) {
+                        item(key = "grid-archived-link", span = { GridItemSpan(maxLineSpan) }) {
+                            ArchivedLink(archivedCount, onOpenArchived)
+                        }
                     }
                 }
 
@@ -310,19 +355,7 @@ fun ChatsScreen(
                     // A quiet way to the archived chats, shown only when some
                     // exist, so it never clutters the main list (item 20).
                     if (archivedCount > 0 && !selecting) {
-                        item(key = "archived-link") {
-                            Text(
-                                "Archived ($archivedCount)",
-                                style = KamTheme.type.label,
-                                color = colors.textSecondary,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable(onClick = onOpenArchived)
-                                    .padding(vertical = 14.dp),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            )
-                        }
+                        item(key = "archived-link") { ArchivedLink(archivedCount, onOpenArchived) }
                     }
                 }
             }
@@ -1198,4 +1231,27 @@ fun ArchivedScreen(
             }
         }
     }
+}
+
+/**
+ * The quiet way to the archived chats, shown only when some exist so it never
+ * clutters the main list (item 20).
+ *
+ * Shared by all three views. It lived inline in the list branch, which is how
+ * grid users ended up with no way to reach the archive or any sign it was there
+ * (#48).
+ */
+@Composable
+private fun ArchivedLink(count: Int, onOpen: () -> Unit) {
+    Text(
+        "Archived ($count)",
+        style = KamTheme.type.label,
+        color = KamTheme.colors.textSecondary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onOpen)
+            .padding(vertical = 14.dp),
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+    )
 }
