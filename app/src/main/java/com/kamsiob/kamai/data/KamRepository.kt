@@ -884,15 +884,53 @@ class KamRepository(
     /** Every stored memory text, for giving the extractor what is already known. */
     suspend fun allMemoryTexts(): List<String> = db.memory().mostRecent(500).map { it.text }
 
-    suspend fun remember(text: String, sourceConversationId: String?, auto: Boolean = false) {
+    /**
+     * What storing a fact actually did (#16).
+     *
+     * [removed] carries the texts this fact superseded, so the caller can say so.
+     * Silently deleting something the user asked to be remembered is the one
+     * thing this must not do: they would find out the next time it failed to
+     * come up. [stored] is false for a retraction, which exists to remove a fact
+     * rather than to add one.
+     */
+    data class Remembered(val stored: Boolean, val removed: List<String>) {
+        companion object {
+            val NOTHING = Remembered(stored = false, removed = emptyList())
+        }
+    }
+
+    /** Stores a fact, replacing anything it supersedes (#16). */
+    suspend fun remember(
+        text: String,
+        sourceConversationId: String?,
+        auto: Boolean = false,
+    ): Remembered {
         // Never store the same fact twice; the memory screen has to stay
         // readable, and duplicates eat the context budget for no gain. Compare on
         // a normalised form so trivial punctuation or spacing differences still
         // count as the same fact.
         val target = com.kamsiob.kamai.llm.MemoryExtractor.normalise(text)
-        if (target.isBlank()) return
+        if (target.isBlank()) return Remembered.NOTHING
         val existing = db.memory().mostRecent(500)
-        if (existing.any { com.kamsiob.kamai.llm.MemoryExtractor.normalise(it.text) == target }) return
+        if (existing.any { com.kamsiob.kamai.llm.MemoryExtractor.normalise(it.text) == target }) {
+            return Remembered.NOTHING
+        }
+
+        // What this fact does to the ones already there. A move replaces the old
+        // address; "no longer learning Spanish" removes that fact and is not
+        // itself worth keeping.
+        val verdict = com.kamsiob.kamai.llm.MemorySupersession.verdict(
+            text, existing.map { it.text },
+        )
+        val superseded = when (verdict) {
+            is com.kamsiob.kamai.llm.MemorySupersession.Verdict.Store -> verdict.replaces
+            is com.kamsiob.kamai.llm.MemorySupersession.Verdict.RetractOnly -> verdict.removes
+        }
+        existing.filter { it.text in superseded }.forEach { db.memory().delete(it) }
+        if (verdict is com.kamsiob.kamai.llm.MemorySupersession.Verdict.RetractOnly) {
+            return Remembered(stored = false, removed = superseded)
+        }
+
         val now = System.currentTimeMillis()
         db.memory().upsert(
             MemoryEntity(
@@ -901,6 +939,7 @@ class KamRepository(
                 sourceConversationId = sourceConversationId, auto = auto,
             ),
         )
+        return Remembered(stored = true, removed = superseded)
     }
 
     suspend fun forgetAllMemory() = db.memory().deleteAll()

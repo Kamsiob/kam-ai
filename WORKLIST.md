@@ -105,7 +105,12 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       SystemPrompts.withUserInstructions in buildPrompt at the right precedence: hard/mode rules
       (always win) > user instructions > project > memory. Test: InstructionPrecedenceTest.
       Device-verified: instruction "end every answer with PINEAPPLE" was followed.
-- [~] 16. Memory system (core done, device-verified; supersession + influence-indicator remain). DONE: retrieval is now relevance (keyword+recency, prefix-matched) within a
+- [x] 16. Memory system. Supersession and the influence indicator DONE 25 July: MemorySupersession
+      (single-valued predicates + retractions, crude stemming, all-words match), remember() reports
+      what it removed and the notice says so; every finished answer that had memories in front of it
+      carries "Used N things it remembers about you" (MIGRATION_7_8 adds messages.memoriesUsed),
+      tapping through to Memory. Tests: MemorySupersessionTest, MemoryStoreTest (real Room),
+      MigrationV7ToV8SqlTest, MemoryNoteTest. Device-verified end to end. Earlier work: DONE: retrieval is now relevance (keyword+recency, prefix-matched) within a
       context-fraction budget, not recency-only; injected near the front; auto-extraction runs as a
       batch over recent turns every few user messages (not every message), given existing facts to
       avoid repeats; dedup on a normalised form; parser strips leaked chat-template tokens (fixed junk

@@ -5467,3 +5467,55 @@ reads as part of the response.
 Device-verified: with two facts stored, asking about one of them produced an
 answer carrying "Used 2 things it remembers about you", and the line opens the
 Memory screen.
+
+## Memory supersedes rather than accumulates (#16)
+
+Memory only ever grew, and grew contradictory. Move house and the store holds
+both addresses. Say "I no longer work there" and it holds the old job *and* a
+note saying you left it. Retrieval ranking the newer entry higher was a
+mitigation and not a fix: both still go in front of the model, and a small model
+handed two answers to the same question picks one confidently.
+
+`MemorySupersession` is deliberately narrow, because the two failures are not
+symmetrical. Keeping a stale fact is a nuisance. Deleting a true one that
+somebody asked to be remembered is a betrayal they only discover the next time it
+fails to come up. So it fires on two clear cases and stays out of the way
+otherwise.
+
+**Single-valued facts.** An explicit, written-out list: lives in, is based in,
+was born in, is called, name is, works as, works at, is from. Each entry is a
+claim that a person has exactly one of these at a time, and that claim deserves
+to be visible and arguable rather than emerging from a similarity threshold. A
+new "lives in Manchester" replaces "lives in Leeds". A new "prefers short
+answers" replaces nothing, because preferences are not single-valued and someone
+can hold both — which is the mistake the whole object exists to avoid.
+
+**Retractions.** "no longer learning Spanish" is not a durable fact, it is an
+instruction to drop one. It removes what it names and is not itself stored. Every
+significant word of the retraction has to appear in the stored fact, so "no
+longer learning advanced Spanish" does not reach "is learning Spanish". A
+retraction that matches nothing is kept as an ordinary fact rather than
+discarded: it may be true and worth knowing, and dropping it would lose it
+silently.
+
+Matching is over crudely stemmed words — a trailing -ing, -ed, -es or -s comes
+off, never below two characters — because a retraction and the fact it retracts
+are almost never in the same tense. "stopped going to the Tuesday class" is about
+"goes to the Tuesday class", and exact matching sees only the class in common.
+Both sides get the same treatment, so the stems only have to agree with each
+other, not with English.
+
+`remember` returns what it did rather than nothing, and the notice says it:
+"Forgotten: is interested in learning Spanish", or "Saved to memory: X. Replaced:
+Y". A quietly deleted memory would be found out at the worst moment. A duplicate
+now says "Already in memory" rather than "Saved", since the user asked twice
+precisely because they were not sure it had stuck.
+
+`MemoryStoreTest` runs the same logic against a real Room database, because
+deleting the wrong row is the failure that matters and it is invisible from a
+pure function.
+
+Device-verified: "remember that I no longer learning Spanish" reported
+"Forgotten: is interested in learning Spanish", the Memory screen lost that row
+and kept the unrelated one, and the next answer's line read "Used 1 thing it
+remembers about you" rather than 2.

@@ -843,8 +843,21 @@ class ChatViewModel(
     private suspend fun maybeManualRemember(conversationId: String, userText: String) {
         if (repository.memoryMode() == MemoryMode.OFF) return
         val fact = MemoryExtractor.manualFact(userText) ?: return
-        repository.remember(fact, conversationId, auto = false)
-        _notice.value = "Saved to memory: ${fact.take(60)}"
+        val result = repository.remember(fact, conversationId, auto = false)
+        // Say what was removed as well as what was kept. A fact quietly deleted
+        // is one the user finds out about the next time it fails to come up.
+        _notice.value = when {
+            // A retraction: it removed something and stored nothing, which is
+            // exactly what it was for.
+            !result.stored && result.removed.isNotEmpty() ->
+                "Forgotten: ${result.removed.first().take(60)}"
+            // Already known. Saying "saved" would be a small lie, and the user
+            // asked twice precisely because they were not sure it had stuck.
+            !result.stored -> "Already in memory: ${fact.take(60)}"
+            result.removed.isEmpty() -> "Saved to memory: ${fact.take(60)}"
+            else ->
+                "Saved to memory: ${fact.take(60)}. Replaced: ${result.removed.first().take(60)}"
+        }
     }
 
     /**
