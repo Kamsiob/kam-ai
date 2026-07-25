@@ -4610,3 +4610,20 @@ The restore half was deliberately not run against the real database. Merge with 
 would be close to a no-op, and "close to" is not a good enough reason to point an import at
 somebody's only copy of their data. It is covered by the instrumentation tests, which own their
 database.
+
+## Two hostile-path checks that found nothing wrong
+
+**Five rapid taps on send** produce one message and one answer. The guard in `send`, which returns
+early when the field is empty or a generation is already running, holds. No duplicates.
+
+**Microphone permission denied.** The prompt appears on first use, as MASTER_SPEC requires and not
+before. Denying it and tapping the microphone again shows "Voice typing needs the microphone. You
+can turn it on in Settings." Honest, and it names the fix.
+
+Worth writing down how the second nearly became a false bug report. A screenshot two seconds after
+the tap showed nothing, and it looked as though tapping the microphone did nothing at all. The
+toast lasts 2.2 seconds and a `screencap` round trip is slow enough to miss it. Captured at 0.8
+seconds it is plainly there. **A toast is invisible to this kind of testing unless you go looking
+for it in the first second**, which is worth remembering before writing up "nothing happens" again.
+
+The microphone permission was granted again afterwards.
