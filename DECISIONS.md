@@ -4732,3 +4732,20 @@ reasoning as leaving `flagMissed` alone during #60.
 it gets things wrong." Then the bookmark and Follow-ups as the answer to that, and a plain
 statement that it is not a substitute for a qualified professional. That is the honest-limits
 framing the positioning asks for, said without hedging.
+
+## The over-length document promise, checked
+
+`buildPrompt` truncates an attachment that does not fit and is documented as saying so "never
+silently". Worth checking rather than trusting, since it is an honesty claim.
+
+Attached a 360,000 character document to a fresh chat and asked about it:
+
+> That document is long, so only the first part fits in the model's memory. Ask about a specific
+> section, or paste that part in.
+
+Honest about what happened, names the limit in words rather than tokens, and offers two ways
+forward instead of leaving the user stuck. It also appears in the tonal notice colour now rather
+than the reserved gold, which is the #61 work showing up in a place I had not deliberately
+revisited.
+
+The document was removed from the phone afterwards.
