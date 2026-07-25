@@ -790,6 +790,10 @@ class KamRepository(
      *  small window. */
     val projectInstructionsMax: Int get() = 2000
 
+    /** The cap on project notes. Same window, same reasoning, same size: notes
+     *  compete with the instructions and the conversation for the same room. */
+    val projectNotesMax: Int get() = 2000
+
     fun observeProjects(): Flow<List<ProjectEntity>> = db.projects().observeAll()
 
     /** Live chat counts per project, keyed by project id, for the folder tiles. */
@@ -806,7 +810,12 @@ class KamRepository(
     fun conversationsInProject(projectId: String): Flow<List<ConversationSummary>> =
         db.conversations().observeActive(projectId)
 
-    suspend fun upsertProject(id: String?, name: String, instructions: String): String {
+    suspend fun upsertProject(
+        id: String?,
+        name: String,
+        instructions: String,
+        notes: String = "",
+    ): String {
         val now = System.currentTimeMillis()
         val projectId = id ?: UUID.randomUUID().toString()
         val existing = id?.let { db.projects().byId(it) }
@@ -814,6 +823,7 @@ class KamRepository(
             ProjectEntity(
                 id = projectId, name = name.trim(),
                 instructions = instructions.take(projectInstructionsMax),
+                notes = notes.take(projectNotesMax),
                 createdAt = existing?.createdAt ?: now, updatedAt = now,
             ),
         )

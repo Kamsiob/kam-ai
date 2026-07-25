@@ -37,6 +37,18 @@ data class ProjectEntity(
     val name: String,
     /** Persistent instructions injected into every chat inside this project. */
     val instructions: String,
+    /**
+     * Background the model should know about this project, as distinct from
+     * instructions about how to behave (#2).
+     *
+     * Both are injected into every chat here, and they are separate because they
+     * are read differently: instructions are orders and notes are facts. Putting
+     * "the client is a bakery in Leeds" under a heading that says "follow these
+     * instructions" asks the model to obey a sentence that is not an
+     * instruction, and mixing the two in one box made people write one and mean
+     * the other.
+     */
+    val notes: String = "",
     val createdAt: Long,
     val updatedAt: Long,
     val archived: Boolean = false,

@@ -34,7 +34,7 @@ class BackupRoundTripTest {
             MessageEntity("m1", "c1", Role.USER, "hello", 1),
             MessageEntity("m2", "c1", Role.ASSISTANT, "hi there", 2, incomplete = false, stoppedReason = "You stopped this one."),
         ),
-        projects = listOf(ProjectEntity("p1", "Proj", "instructions", 1, 2)),
+        projects = listOf(ProjectEntity("p1", "Proj", "instructions", "notes", 1, 2)),
         memory = listOf(MemoryEntity("mem1", "remembers this", 1, 2, "c1", auto = true)),
         followUps = listOf(
             FollowUpEntity(

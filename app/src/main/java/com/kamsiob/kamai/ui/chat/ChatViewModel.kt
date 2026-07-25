@@ -630,7 +630,7 @@ class ChatViewModel(
 
         conversation?.projectId?.let { projectId ->
             repository.project(projectId)?.let {
-                system = SystemPrompts.withProject(system, it.instructions)
+                system = SystemPrompts.withProject(system, it.instructions, it.notes)
             }
         }
 

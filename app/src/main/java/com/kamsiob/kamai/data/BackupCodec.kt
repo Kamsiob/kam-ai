@@ -62,10 +62,15 @@ object BackupCodec {
 
     private fun proj(e: ProjectEntity) = JSONObject().apply {
         put("id", e.id); put("name", e.name); put("instructions", e.instructions)
+        put("notes", e.notes)
         put("createdAt", e.createdAt); put("updatedAt", e.updatedAt); put("archived", e.archived)
     }
     private fun proj(o: JSONObject) = ProjectEntity(
         o.getString("id"), o.getString("name"), o.getString("instructions"),
+        // optString, not getString: a backup written before project notes
+        // existed has no such key, and restoring one should give a project with
+        // no notes rather than an exception (#2).
+        o.optString("notes"),
         o.l("createdAt"), o.l("updatedAt"), o.b("archived"),
     )
 

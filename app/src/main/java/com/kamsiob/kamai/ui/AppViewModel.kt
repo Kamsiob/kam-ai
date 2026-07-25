@@ -592,6 +592,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // Projects (item 2).
 
     val projectInstructionsMax: Int get() = repository.projectInstructionsMax
+    val projectNotesMax: Int get() = repository.projectNotesMax
 
     fun observeProject(id: String) = repository.observeProject(id)
     fun conversationsInProject(id: String) = repository.conversationsInProject(id)
@@ -602,8 +603,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         onCreated(id)
     }
 
-    fun saveProject(id: String?, name: String, instructions: String) = viewModelScope.launch {
-        repository.upsertProject(id, name, instructions)
+    fun saveProject(
+        id: String?,
+        name: String,
+        instructions: String,
+        notes: String = "",
+    ) = viewModelScope.launch {
+        repository.upsertProject(id, name, instructions, notes)
         showToast("Saved")
     }
 

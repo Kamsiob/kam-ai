@@ -113,7 +113,7 @@ class FollowUpStateTest {
     fun `a note and a project link can be added later`() = runTest {
         flag("f1")
         db.projects().upsert(
-            ProjectEntity("p1", "Project", "instructions", now, now),
+            ProjectEntity("p1", "Project", "instructions", "", now, now),
         )
 
         db.followUps().setNote("f1", "check the second claim")

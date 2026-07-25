@@ -1167,8 +1167,17 @@ private fun ProjectHost(
         project = project,
         conversations = conversations,
         instructionsMax = app.projectInstructionsMax,
-        onSaveInstructions = { text -> app.saveProject(projectId, project?.name ?: "Project", text) },
-        onRename = { name -> app.saveProject(projectId, name, project?.instructions ?: "") },
+        notesMax = app.projectNotesMax,
+        onSave = { text, notes ->
+            app.saveProject(projectId, project?.name ?: "Project", text, notes)
+        },
+        // Renaming must carry both fields through, or saving a new name would
+        // blank whatever the project had been told (#2).
+        onRename = { name ->
+            app.saveProject(
+                projectId, name, project?.instructions.orEmpty(), project?.notes.orEmpty(),
+            )
+        },
         onNewChatHere = { mode ->
             app.createProjectChat(projectId, mode) { id -> stack.add(Pushed.Conversation(id)) }
         },

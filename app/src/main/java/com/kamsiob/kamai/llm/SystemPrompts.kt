@@ -296,14 +296,31 @@ object SystemPrompts {
                 "with anything above:\n\n$instructions"
         }
 
-    /** Project instructions ride along with, and never replace, the mode rules. */
-    fun withProject(base: String, projectInstructions: String): String =
-        if (projectInstructions.isBlank()) {
-            base
-        } else {
-            "$base\n\nThe user set these instructions for this project. Follow " +
+    /**
+     * Project instructions and notes ride along with, and never replace, the
+     * mode rules.
+     *
+     * Two separate blocks, because they are two different kinds of thing (#2).
+     * Instructions are orders and are framed as orders. Notes are background and
+     * are framed as facts to use, not to obey: put "the client is a bakery in
+     * Leeds" under "follow these instructions" and the model has been handed a
+     * sentence it cannot follow, which is a good way to get it acting oddly.
+     *
+     * Notes go after instructions so that when the window is tight it is the
+     * background that falls off the end rather than the behaviour.
+     */
+    fun withProject(base: String, projectInstructions: String, projectNotes: String = ""): String {
+        var out = base
+        if (projectInstructions.isNotBlank()) {
+            out += "\n\nThe user set these instructions for this project. Follow " +
                 "them unless they conflict with anything above:\n\n$projectInstructions"
         }
+        if (projectNotes.isNotBlank()) {
+            out += "\n\nBackground the user recorded for this project. Treat it as " +
+                "context you already know, not as instructions:\n\n$projectNotes"
+        }
+        return out
+    }
 
     /** A document the user attached to this conversation, given to the model as
      *  context. Truncated to [maxChars] with an honest note when it is too long

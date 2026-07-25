@@ -47,7 +47,7 @@ class Converters {
         ArtifactEntity::class,
         SettingEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -177,6 +177,29 @@ abstract class KamDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * The statements MIGRATION_6_7 runs, exposed for the same reason as the
+         * two above. See MigrationSqlTest and MigrationV6ToV7SqlTest.
+         *
+         * One column: project notes, the background a project carries as
+         * distinct from the instructions it gives (#2).
+         *
+         * NOT NULL with an empty default rather than nullable, because "no
+         * notes" and "empty notes" are the same thing here and a nullable column
+         * would make every reader decide which it was. The default is what makes
+         * that safe: every existing project gets an empty string without a row
+         * being read or rewritten.
+         */
+        val MIGRATION_6_7_SQL = listOf(
+            "ALTER TABLE projects ADD COLUMN notes TEXT NOT NULL DEFAULT ''",
+        )
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                MIGRATION_6_7_SQL.forEach(db::execSQL)
+            }
+        }
+
         @Volatile
         private var instance: KamDatabase? = null
 
@@ -210,7 +233,10 @@ abstract class KamDatabase : RoomDatabase() {
             val factory = DatabaseEncryption.openHelperFactory(context, dbFile, passphrase)
             return Room.databaseBuilder(context, KamDatabase::class.java, NAME)
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
+                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+                )
                 .build()
         }
     }

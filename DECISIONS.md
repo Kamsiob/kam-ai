@@ -5372,3 +5372,42 @@ Device-verified end to end: the sheet arrives over Discover, the keyboard pushes
 the composer without covering the transcript, a grounded question is answered
 from the passage, and Expand lifts the scope and opens the full chat with the
 history and the note intact.
+
+## A project carries notes as well as instructions (#2)
+
+The last piece of the Projects work. A project could tell the model how to
+behave and could not tell it anything. People wrote background into the
+instructions box because it was the only box: "the client is a bakery in Leeds"
+arrived under a heading saying "follow these instructions", which hands the model
+a sentence it cannot follow and is a quiet way to get it behaving oddly for
+reasons nobody can see from the outside.
+
+Two fields, and the difference lives in how they are given to the model.
+Instructions keep their framing ("follow them unless they conflict with anything
+above"). Notes get their own block, framed as facts: "treat it as context you
+already know, not as instructions". Notes come second, so when the window is
+tight it is the background that falls off the end rather than the behaviour.
+
+`MIGRATION_6_7` adds one column, `notes TEXT NOT NULL DEFAULT ''`. NOT NULL
+rather than nullable because "no notes" and "empty notes" are the same thing and
+a nullable column makes every reader decide which it is; the default is what
+makes NOT NULL safe on a populated table, and forgetting it is exactly the
+mistake that would fail on somebody's real projects. `MigrationV6ToV7SqlTest`
+drives the shipped statements over real SQLite, including the rollback case and
+instructions containing quotes and newlines.
+
+`ProjectScreen` became a single `LazyColumn`. It was a `Column` with the chats
+list at the bottom taking whatever height was left, so every field added above
+took room away from it; a project with two long fields would have shown its chats
+through a slot two rows tall. The two fields share a `ProjectField` composable so
+they cannot drift apart, since the whole difference between them is the words.
+One Save button for both, reading "Saved" and disabled when nothing has changed,
+because two buttons meant saving one field could discard an unsaved edit to the
+other. Renaming now carries both fields through, which the old two-argument call
+would have blanked.
+
+`BackupCodec` reads notes with `optString`, so a backup written before this
+restores as a project with no notes rather than as an exception.
+
+Device-verified over the real database: existing projects survived the upgrade,
+notes typed into a project persist across leaving and returning to the screen.

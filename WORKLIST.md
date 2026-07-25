@@ -15,13 +15,15 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       so the cached VM kept the previous conversation's id. Fixed with unique per-new-chat
       key via `conversationVmKey`. Unit test + device verified (open existing -> new chat empty;
       create chat -> new chat empty again; no stray conversations).
-- [~] 2. Projects + bottom nav. DONE: nav is Projects/Chats/Follow-ups/Discover (New removed);
+- [x] 2. Projects + bottom nav. DONE: nav is Projects/Chats/Follow-ups/Discover (New removed);
       create projects; per-project instructions (capped, re-injected, project-isolated); new chat in
       a project; move existing chats in/out via header picker (non-retroactive notice); main list
       excludes project chats; 'In <project>' indicator in the open chat; delete-project moves chats
       back to Chats. Device-verified (pirate project). Bulk 'move to project' from the chat list and
       add-existing-from-inside-a-project both done and device-verified 25 July, sharing the project
-      picker that moved into ui/components. REMAINING: optional project notes field (migration).
+      picker that moved into ui/components. Project notes DONE 25 July: second field, MIGRATION_6_7
+      (notes TEXT NOT NULL DEFAULT ''), injected as background rather than orders, screen rebuilt as
+      one LazyColumn with a shared field component and a single Save. Device-verified over real data.
       Original scope: Remove the bottom-nav "New" button to make room for Projects
       (owner). Nav order: Projects, Chats, Follow-ups, Discover (no Today; cancelled, see below).
       Build Projects (named container, persistent instructions + notes re-injected

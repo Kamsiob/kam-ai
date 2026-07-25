@@ -81,8 +81,8 @@ fun ProjectsScreen(
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            "A project keeps its own instructions and its own chats together. Every chat inside " +
-                "a project follows that project's instructions.",
+            "A project keeps its instructions, its background notes, and its chats together. " +
+                "Every chat inside one follows those instructions and already knows those notes.",
             style = KamTheme.type.body, color = colors.textSecondary,
         )
         Spacer(Modifier.height(16.dp))
@@ -132,15 +132,22 @@ fun ProjectsScreen(
 }
 
 /**
- * A single project: rename and delete, its instructions, and its chats. Moving a
- * chat in or out applies from that point on, never retroactively.
+ * A single project: rename and delete, what it tells the model, and its chats.
+ * Moving a chat in or out applies from that point on, never retroactively.
+ *
+ * One `LazyColumn` for the whole screen rather than a `Column` with a list at
+ * the bottom. It used to be the latter, which meant the chats list had whatever
+ * height was left after the editors above it, and every field added to the top
+ * took room away from it. Adding notes (#2) would have left a project with two
+ * long fields showing its chats through a slot two rows tall.
  */
 @Composable
 fun ProjectScreen(
     project: ProjectEntity?,
     conversations: List<ConversationSummary>,
     instructionsMax: Int,
-    onSaveInstructions: (String) -> Unit,
+    notesMax: Int,
+    onSave: (instructions: String, notes: String) -> Unit,
     onRename: (String) -> Unit,
     onNewChatHere: (com.kamsiob.kamai.data.Mode) -> Unit,
     onOpenConversation: (String) -> Unit,
@@ -159,127 +166,161 @@ fun ProjectScreen(
     var instructions by remember(project?.id, project?.instructions) {
         mutableStateOf(TextFieldValue(project?.instructions.orEmpty()))
     }
+    var notes by remember(project?.id, project?.notes) {
+        mutableStateOf(TextFieldValue(project?.notes.orEmpty()))
+    }
+    // One button for both fields, so saving one never silently discards an edit
+    // to the other that had not been saved yet.
+    val dirty = instructions.text.trim() != project?.instructions.orEmpty() ||
+        notes.text.trim() != project?.notes.orEmpty()
 
-    Column(modifier = modifier.fillMaxSize().padding(horizontal = pad)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                project?.name ?: "Project",
-                style = KamTheme.type.screenTitle, color = colors.textPrimary,
-                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
-            )
-            Box {
-                IconAction(icon = Icons.Rounded.MoreHoriz, description = "Project options", onClick = { menuOpen = true })
-                androidx.compose.material3.DropdownMenu(
-                    expanded = menuOpen, onDismissRequest = { menuOpen = false }, containerColor = colors.surface,
-                ) {
-                    androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("Rename", style = KamTheme.type.body, color = colors.textPrimary) },
-                        onClick = { menuOpen = false; renaming = true },
+    LazyColumn(
+        modifier = modifier.fillMaxSize().padding(horizontal = pad),
+        contentPadding = PaddingValues(bottom = 24.dp),
+    ) {
+        item("header") {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    project?.name ?: "Project",
+                    style = KamTheme.type.screenTitle, color = colors.textPrimary,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+                )
+                Box {
+                    IconAction(
+                        icon = Icons.Rounded.MoreHoriz,
+                        description = "Project options",
+                        onClick = { menuOpen = true },
                     )
-                    androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("Delete project", style = KamTheme.type.body, color = colors.goldText) },
-                        onClick = { menuOpen = false; onDelete() },
-                    )
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false },
+                        containerColor = colors.surface,
+                    ) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("Rename", style = KamTheme.type.body, color = colors.textPrimary) },
+                            onClick = { menuOpen = false; renaming = true },
+                        )
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Delete project",
+                                    style = KamTheme.type.body,
+                                    color = colors.goldText,
+                                )
+                            },
+                            onClick = { menuOpen = false; onDelete() },
+                        )
+                    }
                 }
             }
+            Spacer(Modifier.height(18.dp))
         }
 
-        Spacer(Modifier.height(14.dp))
-        Text("Instructions", style = KamTheme.type.label, color = colors.textSecondary)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Applied to every chat in this project, and only to this project.",
-            style = KamTheme.type.secondary, color = colors.textTertiary,
-        )
-        Spacer(Modifier.height(8.dp))
-        Box(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(colors.surface)
-                .border(1.dp, colors.border, RoundedCornerShape(14.dp)).padding(14.dp),
-        ) {
-            if (instructions.text.isEmpty()) {
-                Text("For example: you are helping me write a mystery novel set in 1920s Cairo.",
-                    style = KamTheme.type.body, color = colors.textTertiary)
-            }
-            BasicTextField(
+        // Two fields, deliberately apart, because they are two different things
+        // and one box invited people to write background under a heading that
+        // said instructions.
+        item("instructions") {
+            ProjectField(
+                label = "Instructions",
+                explanation = "How Kam AI should behave in this project's chats, and nowhere else.",
+                placeholder = "For example: you are helping me write a mystery novel " +
+                    "set in 1920s Cairo.",
                 value = instructions,
-                onValueChange = { if (it.text.length <= instructionsMax) instructions = it },
-                textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
-                cursorBrush = SolidColor(colors.accent),
+                max = instructionsMax,
+                onValueChange = { instructions = it },
+            )
+            Spacer(Modifier.height(18.dp))
+        }
+
+        item("notes") {
+            ProjectField(
+                label = "Notes",
+                explanation = "Background it should already know. Facts, not orders.",
+                placeholder = "For example: the detective is Nadia Rashid, and the " +
+                    "story ends at the Egyptian Museum.",
+                value = notes,
+                max = notesMax,
+                onValueChange = { notes = it },
+            )
+            Spacer(Modifier.height(12.dp))
+            PrimaryButton(
+                if (dirty) "Save" else "Saved",
+                onClick = { onSave(instructions.text.trim(), notes.text.trim()) },
+                enabled = dirty,
                 modifier = Modifier.fillMaxWidth(),
             )
+            Spacer(Modifier.height(24.dp))
         }
-        Spacer(Modifier.height(10.dp))
-        PrimaryButton("Save instructions", onClick = { onSaveInstructions(instructions.text.trim()) }, modifier = Modifier.fillMaxWidth())
 
         // The same control as Chats, rather than a button. Everywhere else in the
         // app, starting a chat and choosing its mode are one act; this screen used
         // to start a General chat with no say in it, which quietly dropped a choice
         // the app otherwise insists on (#39).
-        Spacer(Modifier.height(20.dp))
-        com.kamsiob.kamai.ui.components.Eyebrow("New chat in this project")
-        Spacer(Modifier.height(8.dp))
-        com.kamsiob.kamai.ui.components.SegmentedModeControl(
-            onSelect = onNewChatHere,
-            labelSuffix = " in this project",
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(Modifier.height(20.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Chats in this project", style = KamTheme.type.label, color = colors.textSecondary)
-            Spacer(Modifier.weight(1f))
-            // The other half of Remove, which has been sitting on every row here
-            // with no matching way in (item 2). Hidden when there is nothing to
-            // add, rather than offering an empty picker.
-            if (unassigned.isNotEmpty()) {
-                Text(
-                    "Add an existing chat",
-                    style = KamTheme.type.label,
-                    color = colors.accent,
-                    modifier = Modifier.clip(CircleShape).clickable { adding = true }
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                )
-            }
+        item("new-chat") {
+            com.kamsiob.kamai.ui.components.Eyebrow("New chat in this project")
+            Spacer(Modifier.height(8.dp))
+            com.kamsiob.kamai.ui.components.SegmentedModeControl(
+                onSelect = onNewChatHere,
+                labelSuffix = " in this project",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(24.dp))
         }
-        Spacer(Modifier.height(8.dp))
+
+        item("chats-header") {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Chats in this project", style = KamTheme.type.label, color = colors.textSecondary)
+                Spacer(Modifier.weight(1f))
+                // The other half of Remove, which has been sitting on every row here
+                // with no matching way in (item 2). Hidden when there is nothing to
+                // add, rather than offering an empty picker.
+                if (unassigned.isNotEmpty()) {
+                    Text(
+                        "Add an existing chat",
+                        style = KamTheme.type.label,
+                        color = colors.accent,
+                        modifier = Modifier.clip(CircleShape).clickable { adding = true }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
 
         if (conversations.isEmpty()) {
-            Text(
-                if (unassigned.isEmpty()) {
-                    "No chats here yet. Start one above."
-                } else {
-                    "No chats here yet. Start one above, or add an existing chat."
-                },
-                style = KamTheme.type.secondary, color = colors.textTertiary,
-            )
+            item("empty") {
+                Text(
+                    if (unassigned.isEmpty()) {
+                        "No chats here yet. Start one above."
+                    } else {
+                        "No chats here yet. Start one above, or add an existing chat."
+                    },
+                    style = KamTheme.type.secondary, color = colors.textTertiary,
+                )
+            }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 24.dp),
-            ) {
-                items(conversations, key = { it.id }) { row ->
-                    Row(
-                        Modifier.fillMaxWidth()
-                            .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
-                            .background(colors.surface)
-                            .border(1.dp, colors.border, RoundedCornerShape(KamTheme.dimens.cardRadius))
-                            .clickable { onOpenConversation(row.id) }
-                            .padding(15.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            row.title ?: row.snippet?.take(40) ?: "Untitled chat",
-                            style = KamTheme.type.cardTitle, color = colors.textPrimary,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Remove", style = KamTheme.type.label, color = colors.accent,
-                            modifier = Modifier.clip(CircleShape).clickable { onRemoveFromProject(row.id) }
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                        )
-                    }
+            items(conversations, key = { it.id }) { row ->
+                Row(
+                    Modifier.fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, RoundedCornerShape(KamTheme.dimens.cardRadius))
+                        .clickable { onOpenConversation(row.id) }
+                        .padding(15.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        row.title ?: row.snippet?.take(40) ?: "Untitled chat",
+                        style = KamTheme.type.cardTitle, color = colors.textPrimary,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Remove", style = KamTheme.type.label, color = colors.accent,
+                        modifier = Modifier.clip(CircleShape).clickable { onRemoveFromProject(row.id) }
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                    )
                 }
             }
         }
@@ -490,5 +531,54 @@ private fun ProjectFolder(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/**
+ * One of the project's two text fields: a label, a line saying what it is for,
+ * and a bordered box that shows a worked example while it is empty.
+ *
+ * Shared so the two cannot drift apart. They are the same control saying
+ * different things, and the difference between them is entirely in the words.
+ */
+@Composable
+private fun ProjectField(
+    label: String,
+    explanation: String,
+    placeholder: String,
+    value: TextFieldValue,
+    max: Int,
+    onValueChange: (TextFieldValue) -> Unit,
+) {
+    val colors = KamTheme.colors
+    Column(Modifier.fillMaxWidth()) {
+        Text(label, style = KamTheme.type.label, color = colors.textSecondary)
+        Spacer(Modifier.height(6.dp))
+        Text(explanation, style = KamTheme.type.secondary, color = colors.textTertiary)
+        Spacer(Modifier.height(8.dp))
+        Box(
+            Modifier.fillMaxWidth()
+                // Room for a few lines before it grows, so an empty field looks
+                // like somewhere to write rather than a single-line box.
+                .heightIn(min = 96.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.border, RoundedCornerShape(14.dp))
+                .padding(14.dp),
+        ) {
+            if (value.text.isEmpty()) {
+                Text(placeholder, style = KamTheme.type.body, color = colors.textTertiary)
+            }
+            BasicTextField(
+                value = value,
+                // Capped rather than truncated on save: typing past the limit
+                // simply stops, which is visible, instead of losing the tail
+                // silently at the far end of a save.
+                onValueChange = { if (it.text.length <= max) onValueChange(it) },
+                textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
+                cursorBrush = SolidColor(colors.accent),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
