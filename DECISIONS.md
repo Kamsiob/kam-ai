@@ -4036,3 +4036,32 @@ and a better test.
 Internal naming (`flagMissed`, `onFlagged`, `app.flag`, `flaggedMessageIds`) is untouched, as the
 issue says it should be. It is a lesser question and renaming it would have buried the copy fix in
 a large diff.
+
+## Issue #59: cleaning leaked template tokens on the way out, not in the database
+
+Messages written before the #49 fix still hold markers like `</start_of_turn>` in their stored
+content, and nothing re-examined stored text on the way to a screen, so the owner's own chat list
+showed "Hello. How can I help you. `</start_of_turn>`" on a card today.
+
+The issue set out both options and recommended sanitising on read. Taken, for the reason it gave:
+rewriting stored conversations to fix a rendering problem edits data the user holds nowhere else,
+and there is no way to distinguish a leaked marker from one somebody typed.
+
+`PromptBuilder.withoutControlTokens` is deliberately **not** `cleanOutput`. `cleanOutput` also
+truncates at the first stop marker, which is correct when deciding where a response ended and
+wrong on the way to a screen: applied to stored text it would silently hide everything after a
+marker appearing mid-message, turning a display problem into apparent data loss. There is a test
+for exactly that.
+
+Applied in three places, which is all of them: the message bubble, the conversation list snippet
+in all three views, and both export formats. The export matters because a marker leaving the app
+in a file is even harder to explain than one in a bubble.
+
+Only assistant text goes through it. What the user typed is theirs, and a stray `<start_of_turn>`
+in their own message is something they put there.
+
+Cost: a regex per render, guarded by a `contains('<')` fast path that skips almost every message,
+and the result is `remember`ed against the content so it does not run per frame.
+
+Verified on the phone against the conversation named in the issue. The card now reads "Hello. How
+can I help you." and the bubble matches, with the stored row untouched.

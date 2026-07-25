@@ -1000,6 +1000,20 @@ private fun MessageRow(
 
     var editing by remember { mutableStateOf(false) }
 
+    // Stored text, cleaned on the way out. Messages written before the #49 fix
+    // still carry stray template markers in their saved content, and nothing
+    // re-examined them on the way to the screen, so a conversation from before
+    // that fix still shows "</start_of_turn>" today (#59). Remembered so the
+    // regex does not run on every frame, and never applied to what the user
+    // typed, which is theirs.
+    val shown = remember(message.content, message.role) {
+        if (message.role == Role.ASSISTANT) {
+            com.kamsiob.kamai.llm.PromptBuilder.withoutControlTokens(message.content)
+        } else {
+            message.content
+        }
+    }
+
     // Roughly three-quarters of the screen. Wide enough that a long answer reads
     // like prose rather than a thin column, while the messaging shape and the
     // left/right asymmetry from DESIGN.md stay intact.
@@ -1064,13 +1078,13 @@ private fun MessageRow(
                             // Assistant text is Markdown, rendered in the app's own
                             // type scale and colours (item 14).
                             com.kamsiob.kamai.ui.components.MarkdownText(
-                                text = message.content,
+                                text = shown,
                                 color = colors.textPrimary,
                             )
                         }
                     } else {
                         Text(
-                            message.content,
+                            shown,
                             style = KamTheme.type.body,
                             color = colors.tonalText,
                         )
@@ -1125,7 +1139,7 @@ private fun MessageRow(
                     ttsAvailable = ttsAvailable,
                     speaking = speaking,
                     canRegenerate = isLast,
-                    text = message.content,
+                    text = shown,
                     onFlag = onFlag,
                     onRegenerate = onRegenerate,
                     onReport = onReport,

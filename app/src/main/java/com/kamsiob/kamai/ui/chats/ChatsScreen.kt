@@ -949,10 +949,10 @@ private fun ConversationRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (view == ChatsView.COMFORTABLE && !row.snippet.isNullOrBlank()) {
+            if (view == ChatsView.COMFORTABLE && !row.cleanSnippet().isNullOrBlank()) {
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    row.snippet.orEmpty(),
+                    row.cleanSnippet().orEmpty(),
                     style = KamTheme.type.secondary,
                     color = colors.textSecondary,
                     maxLines = 1,
@@ -1027,7 +1027,7 @@ private fun GridCell(
             )
             Spacer(Modifier.height(5.dp))
             Text(
-                row.snippet.orEmpty(),
+                row.cleanSnippet().orEmpty(),
                 style = KamTheme.type.secondary,
                 color = colors.textSecondary,
                 maxLines = 2,
@@ -1097,7 +1097,21 @@ fun relativeTime(epochMillis: Long, now: Long = System.currentTimeMillis()): Str
  * "New conversation" placeholder (item 17).
  */
 private fun com.kamsiob.kamai.data.ConversationSummary.displayTitle(): String =
-    title ?: snippet?.trim()?.take(48)?.takeIf { it.isNotBlank() } ?: "Untitled chat"
+    title ?: cleanSnippet()?.take(48)?.takeIf { it.isNotBlank() } ?: "Untitled chat"
+
+/**
+ * The snippet with stray template markers taken out (#59).
+ *
+ * The card for a conversation from before the #49 fix read "Hello. How can I
+ * help you. `</start_of_turn>`" in the owner's own chat list, because the marker
+ * is in the stored message and nothing looked at it again on the way to a card.
+ *
+ * Display only. The row is not rewritten, since editing somebody's stored
+ * conversations to fix a rendering problem is not a trade worth making, and
+ * there is no way to tell a leaked marker from one they typed.
+ */
+private fun com.kamsiob.kamai.data.ConversationSummary.cleanSnippet(): String? =
+    snippet?.let { com.kamsiob.kamai.llm.PromptBuilder.withoutControlTokens(it).trim() }
 
 /**
  * The archived chats view (item 20). Archived conversations live here, off the
@@ -1152,7 +1166,7 @@ fun ArchivedScreen(
                         .padding(15.dp),
                 ) {
                     Text(row.displayTitle(), style = KamTheme.type.cardTitle, color = colors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    row.snippet?.takeIf { it.isNotBlank() }?.let {
+                    row.cleanSnippet()?.takeIf { it.isNotBlank() }?.let {
                         Spacer(Modifier.height(4.dp))
                         Text(it, style = KamTheme.type.secondary, color = colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }

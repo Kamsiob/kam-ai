@@ -64,6 +64,29 @@ object PromptBuilder {
         return text.trim()
     }
 
+    /**
+     * Stray template tokens removed from text that is *already stored* (#59).
+     *
+     * Messages written before the #49 fix have markers like `</start_of_turn>`
+     * sitting in their saved content, and nothing re-examined them on the way
+     * back out, so they are visible today in bubbles and list snippets.
+     *
+     * Deliberately not [cleanOutput], which also truncates at the first stop
+     * marker. That is right when deciding where a response ended and wrong on
+     * the way to a screen: applied to stored text it would silently hide
+     * everything after a marker that appears mid-message, turning a display
+     * problem into apparent data loss.
+     *
+     * Not a migration either. Rewriting stored conversations to tidy up a
+     * rendering problem edits data the user holds nowhere else, and there is no
+     * way to tell a leaked `</start_of_turn>` from one somebody typed.
+     *
+     * The `<` check keeps the regex off the overwhelming majority of messages,
+     * since this runs on every render.
+     */
+    fun withoutControlTokens(stored: String): String =
+        if (stored.contains('<')) stored.replace(CONTROL_TOKEN, "").trim() else stored
+
     /** Garbled or stray chat-template tokens: anything in angle brackets mentioning
      *  "turn", or an <|...|> control token. */
     private val CONTROL_TOKEN = Regex("<\\|?/?[a-z_]*turn[a-z_]*\\|?>|<\\|[a-z_]+\\|>", RegexOption.IGNORE_CASE)

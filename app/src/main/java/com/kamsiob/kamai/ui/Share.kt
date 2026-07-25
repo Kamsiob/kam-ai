@@ -50,7 +50,7 @@ object Share {
                 // The user picked plain text over Markdown and got Markdown
                 // anyway, which made the choice between the two formats mean
                 // nothing except the file extension.
-                else -> appendLine("Kam AI: ${markdownToPlainText(m.content).trim()}")
+                else -> appendLine("Kam AI: ${markdownToPlainText(cleaned(m.content)).trim()}")
             }
             appendLine()
         }
@@ -96,7 +96,7 @@ object Share {
                 } else {
                     appendLine("**${if (m.role == Role.USER) "You" else "Kam AI"}**")
                     appendLine()
-                    appendLine(m.content.trim())
+                    appendLine(if (m.role == Role.USER) m.content.trim() else cleaned(m.content))
                 }
                 appendLine()
             }
@@ -113,6 +113,14 @@ object Share {
     fun exportName(title: String?, messages: List<MessageEntity>): String? =
         title?.takeIf { it.isNotBlank() }
             ?: messages.firstOrNull { it.role != Role.SYSTEM }?.content?.trim()?.take(40)
+
+    /**
+     * Assistant text with stray template markers taken out (#59), so an export
+     * does not carry a marker out of the app and into somebody's notes, where it
+     * is even harder to explain than it is in a bubble.
+     */
+    private fun cleaned(content: String): String =
+        com.kamsiob.kamai.llm.PromptBuilder.withoutControlTokens(content).trim()
 
     private fun Intent.addNewTaskIfNeeded(context: Context): Intent {
         if (context !is android.app.Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
