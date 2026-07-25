@@ -5277,3 +5277,38 @@ The joining rules are extracted as `appendToDraft` and tested in
 `DraftAppendTest`, since that is the part whose mistakes are visible: whisper
 prefixes its output with a space, and a composer that opens indented or with a
 doubled space looks broken in a way the feature is not.
+
+## The excerpt follow-up gets a mechanism that exists (#64)
+
+`SelectionActions` was 180 lines that compiled, read as working, and had never
+run. It installed a custom `TextToolbar` through `LocalTextToolbar` so that
+highlighting part of an answer would offer Copy, Follow up and Share for exactly
+that excerpt (MASTER_SPEC PART 5B). `SelectionContainer` in this version of
+Compose does not consult `LocalTextToolbar` at all, so the platform's own toolbar
+appeared instead and always had.
+
+The replacement API does not help. `Modifier.appendTextContextMenuComponents`
+adds items to the selection toolbar and they do appear, but the item handler
+receives a `TextContextMenuSession` and nothing else:
+
+    item(key, label, icon, onClick: (TextContextMenuSession) -> Unit)
+
+`TextContextMenuDataProvider` exposes `position`, `contentBounds` and `data`, and
+`TextContextMenuBuilderScope` exposes `separator`, `addComponent` and
+`addFilter`. None of them carries the selected text. Compose has it internally —
+it builds `PROCESS_TEXT` items from it — and does not hand it out. Reconstructing
+it from `Selection` offsets is not available either: `MarkdownText` renders each
+block as its own `Text`, so a selection spans several selectables whose ids are
+assigned internally, and there is no mapping back to the source string.
+
+So the excerpt is chosen by editing instead of by highlighting. "Save an excerpt
+to Follow-ups" in the response overflow opens the answer as plain text, and the
+user deletes down to what they want. That is one more gesture than a highlight,
+and in exchange it is visible in a menu rather than hidden behind a long press,
+it can keep two sentences from opposite ends of an answer, and it works.
+
+The dead file is deleted rather than kept with a comment. Code that reads as
+working and is not is worse than no code: the previous comment was accurate and
+still left the next person to discover the whole class was unreachable.
+`onShareText` went with it, being the only thing it fed. Plain selection with the
+platform toolbar stays, which is what the screen has actually been doing.

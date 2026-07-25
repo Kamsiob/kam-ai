@@ -614,7 +614,6 @@ private fun ConversationScreen(
                 asMarkdown,
             )
         },
-        onShareText = { text -> Share.text(context, text) },
         onFollowUpSelection = { message, text ->
             // The selected excerpt becomes the follow-up content, linked back to
             // the full source response. PART 5.

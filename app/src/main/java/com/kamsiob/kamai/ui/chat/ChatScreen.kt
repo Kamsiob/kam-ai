@@ -34,7 +34,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import kotlinx.coroutines.launch
@@ -194,7 +197,6 @@ fun ChatScreen(
     onShareResponse: (MessageEntity) -> Unit,
     onShareThread: () -> Unit,
     onExportThread: (Boolean) -> Unit,
-    onShareText: (String) -> Unit,
     onFollowUpSelection: (MessageEntity, String) -> Unit,
     onPlay: (MessageEntity) -> Unit,
     onEdit: (MessageEntity, String) -> Unit,
@@ -454,7 +456,6 @@ fun ChatScreen(
                                     onShareResponse = { onShareResponse(message) },
                                     onShareThread = onShareThread,
                                     onExportThread = onExportThread,
-                                    onShareText = onShareText,
                                     onFollowUpSelection = { text -> onFollowUpSelection(message, text) },
                                     onPlay = { onPlay(message) },
                                     onEdit = { onEdit(message, it) },
@@ -912,7 +913,6 @@ private fun MessageRow(
     onShareResponse: () -> Unit,
     onShareThread: () -> Unit,
     onExportThread: (Boolean) -> Unit,
-    onShareText: (String) -> Unit,
     onFollowUpSelection: (String) -> Unit,
     onPlay: () -> Unit,
     onEdit: (String) -> Unit,
@@ -997,13 +997,15 @@ private fun MessageRow(
                         .padding(14.dp),
                 ) {
                     if (message.role == Role.ASSISTANT) {
-                        // Selecting any part of a response offers copy, follow up,
-                        // and share for exactly that excerpt. PART 5 and 5B.
-                        com.kamsiob.kamai.ui.components.SelectionActions(
-                            onCopy = { }, // the platform copy already ran
-                            onFollowUp = { if (it.isNotBlank()) onFollowUpSelection(it) },
-                            onShare = { if (it.isNotBlank()) onShareText(it) },
-                        ) {
+                        // Plain selection: highlight to copy, with the platform's
+                        // own toolbar. This used to be wrapped in SelectionActions,
+                        // which installed a custom TextToolbar carrying Follow up
+                        // and Share for the highlighted excerpt. That wrapper never
+                        // ran on a device (#64) and has been removed; the excerpt
+                        // follow-up it promised is now "Save an excerpt" in the
+                        // overflow, which does not depend on reading a selection
+                        // the framework does not expose.
+                        androidx.compose.foundation.text.selection.SelectionContainer {
                             // Assistant text is Markdown, rendered in the app's own
                             // type scale and colours (item 14).
                             com.kamsiob.kamai.ui.components.MarkdownText(
@@ -1085,6 +1087,7 @@ private fun MessageRow(
                     onShareThread = onShareThread,
                     onExportThread = onExportThread,
                     onPlay = onPlay,
+                    onSaveExcerpt = onFollowUpSelection,
                 )
             }
         }
@@ -1158,10 +1161,20 @@ private fun ActionRow(
     onShareThread: () -> Unit,
     onExportThread: (Boolean) -> Unit,
     onPlay: () -> Unit,
+    onSaveExcerpt: (String) -> Unit,
 ) {
     val colors = KamTheme.colors
     val clipboard = LocalClipboardManager.current
     var overflowOpen by remember { mutableStateOf(false) }
+    var excerpting by remember { mutableStateOf(false) }
+
+    if (excerpting) {
+        ExcerptDialog(
+            full = com.kamsiob.kamai.ui.components.markdownToPlainText(text),
+            onDismiss = { excerpting = false },
+            onSave = { excerpting = false; onSaveExcerpt(it) },
+        )
+    }
 
     // The flag pops with overshoot and a small rotation, then turns amber.
     val flagScale by animateFloatAsState(
@@ -1253,6 +1266,19 @@ private fun ActionRow(
                         onClick = { overflowOpen = false; action() },
                     )
                 }
+                androidx.compose.material3.DropdownMenuItem(
+                    text = {
+                        Text(
+                            "Save an excerpt to Follow-ups",
+                            style = KamTheme.type.body,
+                            color = colors.textPrimary,
+                        )
+                    },
+                    onClick = {
+                        overflowOpen = false
+                        excerpting = true
+                    },
+                )
                 androidx.compose.material3.DropdownMenuItem(
                     text = {
                         Text(
@@ -1710,6 +1736,104 @@ private fun ConversationRenameDialog(
                     color = if (text.text.isNotBlank()) colors.accent else colors.textTertiary,
                     modifier = Modifier.clip(CircleShape)
                         .then(if (text.text.isNotBlank()) Modifier.clickable { onConfirm(text.text.trim()) } else Modifier)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Trims an answer down to the part worth keeping, and saves that to Follow-ups
+ * (#64, MASTER_SPEC PART 5B).
+ *
+ * PART 5B asks for a follow-up scoped to an excerpt rather than a whole answer,
+ * and the original attempt at it put Follow up and Share in the text-selection
+ * toolbar. That never worked: `SelectionContainer` does not consult
+ * `LocalTextToolbar`, and the replacement API hands custom items a
+ * `TextContextMenuSession` and no way to read what is selected. There is no
+ * public route from a highlight to its text on this version of Compose.
+ *
+ * So the excerpt is chosen by editing rather than by highlighting. The field
+ * opens with the whole answer as plain text — Markdown source in a Follow-up
+ * reads as `### Heading`, which is not what anyone saved — and the user deletes
+ * down to the sentence they care about. It is one more gesture than a highlight
+ * and it has the advantage of existing, of being visible in a menu rather than
+ * hidden behind a long press, and of letting somebody keep two sentences from
+ * opposite ends of a long answer, which a single selection cannot do.
+ *
+ * The bookmark in the action row still saves the whole response in one tap. This
+ * is the deliberate, longer path.
+ */
+@Composable
+private fun ExcerptDialog(
+    full: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    var text by remember {
+        mutableStateOf(
+            androidx.compose.ui.text.input.TextFieldValue(
+                full, androidx.compose.ui.text.TextRange(full.length),
+            ),
+        )
+    }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                .padding(22.dp),
+        ) {
+            Text("Save an excerpt", style = KamTheme.type.cardTitle, color = colors.textPrimary)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Cut this down to the part you want to come back to.",
+                style = KamTheme.type.secondary,
+                color = colors.textTertiary,
+            )
+            Spacer(Modifier.height(14.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Tall enough to edit in, capped so a long answer cannot push
+                    // the buttons off the bottom of the screen.
+                    .heightIn(min = 120.dp, max = 280.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.surfaceSecondary)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            ) {
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
+                    cursorBrush = SolidColor(colors.accent),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Text(
+                    "Cancel", style = KamTheme.type.label, color = colors.textSecondary,
+                    modifier = Modifier.clip(CircleShape).clickable(onClick = onDismiss)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Save", style = KamTheme.type.label,
+                    color = if (text.text.isNotBlank()) colors.accent else colors.textTertiary,
+                    modifier = Modifier.clip(CircleShape)
+                        .then(
+                            if (text.text.isNotBlank()) {
+                                Modifier.clickable { onSave(text.text.trim()) }
+                            } else {
+                                Modifier
+                            },
+                        )
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 )
             }
