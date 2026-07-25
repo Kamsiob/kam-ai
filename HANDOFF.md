@@ -475,6 +475,25 @@ Consult before trying anything in these areas.
 
 ## SECTION 6: MEASUREMENTS TAKEN
 
+### Per-tier baseline, 25 July, both tiers, long generations
+
+| tier | model | prefill | decode |
+| --- | --- | --- | --- |
+| Basic | Gemma 4 E2B q4_k_m, ctx 4096 | 78.1 / 56.6 tok/s | **11.0 / 10.8 tok/s** |
+| Balanced | Gemma 4 E4B q4_k_m, ctx 6144 | 33.0 / 34.3 / 35.9 tok/s | **5.9 / 6.4 / 5.9 tok/s** |
+
+Four threads, ~300-token generations, phone at 31.5 to 33.8 C so not throttled.
+
+**The "9.2 to 10.6 tok/s at 4 threads" figure repeated in #38, #51 and elsewhere in this file is
+the Basic tier.** Balanced, which is what the app recommends on a 16 GB phone, decodes at about
+six. Do not quote the old number as if it described the app.
+
+Also verified at load, now printed to logcat every time:
+`CPU : NEON = 1 | ARM_FMA = 1 | FP16_VA = 1 | MATMUL_INT8 = 1 | DOTPROD = 1 | REPACK = 1`, with
+`CPU_REPACK 2618.85 MiB` against `CPU_Mapped 4731.51 MiB`. The march flags reach the backend and
+repacking is doing real work. No longer an assumption.
+
+
 Pixel 10 Pro XL, Tensor G5 (2 little at 2.25 GHz, 5 mid at 3.05, 1 prime at 3.78), Gemma 4
 E2B Q4_K_M, context 4096, instrumented through the `KamPerf` logcat tag.
 
