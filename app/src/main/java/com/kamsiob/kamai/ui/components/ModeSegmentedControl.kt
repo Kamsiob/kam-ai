@@ -76,7 +76,19 @@ fun SegmentedModeControl(
     val thumbSpring = expressiveSpec<Float>()
 
     val innerPad = 3.dp
-    val height = 34.dp
+    // Scales with the user's text size rather than sitting at a fixed 34dp.
+    //
+    // At the largest accessibility font the fixed height cropped every label top
+    // and bottom, which breaks the accessibility floor in DESIGN.md section 11:
+    // dynamic type is meant to be respected without breaking layouts. The control
+    // has to keep a fixed height, because the sliding thumb is positioned against
+    // it, so the height follows the font instead of ignoring it.
+    //
+    // The label is 14sp at scale 1, so 34dp leaves comfortable room; the ratio is
+    // kept and the result floored at the original height so ordinary text sizes
+    // are unchanged and only larger ones grow.
+    val fontScale = LocalDensity.current.fontScale
+    val height = (34.dp * fontScale).coerceAtLeast(34.dp)
 
     BoxWithConstraints(
         modifier = modifier

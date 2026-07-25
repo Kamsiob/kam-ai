@@ -3291,3 +3291,29 @@ and the model still writes one once the conversation is long enough to deserve i
 
 **Revert this branch when titling runs on its own KV sequence**, which is the proper fix and
 makes the trade unnecessary. It is marked in the code.
+
+## Issue #34: the keyboard and reachability audit
+
+Tested on the phone rather than read off the code, which is the only way this issue means
+anything.
+
+**The keyboard is handled correctly on the conversation surface.** The layout is a column of
+header, message list at weight 1, and a composer carrying `imePadding()`, so the composer
+rises and the weighted list shrinks to match. The last message and its action row stay
+visible, and the list stays scrollable. HANDOFF said "nothing in the app reacts to the
+keyboard opening and the message list has no IME padding"; the first half was already wrong,
+and the second half does not matter given how the column is built. Corrected there.
+
+**Found and fixed: the segmented mode control broke at the largest font size.** At
+`font_scale 2.0` every label was clipped top and bottom, because the control sat at a fixed
+34dp that did not grow with the text. DESIGN.md section 11 sets the floor plainly: dynamic
+type respected without breaking layouts. That was a breach of it, and a visible one, on the
+control that starts every conversation.
+
+The control cannot simply wrap its content, because the sliding thumb is positioned against a
+known height, so the height now follows the font scale instead of ignoring it, floored at the
+original 34dp so ordinary text sizes are untouched and only larger ones grow. Verified at 2.0,
+where all four labels now sit fully inside the pill, and at 1.0, where the control is
+pixel-unchanged.
+
+The device font size was set back to 1.0 afterwards, since it is the owner's setting.
