@@ -96,9 +96,16 @@ and the no-ceremony path are verified; the archive, the count dialog, the toast 
 are proven by unit tests only. Watch it the first time it genuinely fires. Do not manufacture
 old rows in the owner's database to force a demonstration.
 
-**Next concrete step:** **#29 per-mode empty-state nudges**, the largest UI piece, which
-section 4 puts before #36 so the nudge copy and the public copy are written once and agree.
-Fraunces or Lora, subsetted, with the file size recorded. Still open against the
+**Also finished: #29 per-mode empty-state nudges**, verified on the phone in all four modes.
+The italic serif DESIGN listed as "the one hard dependency" is bundled: **Fraunces Italic,
+subset from 415 KB to 5.8 KB, 18 glyphs**, rebuildable with `tools/subset_fraunces.py`.
+**Rerun that script if the Brainstorm line ever changes**, because a character outside the
+subset does not fall back, it simply does not render. `Modifier.edgeFadeHorizontal` landed in
+the same pass and is on both Workbench chip rows.
+
+**Next concrete step:** **#33's kind filter and #35's scroll restoration**, both small and in
+files already open, then **#32 Workbench linking**, which touches the data model and needs
+MIGRATION_5_6 so it lands before anything else that reads conversation structure. Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
 button drawing in the reserved gold) and **#60** (the leftover "flag" wording). Full order in
 section 4.
@@ -237,11 +244,11 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #24 | Version 4 to 5 migration | **closed and fully verified.** SQL by MigrationSqlTest on the JVM, Room and SQLCipher by the three androidTest classes run on the phone, 11 tests passing |
 | #25 | Brainstorm behaviour on the device: ten methods, selection checklist, four hard rules | prompt done, **behaviour never watched**. Budget a full session |
 | #28 | First-time per-mode explainers (needs a "seen once" key that does not exist anywhere yet), per-mode Q&A entries, export markers (#41) | partial |
-| #29 | Per-mode empty-state nudges: wash, four hand-drawn double-stroke sketches, per-mode type | not started, largest UI piece. Serif now decided: **Fraunces**, or Lora if Fraunces is awkward at that size, both SIL OFL. **Subset it to only the glyphs the one line needs** and record the file size in DECISIONS.md. Horizontal `edgeFade` variant belongs to the same pass (three chip rows need it) |
+| #29 | Per-mode empty-state nudges | **closed, verified on the phone** in all four modes. Fraunces Italic bundled and subset to 5.8 KB; sketches are Compose paths rather than assets; `edgeFadeHorizontal` landed with it |
 | #31 | Auto-archive: Off / 3 / 7 / 30 days, pinned exempt, count before confirming, undo | **built, 13 tests.** Settings verified on the phone; **the pass itself has never fired there**, since nothing on that device is old enough to match. Issue left open until it is watched working |
 | #32 | Workbench linking, both directions | not started. **Touches the data model, needs MIGRATION_5_6.** No Workbench entity exists; it persists two strings through the settings table |
 | #33 | Filter follow-ups by kind alongside source | not started. Brainstorm-defaults-to-pursue path also unverified |
-| #34 | Keyboard and reachability audit | not started. Nothing in the app reacts to the keyboard opening and the message list has no IME padding. Do after #29 |
+| #34 | Keyboard and reachability audit | not started. Nothing in the app reacts to the keyboard opening and the message list has no IME padding. #29 is done, so this is unblocked |
 | #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll are now **seen working on the phone** (#43). The failure-state half is **unblocked**: #40 is closed and the stop reason is now recorded honestly. Scroll restoration on reopening is still not done |
 | #36 | Onboarding and public copy for four modes | not started. Do after #29 and #42 |
 | #38 | Titling KV pollution (**now measured, and severe**), Bench/Overlay/Discover prompt trims, runtime network monitor | partial. Titling costs ~28s per turn by destroying the prefix reuse, and runs after every turn rather than once. Numbers in the issue comment. Fix it before any round 3 perf work, or every measurement taken there is against a defeated cache |
