@@ -352,6 +352,16 @@ fun AboutScreen(
                     style = KamTheme.type.mono,
                     color = colors.textTertiary,
                 )
+                Spacer(Modifier.height(16.dp))
+                // The positioning line, which is the shortest true statement of
+                // what the four modes are for (#36). It belongs here rather than
+                // on a slide somebody sees once.
+                Text(
+                    com.kamsiob.kamai.ui.settings.QuestionsAndAnswers.POSITIONING,
+                    style = KamTheme.type.body,
+                    color = colors.textSecondary,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
             }
         }
         Spacer(Modifier.height(26.dp))

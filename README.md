@@ -18,11 +18,29 @@ everyday questions, and at pushing back on your ideas.
 **Kam AI is not a private ChatGPT.** A model small enough to fit on a phone
 knows less than the big cloud models, gets some facts wrong, cannot make images,
 and is weaker at long polished documents. The app says so plainly and builds
-around it: anything worth checking gets a Follow-up flag instead of a confident
-guess.
+around it: anything worth checking gets a bookmark into Follow-ups instead of a
+confident guess.
 
 There are no characters, no roleplay, no pretend companion, and no emotional
 manipulation. Those are stated design commitments, not just internal rules.
+
+**It thinks with you, not for you.** That is the difference the modes are built
+around, and it is why one of them refuses to hand you ideas at all.
+
+## The four modes
+
+One AI, four ways of working. A mode is chosen when a chat starts and can be
+switched at any time.
+
+| Mode | What it does |
+|---|---|
+| **General** | Everyday questions and back-and-forth. |
+| **Logic Partner** | Argues the other side and pokes holes in your thinking. It concedes when you are right, and does not fold just because you disagree. |
+| **Brainstorm** | Will not hand you ideas. It pulls them out of you, using a named facilitation method and asking one question at a time. |
+| **Workbench** | Paste something in and get it rewritten, tightened, or reorganised. Sessions are saved and can be reopened, and each can be linked to a chat about its result. |
+
+Discover is not a mode. It is a source: offline packs of short reads you can pull
+one from and then discuss, with its own tab.
 
 ## Install
 

@@ -119,4 +119,48 @@ class PublicCopyTest {
         Mode.BENCH -> "Workbench"
         else -> mode.name
     }
+
+    // The positioning line and the store listing (#36). The listing is read from
+    // the file that is actually uploaded, so it cannot drift from the app.
+
+    /**
+     * A file at the repository root. Unit tests run with the app module as their
+     * working directory, so a root-relative path needs the parent; the fallback
+     * keeps this working if that ever changes.
+     */
+    private fun repoFile(path: String): java.io.File =
+        java.io.File("../$path").takeIf { it.exists() } ?: java.io.File(path)
+
+    @Test
+    fun thePositioningLineSaysWhatTheModesAreFor() {
+        assertThat(QuestionsAndAnswers.POSITIONING).contains("thinks with you, not for you")
+    }
+
+    @Test
+    fun theStoreListingNamesAllFourModesAndNotTheOldOnes() {
+        val listing = repoFile("tools/play/listing.json").readText()
+        listOf("General:", "Logic Partner:", "Brainstorm:", "Workbench:").forEach {
+            assertThat(listing).contains(it)
+        }
+        // The old three-mode wording, and the pre-unification saving word.
+        assertThat(listing).doesNotContain("Chat about anything")
+        assertThat(listing).doesNotContain("Flag any answer")
+    }
+
+    @Test
+    fun theStoreListingCarriesThePositioning() {
+        val listing = repoFile("tools/play/listing.json").readText()
+        assertThat(listing).contains("thinks with you, not for you")
+    }
+
+    @Test
+    fun theReadmeDescribesTheFourModes() {
+        val readme = repoFile("README.md").readText()
+        listOf("General", "Logic Partner", "Brainstorm", "Workbench").forEach {
+            assertThat(readme).contains(it)
+        }
+        assertThat(readme).contains("thinks with you, not for you")
+        // Discover is a source, not a mode, and the README must not blur that.
+        assertThat(readme).contains("Discover is not a mode")
+    }
 }

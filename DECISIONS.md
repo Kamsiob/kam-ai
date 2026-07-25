@@ -3353,3 +3353,29 @@ means an in-progress scratchpad from the previous version survives the upgrade.
 Verified across process death: force-stopped the app, reopened Workbench, and it came back
 with its input, its result, and **"Open the discussion"** rather than "Discuss this", so the
 pairing was restored too.
+
+## Issue #36: public copy for four modes
+
+The onboarding slide and the Q&A entry landed with #42. This is the rest of it: the README,
+the store listing, About, and the positioning line.
+
+**"It thinks with you, not for you."** That is the shortest true statement of what the four
+modes are for, and it explains the one thing about the app that otherwise reads as a bug:
+Brainstorm refusing to hand over ideas. It lives in `QuestionsAndAnswers.POSITIONING`, is
+shown on About under the version, and appears in both the README and the store listing, so
+there is one wording rather than three.
+
+**The store listing described three modes.** It offered "Chat about anything", Logic Partner
+and Workbench, with no Brainstorm at all, and still used "Flag any answer" from before the
+saving unification. Both corrected, and Workbench now mentions that sessions are saved and can
+be linked to a chat, which is true as of #32.
+
+**The README had no modes section at all** and described saving as a "Follow-up flag". It now
+carries a table of the four, a line stating plainly that Discover is not a mode but a source,
+and the positioning.
+
+`PublicCopyTest` grew to cover all of it, including **reading the store listing and the README
+off disk** rather than from a copy in the test. The listing file it reads is the one that gets
+uploaded, so the app's description of itself and the store's cannot drift apart without a test
+failing. Four new assertions, and the old three-mode wording is now explicitly banned rather
+than merely absent.

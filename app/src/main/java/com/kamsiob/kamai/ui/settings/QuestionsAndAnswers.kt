@@ -79,6 +79,15 @@ object QuestionsAndAnswers {
         ),
     )
 
+    /**
+     * How Kam AI describes itself in one line, used on About and in the README
+     * (#36). The four modes exist to make this true rather than to be a feature
+     * list, which is why one of them refuses to hand over ideas at all.
+     */
+    const val POSITIONING =
+        "It thinks with you, not for you. Four ways of working, one AI, all of it " +
+            "on your phone."
+
     const val EMPTY_STATE = "Nothing matches. Try fewer words."
 
     const val CLOSING =
