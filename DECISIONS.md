@@ -3919,3 +3919,27 @@ second. Verified on the phone; the recording was cancelled rather than transcrib
 Whether a genuinely long dump transcribes well, and how long whisper takes over three minutes of
 speech on this phone, cannot be tested from here: it needs somebody to talk into the microphone.
 Everything around it is verified. That one measurement is not.
+
+## Issue #39, fourteenth finding, and the last on the list: interrupting an exercise
+
+There is no timer in the app. "Talk continuously for a set time" and "a timed run" are
+instructions in the Brainstorm prompt, and the user keeps the time themselves, so there is no
+countdown that an interruption can corrupt. The conversation carries the exercise in its history,
+so leaving and coming back resumes it, and the draft and scroll position are both preserved
+already.
+
+What the item did expose is next to it. A brain dump asks somebody to talk for minutes without
+editing. If they were using voice, and the screen went away for any reason, `cancelRecording`
+discarded the audio in silence: leave, take a call, come back to a composer looking exactly as it
+did before you started, with no sign anything had been lost.
+
+It now says so, above two seconds, because an accidental tap on the microphone does not deserve a
+notice and a sentence of speech does. Verified on the phone by recording, leaving, and returning.
+
+### The better fix, not taken here
+
+Transcribing what was captured and appending it to the draft would lose nothing at all, which is
+plainly better than telling somebody their two minutes are gone. It needs the `SttEngine` and the
+model file, which the screen supplies and the view model does not hold, so it is a real change
+rather than a tidy-up, and it wants doing deliberately rather than at the end of an audit. Filed
+as its own issue.

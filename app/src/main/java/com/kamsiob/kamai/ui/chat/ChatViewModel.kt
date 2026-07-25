@@ -173,11 +173,25 @@ class ChatViewModel(
         }
     }
 
-    /** Abandons an in-flight recording, for example when the screen goes away. */
+    /**
+     * Abandons an in-flight recording, for example when the screen goes away.
+     *
+     * Says so, if there was anything worth losing. A Brainstorm brain dump asks
+     * the user to talk continuously for a set time, so the recording that gets
+     * thrown away here can be minutes of someone thinking out loud, and it used
+     * to vanish without a word: leave the screen, take a call, come back to a
+     * composer that looks exactly as it did before you started (#39).
+     *
+     * Two seconds, because an accidental tap on the microphone is not worth a
+     * notice and a sentence of speech is.
+     */
     fun cancelRecording() {
-        if (_recording.value) {
-            recorder.cancel()
-            _recording.value = false
+        if (!_recording.value) return
+        val lost = recorder.seconds
+        recorder.cancel()
+        _recording.value = false
+        if (lost >= 2f) {
+            _notice.value = "Recording stopped when you left, and was not saved."
         }
     }
 
