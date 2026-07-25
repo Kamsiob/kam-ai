@@ -6,6 +6,7 @@ import com.kamsiob.kamai.ui.theme.expressiveSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.fadeOut
@@ -32,6 +33,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,6 +68,8 @@ fun DiscoverScreen(
     onReshuffle: () -> Unit,
     onOpenPacks: () -> Unit,
     onOpenSaved: (FollowUpEntity) -> Unit,
+    /** Opens the screen that lists every saved moment. */
+    onOpenSavedList: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -112,15 +116,26 @@ fun DiscoverScreen(
             exhausted -> Exhausted(onReshuffle)
             current == null -> Box(Modifier.fillMaxWidth().height(200.dp))
             else -> {
-                // Dealing another moment should feel like a card being dealt: the
-                // old one sweeps off and fades while the new one rises and settles
-                // on the expressive spring. Collapses to an instant swap under
-                // reduced motion (item 8).
+                // Dealing another moment reads as a card off a deck: the old one
+                // leaves to the left, the new one arrives from the right just
+                // after it, so the two never sit on top of each other.
+                //
+                // This used to sweep the old card left while the new one rose
+                // from below. Two cards moving in different directions at full
+                // opacity in the same space is the "momentary flash" that was
+                // reported: for a few frames you see both, offset, and the
+                // container resizes underneath them at the same time.
+                //
+                // Three things fix it. One axis, so the movement reads as a
+                // single gesture. The incoming fade delayed past the outgoing
+                // one, so there is never a frame with two solid cards. And
+                // SizeTransform(clip = false), so a taller card does not make the
+                // box jump while both are still on screen.
+                //
+                // Collapses to an instant swap under reduced motion (item 8).
                 val reduced = reducedMotion()
-                val riseSpec = expressiveSpec<androidx.compose.ui.unit.IntOffset>()
+                val arriveSpec = expressiveSpec<androidx.compose.ui.unit.IntOffset>()
                 val scaleSpec = expressiveSpec<Float>()
-                val fadeSpec = standardSpec<Float>()
-                val sweepSpec = standardSpec<androidx.compose.ui.unit.IntOffset>()
                 androidx.compose.animation.AnimatedContent(
                     targetState = current,
                     transitionSpec = {
@@ -128,12 +143,13 @@ fun DiscoverScreen(
                             fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
                         } else {
                             (
-                                slideInVertically(riseSpec) { it / 4 } +
-                                    fadeIn(fadeSpec) +
-                                    scaleIn(scaleSpec, initialScale = 0.94f)
+                                slideInHorizontally(arriveSpec) { it / 3 } +
+                                    fadeIn(tween(220, delayMillis = 110)) +
+                                    scaleIn(scaleSpec, initialScale = 0.96f)
                                 ).togetherWith(
-                                slideOutHorizontally(sweepSpec) { -it / 3 } + fadeOut(fadeSpec),
-                            )
+                                slideOutHorizontally(tween(200)) { -it / 3 } +
+                                    fadeOut(tween(150)),
+                            ).using(androidx.compose.animation.SizeTransform(clip = false))
                         }
                     },
                     contentKey = { it.id },
@@ -151,21 +167,50 @@ fun DiscoverScreen(
             }
         }
 
+        // One row rather than the whole list.
+        //
+        // Every saved moment used to be printed under the card, so a few weeks of
+        // reading turned this screen into a long scroll with the card that Discover
+        // is actually for stranded at the top of it (owner feedback). The saved
+        // moments now have a screen of their own; this is the door to it.
         if (saved.isNotEmpty()) {
-            Spacer(Modifier.height(30.dp))
-            Eyebrow("Saved")
-            Spacer(Modifier.height(8.dp))
-            saved.forEach { s ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .clickable { onOpenSaved(s) }
-                        .padding(vertical = 10.dp),
-                ) {
-                    Text(s.snippet, style = KamTheme.type.body, color = colors.textPrimary)
-                    Text("SAVED MOMENT", style = KamTheme.type.mono, color = colors.textTertiary)
+            Spacer(Modifier.height(28.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                    .clickable(onClick = onOpenSavedList)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Rounded.Bookmark,
+                    contentDescription = null,
+                    tint = colors.goldText,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Saved moments",
+                        style = KamTheme.type.cardTitle,
+                        color = colors.textPrimary,
+                    )
+                    Text(
+                        if (saved.size == 1) "1 passage kept to come back to"
+                        else "${saved.size} passages kept to come back to",
+                        style = KamTheme.type.secondary,
+                        color = colors.textSecondary,
+                    )
                 }
+                Icon(
+                    Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = colors.textTertiary,
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
         Spacer(Modifier.height(28.dp))

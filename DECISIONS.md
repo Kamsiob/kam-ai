@@ -4975,3 +4975,27 @@ an empty list.
 The row wraps rather than scrolling sideways, for the same reason as the Workbench chips. Seven
 chips do not fit across a phone, and a row that runs off the edge says the opposite of what showing
 them all was for.
+
+## Owner feedback: the Discover deal flashed, and saved moments buried the screen
+
+**The deal.** The old card swept left while the new one rose from below, two cards moving on
+different axes through the same space at full opacity. For a few frames you saw both, offset, while
+the container resized underneath them. That is the "momentary flash" reported.
+
+Three changes: one axis, so the movement reads as a single gesture (old card leaves left, new one
+arrives from the right, like a card off a deck); the incoming fade delayed past the outgoing one, so
+there is never a frame with two solid cards; and `SizeTransform(clip = false)`, so a taller card
+does not make the box jump while both are still on screen. Still an instant swap under reduced
+motion.
+
+**Saved moments had no home.** Every saved passage was printed under the moment card, so a few weeks
+of reading turned Discover into a long scroll with the card the tab exists for stranded at the top.
+
+There is a `SavedMomentsScreen` now, and the tab shows one row: "Saved moments, N passages kept to
+come back to". Coming back to a passage deliberately is a different act from being dealt a new one,
+and it deserves its own screen rather than a tail on somebody else's.
+
+The new screen is deliberately plain: a card each, the passage, when it was saved, and a tap to
+reopen it as a grounded discussion. No filters, no sorting. A handful of kept passages does not need
+managing, and Follow-ups already exists for anybody who wants every save from everywhere in one
+list.

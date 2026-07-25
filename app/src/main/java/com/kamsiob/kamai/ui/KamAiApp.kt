@@ -107,6 +107,10 @@ private sealed interface Pushed {
     data object AppLock : Pushed
     data object AutoArchive : Pushed
     data object Archived : Pushed
+
+    /** Everything kept from Discover, on its own screen instead of trailing off
+     *  the bottom of the Discover tab. */
+    data object SavedMoments : Pushed
     data object CustomInstructions : Pushed
     data class Project(val id: String) : Pushed
     data class Conversation(
@@ -328,6 +332,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.AppLock -> LockSettingsHost(app)
                     Pushed.AutoArchive -> AutoArchiveHost(app)
                     Pushed.Archived -> ArchivedHost(app, stack)
+                    Pushed.SavedMoments -> SavedMomentsHost(app, stack)
                     Pushed.CustomInstructions -> CustomInstructionsHost(app, stack)
                     is Pushed.Project -> ProjectHost(app, stack, pushed.id)
                 }
@@ -844,6 +849,7 @@ private fun DiscoverHost(
                 vm.openSaved(packId, momentId) { id -> stack.add(Pushed.Conversation(id)) }
             }
         },
+        onOpenSavedList = { stack.add(Pushed.SavedMoments) },
     )
 
     if (readerOpen && current != null) {
@@ -1281,5 +1287,31 @@ private fun AutoArchiveHost(app: AppViewModel) {
     com.kamsiob.kamai.ui.settings.AutoArchiveScreen(
         value = value,
         onChange = { app.setAutoArchive(it) },
+    )
+}
+
+/**
+ * Everything kept from Discover, reached from the Discover tab.
+ *
+ * Reads the same saved-moment list the tab does, so the two can never disagree,
+ * and opens each one the same way: as a grounded discussion of its passage.
+ */
+@Composable
+private fun SavedMomentsHost(
+    @Suppress("UNUSED_PARAMETER") app: AppViewModel,
+    stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+) {
+    val vm: com.kamsiob.kamai.ui.discover.DiscoverViewModel = viewModel()
+    LaunchedEffect(Unit) { vm.refresh() }
+    val saved by vm.saved.collectAsStateWithLifecycle()
+    com.kamsiob.kamai.ui.discover.SavedMomentsScreen(
+        saved = saved,
+        onOpen = { s ->
+            val packId = s.packId
+            val momentId = s.momentId
+            if (packId != null && momentId != null) {
+                vm.openSaved(packId, momentId) { id -> stack.add(Pushed.Conversation(id)) }
+            }
+        },
     )
 }
