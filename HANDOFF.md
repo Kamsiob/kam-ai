@@ -142,9 +142,17 @@ were tested and **the values-stop does not land**: told plainly "that is just wh
 presses on with a mechanism question rather than naming the disagreement and stopping. That is
 the most distinctive instruction in the method.
 
-**Next concrete step:** **#58** (Brainstorm grounding, with two concrete observations already
-posted on it from #25), then **#39** (the end-to-end workflow audit, which verifies everything
-and so goes last), then the older issues #2, #3, #5, #11, #13, #16, #21, #22.
+**#58 attempted, one fix landed and one did not.** The bare-topic case now asks one question
+instead of listing all six STARBURSTING dimensions, verified with the identical input. But
+**converging when asked does not reliably land**: told "wrap it up", the mode sometimes
+converges and sometimes asks another question instead. Two prompt attempts, both verified
+ineffective, so it is recorded rather than looped on. The suggestion on the issue is to solve
+it from the app side with an explicit converge action rather than more prompt wording.
+
+**Next concrete step:** **#39**, the end-to-end workflow audit, which verifies everything and
+so goes last. Start with the twelve mode-switch pairs, of which eleven have never been
+exercised. Then the older issues #2, #3, #5, #11, #13, #16, #21, #22, and the round 3
+performance staging #51 to #56.
 **#51 to #56 are no longer gated**, and the first thing to do there is give titling its own KV
 sequence, which lets the title-quality trade in ConversationTitler be reverted. Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
@@ -312,7 +320,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | # | Item | State |
 |---|---|---|
 | #57 | Logic Partner: analyse before attacking, find the crux, challenge well | **implemented, left open.** Budget conflict resolved (1000 to 1080, paid for and justified in the test). Two of six claim types tested; **the values-stop does not land on E4B** |
-| #58 | Brainstorm: ground the method in facilitation practice, then verify with #25 | not started |
+| #58 | Brainstorm: ground the method in facilitation practice | **partly done.** One-question-per-turn inside a method fixed and verified. **Converge-on-request does not land**; two prompt attempts failed, try an app-side action instead |
 
 ### Older worklist items still open (issues #1 to #22)
 
