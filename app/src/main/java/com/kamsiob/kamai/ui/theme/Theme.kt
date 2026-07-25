@@ -8,6 +8,9 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.ReadOnlyComposable
@@ -148,6 +151,23 @@ fun KamTheme(
     // animated colours, so switching accent glides rather than snapping.
     val target = if (darkTheme) darkKamColors(accent) else lightKamColors(accent)
     val colors = target.animated(reducedMotion)
+
+    // Tell the system which way to draw the status and navigation bar icons.
+    // The app draws edge to edge, so those icons sit on the app's own
+    // background, and nothing was setting this: in light theme the clock,
+    // signal, wifi and battery were white on a near-white background and
+    // effectively invisible. Found by looking at the light theme on the phone.
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        val window = (view.context as? android.app.Activity)?.window
+        if (window != null) {
+            SideEffect {
+                val bars = WindowCompat.getInsetsController(window, view)
+                bars.isAppearanceLightStatusBars = !darkTheme
+                bars.isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
+    }
 
     CompositionLocalProvider(
         LocalKamColors provides colors,

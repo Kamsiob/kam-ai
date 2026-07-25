@@ -4465,3 +4465,34 @@ thing. Anything longer keeps both, since then the heading really is a summary. V
 phone: the short item now shows once with its chips under it, the long one still shows both.
 
 The phone's font scale was returned to 1.0.
+
+## The light theme had an invisible status bar
+
+Switched the app to Light during acceptance testing, which nothing had done tonight. Everything
+inside the app reads well: warm off-white surfaces, dark text, chips and mode dots all legible.
+
+The status bar did not. The clock, signal, wifi and battery were **white on a near-white
+background**, effectively invisible.
+
+The app draws edge to edge, so the system icons sit on the app's own background, and nothing was
+telling the system which way to draw them. There is no default that can be right here, because the
+app decides its own background colour.
+
+`KamTheme` now sets `isAppearanceLightStatusBars` and `isAppearanceLightNavigationBars` from the
+same `darkTheme` value it uses to pick the palette, in a `SideEffect` so it follows every theme
+change rather than only the first composition. That matters because the theme can change while the
+app is running, from the Appearance screen or from the system when the mode is System.
+
+Verified both ways on the phone: dark icons on the light theme, light icons on the dark one.
+
+The phone was returned to the System theme, which is where the owner had it.
+
+### Noticed, not changed
+
+Settings groups its rows as "On this device", "Data and connections" and "The app". DESIGN
+describes a "Personalization" group holding Appearance, Custom instructions and App lock, and
+there is no such group: those three are spread across the other two. Several rows that exist now
+(Memory, Archive old chats, Confirm before deleting) are not in DESIGN's list at all, so the
+grouping has clearly evolved rather than drifted by accident. Left alone, because regrouping
+Settings at four in the morning on a reading of a sentence is how a tidy-up becomes a regression.
+Worth an owner decision: either restore the group or update DESIGN.
