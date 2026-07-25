@@ -3261,3 +3261,33 @@ rushed in beside a UI fix, and it is the thing to do first there.
 
 **#51 to #56 are still gated on it.** A measurement taken while the first title wipes the cache
 mid-conversation is measuring the titler, not the change being tested.
+
+### And then measured: the warm turn is 1.4 seconds
+
+Deferring the model-written title to the refresh milestone finished the job the paragraph
+above only half did. Measured on the phone straight afterwards, a fresh Brainstorm
+conversation, two turns:
+
+```
+load model=gemma-4-e4b-it-q4km ctx=6144 in 5915ms
+TTFT=36719ms prefill=1298tok/36549ms   <- turn 1, cold, full prefill
+TTFT=1444ms  prefill=36tok/1227ms      <- turn 2
+```
+
+**36 tokens and 1.4 seconds**, against the 1068 tokens and 30.8 seconds measured this
+afternoon on the same kind of second turn. And no third entry between them: the titling pass
+is simply not there any more.
+
+That is #38's prefix reuse finally doing in practice what it was built to do. The measurements
+table has claimed roughly ten times on every ongoing turn since #38 landed; that was true of
+the mechanism and untrue of the app, because the titler wiped the cache between every turn.
+
+The trade is title quality on short conversations: the first title is now an excerpt of the
+user's own first question rather than a model-written summary, until message
+`TITLE_REFRESH_AT`. The excerpt path already existed and was already considered good enough
+for the case where no model is resident. Paying fourteen to thirty seconds on somebody's next
+message to improve a title they can already read seems clearly the wrong side of that trade,
+and the model still writes one once the conversation is long enough to deserve it.
+
+**Revert this branch when titling runs on its own KV sequence**, which is the proper fix and
+makes the trade unnecessary. It is marked in the code.

@@ -86,12 +86,27 @@ object ConversationTitler {
             return
         }
 
-        // Title with the model when it is already resident, for the best result.
-        // Never load a multi-gigabyte model just to title a conversation on open:
-        // that would be a large, pointless cost. When the model is not loaded, an
-        // honest excerpt of the first question is a good, instant title, and a
-        // model-written one can still replace it at the refresh milestone.
-        val title = if (engine.isLoaded) {
+        // The model writes the title only at the refresh milestone. Before that,
+        // an honest excerpt of the first question is used, even when the model is
+        // sitting right there and could do better.
+        //
+        // That is a deliberate trade against title quality, and it is the whole
+        // remaining cost of #38. A titling run does not share a prefix with the
+        // conversation, so it overwrites the KV cache, and the user's next message
+        // then re-prefills the entire history: measured at fourteen seconds on a
+        // short conversation and thirty on a longer one. Paying that on the very
+        // first exchange is paying it at the worst possible moment, right when
+        // somebody is going back and forth quickly.
+        //
+        // So the first title is instant and free and made of the user's own words,
+        // and the model replaces it once at message TITLE_REFRESH_AT, by which
+        // point the conversation is long enough that one re-prefill is a smaller
+        // share of the whole and the user is likely mid-read rather than mid-flow.
+        //
+        // This becomes unnecessary once titling runs on its own KV sequence, which
+        // is the proper fix and a native change. Revert this branch then.
+        val useModel = engine.isLoaded && history.size >= TITLE_REFRESH_AT
+        val title = if (useModel) {
             val format = repository.activeModel()?.format ?: ChatFormat.GEMMA
             val transcript = history.take(2).joinToString("\n\n") { m ->
                 val who = if (m.role == Role.USER) "Them" else "You"
