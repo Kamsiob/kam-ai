@@ -5204,3 +5204,24 @@ would have made it worse.
 This is the opposite call from most of the drift found this session, where the document was right
 and the code had wandered. Which way it goes depends on which one is better, not on which one is
 older.
+
+## Issue #63: the segments say the real names now
+
+The control read General, Logic, **Storm**, **Bench**. "Storm" is a word the user is never taught:
+onboarding, the picker, the banner, the switch note, the Q&A and the store listing all say
+Brainstorm, and the control's own screen reader label already said "Start a Brainstorm chat". A
+sighted user and a screen reader user were being told different names for the same mode.
+
+The abbreviations existed for a real constraint, which the acceptance pass confirmed: four full
+names do not fit across a phone at large accessibility font sizes.
+
+So the type shrinks instead of the word. `BasicText` with
+`TextAutoSize.StepBased(min 8sp, max 12.5sp)` gives the full names at the default size and squeezes
+them down as the font scale grows. Verified at scale 1.0 and at 1.8, where all four still fit and
+read cleanly.
+
+The 8sp floor is deliberate. Below that it is not a label any more, and if some future font scale
+pushes it there, an ellipsis is the honest failure rather than a nickname nobody was taught.
+
+`ModeColors.shortName` is deleted rather than left unused, so there is no second set of names for
+somebody to reach for later. DESIGN updated to describe the segments as carrying the full names.

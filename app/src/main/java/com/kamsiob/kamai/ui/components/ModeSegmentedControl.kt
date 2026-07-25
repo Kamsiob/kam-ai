@@ -4,6 +4,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -38,6 +40,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kamsiob.kamai.data.Mode
@@ -221,12 +224,35 @@ fun SegmentedModeControl(
                                 .background(labelColor),
                         )
                         Spacer(Modifier.width(5.dp))
-                        Text(
-                            ModeColors.shortName(mode),
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.W800,
-                            color = labelColor,
+                        // Full mode names, shrunk to fit rather than abbreviated.
+                        //
+                        // These used to read General, Logic, Storm, Bench.
+                        // "Storm" is a word the user is never taught: onboarding,
+                        // the picker, the banner, the switch note, the Q&A and
+                        // the store listing all say Brainstorm, and the screen
+                        // reader already said Brainstorm here too, so a sighted
+                        // user and a screen reader user were told different names
+                        // for the same mode (#63).
+                        //
+                        // Full names do not fit four across at large font scales,
+                        // which is the real constraint the abbreviations existed
+                        // for, so the type shrinks instead of the word. The floor
+                        // is 8sp: below that it is not a label any more, and if a
+                        // font scale ever pushes it there the ellipsis is the
+                        // honest failure rather than an invented nickname.
+                        BasicText(
+                            ModeColors.name(mode),
+                            style = androidx.compose.ui.text.TextStyle(
+                                fontWeight = FontWeight.W800,
+                                color = labelColor,
+                            ),
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 12.5.sp,
+                                stepSize = 0.5.sp,
+                            ),
                         )
                     }
                 }

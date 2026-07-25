@@ -182,13 +182,4 @@ object ModeColors {
         com.kamsiob.kamai.data.Mode.OVERLAY -> "Quick ask"
     }
 
-    /** Short label for the segmented control, where four must fit at phone width. */
-    fun shortName(mode: com.kamsiob.kamai.data.Mode): String = when (mode) {
-        com.kamsiob.kamai.data.Mode.GENERAL -> "General"
-        com.kamsiob.kamai.data.Mode.LOGIC -> "Logic"
-        com.kamsiob.kamai.data.Mode.BRAINSTORM -> "Storm"
-        com.kamsiob.kamai.data.Mode.BENCH -> "Bench"
-        com.kamsiob.kamai.data.Mode.DISCOVER -> "Discover"
-        com.kamsiob.kamai.data.Mode.OVERLAY -> "Ask"
-    }
 }
