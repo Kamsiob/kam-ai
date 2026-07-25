@@ -51,6 +51,24 @@ class KamRepository(
     suspend fun putSetting(key: String, value: String) =
         db.settings().put(SettingEntity(key, value))
 
+    /**
+     * Whether the user has already been told, in a transcript, what [mode] does.
+     *
+     * Switching mode mid-conversation writes a note explaining the mode it is
+     * switching to. Starting a chat *in* a mode wrote nothing, because the note
+     * is only written when there is already something to mark, so somebody whose
+     * first Brainstorm conversation began from the Chats control was never told
+     * that Brainstorm will not hand them ideas. It simply started asking
+     * questions (#28).
+     *
+     * Once per mode, ever, rather than on every new conversation: the tenth
+     * Brainstorm chat does not need the paragraph again.
+     */
+    suspend fun wasModeExplained(mode: Mode): Boolean =
+        setting("mode.explained.${mode.name}") == "1"
+
+    suspend fun markModeExplained(mode: Mode) = putSetting("mode.explained.${mode.name}", "1")
+
     /** The user's system-wide instructions, applied to every conversation. */
     suspend fun userInstructions(): String = setting(Keys.SYSTEM_INSTRUCTIONS).orEmpty()
 

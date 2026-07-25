@@ -287,6 +287,32 @@ class ChatViewModel(
     }
 
     /**
+     * Explains the mode, once ever, at the top of the first conversation started
+     * in it.
+     *
+     * A mid-conversation switch says what the new mode does. Starting a chat in
+     * a mode said nothing at all, because the switch note is only written when
+     * there is already something to mark, so a first Brainstorm conversation
+     * opened straight from the Chats control just began asking questions with no
+     * word about why (#28).
+     *
+     * Only at the top of a conversation, so it can never appear in the middle of
+     * one, and not for General, which is the resting position and explains itself
+     * by being ordinary.
+     */
+    private suspend fun explainModeIfFirstTime(conversationId: String) {
+        val mode = _mode.value
+        val explain = ModeExplainer.shouldExplain(
+            mode = mode,
+            historyIsEmpty = repository.messages(conversationId).isEmpty(),
+            alreadyExplained = repository.wasModeExplained(mode),
+        )
+        if (!explain) return
+        repository.addMessage(conversationId, Role.SYSTEM, SystemPrompts.modeSwitchNotice(mode))
+        repository.markModeExplained(mode)
+    }
+
+    /**
      * Marks in the transcript that a linked Workbench was opened from here.
      *
      * Choosing Workbench from the mode picker does not change this
@@ -351,6 +377,7 @@ class ChatViewModel(
                 repository.setAttachment(id, name, text)
                 pendingAttachment = null
             }
+            explainModeIfFirstTime(id)
             repository.addMessage(id, Role.USER, trimmed)
             maybeManualRemember(id, trimmed)
             respond(id)

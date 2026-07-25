@@ -3973,3 +3973,31 @@ wording, the order they arrive in relative to the rest of the screen, and whethe
 interrupts something more useful. That needs a person with TalkBack on and their ears. The mode
 banner in particular has the identical modifier to the toast and renders correctly, but it is a
 different composable and I am not going to claim it was heard when it was not.
+
+## Issue #28: the last piece, first-time per-mode explainers
+
+DECISIONS recorded what was left in #28: "the first-time per-mode inline explainers (shown once
+ever, plus Q&A entries) and including the mode-change notices in exported conversations". The
+export half was finished by #41, and the Q&A entry exists. The explainers were the remainder, and
+turned out to be covering a real hole rather than a nicety.
+
+Switching mode mid-conversation writes a note saying what the new mode does. Starting a chat *in*
+a mode wrote nothing, because `setMode` only writes its note when the conversation already has
+something to mark, and a brand-new chat has nothing. Since the Chats segmented control is the
+main way anybody starts a conversation, the common path was the silent one: a first Brainstorm
+chat simply began asking questions, with nothing anywhere saying that Brainstorm refuses to hand
+over ideas on purpose. That behaviour is surprising enough to read as the app being unhelpful.
+
+The mode's own note is now written at the top of the first conversation started in that mode, once
+per mode, ever. Not once per conversation, because the tenth Brainstorm chat does not need the
+paragraph again, and never in the middle of a conversation, which is the switch note's job.
+
+`ModeExplainer` holds the three conditions so they can be tested, in the same shape as
+`WorkbenchNote`. The condition worth guarding is the empty-history one: without it an explainer
+could appear mid-conversation and read as the app repeating itself.
+
+Verified on the phone: a first Brainstorm chat opens with the explainer above the first message, a
+second Brainstorm chat started the same way has none. General is never explained, since it is the
+resting position and explains itself by being ordinary.
+
+281 tests, no failures.
