@@ -29,6 +29,18 @@ set(BUILD_SHARED_LIBS    OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
 add_compile_options(-march=armv8.2-a+dotprod+i8mm+fp16)
 
+# KleidiAI stays off, and this line is deliberate rather than a default.
+#
+# ARM's microkernels are a live option for issue #51 and ggml exposes them, but
+# turning them on makes the ggml build fetch the KleidiAI release tarball from
+# GitHub at configure time. That download does not happen in this build
+# environment, so the wrappers compile, the kai_* symbols are never defined, and
+# the link fails. Set to ON in an environment that can reach the network, or
+# vendor the KleidiAI sources next to llama.cpp the way llama.cpp itself is
+# vendored, which would also keep the build reproducible offline.
+set(GGML_CPU_KLEIDIAI OFF CACHE BOOL "" FORCE)
+
+
 add_subdirectory("${LLAMA_DIR}" llama_build)
 
 add_library(kamai SHARED kamai_llama.cpp)

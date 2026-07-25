@@ -4182,3 +4182,65 @@ not a choice.
 
 Verified on the phone: switched to grid, force-stopped the app, reopened, and Projects came back
 in grid.
+
+## Issue #51, stage one: what is actually running, and a real per-tier baseline
+
+### The assumptions are true, and now they are checked rather than assumed
+
+#51 asks to verify at runtime that dot-product support and weight repacking are genuinely active,
+noting there is a documented case of repacking silently not engaging. Nothing printed that, so
+`llama_print_system_info()` now goes into the load log next to everything else. On this phone:
+
+    CPU : NEON = 1 | ARM_FMA = 1 | FP16_VA = 1 | MATMUL_INT8 = 1 | DOTPROD = 1 | REPACK = 1
+
+All six on. `MATMUL_INT8` is i8mm and `DOTPROD` is the dot-product extension, so the
+`-march=armv8.2-a+dotprod+i8mm+fp16` flags are reaching the backend rather than being quietly
+ignored. The load log separately shows `CPU_REPACK model buffer size = 2618.85 MiB` against
+`CPU_Mapped 4731.51 MiB`, so repacking is not merely enabled, it is doing work on most of the
+weights. That bullet of #51 is closed on evidence, and the line costs nothing to keep.
+
+### The baseline, measured on long generations
+
+Three runs of the same prompt, Gemma 4 E4B q4k, 4 threads, ctx 6144, battery 60% and 31.5 C, so
+not thermally throttled:
+
+| run | prefill | decode |
+| --- | --- | --- |
+| 1 | 45 tok / 1365 ms, 33.0 tok/s | 315 tok / 53677 ms, **5.9 tok/s** |
+| 2 | 45 tok / 1313 ms, 34.3 tok/s | 315 tok / 49092 ms, **6.4 tok/s** |
+| 3 | 540 tok / 15047 ms, 35.9 tok/s | 332 tok / 55916 ms, **5.9 tok/s** |
+
+Long generations, three hundred tokens each, not bursts.
+
+**This matters, because it does not match the numbers #51 quotes as established.** Those say 4
+threads gives 9.2 to 10.6 tok/s. On E4B it is 5.9 to 6.4, consistently, cool, across three runs.
+The earlier figure was almost certainly measured on a smaller tier and has been carried forward as
+though it applied to all of them. #51 asks for a per-tier baseline precisely because of this; E4B
+now has one. E2B still needs measuring before any comparison across tiers means anything.
+
+Prefill is stable at 33 to 36 tok/s whether the prompt is 45 tokens or 540, which is what the
+prefix-reuse work from #38 was for.
+
+### KleidiAI: available, off, and not measurable here
+
+`GGML_CPU_KLEIDIAI` exists in the pinned b10058 and defaults to OFF, so it has genuinely never
+been tried. Turning it on does not work in this build environment: ggml fetches the KleidiAI
+release tarball from GitHub with `FetchContent` at configure time, that download does not happen
+here, and the result is the worst possible shape of failure. The wrapper file `kernels.cpp`
+compiles happily, every `kai_*` symbol it references is undefined, and the link fails.
+
+Reverting the flag was not enough on its own, which is worth knowing: the option had been forced
+into the CMake cache, so deleting the line left the cache saying ON and the build still broken. It
+is now set explicitly to OFF with the reason written beside it, which both fixes the cache and
+stops the next person rediscovering this.
+
+Not attempted further, per the rule about not looping. Two ways forward, for whoever has the
+network: set it ON in an environment that can reach GitHub, or vendor the KleidiAI sources beside
+llama.cpp the way llama.cpp itself is vendored, which would keep the build reproducible offline
+and is probably the right answer for this project either way.
+
+### Still untouched in stage one
+
+CPU affinity, the physical batch sweep, the link and codegen flags, and the E2B baseline. Nothing
+was changed on guesswork, and nothing was kept that did not measurably win, because nothing
+measurable was won yet.

@@ -187,6 +187,13 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeLoad(
             "That model file could not be opened. It may be incomplete, so try downloading it again.");
     }
 
+    // What the CPU backend actually decided to use, rather than what the build
+    // flags asked for. Issue #51 wants dot-product support and weight repacking
+    // confirmed rather than assumed, and there is a documented case of repacking
+    // silently not engaging. The repack buffer size already shows in the load
+    // log; this is the other half, and it costs one line at load.
+    LOGI("system: %s", llama_print_system_info());
+
     g_session.model     = model;
     g_session.ctx       = nullptr;
     g_session.n_ctx           = n_ctx;
