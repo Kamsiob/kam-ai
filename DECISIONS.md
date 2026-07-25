@@ -5131,3 +5131,59 @@ debug entry point that ingests a canned prompt of known length or an instrumenta
 the bridge directly. Prefill also matters less than it looks, since the prefix reuse from #38 skips
 it entirely for a continuing conversation; the case this would improve is reopening a long
 conversation cold.
+
+## Issues #52, #54 and #55: assessed, with reasons rather than attempts
+
+Three of the round-three performance issues are not "try a flag and measure". Each is a real piece
+of work with a prerequisite, and each is written up here so the next session starts from a decision
+rather than a blank page.
+
+### #54, speculative decoding: not viable on this app's terms
+
+Speculative decoding needs a draft model resident **at the same time** as the main one. The
+smallest thing that could draft for Gemma 4 E4B is E2B, which is 3.1 GB. E4B is already 5.0 GB
+mapped plus 2.6 GB repacked, and the app's whole memory discipline is one model at a time: whisper
+is loaded for the moment it transcribes and unloaded immediately so it never sits beside the
+language model. Holding a 3.1 GB drafter permanently would break that rule for a decode speedup
+that only pays off when the drafter agrees with the main model often.
+
+There is no Gemma 4 drafter in the hundreds-of-megabytes class, which is what this technique
+assumes. Draftless n-gram speculation needs no second model and is worth trying, but llama.cpp's
+implementation lives in its server/CLI code rather than behind a library call the bridge can use,
+so it is a port rather than a switch.
+
+**Recommendation: close as not planned for the current model line-up**, and revisit if Google ships
+a small Gemma 4 drafter.
+
+### #55, quantisation per tier: partly answered already
+
+The cross-tier measurement that matters is done and is in Section 6: E2B decodes at 10.8 to 11.0
+tok/s and E4B at 5.9 to 6.4, both Q4_K_M. That is the number that decides what the app recommends,
+and it is measured.
+
+What is left is Q4_K_M against Q5_K_M **on the same model**, which prices the "Best Available" tier,
+and Q4_0 repacking, which is the interesting one: Q4_0 is the format the ARM repacking path is built
+for, and the load log shows repacking is already active on Q4_K_M (2618 MiB of it). Whether a true
+Q4_0 build beats a repacked Q4_K_M on this hardware is a genuine open question and needs a Q4_0
+GGUF that is not currently downloaded.
+
+**Not attempted**, because it needs a download the owner has not asked for and a controlled harness
+that #56 showed does not exist yet.
+
+### #52, prefix cache persistence: feasible, and the biggest remaining win
+
+This is the one worth doing. `llama_state_seq_save_file` and `llama_state_seq_load_file` exist in
+the pinned llama.cpp, so saving a conversation's KV cache to disk and loading it back is a library
+call rather than a port.
+
+The payoff is the largest of anything left: reopening a long conversation currently costs a full
+prefill, measured above at **31 seconds for 938 tokens**. Persisted state would make that close to
+instant, and time-to-first-token on a reopened conversation is the slowest thing a user meets.
+
+It is not small, which is why it is not done here rather than half-done. It needs a file per
+conversation, invalidation when the model or context size changes, eviction so the files do not
+grow without bound, and care that a stale or truncated state file degrades to a normal prefill
+instead of a corrupt cache. That last one is the same class of problem as #49, which took three
+causes to settle.
+
+**Recommendation: do this next, on its own, with the same evidence discipline as #38.**
