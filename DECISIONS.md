@@ -4439,3 +4439,29 @@ number in this document come from the same place.
 What remains in item 22: the quality rating, the input-bar gating and the three-state controls.
 Gating has nothing to gate today, since every shipped model is text plus documents and no images,
 so it wants doing when a model with different capabilities actually exists.
+
+## Acceptance testing at the largest font size, and what it turned up
+
+Ran the app at `font_scale 1.8`, which is close to the largest Android offers.
+
+**Holding up.** Chats truncates titles and snippets cleanly, the four-segment mode control still
+fits its labels, the nav bar is fine, and the chat screen with the keyboard open keeps both the
+transcript and a bounded composer. That last one is the "cap in lines rather than pixels" decision
+from the over-length paste work doing exactly what it was for: at 1.8 the composer takes a
+proportionate share instead of eating the screen.
+
+**Evidence for #63.** The segmented control's labels are tight at this size even as "Storm" and
+"Bench". "Brainstorm" and "Workbench" would not fit, which is worth attaching to that issue: the
+short names exist for a real constraint, whatever is decided about teaching the word.
+
+**A defect found by looking.** Every Follow-ups card showed its text twice. The heading is the
+snippet's first line cut to sixty characters and the body was the whole snippet, which reads well
+for a saved paragraph and badly for a saved sentence: "History of navigation" appeared as the
+heading and then again as the body of its own card, four words repeated, looking like a rendering
+bug.
+
+`FollowUpText` splits the two, and the body is dropped when the heading already is the whole
+thing. Anything longer keeps both, since then the heading really is a summary. Verified on the
+phone: the short item now shows once with its chips under it, the long one still shows both.
+
+The phone's font scale was returned to 1.0.
