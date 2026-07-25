@@ -12,7 +12,7 @@ mode and it still works.
 
 ## What it is, and what it is not
 
-Kam AI is good at transforming, organising and rephrasing text you give it, at
+Kam AI is good at transforming, organizing and rephrasing text you give it, at
 everyday questions, and at pushing back on your ideas.
 
 **Kam AI is not a private ChatGPT.** A model small enough to fit on a phone
@@ -37,10 +37,38 @@ switched at any time.
 | **General** | Everyday questions and back-and-forth. |
 | **Logic Partner** | Argues the other side and pokes holes in your thinking. It concedes when you are right, and does not fold just because you disagree. |
 | **Brainstorm** | Will not hand you ideas. It pulls them out of you, using a named facilitation method and asking one question at a time. |
-| **Workbench** | Paste something in and get it rewritten, tightened, or reorganised. Sessions are saved and can be reopened, and each can be linked to a chat about its result. |
+| **Workbench** | Paste something in and get it rewritten, tightened, or reorganized. Sessions are saved and can be reopened, and each can be linked to a chat about its result. |
 
 Discover is not a mode. It is a source: offline packs of short reads you can pull
 one from and then discuss, with its own tab.
+
+## Screenshots
+
+| | | |
+|---|---|---|
+| ![A new Logic Partner chat](docs/screenshots/newchat-logic.png) | ![Choosing a mode](docs/screenshots/modepicker.png) | ![The Workbench](docs/screenshots/workbench.png) |
+| A new chat, in the mode's own colour and voice | Switching mode mid-conversation, without losing what was said | Workbench: paste text in, pick a change, keep both versions |
+| ![Discover](docs/screenshots/discover.png) | ![Follow-ups](docs/screenshots/followups.png) | ![Projects](docs/screenshots/projects.png) |
+| Discover deals you something to read, offline | Follow-ups collects everything you saved, from anywhere | Projects keep related chats under shared instructions |
+
+## More than a chat box
+
+- **Hold the power button** to ask something without leaving what you are doing.
+  Speak or type; the answer arrives over the top of whatever is on screen.
+- **Talk instead of typing.** Your voice becomes text on the phone itself, with
+  whisper.cpp, and the model will tidy a rambling voice note into notes or a
+  draft.
+- **Attach a document** and ask about what is in it. The file never leaves the
+  phone, and if it is longer than the model can hold, the app says so rather
+  than quietly truncating it.
+- **Projects** keep related chats together under instructions they all follow.
+- **Follow-ups** is one bookmark for the whole app: anything worth checking or
+  coming back to lands in the same list, told apart by where it came from.
+- **Memory** keeps the durable things it notices. Everything it has kept is
+  listed in full in Settings, and any of it can be deleted.
+- **Read aloud** with an on-device voice, male or female, downloaded separately.
+- **Backup and restore** writes everything to one passphrase-locked file, so
+  moving to a new phone does not mean starting over.
 
 ## Install
 
