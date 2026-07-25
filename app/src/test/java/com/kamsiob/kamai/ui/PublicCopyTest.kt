@@ -2,6 +2,7 @@ package com.kamsiob.kamai.ui
 
 import com.google.common.truth.Truth.assertThat
 import com.kamsiob.kamai.data.Mode
+import com.kamsiob.kamai.llm.SystemPrompts
 import com.kamsiob.kamai.ui.onboarding.OnboardingCopy
 import com.kamsiob.kamai.ui.settings.QuestionsAndAnswers
 import org.junit.Test
@@ -109,6 +110,21 @@ class PublicCopyTest {
         // A standing owner rule, and easy to reintroduce by pasting from a
         // document that autocorrects.
         assertThat(allPublicCopy).doesNotContain("—")
+    }
+
+    @Test
+    fun theModeBannersAndNoticesSpellThingsTheSameWayTheRestOfTheAppDoes() {
+        // The app writes -ize. The Workbench note said "reorganised" while the
+        // Workbench's own chips said "Summarize" and "Reorganize", which is the
+        // kind of thing nobody files a bug about and everybody notices. This
+        // covers the mode copy specifically, because it is written in a
+        // different file from everything else in this test and drifted alone.
+        val modeCopy = Mode.entries.joinToString(" ") {
+            SystemPrompts.topBanner(it) + " " + SystemPrompts.modeSwitchNotice(it)
+        }
+        listOf("organis", "summaris", "recognis", "customis").forEach {
+            assertThat(modeCopy.lowercase()).doesNotContain(it)
+        }
     }
 
     /** The name a mode is introduced by in public copy. BENCH is Workbench. */

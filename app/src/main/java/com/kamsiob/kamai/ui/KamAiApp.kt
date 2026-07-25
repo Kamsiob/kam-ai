@@ -528,7 +528,12 @@ private fun ConversationScreen(
         ttsAvailable = ttsVoice != null,
         onModeChange = chat::setMode,
         onOpenModel = onOpenModel,
-        onOpenWorkbench = { chat.conversationId.value?.let(onOpenWorkbench) },
+        onOpenWorkbench = {
+            chat.conversationId.value?.let { id ->
+                chat.noteWorkbenchOpened()
+                onOpenWorkbench(id)
+            }
+        },
         // A new message stops any answer that is being read aloud.
         onSend = { text -> app.stopSpeaking(); chat.send(text) },
         onStop = chat::stop,

@@ -252,6 +252,28 @@ class ChatViewModel(
     }
 
     /**
+     * Marks in the transcript that a linked Workbench was opened from here.
+     *
+     * Choosing Workbench from the mode picker does not change this
+     * conversation's mode: it opens a separate, linked session. So this
+     * deliberately does not go through [setMode], which would swap this
+     * conversation's mode out from under it. Until now nothing at all was
+     * recorded, so a chat that had spawned a Workbench looked identical to one
+     * that had not, and the only route back was an overflow menu item you had
+     * to already know about. `SystemPrompts.modeSwitchNotice(Mode.BENCH)` was
+     * written for exactly this moment and had never once been shown.
+     */
+    fun noteWorkbenchOpened() {
+        val convId = _conversationId.value ?: return
+        viewModelScope.launch {
+            val history = repository.messages(convId)
+            if (WorkbenchNote.shouldMark(history)) {
+                repository.addMessage(convId, Role.SYSTEM, WorkbenchNote.text)
+            }
+        }
+    }
+
+    /**
      * Lifts a grounded Discover discussion into a normal open chat, keeping the
      * history. The scope boundary is stated up front and this is its one-tap
      * escape, so an out-of-scope question does not dead-end (item 21). A quiet

@@ -3536,3 +3536,45 @@ it. The guard is now re-checked after the read, against both the link and the se
 Found by logging which branch actually ran rather than reasoning about it, which is the second
 time tonight that was faster than reading the code. The diagnostics came out once they had
 answered the question.
+
+## Issue #39, second finding: a note that had never once been shown
+
+`SystemPrompts.modeSwitchNotice(Mode.BENCH)` had a doc comment describing exactly when it would
+appear: "Workbench's wording is deliberately about a linked session, since choosing it from a
+conversation starts a linked Workbench rather than converting the conversation". It had never
+been shown to anybody. The picker's handler reads
+`if (m == Mode.BENCH) onOpenWorkbench() else onModeSwitch(m)`, and only `onModeSwitch` writes
+notes, so the one mode with custom note copy was the one mode that skipped the code that writes
+notes.
+
+The effect on the user: a conversation that had spawned a Workbench looked exactly like one that
+had not. The only way back to the linked session was an overflow menu item you had to already
+know was there.
+
+The note is now written when the Workbench is opened, without going through `setMode`, because
+choosing Workbench must not change *this* conversation's mode. Two rules, extracted into
+`WorkbenchNote` so they are testable: nothing is written in an empty conversation, and nothing is
+written if the last note in the transcript is already this one, so walking back and forth does
+not stack up copies.
+
+Verified on the phone: the note appears on the first crossing and a second round trip adds
+nothing.
+
+### Spelling
+
+The new note said "reorganised" while the Workbench's own chips say "Summarize" and "Reorganize".
+Every other user-visible string in the app uses -ize, so the note was the outlier and was changed
+to match. Two model instructions saying "summarise" were changed too: nothing shows them to the
+user, but they bias what the model writes back to somebody reading -ize copy everywhere else.
+`PublicCopyTest` now covers the banners and the notices, which live in a different file from the
+rest of the copy it guards and had drifted alone.
+
+### Raised rather than changed: "Storm"
+
+The mode segmented control labels Brainstorm as "Storm" and Workbench as "Bench". "Storm" is a
+word the user is never taught: onboarding, the Q&A, the store listing and the mode picker all
+say "Brainstorm". The screen reader already says the full name, so a user who both sees and hears
+the control gets two different names for the same thing.
+
+Not changed here, because DESIGN.md section 106 names those four segment labels explicitly, and
+that is a written decision rather than drift. Filed for the owner instead.
