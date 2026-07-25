@@ -443,23 +443,38 @@ private fun FollowUpCard(
             Column(Modifier.weight(1f)) {
                 // Compact: a short title plus the flagged snippet truncated after
                 // about two lines, not the whole conversation. PART 5.
-                Text(
-                    FollowUpText.heading(item.snippet),
-                    style = KamTheme.type.cardTitle,
-                    color = if (completed) colors.textTertiary else colors.textPrimary,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    textDecoration = if (completed) TextDecoration.LineThrough else null,
-                )
-                // Only when it adds something. A saved sentence is shorter than
-                // the heading limit, so it used to appear twice on its own card.
-                FollowUpText.body(item.snippet)?.let { body ->
-                    Spacer(Modifier.height(4.dp))
+                //
+                // Either part can be absent, and neither ever repeats the other.
+                // A saved sentence is all heading; a saved excerpt from an answer
+                // is all body, because the first sixty characters of a paragraph
+                // are not a title and setting them in bold above themselves is
+                // what the card used to do.
+                val heading = FollowUpText.heading(item.snippet)
+                val body = FollowUpText.body(item.snippet)
+                heading?.let {
                     Text(
-                        body,
+                        it,
+                        style = KamTheme.type.cardTitle,
+                        color = if (completed) colors.textTertiary else colors.textPrimary,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        textDecoration = if (completed) TextDecoration.LineThrough else null,
+                    )
+                }
+                body?.let {
+                    if (heading != null) Spacer(Modifier.height(4.dp))
+                    Text(
+                        it,
                         style = KamTheme.type.body,
-                        color = if (completed) colors.textTertiary else colors.textSecondary,
-                        maxLines = 2,
+                        // Carrying the card on its own, so it reads at the weight
+                        // a heading would have had rather than as a caption under
+                        // nothing.
+                        color = when {
+                            completed -> colors.textTertiary
+                            heading == null -> colors.textPrimary
+                            else -> colors.textSecondary
+                        },
+                        maxLines = if (heading == null) 3 else 2,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         textDecoration = if (completed) TextDecoration.LineThrough else null,
                     )

@@ -5312,3 +5312,19 @@ working and is not is worse than no code: the previous comment was accurate and
 still left the next person to discover the whole class was unreachable.
 `onShareText` went with it, being the only thing it fed. Plain selection with the
 platform toolbar stays, which is what the screen has actually been doing.
+
+## A follow-up card shows its text once (UAT)
+
+Found while checking the new "Save an excerpt" flow on the phone: the saved
+excerpt appeared as a bold first-sixty-characters heading with the same sixty
+characters immediately below it, in the body. The same shape had already been
+found once for short items ("History of navigation" printed twice) and fixed by
+dropping the body when it exactly equalled the heading. That fix only covered
+items shorter than the heading limit; anything longer still repeated its opening.
+
+`FollowUpText.heading` now returns null rather than a truncation. A short first
+line is a title and the rest is the body; a paragraph is not a title however it
+is cut, so it has no heading and is shown as itself, in primary text over three
+lines so the card still carries weight. Saving an excerpt produces a paragraph
+every time, which is why the second half of the bug became worth fixing exactly
+when excerpts became savable.
