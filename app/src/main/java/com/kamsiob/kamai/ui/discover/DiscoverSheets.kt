@@ -81,7 +81,7 @@ fun ReaderSheet(
             Spacer(Modifier.height(8.dp))
             Text(
                 "Discuss stays with what this passage says. Explore opens a normal chat about " +
-                    "the topic, where a small model can misremember, so flag anything to check.",
+                    "the topic, where a small model can misremember, so bookmark anything to check.",
                 style = KamTheme.type.secondary,
                 color = colors.textTertiary,
             )
@@ -161,7 +161,7 @@ fun QuizSheet(
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Flag this for later",
+                            "Bookmark this for later",
                             style = KamTheme.type.label, color = colors.accent,
                             modifier = Modifier.clickable { onFlag(q) }.padding(vertical = 6.dp),
                         )

@@ -409,7 +409,7 @@ private fun FollowUpCard(
                 // about two lines, not the whole conversation. PART 5.
                 Text(
                     item.snippet.lineSequence().firstOrNull()?.take(60).orEmpty()
-                        .ifBlank { "Flagged note" },
+                        .ifBlank { "Bookmarked note" },
                     style = KamTheme.type.cardTitle,
                     color = if (completed) colors.textTertiary else colors.textPrimary,
                     maxLines = 1,

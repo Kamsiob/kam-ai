@@ -127,6 +127,51 @@ class PublicCopyTest {
         }
     }
 
+    @Test
+    fun noStringInTheAppStillSaysFlag() {
+        // Item 9 settled that there is one saving action with one name. The
+        // onboarding and Q&A were fixed then and are guarded above, and "flag"
+        // quietly survived in seven other places for months: two toasts, the
+        // Workbench blurb and its button, two Discover strings, the Follow-ups
+        // placeholder, and the overlay's content description, which told a screen
+        // reader "Flag this" about a control drawn as a bookmark (#60).
+        //
+        // This reads the source rather than a copy object because most of those
+        // strings are written inline in composables. Clumsy, and the only thing
+        // that would have caught them.
+        //
+        // Single-line literals only. Kotlin's raw strings hold the model
+        // instructions, which the test below covers properly by reading the
+        // composed prompts.
+        val allowed = setOf(""""flagAmber"""", """"flag-scale"""", """"flag-rotation"""")
+        val literal = Regex(""""[^"\n]*"""")
+        val saysFlag = Regex("""\bflag""", RegexOption.IGNORE_CASE)
+
+        val offenders = mutableListOf<String>()
+        repoFile("app/src/main/java/com/kamsiob/kamai").walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .forEach { file ->
+                literal.findAll(file.readText())
+                    .map { it.value }
+                    .filter { saysFlag.containsMatchIn(it) && it !in allowed }
+                    .forEach { offenders += "${file.name}: ${it.take(60)}" }
+            }
+
+        assertThat(offenders).isEmpty()
+    }
+
+    @Test
+    fun theModelIsNeverToldToTellPeopleToFlagThings() {
+        // The worst two instances of #60 were in the instructions themselves, so
+        // the assistant was being told to recommend "flagging" in an app where no
+        // such action exists. Reads the composed prompts, so it covers the shared
+        // hard rules whichever mode carries them.
+        Mode.entries.forEach { mode ->
+            assertThat(SystemPrompts.forMode(mode).lowercase()).doesNotContain("flag")
+        }
+        assertThat(SystemPrompts.grounded("a passage").lowercase()).doesNotContain("flag")
+    }
+
     /** The name a mode is introduced by in public copy. BENCH is Workbench. */
     private fun displayNameOf(mode: Mode): String = when (mode) {
         Mode.GENERAL -> "General"

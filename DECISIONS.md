@@ -4001,3 +4001,38 @@ second Brainstorm chat started the same way has none. General is never explained
 resting position and explains itself by being ordinary.
 
 281 tests, no failures.
+
+## Issue #60: "flag" is gone, including from the model's own instructions
+
+Item 9 settled that there is one saving action with one name, and #42 fixed the onboarding and the
+Q&A. The word survived in nine other places, several of them for months:
+
+- Two toasts, "Flagged to Follow-ups".
+- The Workbench blurb, "copy, flag, or run through another change", and its **Flag** button.
+- Two Discover strings, "so flag anything to check" and "Flag this for later".
+- The Follow-ups placeholder, "Flagged note".
+- The overlay's content description, "Flag this", which told a screen reader a different word from
+  the one on the control it was describing, and the control is drawn as a bookmark.
+
+And the two that matter most, which the issue did not list because nobody had looked there: the
+**model's own instructions**. The shared hard rules said to tell the user something "is worth
+checking and flagging", and the grounded Discover prompt said an uncovered question "is worth
+flagging to look up properly". So the assistant was being instructed to recommend an action that
+does not exist in the app, in a word the interface stopped using.
+
+All nine now say bookmark.
+
+Two guards, because one would not have caught both. `noStringInTheAppStillSaysFlag` scans the
+source for single-line string literals, since most of these live inline in composables rather than
+in any copy object; it allows exactly three internal identifiers (`flagAmber`, `flag-scale`,
+`flag-rotation`). `theModelIsNeverToldToTellPeopleToFlagThings` reads the composed prompt for every
+mode and the grounded prompt, which is the right way to cover instructions held in raw strings.
+
+The first version of the source scan used `"([^"\\]|\\.)*"` and died with a `StackOverflowError`
+on the long raw prompt strings, which is ordinary catastrophic backtracking. Matching only
+single-line literals and covering the multi-line ones through the composed prompts is both safer
+and a better test.
+
+Internal naming (`flagMissed`, `onFlagged`, `app.flag`, `flaggedMessageIds`) is untouched, as the
+issue says it should be. It is a lesser question and renaming it would have buried the copy fix in
+a large diff.

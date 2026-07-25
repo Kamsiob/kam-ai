@@ -92,7 +92,7 @@ fun WorkbenchScreen(
         Text("Workbench", style = KamTheme.type.screenTitle, color = colors.textPrimary)
         Spacer(Modifier.height(6.dp))
         Text(
-            "Paste something in and reshape it. The result stays here to copy, flag, or " +
+            "Paste something in and reshape it. The result stays here to copy, bookmark, or " +
                 "run through another change.",
             style = KamTheme.type.body,
             color = colors.textSecondary,
@@ -250,7 +250,7 @@ fun WorkbenchScreen(
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(8.dp))
-                    SecondaryButton("Flag", onClick = { onFlag(output) }, modifier = Modifier.weight(1f))
+                    SecondaryButton("Bookmark", onClick = { onFlag(output) }, modifier = Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(8.dp))
                 Row {

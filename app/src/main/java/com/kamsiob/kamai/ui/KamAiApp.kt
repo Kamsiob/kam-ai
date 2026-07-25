@@ -861,7 +861,7 @@ private fun DiscoverHost(
             state = quizState,
             onReveal = vm::revealAnswer,
             onMark = vm::markQuizAnswer,
-            onFlag = { q -> vm.flagMissed(q) { app.showToast("Flagged to Follow-ups") } },
+            onFlag = { q -> vm.flagMissed(q) { app.showToast("Bookmarked to Follow-ups") } },
             onDone = vm::cancelQuiz,
             onDismiss = vm::cancelQuiz,
         )
@@ -935,7 +935,7 @@ private fun WorkbenchHost(
         onChain = bench::chain,
         onStop = bench::stop,
         onCopied = { app.showToast("Copied") },
-        onFlag = { text -> app.flag(text, Mode.BENCH, null, null); app.showToast("Flagged to Follow-ups") },
+        onFlag = { text -> app.flag(text, Mode.BENCH, null, null); app.showToast("Bookmarked to Follow-ups") },
         onMicStart = {
             val granted = androidx.core.content.ContextCompat.checkSelfPermission(
                 context, android.Manifest.permission.RECORD_AUDIO,

@@ -342,7 +342,7 @@ private fun OverlayPanel(
                                 .background(if (flagged) colors.flagAmber else colors.surface)
                                 .border(1.dp, colors.border, CircleShape)
                                 .clickable(enabled = !flagged) { vm.flag { flagged = true } }
-                                .semantics { contentDescription = if (flagged) "Flagged" else "Flag this" },
+                                .semantics { contentDescription = if (flagged) "Bookmarked for follow-up" else "Bookmark for follow-up" },
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
