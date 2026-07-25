@@ -3648,3 +3648,25 @@ above the first message.
 Old conversations still carry mode notices reading "Back to Chat", from before the four-mode
 rename. That is what the app said at the time, and a transcript is a record. Rewriting what
 somebody's history says would be worse than leaving it accurate.
+
+## Issue #39, fifth finding: the app once answered a question with its own system prompt
+
+While looking through real conversations on the phone I found one titled "Allergy questions and
+AI identity" whose preview text was "You are Kam AI. You run entirely on the user's phone. You
+are a thin..." Opening it: the user asked **"What am I allergic to?"** and the answer was the
+entire system prompt, verbatim, rendered as an ordinary assistant message and saved.
+
+Nobody asked it to reveal anything. This is not prompt extraction, it is what an unterminated
+rules block invites: the rules become text the model is part-way through writing, so continuing
+them is the obvious completion, and an unanswerable question is exactly the moment it has nothing
+better to write.
+
+**It does not reproduce on the current build.** Asked the same question the same way today, the
+answer is "I don't have that information." The conversation is from Thursday, before the prompt
+format work, and `ChatFormatTest` now pins the invariant directly: the rules are closed off
+before the model is invited to speak, checked for both families. Recorded here because a leftover
+conversation like that reads as a live privacy bug to anyone who opens it, and the next person to
+find it should not have to work out from scratch whether it still happens.
+
+The old conversation is still in Chats. It is the owner's data and their call, so it stays;
+deleting somebody's conversations to tidy up a finding is not mine to do.

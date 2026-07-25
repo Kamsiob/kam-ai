@@ -32,6 +32,30 @@ class ChatFormatTest {
     }
 
     @Test
+    fun `the rules are closed off before anybody's turn to speak`() {
+        // A conversation from before the format fix has the model answering the
+        // ordinary question "What am I allergic to?" by reciting the entire
+        // system prompt back, which is what an unterminated rules block invites:
+        // the rules become text the model is mid-way through writing, so
+        // continuing them is the obvious completion. The current build answers
+        // "I don't have that information", and this is what keeps it that way.
+        val formats = listOf(
+            Triple(ChatFormat.GEMMA, "<end_of_turn>", "<start_of_turn>model"),
+            Triple(ChatFormat.QWEN, "<|im_end|>", "<|im_start|>assistant"),
+        )
+        formats.forEach { (format, turnEnd, modelOpens) ->
+            val afterRules = format.build(system, history).substringAfter("SYSTEM RULES")
+            val closed = afterRules.indexOf(turnEnd)
+            val invited = afterRules.indexOf(modelOpens)
+            assertThat(closed).isAtLeast(0)
+            assertThat(invited).isAtLeast(0)
+            // Closed off first. If the model is invited to speak while the rules
+            // are still open, continuing them is a perfectly good completion.
+            assertThat(closed).isLessThan(invited)
+        }
+    }
+
+    @Test
     fun `gemma uses model rather than assistant and ends open for the reply`() {
         val prompt = ChatFormat.GEMMA.build(system, history)
 
