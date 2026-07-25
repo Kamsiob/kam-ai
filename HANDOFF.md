@@ -135,10 +135,16 @@ hard rules hold, and method selection varies correctly. Two prompt-shaping devia
 on **#58**: given only a bare topic it front-loads all six method dimensions instead of asking
 one question, and it narrates the convergence procedure rather than performing it.
 
-**Next concrete step:** **#57 and #58**, the Logic and Brainstorm method rebuilds. **#57
-conflicts with the token budget, see DECISIONS.md**, so read that before starting it. Then
-**#39** (the end-to-end workflow audit, which verifies everything and so goes last), then the
-older issues #2, #3, #5, #11, #13, #16, #21, #22.
+**#57 is implemented and left open.** The argument-analysis method is in and the budget
+conflict is resolved (raised 1000 to 1080, paid for by the titling fix, justification written
+beside the number in `PromptBudgetTest`). It stays open because only two of the six claim types
+were tested and **the values-stop does not land**: told plainly "that is just what I value", it
+presses on with a mechanism question rather than naming the disagreement and stopping. That is
+the most distinctive instruction in the method.
+
+**Next concrete step:** **#58** (Brainstorm grounding, with two concrete observations already
+posted on it from #25), then **#39** (the end-to-end workflow audit, which verifies everything
+and so goes last), then the older issues #2, #3, #5, #11, #13, #16, #21, #22.
 **#51 to #56 are no longer gated**, and the first thing to do there is give titling its own KV
 sequence, which lets the title-quality trade in ConversationTitler be reverted. Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
@@ -305,7 +311,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 
 | # | Item | State |
 |---|---|---|
-| #57 | Logic Partner: analyse before attacking (claim, grounds, warrant, qualifier, claim type), find the crux, challenge well | not started. **Conflicts with the token budget, see DECISIONS.md** |
+| #57 | Logic Partner: analyse before attacking, find the crux, challenge well | **implemented, left open.** Budget conflict resolved (1000 to 1080, paid for and justified in the test). Two of six claim types tested; **the values-stop does not land on E4B** |
 | #58 | Brainstorm: ground the method in facilitation practice, then verify with #25 | not started |
 
 ### Older worklist items still open (issues #1 to #22)
