@@ -3670,3 +3670,27 @@ find it should not have to work out from scratch whether it still happens.
 
 The old conversation is still in Chats. It is the owner's data and their call, so it stays;
 deleting somebody's conversations to tidy up a finding is not mine to do.
+
+## Issue #39, sixth finding: the composer took "paste" literally
+
+The composer's placeholder is "Ask, paste, or talk it out", and the field had no height limit at
+all. Pasting a few hundred words grew it until the conversation above was a two-line sliver, the
+mode indicator was pushed off, and the cursor sat somewhere below the bottom of the screen, so
+you could not see the end of what you were typing.
+
+Capped at eight lines, after which the field scrolls and keeps the cursor in view. Counted in
+lines rather than pixels deliberately: a dp cap would silently become three lines at the largest
+accessibility font sizes, which is where a scrolling composer is least usable. Eight leaves about
+two thirds of a phone screen to the transcript at the default size, which is enough to read back
+a pasted paragraph without losing the conversation.
+
+No unit test: this is a layout constant whose whole meaning is what it looks like on a phone, and
+a test asserting the number equals the number would guard nothing. Verified on the device, with
+the before and after both captured.
+
+### Checked while there, and correct
+
+Drafts survive navigating away and coming back, and are lost on process death. That is documented
+in `ChatViewModel.draft` as a deliberate trade, with the reasoning written beside it: persisting
+would mean a write per keystroke or a drafts table, and the common case is a glance at another
+screen. Confirmed both halves on the phone. Behaving as designed, so nothing to change.

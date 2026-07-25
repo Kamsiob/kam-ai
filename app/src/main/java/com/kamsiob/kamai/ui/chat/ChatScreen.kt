@@ -100,6 +100,15 @@ import com.kamsiob.kamai.ui.theme.standardSpec
 private const val FOLLOW_TO_END_OFFSET = 1_000_000
 
 /**
+ * How tall the composer is allowed to grow before it starts scrolling instead.
+ *
+ * Enough to read a pasted paragraph back without the conversation disappearing
+ * behind it. Eight lines leaves roughly two thirds of a phone screen to the
+ * transcript at the default text size.
+ */
+private const val COMPOSER_MAX_LINES = 8
+
+/**
  * Scrolls to the true bottom of the list.
  *
  * Deliberately the last *item*, not the last *message*. The thinking indicator is
@@ -1519,6 +1528,16 @@ private fun Composer(
                 enabled = enabled && !recording && !transcribing,
                 textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
                 cursorBrush = SolidColor(colors.accent),
+                // The placeholder invites pasting, and an uncapped field took the
+                // invitation literally: a few hundred words of pasted text grew
+                // the composer until the conversation above it was a sliver and
+                // the cursor was somewhere off the bottom of the screen, so you
+                // could not see what you were typing (#39).
+                //
+                // Counted in lines rather than pixels so the cap still means
+                // eight readable lines at the largest accessibility font sizes.
+                // Past that the field scrolls and keeps the cursor in view.
+                maxLines = COMPOSER_MAX_LINES,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
