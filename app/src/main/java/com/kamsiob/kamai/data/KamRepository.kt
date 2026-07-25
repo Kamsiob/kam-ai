@@ -771,6 +771,12 @@ class KamRepository(
 
     fun observeProjects(): Flow<List<ProjectEntity>> = db.projects().observeAll()
 
+    /** Live chat counts per project, keyed by project id, for the folder tiles. */
+    fun observeProjectCounts(): Flow<Map<String, Int>> =
+        db.conversations().observeProjectCounts().map { rows ->
+            rows.associate { it.projectId to it.count }
+        }
+
     fun observeProject(id: String): Flow<ProjectEntity?> = db.projects().observe(id)
 
     suspend fun project(id: String): ProjectEntity? = db.projects().byId(id)

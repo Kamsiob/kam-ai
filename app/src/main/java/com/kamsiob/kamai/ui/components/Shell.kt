@@ -220,16 +220,17 @@ private fun NavCell(
                 tint = contentColor,
                 modifier = Modifier.size(20.dp),
             )
-            if (badge > 0) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 2.dp, end = 8.dp)
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(colors.flagAmber),
-                )
-            }
+            // No badge dot.
+            //
+            // There used to be an amber dot on Follow-ups whenever anything was
+            // open. It was reported as visually disruptive, and it is: a
+            // permanent coloured mark in the navigation reads as an alert, and
+            // nothing on that screen is urgent. Follow-ups is a place you go when
+            // you choose to, not a queue nagging to be emptied, and a count that
+            // never reaches zero for most people is a worse nag than none.
+            //
+            // The count still reaches the screen reader through the item's own
+            // label, so nothing is lost for anybody who wants to know.
         }
         Spacer(Modifier.height(3.dp))
         Text(

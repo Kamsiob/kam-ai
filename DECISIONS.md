@@ -4999,3 +4999,33 @@ The new screen is deliberately plain: a card each, the passage, when it was save
 reopen it as a grounded discussion. No filters, no sorting. A handful of kept passages does not need
 managing, and Follow-ups already exists for anybody who wants every save from everywhere in one
 list.
+
+## Owner feedback: projects looked like chats, and the nav had a nagging dot
+
+**Projects are folders now.** They were drawn as a list that looked exactly like the Chats log,
+which says the wrong thing about what each one is: a chat is a single conversation, a project is a
+container holding several of them plus the instructions they all follow. Two across, each a folder
+tile with the count inside the tab, the name, and a line saying how many chats are in it, or
+"Empty. Add instructions and start a chat." when there are none.
+
+The count comes from a new grouped query rather than counting in the UI, and it **excludes archived
+conversations**, because a folder saying "4 chats" that opens onto two is worse than no count.
+
+The three density views added for #50 are gone from this screen with it. Densities are for a long
+list of similar things; a shelf of folders is not that, and offering three ways to look at four
+folders was a control in search of a problem. Chats keeps them.
+
+**The amber dot on Follow-ups is gone.** A permanent coloured mark in the navigation reads as an
+alert, and nothing on that screen is urgent. Follow-ups is somewhere you go when you choose to, not
+a queue nagging to be emptied, and a count that never reaches zero for most people is a worse nag
+than no count at all. The number still reaches a screen reader through the item's own label, so
+nobody who wants it loses it.
+
+## The "You said" line in the assistant panel
+
+Reported as a weird robotic font sitting above the text rather than with it. Both true: it was
+`type.mono`, which is the app's voice for facts about the machine, so putting the user's own words
+next to a machine label got it exactly backwards. The two type sizes also refused to share a line,
+so the label floated above the sentence it belonged to.
+
+It is one line of ordinary prose now: "You said: <what they said>".

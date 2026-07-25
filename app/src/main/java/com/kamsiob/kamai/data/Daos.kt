@@ -170,6 +170,18 @@ interface ConversationDao {
     @Query("SELECT id FROM conversations WHERE projectId = :projectId")
     suspend fun forProjectIds(projectId: String): List<String>
 
+    /**
+     * How many live conversations sit in each project, for the folder tiles.
+     *
+     * Archived ones are excluded, because a folder saying "4 chats" that opens
+     * onto two is worse than no count at all.
+     */
+    @Query(
+        "SELECT projectId AS projectId, COUNT(*) AS count FROM conversations " +
+            "WHERE projectId IS NOT NULL AND archived = 0 GROUP BY projectId",
+    )
+    fun observeProjectCounts(): Flow<List<ProjectCount>>
+
     @Query("UPDATE conversations SET groundingMomentId = :passage WHERE id = :id")
     suspend fun setGrounding(id: String, passage: String)
 
@@ -469,3 +481,6 @@ interface SettingsDao {
     @Query("DELETE FROM settings WHERE key = :key")
     suspend fun remove(key: String)
 }
+
+/** How many conversations a project holds. See `observeProjectCounts`. */
+data class ProjectCount(val projectId: String, val count: Int)

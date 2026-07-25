@@ -117,6 +117,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         repository.observeProjects()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** How many live chats each project holds, for the folder tiles. */
+    val projectCounts: StateFlow<Map<String, Int>> =
+        repository.observeProjectCounts()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     val activeModel: StateFlow<TierModel?> =
         repository.observeActiveModel()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

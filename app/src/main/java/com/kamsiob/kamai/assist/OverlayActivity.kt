@@ -344,25 +344,24 @@ private fun OverlayPanel(
             // model that mishears, being able to see "you asked X" is the
             // difference between a wrong answer and a wrong question.
             if (question.isNotBlank() && (answer.isNotEmpty() || streaming)) {
-                Row(
+                // One line of ordinary prose, not a label beside a quote.
+                //
+                // This started as a mono "You said" tag next to the text. Mono is
+                // the app's voice for facts about the machine, and putting the
+                // user's own words next to a robotic label got it backwards; the
+                // two type sizes also refused to sit on the same line, so the tag
+                // floated above the sentence it belonged to (owner feedback).
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(colors.tonalFill)
-                        .padding(horizontal = 12.dp, vertical = 9.dp),
-                    verticalAlignment = Alignment.Top,
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                 ) {
                     Text(
-                        "You said",
-                        style = KamTheme.type.mono,
-                        color = colors.tonalText,
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        question,
+                        "You said: $question",
                         style = KamTheme.type.secondary,
                         color = colors.tonalText,
-                        modifier = Modifier.weight(1f),
                     )
                 }
                 Spacer(Modifier.height(10.dp))

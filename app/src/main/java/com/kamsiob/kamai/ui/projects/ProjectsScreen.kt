@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import com.kamsiob.kamai.ui.AppViewModel.ChatsView
@@ -36,6 +39,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.kamsiob.kamai.data.ConversationSummary
@@ -56,10 +61,8 @@ fun ProjectsScreen(
     projects: List<ProjectEntity>,
     onOpen: (String) -> Unit,
     onCreate: (String) -> Unit,
-    /** The same three densities Chats offers, remembered the same way (#50). */
-    view: ChatsView =
-        ChatsView.COMFORTABLE,
-    onViewChange: (ChatsView) -> Unit = {},
+    /** Live chat count per project id, shown on each folder. */
+    counts: Map<String, Int> = emptyMap(),
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -75,10 +78,6 @@ fun ProjectsScreen(
                 modifier = Modifier.clip(CircleShape).clickable { creating = true }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             )
-            if (projects.isNotEmpty()) {
-                Spacer(Modifier.width(4.dp))
-                com.kamsiob.kamai.ui.components.ViewSwitcher(view, onViewChange)
-            }
         }
         Spacer(Modifier.height(6.dp))
         Text(
@@ -96,27 +95,27 @@ fun ProjectsScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            if (view == ChatsView.GRID) {
-                androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
-                    columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                ) {
-                    gridItems(projects, key = { it.id }) { project ->
-                        ProjectCard(project, view, onOpen)
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(if (view == ChatsView.COMPACT) 6.dp else 8.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                ) {
-                    items(projects, key = { it.id }) { project ->
-                        ProjectCard(project, view, onOpen)
-                    }
+            // Folders, not rows.
+            //
+            // Projects used to be drawn as a list that looked like the Chats log,
+            // which said the wrong thing about what a project is: a chat is one
+            // conversation and a project is a container holding several, with its
+            // own instructions. Reported as reading like the chat log; it now
+            // reads as a shelf of folders, two across, each showing its name, how
+            // many chats are inside, and whether it has instructions yet.
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
+            ) {
+                gridItems(projects, key = { it.id }) { project ->
+                    ProjectFolder(
+                        project = project,
+                        chatCount = counts[project.id] ?: 0,
+                        onOpen = onOpen,
+                    )
                 }
             }
         }
@@ -351,50 +350,6 @@ private fun NameDialog(
     }
 }
 
-/**
- * One project, drawn at whichever density the screen is set to (#50).
- *
- * The same three the Chats list offers, meaning the same thing here: comfortable
- * shows the instructions under the name, compact is the name alone, and grid is
- * two to a row. Compact drops the subtitle rather than shrinking it, which is
- * what makes it compact on Chats too.
- */
-@Composable
-private fun ProjectCard(
-    project: ProjectEntity,
-    view: ChatsView,
-    onOpen: (String) -> Unit,
-) {
-    val colors = KamTheme.colors
-    val compact = view == ChatsView.COMPACT
-    Column(
-        Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
-            .background(colors.surface)
-            .border(1.dp, colors.border, RoundedCornerShape(KamTheme.dimens.cardRadius))
-            .clickable { onOpen(project.id) }
-            .padding(if (compact) 12.dp else 15.dp),
-    ) {
-        Text(
-            project.name,
-            style = KamTheme.type.cardTitle,
-            color = colors.textPrimary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (!compact) {
-            val sub = project.instructions.trim().ifBlank { "No instructions yet" }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                sub,
-                style = KamTheme.type.secondary,
-                color = colors.textTertiary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
 
 /**
  * Picks a chat to pull into this project (item 2).
@@ -445,5 +400,95 @@ private fun ExistingChatPicker(
                 )
             }
         }
+    }
+}
+
+/**
+ * One project, drawn as a folder rather than a list row.
+ *
+ * A chat row and a project row used to look the same, which said the wrong thing
+ * about what each one is: a chat is a single conversation, a project is a
+ * container holding several of them plus the instructions they all follow
+ * (owner feedback). A folder tile with a count says that at a glance.
+ *
+ * The tab shape is drawn rather than shipped as an icon so it takes the accent
+ * directly and costs nothing in the APK, the same reasoning as the mode
+ * sketches.
+ */
+@Composable
+private fun ProjectFolder(
+    project: ProjectEntity,
+    chatCount: Int,
+    onOpen: (String) -> Unit,
+) {
+    val colors = KamTheme.colors
+    val shape = RoundedCornerShape(KamTheme.dimens.cardRadius)
+    val hasInstructions = project.instructions.isNotBlank()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.surface)
+            .border(1.dp, colors.border, shape)
+            .clickable { onOpen(project.id) }
+            .padding(14.dp)
+            .semantics {
+                contentDescription = buildString {
+                    append(project.name)
+                    append(", ")
+                    append(if (chatCount == 1) "1 chat" else "$chatCount chats")
+                    if (!hasInstructions) append(", no instructions yet")
+                }
+            },
+    ) {
+        // The folder itself: a tab sitting on a body, in the accent's tonal fill.
+        Box(
+            modifier = Modifier
+                .size(width = 46.dp, height = 36.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .size(width = 20.dp, height = 8.dp)
+                    .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                    .background(colors.tonalFill),
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .size(width = 46.dp, height = 30.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(colors.tonalFill),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "$chatCount",
+                    style = KamTheme.type.cardTitle,
+                    color = colors.tonalText,
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Text(
+            project.name,
+            style = KamTheme.type.cardTitle,
+            color = colors.textPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            when {
+                chatCount == 0 && !hasInstructions -> "Empty. Add instructions and start a chat."
+                chatCount == 0 -> "No chats yet"
+                chatCount == 1 -> "1 chat"
+                else -> "$chatCount chats"
+            },
+            style = KamTheme.type.secondary,
+            color = colors.textTertiary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
