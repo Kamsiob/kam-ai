@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -112,8 +113,25 @@ fun BackupScreen(
         SecondaryButton(
             "Choose a backup file",
             onClick = { onImport(importPass, replace) },
+            enabled = !busy && importPass.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         )
+
+        // Neither export nor restore said anything while it ran. On a large
+        // backup that is a long silence after a tap, which is exactly what
+        // item 5 is about: nothing may process silently.
+        if (busy) {
+            Spacer(Modifier.height(14.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = colors.accent)
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Working. Keep this screen open until it finishes.",
+                    style = KamTheme.type.secondary,
+                    color = colors.textSecondary,
+                )
+            }
+        }
         Spacer(Modifier.height(28.dp))
     }
 }

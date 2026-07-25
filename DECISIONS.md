@@ -4272,3 +4272,52 @@ That is the right comparison for deciding what a user gets, and the wrong one fo
 difference to parameter count alone.
 
 The active model was returned to Balanced afterwards, which is where the owner had it.
+
+## An armed data-loss hazard in the test suite, and a restore that could half-finish
+
+Found while auditing item 5's remaining list, which names export and import as slow operations
+needing feedback and a cancel path. Two separate problems, both about losing everything.
+
+### `./gradlew connectedAndroidTest` would have wiped the owner's phone
+
+`BackupDbRoundTripTest` opened `KamRepository.get(context)`. In an instrumentation test that is
+not a fixture, it is the **real** database, because instrumentation runs in the app's own process.
+The test then called `repo.deleteEverything(includeDownloads = false)` twice, once to get
+deterministic counts and once to tidy up.
+
+So running the standard command for Android instrumentation tests, on any phone with Kam AI
+installed, deleted every conversation, message, memory, follow-up, project and Discover row on it.
+No warning, no undo, and the test passed, so nothing looked wrong.
+
+It had not fired. Tonight's instrumentation runs were `-e class` filtered to specific tests, and
+the migration work earlier in the session ran the migration tests only. That is luck, not design.
+
+Fixed by giving the test its own in-memory database. A test that calls `deleteEverything` has to
+own the database it is deleting. It is the only androidTest that touched the real one.
+
+### A replace-mode restore could delete everything and then stop
+
+`importSnapshot(replace = true)` deleted every table and then re-inserted the backup's rows one at
+a time, with no transaction. Interrupt the second half and the user keeps the first half: their
+data gone, the replacement partly written, and the backup file no help because the failure is
+mid-import.
+
+Interrupting it was easy. The caller ran in `rememberCoroutineScope()`, which belongs to the
+composition, so **backing out of the Backup and restore screen cancelled the restore in flight**.
+
+Two changes. `importSnapshot` now runs inside `db.withTransaction`, so it lands completely or the
+database is untouched. And the export and import calls run under `NonCancellable`, so leaving the
+screen no longer tears down the work halfway.
+
+`aRestoreInterruptedPartWayThroughLosesNothing` starts a large restore, cancels it after 15 ms,
+and asserts the outcome is either fully restored or fully intact, and never an empty database.
+
+### And the silence item 5 actually asked about
+
+Neither export nor restore said anything while running. `busy` existed and only greyed out the
+export button; the restore button stayed enabled and nothing appeared on screen. On a large
+backup that is a long silence after a tap. There is now a spinner and "Working. Keep this screen
+open until it finishes.", and both actions are disabled while it runs.
+
+Verified on the phone: the tests pass against the in-memory database, the app still holds every
+conversation afterwards, and `pm list packages` shows one Kam AI.

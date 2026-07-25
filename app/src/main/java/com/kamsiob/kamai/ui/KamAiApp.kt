@@ -1007,11 +1007,16 @@ private fun BackupHost(app: AppViewModel) {
         if (uri == null) return@rememberLauncherForActivityResult
         busy = true
         scope.launch {
-            val ok = runCatching {
-                context.contentResolver.openOutputStream(uri)?.use { out ->
-                    manager.export(out, exportPass)
-                } ?: error("no stream")
-            }.isSuccess
+            // Export only reads, so a cancelled one loses nothing but the
+            // half-written file. Kept uncancellable anyway so the file the user
+            // just named is either complete or not created by us at all.
+            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        manager.export(out, exportPass)
+                    } ?: error("no stream")
+                }.isSuccess
+            }
             busy = false
             app.showToast(if (ok) "Backup saved" else "Could not write the backup file.")
         }
@@ -1023,11 +1028,20 @@ private fun BackupHost(app: AppViewModel) {
         if (uri == null) return@rememberLauncherForActivityResult
         busy = true
         scope.launch {
-            val result = runCatching {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    manager.import(input, importPass, importReplace)
-                } ?: error("no stream")
-            }.getOrNull()
+            // NonCancellable around the restore itself. `scope` is the
+            // composition's, so backing out of Backup and restore cancels it,
+            // and a replace-mode restore that stops halfway used to leave the
+            // user with everything deleted and only part of the backup written.
+            // The transaction in `importSnapshot` makes that atomic at the
+            // database level; this stops the coroutine being torn down in the
+            // middle of the file read that feeds it.
+            val result = kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        manager.import(input, importPass, importReplace)
+                    } ?: error("no stream")
+                }.getOrNull()
+            }
             busy = false
             app.showToast(result?.message ?: "Could not read the backup file.")
             // Reload app state after a successful restore.

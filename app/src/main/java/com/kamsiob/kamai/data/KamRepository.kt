@@ -1,5 +1,6 @@
 package com.kamsiob.kamai.data
 
+import androidx.room.withTransaction
 import android.app.ActivityManager
 import android.content.Context
 import com.kamsiob.kamai.download.Downloader
@@ -461,7 +462,23 @@ class KamRepository(
      * are physically present on this device, which a backup does not carry, so the
      * caller offers to re-download anything the backup listed but this phone lacks.
      */
-    suspend fun importSnapshot(s: BackupCodec.Snapshot, replace: Boolean) {
+    /**
+     * Restores a backup. In replace mode this wipes everything first, so it runs
+     * as one transaction or not at all.
+     *
+     * Without the transaction the sequence was: delete every message,
+     * conversation, project, memory, follow-up and Discover row, then insert the
+     * backup's rows one at a time. Anything that interrupted the second half left
+     * the user with the first half already done. A single malformed row, a
+     * process death, or simply backing out of the screen mid-restore, and their
+     * conversations were gone and the replacement only partly written. There is
+     * no undo for that and the backup file cannot help, because the failure is
+     * mid-import.
+     *
+     * `withTransaction` makes the whole thing atomic: either the restore lands
+     * completely or the database is exactly as it was.
+     */
+    suspend fun importSnapshot(s: BackupCodec.Snapshot, replace: Boolean) = db.withTransaction {
         if (replace) {
             db.messages().deleteAll()
             db.conversations().deleteAll()
