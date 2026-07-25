@@ -4627,3 +4627,43 @@ seconds it is plainly there. **A toast is invisible to this kind of testing unle
 for it in the first second**, which is worth remembering before writing up "nothing happens" again.
 
 The microphone permission was granted again afterwards.
+
+## Issue #58: a Wrap up action, because the rule was losing rather than missing
+
+Two samples on the phone, same build and same prompt, opposite results. A new Brainstorm chat asked
+to wrap up converged correctly. The same request several exchanges deep produced this:
+
+> We've done STARBURSTING. ... To converge, group into themes, name which ideas have energy from
+> what you engaged with, say what is unresolved, and ask you to pick. What feels like the most
+> promising starting point here.
+
+It read its own instructions aloud and then asked another question, breaking two rules that are
+already in the prompt in plain words. Since the same words work when the context is short, the
+rule is not misunderstood: it is losing against a long history. More wording would not have helped,
+which is what the issue already suspected.
+
+**Wrap up this session** sits in the conversation's overflow menu, only in Brainstorm. It puts the
+instruction in as the final user turn, immediately before the model answers, instead of hoping a
+rule near the top of a long prompt still wins. The plumbing already existed: `respond` takes a
+pending instruction that reaches the prompt without entering the transcript, built for `continueLast`.
+
+The instruction describes the **shape of the answer** rather than naming a method, because naming a
+method is exactly what it echoes back, and it forbids the two specific failures: naming the method,
+and ending on a question.
+
+A quiet "Wrapping up." note goes in the transcript, so the history shows the session was closed
+deliberately rather than an answer arriving from nowhere.
+
+**Verified against the conversation that failed.** Same chat, same history, now:
+
+> Themes: Commute dissatisfaction, Spanish learning potential, Passive phone use.
+> Energy comes from the idea of using podcasts and flashcards for Spanish learning on the train.
+> Unresolved: How to make the commute less miserable beyond just language learning.
+> Next step: Take the Spanish learning idea into Logic Partner to stress test it.
+
+Themes, energy, unresolved, one next step. No method named, no question at the end. It even points
+at another mode, which is the kind of thing the four modes exist for.
+
+Typing "wrap it up" still goes through the ordinary path and can still misfire. That is the
+model's behaviour and this does not claim to fix it; it gives the user a control that works every
+time instead of a phrasing that works sometimes.

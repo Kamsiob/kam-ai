@@ -18,6 +18,7 @@ import com.kamsiob.kamai.llm.MemoryExtractor
 import com.kamsiob.kamai.llm.MemoryMode
 import com.kamsiob.kamai.llm.PromptBuilder
 import com.kamsiob.kamai.llm.SystemPrompts
+import com.kamsiob.kamai.llm.WrapUp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancelAndJoin
@@ -424,6 +425,27 @@ class ChatViewModel(
                 continuePrompt = "Carry straight on from where your previous answer stopped. " +
                     "Do not repeat what you already wrote and do not start again.",
             )
+        }
+    }
+
+    /**
+     * Closes a Brainstorm session and asks for the summary (#58).
+     *
+     * The instruction goes in as the final user turn rather than being typed,
+     * because the same words at the top of a long prompt lose: several exchanges
+     * deep the model recited the convergence procedure back and then asked
+     * another question. See [WrapUp].
+     *
+     * A quiet note goes in the transcript so the history shows the session was
+     * closed deliberately, rather than an answer arriving from nowhere.
+     */
+    fun wrapUp() {
+        if (_streaming.value) return
+        val id = _conversationId.value ?: return
+        _streaming.value = true
+        viewModelScope.launch {
+            repository.addMessage(id, Role.SYSTEM, WrapUp.NOTE)
+            respond(conversationId = id, continuePrompt = WrapUp.INSTRUCTION)
         }
     }
 

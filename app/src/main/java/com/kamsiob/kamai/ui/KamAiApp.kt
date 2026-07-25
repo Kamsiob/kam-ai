@@ -558,6 +558,7 @@ private fun ConversationScreen(
         },
         onRegenerate = chat::regenerate,
         onContinueIncomplete = chat::continueLast,
+        onWrapUp = chat::wrapUp,
         onDiscardIncomplete = chat::discardLast,
         onReport = { message -> reportResponse(context, message.content, app) },
         // Shared as the reader saw it, not as Markdown source.

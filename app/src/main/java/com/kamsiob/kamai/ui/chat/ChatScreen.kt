@@ -166,6 +166,8 @@ fun ChatScreen(
     /** The three ways out of an answer that stopped early (#35). Retry reuses
      *  [onRegenerate], since replacing the answer is exactly what it does. */
     onContinueIncomplete: () -> Unit = {},
+    /** Closes a Brainstorm session and asks for the summary (#58). */
+    onWrapUp: () -> Unit = {},
     onDiscardIncomplete: () -> Unit = {},
     onReport: (MessageEntity) -> Unit,
     onShareResponse: (MessageEntity) -> Unit,
@@ -330,6 +332,7 @@ fun ChatScreen(
                 onMoveToProject = onMoveToProject,
                 onRename = onRenameConversation,
                 onOpenWorkbenchSession = onOpenWorkbenchSession,
+                onWrapUp = onWrapUp.takeIf { com.kamsiob.kamai.llm.WrapUp.availableIn(mode) },
                 onArchive = onArchiveConversation,
                 onDelete = onDeleteConversation,
                 modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
@@ -738,6 +741,8 @@ private fun ConversationHeader(
     onMoveToProject: (String?) -> Unit,
     onRename: (String) -> Unit,
     onOpenWorkbenchSession: (() -> Unit)? = null,
+    /** Set only in a mode that has a session to close (#58). */
+    onWrapUp: (() -> Unit)? = null,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -813,6 +818,18 @@ private fun ConversationHeader(
                 }
                 // Only for a chat that came from a Workbench session, which is
                 // the other half of the pair (#32).
+                // Only where there is a session to close, which is Brainstorm.
+                if (onWrapUp != null) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Wrap up this session",
+                                style = KamTheme.type.body, color = colors.textPrimary,
+                            )
+                        },
+                        onClick = { menuOpen = false; onWrapUp() },
+                    )
+                }
                 if (onOpenWorkbenchSession != null) {
                     androidx.compose.material3.DropdownMenuItem(
                         text = {
