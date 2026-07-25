@@ -66,6 +66,9 @@ fun SegmentedModeControl(
     onSelect: (Mode) -> Unit,
     modifier: Modifier = Modifier,
     modes: List<Mode> = ModeColors.fourModes,
+    /** Appended to each segment's spoken label, for the copies of this control
+     *  that start a chat somewhere more specific than the Chats list. */
+    labelSuffix: String = "",
 ) {
     val colors = KamTheme.colors
     val haptics = LocalHapticFeedback.current
@@ -204,7 +207,8 @@ fun SegmentedModeControl(
                                 role = Role.Tab
                                 selected = active
                                 contentDescription =
-                                    "Start a ${ModeColors.name(mode)} chat" + if (active) ", selected" else ""
+                                    "Start a ${ModeColors.name(mode)} chat$labelSuffix" +
+                                        if (active) ", selected" else ""
                             },
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,

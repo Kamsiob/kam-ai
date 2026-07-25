@@ -1069,8 +1069,8 @@ private fun ProjectHost(
         instructionsMax = app.projectInstructionsMax,
         onSaveInstructions = { text -> app.saveProject(projectId, project?.name ?: "Project", text) },
         onRename = { name -> app.saveProject(projectId, name, project?.instructions ?: "") },
-        onNewChatHere = {
-            app.createProjectChat(projectId) { id -> stack.add(Pushed.Conversation(id)) }
+        onNewChatHere = { mode ->
+            app.createProjectChat(projectId, mode) { id -> stack.add(Pushed.Conversation(id)) }
         },
         onOpenConversation = { stack.add(Pushed.Conversation(it)) },
         onRemoveFromProject = { id -> app.assignConversationToProject(id, null) },

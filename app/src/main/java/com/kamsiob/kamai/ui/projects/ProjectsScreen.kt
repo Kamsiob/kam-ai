@@ -130,7 +130,7 @@ fun ProjectScreen(
     instructionsMax: Int,
     onSaveInstructions: (String) -> Unit,
     onRename: (String) -> Unit,
-    onNewChatHere: () -> Unit,
+    onNewChatHere: (com.kamsiob.kamai.data.Mode) -> Unit,
     onOpenConversation: (String) -> Unit,
     onRemoveFromProject: (String) -> Unit,
     onDelete: () -> Unit,
@@ -195,8 +195,18 @@ fun ProjectScreen(
         Spacer(Modifier.height(10.dp))
         PrimaryButton("Save instructions", onClick = { onSaveInstructions(instructions.text.trim()) }, modifier = Modifier.fillMaxWidth())
 
+        // The same control as Chats, rather than a button. Everywhere else in the
+        // app, starting a chat and choosing its mode are one act; this screen used
+        // to start a General chat with no say in it, which quietly dropped a choice
+        // the app otherwise insists on (#39).
         Spacer(Modifier.height(20.dp))
-        SecondaryButton("New chat in this project", onClick = onNewChatHere, modifier = Modifier.fillMaxWidth())
+        com.kamsiob.kamai.ui.components.Eyebrow("New chat in this project")
+        Spacer(Modifier.height(8.dp))
+        com.kamsiob.kamai.ui.components.SegmentedModeControl(
+            onSelect = onNewChatHere,
+            labelSuffix = " in this project",
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Spacer(Modifier.height(20.dp))
         Text("Chats in this project", style = KamTheme.type.label, color = colors.textSecondary)

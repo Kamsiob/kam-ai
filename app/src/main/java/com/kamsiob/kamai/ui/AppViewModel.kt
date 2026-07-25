@@ -563,8 +563,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Starts a new chat that already belongs to [projectId]. */
-    fun createProjectChat(projectId: String, onReady: (String) -> Unit) = viewModelScope.launch {
-        val id = repository.createConversation(com.kamsiob.kamai.data.Mode.GENERAL, projectId)
+    fun createProjectChat(
+        projectId: String,
+        mode: com.kamsiob.kamai.data.Mode,
+        onReady: (String) -> Unit,
+    ) = viewModelScope.launch {
+        val id = repository.createConversation(mode, projectId)
         onReady(id)
     }
 

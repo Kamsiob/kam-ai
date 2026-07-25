@@ -3741,3 +3741,26 @@ in it.
 
 The model name beside the mode indicator is tappable and carries "Model: <name>. Tap to change
 model.", which is what DESIGN asks for. No change needed.
+
+## Issue #39, ninth finding: a project chat had its mode chosen for it
+
+On Chats, starting a conversation and choosing its mode are the same act: the segmented control
+is the only way to start one, and DECISIONS records that this is deliberate. Inside a project,
+"New chat in this project" was a plain button that always created a General conversation. The
+choice the app insists on everywhere else was silently made on the user's behalf.
+
+DESIGN describes the Chats control in detail and says nothing about the project screen, so this
+was mine to decide. The project screen now uses the same `SegmentedModeControl`, under an eyebrow
+reading "New chat in this project".
+
+Reusing the control rather than adding a picker sheet, because it keeps starting a chat at one
+tap in both places and introduces no new vocabulary to learn. A sheet would have made the project
+path slower than the Chats path for no reason other than that it was a button before.
+
+The control gained a `labelSuffix`, so its segments announce "Start a Logic chat in this project"
+rather than the Chats wording, which would have been true but vague about where the chat was
+going.
+
+Verified on the phone: tapping Logic in a project opens a Logic conversation inside that project.
+The empty-state line below it, "Start one above, or move an existing chat into this project from
+its options", was already written for a control above it and now reads correctly.
