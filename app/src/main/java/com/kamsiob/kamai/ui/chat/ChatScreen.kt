@@ -383,9 +383,12 @@ fun ChatScreen(
                         modifier = Modifier.align(Alignment.Center),
                     )
                 } else {
+                    // Centred in the empty space rather than pinned to the top,
+                    // so an empty chat reads as a page waiting for something
+                    // rather than a header with nothing under it.
                     com.kamsiob.kamai.ui.components.ModeNudge(
                         mode = mode,
-                        modifier = Modifier.align(Alignment.TopCenter),
+                        modifier = Modifier.align(Alignment.Center),
                     )
                 }
             } else {

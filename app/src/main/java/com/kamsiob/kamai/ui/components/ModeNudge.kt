@@ -24,7 +24,9 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kamsiob.kamai.data.Mode
@@ -56,30 +58,95 @@ fun ModeNudge(mode: Mode, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            // The wash. Faint enough to read as paper rather than as a panel, and
-            // fading to nothing well before the composer so it never looks like a
-            // surface the input is sitting on.
+            // A glow radiating from behind the sketch, not a wash with edges.
+            //
+            // This was a vertical gradient that started solid at the top and
+            // faded down. That worked while the nudge was pinned under the
+            // header, and the moment it moved to the middle of the page the top
+            // of the gradient became a hard horizontal line across the screen.
+            //
+            // Radial has no edge to notice: strongest behind the sketch, gone
+            // well before the sides. The stops are deliberately close together
+            // near the centre and long at the tail, since a linear falloff still
+            // reads as a disc. Alpha is set per theme because the same value
+            // that is barely visible on the dark background is a grey smudge on
+            // the light one.
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        tint.copy(alpha = if (colors.isDark) 0.10f else 0.07f),
-                        Color.Transparent,
+                Brush.radialGradient(
+                    colorStops = arrayOf(
+                        0.0f to tint.copy(alpha = if (colors.isDark) 0.16f else 0.11f),
+                        0.35f to tint.copy(alpha = if (colors.isDark) 0.09f else 0.06f),
+                        0.65f to tint.copy(alpha = if (colors.isDark) 0.03f else 0.02f),
+                        1.0f to Color.Transparent,
                     ),
+                    radius = GLOW_RADIUS_PX,
                 ),
             )
-            .padding(horizontal = 32.dp, vertical = 44.dp)
+            // Generous vertical padding so the glow reaches nothing well before the
+            // box ends. Too little and the gradient is still faintly lit where it
+            // gets clipped, which puts back the hard edge this was meant to remove.
+            .padding(horizontal = 32.dp, vertical = 110.dp)
             .clearAndSetSemantics { },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Canvas(Modifier.size(96.dp)) { drawModeSketch(mode, tint) }
+        // Softened deliberately. This is an invitation on an empty page, not a
+        // banner: it should be the quietest thing on screen and get out of the
+        // way the moment there is a conversation to read.
+        Canvas(Modifier.size(96.dp).graphicsLayer { alpha = SKETCH_ALPHA }) {
+            drawModeSketch(mode, tint)
+        }
         Spacer(Modifier.height(22.dp))
         Text(
             text = nudgeLine(mode),
             style = nudgeStyle(mode),
-            color = tint,
+            color = tint.copy(alpha = LINE_ALPHA),
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(10.dp))
+        // What the mode is for and how to use it, one sentence. The line above
+        // sets the tone; this says what to actually do, for somebody who has met
+        // the mode for the first time and has an empty box in front of them.
+        Text(
+            text = nudgeHelp(mode),
+            style = KamTheme.type.secondary.copy(fontStyle = FontStyle.Italic),
+            color = colors.textTertiary,
             textAlign = TextAlign.Center,
         )
     }
+}
+
+/**
+ * How wide the glow reaches, in pixels.
+ *
+ * Fixed rather than derived from the layout, because the nudge is only as tall
+ * as its content and a radius tied to that would shrink the glow on the shortest
+ * mode line. This is comfortably wider than the sketch and narrower than a phone.
+ */
+private const val GLOW_RADIUS_PX = 520f
+
+/** How faint the sketch and the line are. Quiet enough to read as paper. */
+private const val SKETCH_ALPHA = 0.55f
+private const val LINE_ALPHA = 0.75f
+
+/**
+ * One italic line under the nudge: what the mode is for, and what to do next.
+ *
+ * Plain and practical rather than poetic. The line above it already carries the
+ * mode's voice, so this one earns its place by being useful.
+ */
+private fun nudgeHelp(mode: Mode): String = when (mode) {
+    Mode.LOGIC ->
+        "Type a claim or an opinion you hold. It argues the other side and tells you where the " +
+            "reasoning is weak."
+    Mode.BRAINSTORM ->
+        "Say what you are working on, however rough. It asks questions and runs exercises instead " +
+            "of handing you ideas."
+    Mode.BENCH ->
+        "Paste text above and pick a change, or say what to do with it. The before and after both " +
+            "stay here."
+    else ->
+        "Ask a question, paste something in, or talk it out with the microphone. Switch modes any " +
+            "time from the name below."
 }
 
 /** DESIGN.md section 7, word for word. */

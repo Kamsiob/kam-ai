@@ -4872,3 +4872,41 @@ permitted uses.
 
 Nothing regressed. That is the check worth doing last, since a lot of the night's work touched
 the chat surface.
+
+## Owner feedback: the Workbench mode could not be reached from a new chat
+
+Reported directly: "I can't switch to workbench when I'm within a chat like I can switch with
+other modes."
+
+The picker's Workbench entry was wired as
+`chat.conversationId.value?.let { chat.noteWorkbenchOpened(); onOpenWorkbench(it) }`. A new chat
+has no conversation until its first message is sent, so in a fresh chat that `?.let` never fired
+and choosing Workbench did **nothing at all**: no screen, no error, nothing. The other three modes
+were unaffected because `setMode` copes with a null conversation, which is exactly why it looked
+like Workbench was the one mode you could not switch to.
+
+It opens either way now. With a conversation it links and leaves the note, as before. Without one
+it opens a **fresh** Workbench rather than falling through to "restore the most recent session",
+which would have reintroduced the surprise #39 was about, just in the new-chat case.
+
+## Owner feedback: the empty state
+
+Four changes to `ModeNudge`, all requested:
+
+- **Centred** in the empty space instead of pinned under the header, so a new chat reads as a page
+  waiting for something rather than a header with nothing under it.
+- **Softened**, sketch and line both, so it is the quietest thing on screen.
+- **A line about the mode**, small, italic and grey, under the existing one. The line above carries
+  the mode's voice; this one says what to actually do, which is what somebody meeting a mode for
+  the first time in front of an empty box needs.
+- **The glow is radial now.** It was a vertical gradient that started solid at the top and faded
+  down, which was right while the nudge sat under the header and became a hard horizontal line
+  across the screen the moment it moved to the middle. Radial has no edge to notice.
+
+Two details worth keeping: the stops are bunched near the centre and long at the tail, because a
+linear falloff still reads as a disc; and the padding is deliberately generous so the gradient
+reaches nothing well before the box is clipped, since a glow that is still faintly lit at the
+boundary puts the hard edge straight back.
+
+Alpha is per theme. The value that is barely visible on the dark background is a grey smudge on
+the light one.

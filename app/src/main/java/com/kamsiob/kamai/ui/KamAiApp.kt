@@ -93,7 +93,14 @@ private sealed interface Pushed {
     data object Licenses : Pushed
     data object CrashReport : Pushed
     data object Voice : Pushed
-    data class Workbench(val sessionId: String? = null, val forConversation: String? = null) : Pushed
+    data class Workbench(
+        val sessionId: String? = null,
+        val forConversation: String? = null,
+        /** Opened from a chat that has no conversation yet, so there is nothing
+         *  to link to but it must still start empty rather than restoring
+         *  somebody's last session. */
+        val startFresh: Boolean = false,
+    ) : Pushed
     data object Backup : Pushed
     data object Appearance : Pushed
     data object Safety : Pushed
@@ -293,14 +300,21 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                         onExit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) },
                         onOpenModel = { stack.add(Pushed.Model) },
                         onOpenWorkbench = { chatId ->
-                            stack.add(Pushed.Workbench(forConversation = chatId))
+                            stack.add(
+                                Pushed.Workbench(
+                                    forConversation = chatId,
+                                    startFresh = chatId == null,
+                                ),
+                            )
                         },
                         onOpenWorkbenchSession = { stack.add(Pushed.Workbench(it)) },
                     )
                     Pushed.Settings -> SettingsHost(app, stack, openUrl)
                     Pushed.Model -> ModelHost(app)
                     Pushed.Voice -> VoiceHost(app)
-                    is Pushed.Workbench -> WorkbenchHost(app, stack, pushed.sessionId, pushed.forConversation)
+                    is Pushed.Workbench -> WorkbenchHost(
+                        app, stack, pushed.sessionId, pushed.forConversation, pushed.startFresh,
+                    )
                     Pushed.Backup -> BackupHost(app)
                     Pushed.Storage -> StorageHost(app)
                     Pushed.Memory -> MemoryHost(app)
@@ -430,7 +444,8 @@ private fun ConversationScreen(
     vmKey: String = conversationId,
     onExit: () -> Unit = {},
     onOpenModel: () -> Unit = {},
-    onOpenWorkbench: (String) -> Unit = {},
+    /** Null when the chat has no conversation yet, which is an ordinary new chat. */
+    onOpenWorkbench: (String?) -> Unit = {},
     /** Opens the Workbench session this chat is paired with, when it has one. */
     onOpenWorkbenchSession: (String) -> Unit = {},
 ) {
@@ -540,10 +555,16 @@ private fun ConversationScreen(
         onModeChange = chat::setMode,
         onOpenModel = onOpenModel,
         onOpenWorkbench = {
-            chat.conversationId.value?.let { id ->
-                chat.noteWorkbenchOpened()
-                onOpenWorkbench(id)
-            }
+            // Always opens, with or without a conversation behind it. This used
+            // to be wrapped in `conversationId.value?.let { }`, and a new chat
+            // has no conversation until its first message is sent, so choosing
+            // Workbench from the picker in a fresh chat did nothing at all: no
+            // screen, no error, nothing. The other three modes were fine because
+            // setMode copes with a null conversation, which is exactly why this
+            // looked like "Workbench is the one mode I cannot switch to".
+            val id = chat.conversationId.value
+            if (id != null) chat.noteWorkbenchOpened()
+            onOpenWorkbench(id)
         },
         // A new message stops any answer that is being read aloud.
         onSend = { text -> app.stopSpeaking(); chat.send(text) },
@@ -889,6 +910,7 @@ private fun WorkbenchHost(
     stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
     sessionId: String? = null,
     forConversation: String? = null,
+    startFresh: Boolean = false,
 ) {
     val context = LocalContext.current
     val bench: com.kamsiob.kamai.ui.workbench.WorkbenchViewModel = viewModel(
@@ -915,10 +937,14 @@ private fun WorkbenchHost(
     // Reopening a recorded session loads its text and result back in (#32). A
     // Workbench opened from a chat instead starts empty and pairs with that chat
     // once it has produced something (#39).
-    LaunchedEffect(sessionId, forConversation) {
+    LaunchedEffect(sessionId, forConversation, startFresh) {
         when {
             sessionId != null -> bench.openSession(sessionId)
             forConversation != null -> bench.openForConversation(forConversation)
+            // Opened from a chat too new to have a conversation. Nothing to link
+            // to, but restoring an unrelated session would be the same surprise
+            // #39 was about.
+            startFresh -> bench.newSession()
         }
     }
 
