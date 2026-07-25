@@ -24,6 +24,20 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### Read this first: a data-loss hazard that was armed, and is now disarmed
+
+`BackupDbRoundTripTest` used to open the **real** database and call `deleteEverything()` on it.
+Instrumentation tests run in the app's own process, so `./gradlew connectedAndroidTest` on any
+phone with Kam AI installed would have deleted every conversation, memory, follow-up, project and
+Discover row, silently, and passed. It never fired only because every instrumentation run so far
+was filtered to specific classes with `-e class`. The test now owns an in-memory database.
+
+The same audit found that a replace-mode restore deleted every table and then re-inserted row by
+row with no transaction, while its caller sat in a `rememberCoroutineScope` that backing out of the
+screen would cancel. Now one `withTransaction`, and the call runs `NonCancellable`.
+
+Both fixed and verified on the phone on 25 July. Full detail in DECISIONS.md.
+
 ### Overnight session of 25 July, working through issue #39
 
 **#39 is the end-to-end workflow audit and is still open.** Everything below came out of
