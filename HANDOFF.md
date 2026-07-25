@@ -88,6 +88,15 @@ successor issue (#63, #64, #65).
 
 ### After #39, same session
 
+Every screen in the app was driven on the phone during this session. The ones that turned out
+**correct and needing nothing**: Follow-ups, Archived, Storage, Voice, Custom instructions, Memory,
+Questions and answers, "Kam AI can be wrong", the Discover reader and quiz, the grounded discussion
+and its escape, the backup export, the over-length document warning, denied microphone permission,
+rapid repeated taps, process death mid-generation, and the whole app in airplane mode. Those are
+listed so the next session knows where the ground has been covered rather than re-covering it.
+
+The one surface that could **not** be tested: the overlay. See below.
+
 Closed: **#5** (nothing processes silently), **#28** (mode explainers), **#48** (Chats view
 parity), **#50** (Projects views), **#59** (stored template tokens), **#60** ("flag" wording),
 **#61** (reserved gold), **#62** (landscape). Advanced: **#2** (bulk move and add-existing both
@@ -124,7 +133,7 @@ argues anyway. Not a long-context problem, unlike #58, so rewording is unlikely 
 through the assist role, so it needs Kam AI set as the phone's digital assistant. That is a system
 setting and the owner's call, not something to change from adb.
 
-Test suite stands at **327 passing, no failures**, plus 5 instrumentation tests run on the phone.
+Test suite stands at **328 passing, no failures**, plus 5 instrumentation tests run on the phone.
 The phone was left with one Kam AI installed, no test package, font scale 1.0, auto-rotate on,
 airplane mode off, microphone permission granted, System theme, and no test files in Downloads.
 
