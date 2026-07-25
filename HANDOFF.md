@@ -125,10 +125,16 @@ as **#62**: landscape plus keyboard squeezes the message list to zero height, an
 get a working IME signal in that composable, so it is filed with what was tried rather than
 left half-guarded.
 
-**Next concrete step:** **#36** (onboarding and public copy for four modes, now unblocked
-since #29 and #42 are both done), then **#39** (the end-to-end workflow audit, which verifies
-everything and so goes late), then **#25** (Brainstorm behaviour, though it has been seen
-behaving correctly three times today: STARBURSTING, HUB AND SPOKE, and a refusal to list).
+**Also finished: #36.** The store listing described three modes with no Brainstorm at all;
+the README had no modes section. Both fixed, the positioning line ("it thinks with you, not
+for you") is one constant used on About, in the README and in the listing, and `PublicCopyTest`
+now reads the listing and README off disk so they cannot drift from the app.
+
+**Next concrete step:** **#25** (Brainstorm behaviour on the device: ten methods, the selection
+checklist, the four hard rules). It has already been seen behaving correctly three times
+today, naming STARBURSTING twice, HUB AND SPOKE once, and refusing a direct request for a
+list. Then **#57 and #58** (the Logic and Brainstorm method rebuilds), then **#39** (the
+end-to-end workflow audit, which verifies everything and so goes last).
 **#51 to #56 are no longer gated**, and the first thing to do there is give titling its own KV
 sequence, which lets the title-quality trade in ConversationTitler be reverted. Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
@@ -276,7 +282,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #34 | Keyboard and reachability audit | **closed.** Portrait was already correct; the mode control clipped at large font and is fixed. Landscape plus keyboard split out as #62 |
 | #62 | Landscape plus keyboard leaves the conversation with zero height | not started. Filed with what was tried; use a measured BoxWithConstraints height rather than the IME insets |
 | #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll are now **seen working on the phone** (#43). The failure-state half is **unblocked**: #40 is closed and the stop reason is now recorded honestly. Scroll restoration on reopening is still not done |
-| #36 | Onboarding and public copy for four modes | not started. Do after #29 and #42 |
+| #36 | Onboarding and public copy for four modes | **closed.** README, store listing, About and the positioning line; guarded by PublicCopyTest reading both files off disk |
 | #38 | Titling KV pollution **fixed and measured**, Bench/Overlay/Discover prompt trims, runtime network monitor | partial. **Warm turn is now 36 tok / 1.4s**, from 1068 tok / 30.8s. Remaining: titling on its own KV sequence (native), which lets the title-quality trade be reverted |
 | #39 | Usability gaps and end-to-end workflows, **including eleven of the twelve mode-switch pairs never exercised** | not started |
 
