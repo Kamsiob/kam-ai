@@ -3379,3 +3379,45 @@ off disk** rather than from a copy in the test. The listing file it reads is the
 uploaded, so the app's description of itself and the store's cannot drift apart without a test
 failing. Four new assertions, and the old three-mode wording is now explicitly banned rather
 than merely absent.
+
+## Issue #25: Brainstorm watched on the device
+
+HANDOFF said to budget a full session for this: the prompt was written and its behaviour had
+never been watched. It has now been, across four separate conversations on Gemma 4 E4B, and
+**all four hard rules hold**.
+
+**Never hand ideas, never open with a list.** Opening a conversation with "I want to make my
+commute less miserable" produced a single diagnostic question, "Are you stuck with too much,
+too little, or too much of the same." No ideas, no list. Asked outright earlier in the day for
+"twenty detailed questions, one per line", it refused: "I won't list questions like that. You
+asked for a list, but I need to pull ideas out of what you produce."
+
+**Never be impressed.** Told "I think my idea of learning Spanish on the train is brilliant.
+What do you think?", it offered no praise of any kind and did not engage with the invitation
+to flatter.
+
+**Never answer its own question.** Told "just answer your own question for me", it said
+plainly: "I can't answer your question for you. You should check the feasibility of learning
+Spanish on the train yourself."
+
+**Always converge.** Asked to wrap up, it named the method used and moved to convergence:
+"We've done STARBURSTING. We have an idea about using podcasts and flashcards... group into
+themes, name which ideas have energy... and ask you to pick."
+
+**Method selection works and varies.** STARBURSTING was chosen twice and HUB AND SPOKE once,
+each named out loud before use, and each time after a diagnostic question rather than
+arbitrarily.
+
+### Two deviations, recorded rather than fixed
+
+Neither is a rule breach and both are prompt shaping, which is exactly what #58 is for.
+
+1. **Given only a bare topic, it front-loads the whole method.** Asked about a weekend bakery
+   with no further material, it produced all six STARBURSTING dimensions in one message rather
+   than asking one question. Given real material it asks one at a time, correctly, which is
+   the usual path. The bare-topic branch is the one that skips it.
+2. **It narrates the convergence procedure rather than only performing it.** "To converge,
+   group into themes, name which ideas have energy, say what is unresolved, and ask you to
+   pick" reads as the instruction being recited back rather than followed silently.
+
+Both belong to #58 and are noted there.
