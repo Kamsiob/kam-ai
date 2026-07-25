@@ -4534,3 +4534,22 @@ blank, leaving Retry and Discard, which is the honest pair.
 Verified on the phone: an empty partial offers only Retry and Discard; a partial ending mid-
 sentence offers Continue and joins with a space. The overlap removal is covered by unit tests
 rather than a device run, since reproducing a mid-word stop on demand is a matter of timing luck.
+
+## Offline: the central promise, checked in airplane mode
+
+The Q&A says "The AI runs on your phone, not on a server. Kam AI only touches the internet when
+you ask it to". Turned airplane mode on and used the app.
+
+- **Asking a question works.** "What is the boiling point of water" answered correctly with no
+  network, which is the whole product.
+- **Discover works.** It dealt a passage from the installed pack, with the quiz and Deal another
+  intact. Matches the Q&A's "Once downloaded, they work without internet."
+- **The pack list fails well.** "Could not reach the pack list. Check your connection and try
+  again; packs you have already downloaded still work offline." Honest about what broke, not
+  alarming, and it says what still works, which is the part most error messages leave out.
+- **The Packs sheet explains the network use up front:** "Offline snapshots of short reads, built
+  from Wikipedia and downloaded once from GitHub. Nothing about you is sent."
+
+Nothing to fix. Recorded because a claim this central is worth having checked rather than assumed,
+and because "verified in airplane mode on the device" is the kind of statement that should have a
+date attached to it. Airplane mode was turned back off.
