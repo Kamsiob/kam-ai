@@ -86,6 +86,21 @@ internal object LlamaBridge {
     external fun nativeUnload()
     external fun nativeIsLoaded(): Boolean
 
+    /**
+     * The current conversation's KV state plus the tokens it describes, or null
+     * when there is nothing cached (#52).
+     *
+     * Plaintext bytes: the caller encrypts them before they touch disk.
+     */
+    external fun nativeSaveState(): ByteArray?
+
+    /**
+     * Restores a blob from [nativeSaveState]. Returns the token count now
+     * cached, or a negative value if nothing was restored, in which case the
+     * context is left empty rather than half-filled.
+     */
+    external fun nativeRestoreState(blob: ByteArray): Int
+
     /** Frees the KV-cache context but keeps the model mmapped. Moderate pressure. */
     external fun nativeReleaseContext()
     /** Rebuilds the context if the model is loaded but the context was released. */

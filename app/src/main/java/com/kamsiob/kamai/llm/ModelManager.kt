@@ -112,6 +112,15 @@ class ModelManager(
      * is gone, the reference is cleared so a later use does not try to load a
      * file that is not there. Never loads.
      */
+    /**
+     * The active model's id, or null when there is none.
+     *
+     * Used to key a saved conversation cache (#52): a KV state blob means
+     * nothing to a different model, and llama.cpp cannot tell one from another,
+     * so the file name has to.
+     */
+    suspend fun activeId(): String? = activeModel()?.id
+
     suspend fun refreshActive() = lock.withLock {
         val model = activeModel()
         when {

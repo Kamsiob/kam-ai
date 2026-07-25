@@ -320,6 +320,30 @@ class InferenceEngine(
         if (LlamaBridge.isLibraryLoaded) LlamaBridge.nativeRequestStop()
     }
 
+    /**
+     * The current conversation's cached state, or null when there is nothing
+     * worth saving (#52).
+     *
+     * On the native dispatcher, like every other call into the library, because
+     * a save that ran beside a decode would read a context that is being written
+     * to. Plaintext: encrypting it is [ConversationState]'s job, and doing it
+     * here would put a cipher in the middle of the inference engine.
+     */
+    suspend fun saveState(): ByteArray? = withContext(nativeDispatcher) {
+        if (LlamaBridge.isLibraryLoaded && LlamaBridge.nativeIsLoaded()) {
+            LlamaBridge.nativeSaveState()
+        } else {
+            null
+        }
+    }
+
+    /** Restores a blob from [saveState]. True when the context now holds it. */
+    suspend fun restoreState(blob: ByteArray): Boolean = withContext(nativeDispatcher) {
+        LlamaBridge.isLibraryLoaded &&
+            LlamaBridge.nativeIsLoaded() &&
+            LlamaBridge.nativeRestoreState(blob) > 0
+    }
+
     suspend fun countTokens(text: String): Int = withContext(nativeDispatcher) {
         // The library check has to come first. This method already has a
         // deliberate fallback for "nothing is loaded", but the guard was itself a

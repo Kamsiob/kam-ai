@@ -370,7 +370,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .map { it.orEmpty() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
 
+    /**
+     * Drops every saved conversation cache (#52).
+     *
+     * Instructions and memory sit at the front of the prompt, ahead of the whole
+     * conversation, so changing either moves every token after it. A cache
+     * restored against the old prefix would decode against a prompt that no
+     * longer exists, which is wrong output rather than a slow turn. Cheap to
+     * throw away and cheap to rebuild, so it is thrown away on any doubt.
+     */
+
+    private fun invalidateConversationCaches() =
+        com.kamsiob.kamai.llm.ConversationState.clear(repository.appContext)
+
     fun saveUserInstructions(text: String) = viewModelScope.launch {
+        invalidateConversationCaches()
         repository.setUserInstructions(text)
         showToast(if (text.isBlank()) "Cleared" else "Saved")
     }
@@ -528,6 +542,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // Memory and projects
 
     fun forget(id: String, text: String? = null) {
+        invalidateConversationCaches()
         requestConfirm(
             ConfirmRequest(
                 tier = ConfirmTier.SINGLE,
@@ -546,11 +561,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setMemoryMode(mode: MemoryMode) {
+        invalidateConversationCaches()
         _memoryMode.value = mode
         viewModelScope.launch { repository.setMemoryMode(mode) }
     }
 
     fun forgetAll() {
+        invalidateConversationCaches()
         requestConfirm(
             ConfirmRequest(
                 tier = ConfirmTier.MAJOR,
@@ -609,6 +626,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         instructions: String,
         notes: String = "",
     ) = viewModelScope.launch {
+        invalidateConversationCaches()
         repository.upsertProject(id, name, instructions, notes)
         showToast("Saved")
     }

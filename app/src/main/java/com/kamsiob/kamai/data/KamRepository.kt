@@ -183,6 +183,13 @@ class KamRepository(
 
     fun voiceDir(): File = downloader.directoryFor("voice")
 
+    /**
+     * The application context, for the few things that need one and are not
+     * database work: the conversation KV state files (#52) live on disk beside
+     * the database and are keyed by the same Keystore entry.
+     */
+    val appContext: Context get() = context
+
     fun fileForStt(model: com.kamsiob.kamai.voice.SttModel): File =
         File(voiceDir(), model.fileName)
 

@@ -14,6 +14,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -197,6 +198,8 @@ fun ChatScreen(
     onOpenWorkbenchSession: (() -> Unit)? = null,
     /** Opens the Memory screen from the memory line under an answer (#16). */
     onOpenMemory: () -> Unit = {},
+    /** Confirms a copy, since neither gesture that copies leaves any other trace. */
+    onCopied: () -> Unit = {},
     onDeleteConversation: () -> Unit = {},
     onModeChange: (Mode) -> Unit,
     onOpenModel: () -> Unit = {},
@@ -478,6 +481,7 @@ fun ChatScreen(
                                     onPlay = { onPlay(message) },
                                     onEdit = { onEdit(message, it) },
                                     onOpenMemory = onOpenMemory,
+                                    onCopied = onCopied,
                                 )
                             }
                         }
@@ -939,7 +943,10 @@ private fun MessageRow(
     modifier: Modifier = Modifier,
     /** Opens the Memory screen from the memory line under this answer (#16). */
     onOpenMemory: () -> Unit,
+    /** Confirms a copy, since neither gesture that copies leaves any other trace. */
+    onCopied: () -> Unit = {},
 ) {
+    val clipboard = LocalClipboardManager.current
     // An answer that has not produced any text yet is represented by the thinking
     // indicator, so its empty bubble is not drawn (it would show as a bare pill).
     if (message.role == Role.ASSISTANT && message.content.isEmpty() && message.incomplete) return
@@ -1012,9 +1019,21 @@ private fun MessageRow(
                         // Tapping your own message still edits it. The label is
                         // what a screen reader announces after "double tap to",
                         // so the gesture stops being a silent, unexplained one.
-                        .clickable(
+                        //
+                        // Long-press copies it. An answer can be selected and
+                        // copied with the platform's own toolbar, and your own
+                        // message could not be copied at all: the only gesture on
+                        // it opened the editor, so getting your own words back out
+                        // meant retyping them. Long-press is the gesture people
+                        // already try on a message bubble in every other app.
+                        .combinedClickable(
                             enabled = message.role == Role.USER,
                             onClickLabel = "Edit and ask again",
+                            onLongClickLabel = "Copy",
+                            onLongClick = {
+                                clipboard.setText(AnnotatedString(message.content))
+                                onCopied()
+                            },
                         ) { editing = true }
                         .padding(14.dp),
                 ) {
@@ -1132,6 +1151,7 @@ private fun MessageRow(
                     onExportThread = onExportThread,
                     onPlay = onPlay,
                     onSaveExcerpt = onFollowUpSelection,
+                    onCopied = onCopied,
                 )
             }
         }
@@ -1206,6 +1226,7 @@ private fun ActionRow(
     onExportThread: (Boolean) -> Unit,
     onPlay: () -> Unit,
     onSaveExcerpt: (String) -> Unit,
+    onCopied: () -> Unit = {},
 ) {
     val colors = KamTheme.colors
     val clipboard = LocalClipboardManager.current
@@ -1260,6 +1281,7 @@ private fun ActionRow(
                 clipboard.setText(
                     AnnotatedString(com.kamsiob.kamai.ui.components.markdownToPlainText(text)),
                 )
+                onCopied()
             },
             tint = colors.textTertiary,
         )

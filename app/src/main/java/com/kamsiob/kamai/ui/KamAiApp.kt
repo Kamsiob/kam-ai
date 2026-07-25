@@ -660,6 +660,7 @@ private fun ConversationScreen(
         grounded = grounded,
         scoped = scoped,
         onOpenMemory = onOpenMemory,
+        onCopied = { app.showToast("Copied") },
         onContinueOpen = chat::continueInOpenChat,
         onMoveToProject = { projectId ->
             chat.conversationId.value?.let { app.assignConversationToProject(it, projectId) }

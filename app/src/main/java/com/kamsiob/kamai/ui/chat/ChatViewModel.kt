@@ -11,6 +11,7 @@ import com.kamsiob.kamai.data.Mode
 import com.kamsiob.kamai.data.Role
 import com.kamsiob.kamai.llm.ChatFormat
 import com.kamsiob.kamai.llm.ContinuationJoin
+import com.kamsiob.kamai.llm.ConversationState
 import com.kamsiob.kamai.llm.ConversationTitler
 import com.kamsiob.kamai.llm.InferenceEngine
 import com.kamsiob.kamai.llm.ModelManager
@@ -339,6 +340,9 @@ class ChatViewModel(
     fun setMode(mode: Mode) {
         if (mode == _mode.value) return
         _mode.value = mode
+        // The system prompt is the very front of the cached prefix, so a mode
+        // switch invalidates all of it (#52).
+        invalidateState()
         val convId = _conversationId.value ?: return
         viewModelScope.launch {
             // Persist the switch so it survives reopening, and drop a quiet marker
@@ -534,6 +538,8 @@ class ChatViewModel(
         val trimmed = newText.trim()
         if (trimmed.isEmpty()) return
 
+        // Editing rewrites the history at a position the cache already holds.
+        invalidateState()
         viewModelScope.launch {
             repository.truncateAfter(id, message)
             repository.updateMessage(message.id, trimmed, incomplete = false)
@@ -587,6 +593,37 @@ class ChatViewModel(
      * after the other, with nothing in between.
      */
     private var lastMemoriesUsed: Int = 0
+
+    /**
+     * The conversation whose saved cache has already been restored in this
+     * process (#52).
+     *
+     * Restoring is once per open, not once per turn: after the first turn the
+     * live context already holds the history, and reading a large file back over
+     * it would be slower than the prefill it replaces.
+     */
+    private var restoredFor: String? = null
+
+    /** Writes the context out for [conversationId] while it still holds it (#52). */
+    private suspend fun saveConversationState(conversationId: String) {
+        modelManager.activeId()?.let { modelId ->
+            ConversationState.save(repository.appContext, engine, conversationId, modelId)
+        }
+    }
+
+    /**
+     * Throws the saved cache away, because the history it describes is no longer
+     * the history that will be sent (#52).
+     *
+     * Editing an earlier message, switching mode, and changing instructions or
+     * memory all change the prompt at or before a position the cache already
+     * holds. Restoring it afterwards would decode against a prefix that no
+     * longer exists, which is wrong output rather than a slow turn.
+     */
+    private fun invalidateState() {
+        restoredFor = null
+        ConversationState.clear(repository.appContext)
+    }
 
     fun attach(context: android.content.Context, uri: android.net.Uri) {
         viewModelScope.launch {
@@ -772,6 +809,23 @@ class ChatViewModel(
                 }
             }
 
+            // A conversation reopened in a new process starts with an empty
+            // context and re-reads its whole history before the first new token
+            // (#52). Restoring the saved cache once, on the first turn after
+            // opening, makes that turn cost what an ongoing one costs.
+            //
+            // Failure is not handled because there is nothing to handle: no file,
+            // a file for another model, a rejected blob, all mean the prompt is
+            // built and prefilled exactly as it was before any of this existed.
+            if (restoredFor != conversationId) {
+                restoredFor = conversationId
+                modelManager.activeId()?.let { modelId ->
+                    ConversationState.restore(
+                        repository.appContext, engine, conversationId, modelId,
+                    )
+                }
+            }
+
             val prompt = buildPrompt(conversationId, pending = continuePrompt)
             // Continuing appends to the answer that stopped rather than adding a
             // second bubble, so the result reads as the one answer it is.
@@ -833,6 +887,22 @@ class ChatViewModel(
                     }
 
                     _streaming.value = false
+
+                    // Written here, before anything else touches the context
+                    // (#52). Titling and auto-extraction each run their own
+                    // prompt through the same single sequence, so by the time
+                    // they are done the cache holds their prompt and not this
+                    // conversation's: measured, a saved state taken after titling
+                    // was 268 tokens of titling instruction where the
+                    // conversation was 1700 tokens long.
+                    //
+                    // Per turn rather than on leaving the screen, which is also
+                    // what makes it reliable. The screen's own teardown races
+                    // with the view model being cleared, and an encrypted eight
+                    // megabyte write takes about sixty milliseconds at the end of
+                    // a turn that took a minute.
+                    saveConversationState(conversationId)
+
                     maybeTitle(conversationId)
                     maybeAutoRemember(conversationId)
                 }

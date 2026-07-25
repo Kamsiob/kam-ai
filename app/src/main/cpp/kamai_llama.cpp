@@ -11,6 +11,7 @@
 
 #include <string>
 #include <vector>
+#include <cstring>
 #include <mutex>
 #include <atomic>
 
@@ -528,6 +529,124 @@ Java_com_kamsiob_kamai_llm_LlamaBridge_nativeUnload(JNIEnv *, jobject) {
 JNIEXPORT jboolean JNICALL
 Java_com_kamsiob_kamai_llm_LlamaBridge_nativeIsLoaded(JNIEnv *, jobject) {
     return g_session.ctx != nullptr ? JNI_TRUE : JNI_FALSE;
+}
+
+// ---------------------------------------------------------------------------
+// Conversation state, saved and restored across app sessions (issue #52).
+//
+// Prefix reuse (#38) already means an ongoing conversation does not re-prefill
+// its history every turn, but it lives entirely in the context, so closing the
+// app throws it away: reopening a long chat re-reads every token before the
+// first new one can be produced.
+//
+// The blob is the sequence's KV state plus the token list that describes it,
+// because the two are useless apart. Without the tokens the next turn cannot
+// diff its prompt against what is cached and would have to reset anyway; with
+// them, a restored conversation continues exactly as if the app had never been
+// closed.
+//
+// Layout, little-endian, which is every Android device this ships to:
+//   int32   token count
+//   int32 * token count   the cached tokens
+//   bytes                 llama_state_seq_get_data for sequence 0
+//
+// Nothing here writes a file. The bytes go back to Kotlin, which encrypts them
+// with the same Keystore-wrapped key as the database before they touch disk: a
+// serialised KV state is the conversation in reconstructible form, and a
+// plaintext copy of it beside an encrypted database would quietly undo the
+// encryption. See DECISIONS.md.
+// ---------------------------------------------------------------------------
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_kamsiob_kamai_llm_LlamaBridge_nativeSaveState(JNIEnv * env, jobject) {
+    std::lock_guard<std::mutex> lock(g_session.mu);
+    if (g_session.ctx == nullptr) return nullptr;
+    if (g_session.cached_tokens.empty()) return nullptr;
+
+    const size_t n_tokens = g_session.cached_tokens.size();
+    const size_t header   = sizeof(int32_t) * (1 + n_tokens);
+    const size_t seq_size = llama_state_seq_get_size(g_session.ctx, 0);
+    if (seq_size == 0) return nullptr;
+
+    std::vector<uint8_t> buffer(header + seq_size);
+
+    int32_t count = (int32_t) n_tokens;
+    std::memcpy(buffer.data(), &count, sizeof(int32_t));
+    for (size_t i = 0; i < n_tokens; ++i) {
+        int32_t token = (int32_t) g_session.cached_tokens[i];
+        std::memcpy(buffer.data() + sizeof(int32_t) * (1 + i), &token, sizeof(int32_t));
+    }
+
+    const size_t written = llama_state_seq_get_data(
+        g_session.ctx, buffer.data() + header, seq_size, 0);
+    if (written == 0) {
+        LOGE("state save: llama_state_seq_get_data returned 0");
+        return nullptr;
+    }
+
+    const size_t total = header + written;
+    jbyteArray out = env->NewByteArray((jsize) total);
+    if (out == nullptr) return nullptr;
+    env->SetByteArrayRegion(out, 0, (jsize) total,
+                            reinterpret_cast<const jbyte *>(buffer.data()));
+    LOGI("state save: %zu tokens, %zu bytes", n_tokens, total);
+    return out;
+}
+
+// Restores a blob written by nativeSaveState. Returns the number of tokens now
+// cached, or a negative value if nothing was restored and the context is
+// unchanged.
+//
+// A blob from a different model is not detectable here, so the caller keys its
+// files by model. What is detectable is a truncated or corrupt blob, and a
+// refusal leaves the context exactly as it was rather than half-filled: a
+// partially restored cache would produce a prompt diff against tokens that are
+// not really there, which is silently wrong output rather than a slow turn.
+JNIEXPORT jint JNICALL
+Java_com_kamsiob_kamai_llm_LlamaBridge_nativeRestoreState(
+        JNIEnv * env, jobject, jbyteArray jblob) {
+
+    std::lock_guard<std::mutex> lock(g_session.mu);
+    if (g_session.ctx == nullptr || jblob == nullptr) return -1;
+
+    const jsize size = env->GetArrayLength(jblob);
+    if (size < (jsize) sizeof(int32_t)) return -1;
+
+    std::vector<uint8_t> buffer((size_t) size);
+    env->GetByteArrayRegion(jblob, 0, size, reinterpret_cast<jbyte *>(buffer.data()));
+
+    int32_t count = 0;
+    std::memcpy(&count, buffer.data(), sizeof(int32_t));
+    if (count <= 0 || count > g_session.n_ctx) return -1;
+
+    const size_t header = sizeof(int32_t) * (1 + (size_t) count);
+    if ((size_t) size <= header) return -1;
+
+    std::vector<llama_token> tokens((size_t) count);
+    for (int32_t i = 0; i < count; ++i) {
+        int32_t token = 0;
+        std::memcpy(&token, buffer.data() + sizeof(int32_t) * (1 + (size_t) i), sizeof(int32_t));
+        tokens[(size_t) i] = (llama_token) token;
+    }
+
+    // Clear first: set_data writes into the sequence, and leaving whatever was
+    // there underneath it would mix two conversations.
+    llama_memory_clear(llama_get_memory(g_session.ctx), true);
+
+    const size_t read = llama_state_seq_set_data(
+        g_session.ctx, buffer.data() + header, (size_t) size - header, 0);
+    if (read == 0) {
+        LOGE("state restore: rejected by llama_state_seq_set_data");
+        llama_memory_clear(llama_get_memory(g_session.ctx), true);
+        g_session.cached_tokens.clear();
+        g_session.n_past = 0;
+        return -1;
+    }
+
+    g_session.cached_tokens = std::move(tokens);
+    g_session.n_past = count;
+    LOGI("state restore: %d tokens", count);
+    return count;
 }
 
 } // extern "C"

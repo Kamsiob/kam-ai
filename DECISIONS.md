@@ -5637,3 +5637,60 @@ by reading their mood back to them. Rules 1 and 8 are adjacent and the
 discrimination between them under emotional language is beyond this model size
 with prompt wording alone. The behaviour is now acceptable — judgment suspended,
 nothing handed over — and the gap is real.
+
+## The conversation cache survives closing the app (#52)
+
+Prefix reuse (#38) stopped a running conversation re-reading its history every
+turn, and it lives in the context, so closing the app threw it away. Measured on
+the phone before any of this: reopening one existing conversation and sending
+three words cost **2273 tokens of prefill and 97 seconds** before the first token
+of the reply.
+
+`llama_state_seq_get_data` gives the sequence's KV state; the blob written also
+carries the token list that describes it, because the two are useless apart.
+Without the tokens the next turn cannot diff its prompt against what is cached
+and would clear it anyway.
+
+**Encrypted, and not the obvious way.** A serialised KV state is the
+conversation in reconstructible form, so a plaintext file beside a
+SQLCipher-encrypted database would quietly undo the encryption. The first
+attempt streamed the blob straight through the Keystore cipher, which produced
+**thirteen bytes in twenty seconds** and was still going: the key lives in
+StrongBox, so every block is an IPC round trip to the secure element. Each file
+now gets a fresh random data key used in software, where AES is a CPU
+instruction, and only that thirty-two byte key is wrapped by the Keystore — the
+same shape SQLCipher's own key already uses. Eight megabytes now encrypts in
+about sixty milliseconds.
+
+**Saved per turn, before anything else touches the context.** The first design
+saved when the chat screen went away, and it never once ran: the screen's
+teardown and the view model being cleared are the same moment, so the coroutine
+was cancelled before it wrote anything, silently. Worse, saving late saves the
+wrong thing — titling and auto-extraction each run their own prompt through the
+same single sequence, so a state taken after them held **268 tokens of titling
+instruction where the conversation was 1700 tokens long**. It is written the
+moment the answer is finished and before either runs. At sixty milliseconds on
+the end of a turn that took a minute, per-turn costs nothing worth measuring.
+
+**One file at a time.** State is proportional to context — 31 MB for 2281
+tokens — so a library of them would cost more disk than the models. Only the
+most recently answered conversation keeps one. An early version of this cleanup
+deleted the temporary file before it could be renamed, so the feature wrote a
+perfect 31 MB file and then removed it; it now deletes everything *except* the
+file just written.
+
+Invalidation is explicit: mode switches and edits from the chat, instructions,
+memory and project changes from the app. Worth saying plainly that this is a
+performance measure and not a correctness one — `nativeIngest` already diffs the
+prompt against the cached tokens and re-prefills from the divergence, with a
+desync check that clears the sequence rather than answer from the wrong history.
+A stale cache is slow, never wrong. The one thing that would be wrong is a blob
+from a different model, which llama.cpp cannot detect, so the file name carries
+the model id.
+
+**Verified so far:** the save path end to end, on the phone, with real
+conversations — 2281 tokens, 31 MB, encrypted and renamed in 185 ms, and the
+file present after a force-stop. **Not yet verified:** the payoff. The
+cold-start restore measurement was interrupted before it could be read. Until
+that number exists this is an implemented mechanism with a proven write path and
+an unproven read path, and it is written down that way rather than claimed.

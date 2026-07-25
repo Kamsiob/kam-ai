@@ -191,6 +191,62 @@ object DatabaseKey {
         }
     }
 
+    /**
+     * A stream that encrypts on the way to [out], for data far too large to send
+     * through the Keystore (#52).
+     *
+     * **The Keystore key never touches the bulk.** It cannot: it lives in
+     * StrongBox or the TEE, so every block goes out to the secure element and
+     * back. Measured on the phone, an eleven-megabyte conversation cache written
+     * straight through a Keystore cipher produced thirteen bytes in twenty
+     * seconds and was still going. That is not a slow path, it is a hang.
+     *
+     * So each file gets a fresh random data key, generated and used in software
+     * where AES is a CPU instruction, and only that thirty-two byte key is
+     * wrapped by the Keystore. Thirty-two bytes through StrongBox is instant, and
+     * the file is still worthless without the Keystore entry, which is the whole
+     * point. The same shape SQLCipher's key already uses.
+     *
+     * Layout: [wrapped key length as int32][wrapped key][iv length][iv][ciphertext].
+     */
+    fun encrypting(out: java.io.OutputStream): java.io.OutputStream {
+        val dataKey = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        val wrapped = wrap(dataKey)
+
+        val header = java.io.DataOutputStream(out)
+        header.writeInt(wrapped.size)
+        header.write(wrapped)
+
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, javax.crypto.spec.SecretKeySpec(dataKey, "AES"))
+        val iv = cipher.iv
+        header.write(iv.size)
+        header.write(iv)
+        header.flush()
+        return javax.crypto.CipherOutputStream(out, cipher)
+    }
+
+    /** The other half of [encrypting]. */
+    fun decrypting(input: java.io.InputStream): java.io.InputStream {
+        val header = java.io.DataInputStream(input)
+        val wrappedLen = header.readInt()
+        require(wrappedLen in 1..4096) { "bad wrapped key length" }
+        val wrapped = ByteArray(wrappedLen).also(header::readFully)
+        val dataKey = unwrap(wrapped)
+
+        val ivLen = header.read()
+        require(ivLen in 1..64) { "bad IV length" }
+        val iv = ByteArray(ivLen).also(header::readFully)
+
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            javax.crypto.spec.SecretKeySpec(dataKey, "AES"),
+            GCMParameterSpec(GCM_TAG_BITS, iv),
+        )
+        return javax.crypto.CipherInputStream(input, cipher)
+    }
+
     private fun wrap(plain: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, wrappingKey())
