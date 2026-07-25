@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -110,6 +111,21 @@ fun FollowUpsScreen(
         )
         Spacer(Modifier.height(6.dp))
 
+        // What this screen is and what to do on it, kept on screen rather than
+        // living only in the empty state, which disappears the moment the first
+        // item arrives and takes the explanation with it (owner feedback).
+        if (open.isNotEmpty() || completed.isNotEmpty()) {
+            Text(
+                "Everything you saved, from anywhere in the app. Tick one off when you have " +
+                    "dealt with it, or tap its chip to change whether it is something to check " +
+                    "or something to pursue.",
+                style = KamTheme.type.secondary,
+                color = colors.textSecondary,
+                modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+
         if (open.isEmpty() && completed.isEmpty()) {
             EmptyState(
                 title = "Nothing saved yet",
@@ -124,13 +140,21 @@ fun FollowUpsScreen(
         // Quiet filters, each shown only when there is more than one thing to
         // choose between. A row with a single option filters nothing and is only
         // clutter.
-        if (sources.size > 1) {
-            SourceFilterRow(sources = sources, selected = filter, onSelect = { sourcePick = it })
-        }
+        // Every source, always, so the screen says plainly that it collects from
+        // all of them. The ones with nothing yet are drawn quietly rather than
+        // hidden, which is what made this look like a two-source list.
+        SourceFilterRow(
+            sources = com.kamsiob.kamai.data.FollowUpFilter.allSources,
+            counts = com.kamsiob.kamai.data.FollowUpFilter.allSources.associateWith { mode ->
+                com.kamsiob.kamai.data.FollowUpFilter.countFor(mode, open, completed)
+            },
+            selected = filter,
+            onSelect = { sourcePick = it },
+        )
         if (kinds.size > 1) {
             KindFilterRow(kinds = kinds, selected = kindFilter, onSelect = { kindPick = it })
         }
-        if (sources.size > 1 || kinds.size > 1) Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(4.dp))
 
         if (shownOpen.isEmpty() && shownCompleted.isEmpty()) {
             Text(
@@ -211,29 +235,41 @@ private fun filterLabel(mode: com.kamsiob.kamai.data.Mode?): String =
 @Composable
 private fun SourceFilterRow(
     sources: List<com.kamsiob.kamai.data.Mode>,
+    counts: Map<com.kamsiob.kamai.data.Mode, Int>,
     selected: com.kamsiob.kamai.data.Mode?,
     onSelect: (com.kamsiob.kamai.data.Mode?) -> Unit,
 ) {
     val colors = KamTheme.colors
     val options = listOf<com.kamsiob.kamai.data.Mode?>(null) + sources
-    Row(
+    // Wrapped, not scrolled. Seven sources do not fit across a phone, and the
+    // whole point of showing them all is that the user can see them all: a row
+    // that runs off the edge says the opposite of what this change is for.
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .edgeFadeHorizontal()
-            .horizontalScroll(rememberScrollState())
             .padding(horizontal = KamTheme.dimens.screenPadding, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         options.forEach { option ->
             val on = option == selected
+            val count = option?.let { counts[it] ?: 0 } ?: counts.values.sum()
+            // A source with nothing in it stays visible and dimmed, and is not
+            // tappable: it is there to say the screen covers it, not to offer an
+            // empty list.
+            val empty = count == 0
             Text(
-                filterLabel(option),
+                if (option == null) filterLabel(null) else "${filterLabel(option)}  $count",
                 style = KamTheme.type.label,
-                color = if (on) colors.tonalText else colors.textSecondary,
+                color = when {
+                    on -> colors.tonalText
+                    empty -> colors.textTertiary
+                    else -> colors.textSecondary
+                },
                 modifier = Modifier
                     .clip(CircleShape)
                     .background(if (on) colors.tonalFill else colors.surfaceSecondary)
-                    .clickable { onSelect(option) }
+                    .clickable(enabled = !empty || option == null) { onSelect(option) }
                     .semantics { this.selected = on }
                     .padding(horizontal = 14.dp, vertical = 8.dp),
             )

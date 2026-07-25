@@ -31,8 +31,29 @@ object FollowUpFilter {
     }
 
     /** The sources present, in first-seen order so the row does not reshuffle. */
+    /**
+     * Every source a saved item can come from, in a fixed order, whether or not
+     * anything has arrived from it yet.
+     *
+     * This used to return only the sources actually present, so the row showed
+     * two chips and the screen looked like it collected saves from two places.
+     * It collects from all of them. Showing the whole set says so, and the ones
+     * with nothing in them are drawn quietly rather than hidden (owner
+     * feedback).
+     *
+     * DISCOVER is included and OVERLAY is Quick ask; both are real save sources
+     * even though neither is a mode the user picks.
+     */
+    val allSources: List<Mode> = listOf(
+        Mode.GENERAL, Mode.LOGIC, Mode.BRAINSTORM, Mode.BENCH, Mode.DISCOVER, Mode.OVERLAY,
+    )
+
     fun sourcesIn(vararg lists: List<FollowUpEntity>): List<Mode> =
         lists.asSequence().flatten().map { it.sourceMode }.distinct().toList()
+
+    /** How many saved items came from [mode], for the count on its chip. */
+    fun countFor(mode: Mode, vararg lists: List<FollowUpEntity>): Int =
+        lists.asSequence().flatten().count { it.sourceMode == mode }
 
     /**
      * The kinds present, always in CHECK then PURSUE order rather than in

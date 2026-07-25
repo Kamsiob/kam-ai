@@ -4957,3 +4957,21 @@ wrong question.
 Verified on the device by triggering the assistant over the home screen: the listening bar counts
 up, the transcribing bar appears on stop, and silence gets the honest "That did not come through
 clearly" rather than nothing.
+
+## Owner feedback: Follow-ups was hard to know what to do with, and looked like it covered two modes
+
+**The explanation only existed in the empty state.** The screen's one good sentence, what this
+holds and how it gets there, lived in `EmptyState` and vanished the moment the first item arrived,
+taking the explanation with it exactly when the user first had something to do. There is now a
+persistent line under the title saying what the screen is and what the two interactions are:
+ticking an item off, and tapping its chip to change check versus pursue.
+
+**The source row only showed sources that had items in them.** With two saves that meant two chips,
+so a screen that collects from every mode, Discover and Quick ask looked like it collected from two
+places. All six are shown now, with counts, and the ones with nothing are dimmed and not tappable:
+present enough to say "this covers Workbench too", quiet enough not to invite a tap that leads to
+an empty list.
+
+The row wraps rather than scrolling sideways, for the same reason as the Workbench chips. Seven
+chips do not fit across a phone, and a row that runs off the edge says the opposite of what showing
+them all was for.
