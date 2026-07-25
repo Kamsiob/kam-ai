@@ -196,6 +196,7 @@ fun ChatScreen(
     transcribed: kotlinx.coroutines.flow.SharedFlow<String>? = null,
     onMicStart: () -> Unit = {},
     onMicStop: () -> Unit = {},
+    onCancelTranscription: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -534,6 +535,7 @@ fun ChatScreen(
             transcribed = transcribed,
             onMicStart = onMicStart,
             onMicStop = onMicStop,
+            onCancelTranscription = onCancelTranscription,
         )
     }
 
@@ -1524,6 +1526,7 @@ private fun Composer(
     transcribed: kotlinx.coroutines.flow.SharedFlow<String>? = null,
     onMicStart: () -> Unit = {},
     onMicStop: () -> Unit = {},
+    onCancelTranscription: () -> Unit = {},
 ) {
     val colors = KamTheme.colors
     var value by remember { mutableStateOf(initialText.orEmpty()) }
@@ -1586,7 +1589,7 @@ private fun Composer(
                 Text(
                     when {
                         recording -> "Listening, ${elapsed(recordedSeconds)}. Tap stop when done."
-                        transcribing -> "Turning your voice into text..."
+                        transcribing -> "Turning your voice into text. Tap to stop."
                         else -> "Ask, paste, or talk it out"
                     },
                     style = KamTheme.type.body,
@@ -1651,11 +1654,21 @@ private fun Composer(
                     // taps send when they meant stop.
                     .background(if (recording) colors.tonalFill else colors.surface)
                     .border(1.dp, colors.border, CircleShape)
-                    .clickable(enabled = !transcribing) {
-                        if (recording) onMicStop() else onMicStart()
+                    // Tappable while transcribing too, which is the point: it
+                    // used to be the one slow thing with no way out (item 5).
+                    .clickable {
+                        when {
+                            transcribing -> onCancelTranscription()
+                            recording -> onMicStop()
+                            else -> onMicStart()
+                        }
                     }
                     .semantics {
-                        contentDescription = if (recording) "Stop recording" else "Start voice typing"
+                        contentDescription = when {
+                            transcribing -> "Stop turning your voice into text"
+                            recording -> "Stop recording"
+                            else -> "Start voice typing"
+                        }
                     },
                 contentAlignment = Alignment.Center,
             ) {

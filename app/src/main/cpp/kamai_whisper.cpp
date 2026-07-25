@@ -12,6 +12,7 @@
 #include <jni.h>
 #include <android/log.h>
 
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -34,6 +35,15 @@ std::string jstr(JNIEnv * env, jstring s) {
     if (c) env->ReleaseStringUTFChars(s, c);
     return out;
 }
+
+/**
+ * Set when the user abandons a transcription in flight.
+ *
+ * whisper's abort callback is polled before each ggml computation, so a long
+ * transcription stops within a graph rather than running to the end while
+ * nobody is waiting for it. Item 5: anything slow must be cancellable.
+ */
+std::atomic<bool> g_whisper_abort{false};
 
 } // namespace
 
@@ -94,7 +104,20 @@ Java_com_kamsiob_kamai_voice_WhisperBridge_nativeTranscribe(
     params.single_segment   = false;
     params.language         = lang.empty() ? "en" : lang.c_str();
 
+    // Returning true aborts the computation. Cleared here rather than in the
+    // stop call, so a stop that arrives between two transcriptions cannot kill
+    // the next one before it starts.
+    g_whisper_abort.store(false);
+    params.abort_callback = [](void *) -> bool { return g_whisper_abort.load(); };
+    params.abort_callback_user_data = nullptr;
+
     if (whisper_full(g_ctx, params, pcm.data(), static_cast<int>(pcm.size())) != 0) {
+        // An abort lands here too. The caller tells the two apart by whether it
+        // asked to stop, exactly as the language model side does.
+        if (g_whisper_abort.load()) {
+            LOGI("transcription aborted by request");
+            return env->NewStringUTF("");
+        }
         LOGE("whisper_full failed");
         return env->NewStringUTF("");
     }
@@ -117,4 +140,12 @@ Java_com_kamsiob_kamai_voice_WhisperBridge_nativeFree(JNIEnv *, jobject) {
     }
 }
 
+
+JNIEXPORT void JNICALL
+Java_com_kamsiob_kamai_voice_WhisperBridge_nativeRequestStop(JNIEnv *, jobject) {
+    // Deliberately does not take g_mutex: the transcription holds it for its
+    // whole run, so waiting for it here would mean waiting for the thing being
+    // cancelled. The flag is atomic for exactly this reason.
+    g_whisper_abort.store(true);
+}
 } // extern "C"

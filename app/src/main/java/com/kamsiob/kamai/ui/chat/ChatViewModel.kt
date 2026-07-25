@@ -168,9 +168,26 @@ class ChatViewModel(
             when (val r = stt.transcribe(modelFile, pcm)) {
                 is com.kamsiob.kamai.voice.SttEngine.Result.Ok -> _transcribed.emit(r.text)
                 is com.kamsiob.kamai.voice.SttEngine.Result.Error -> _notice.value = r.message
+                // Nothing to say. The user stopped it on purpose and watched it
+                // stop; a notice explaining that would be the app talking to
+                // itself.
+                com.kamsiob.kamai.voice.SttEngine.Result.Cancelled -> Unit
             }
             _transcribing.value = false
         }
+    }
+
+    /**
+     * Abandons a transcription that is already running.
+     *
+     * Transcription was the one slow operation in the app with no way out. It
+     * said "Turning your voice into text..." and then held the composer until
+     * whisper finished, however long the recording was (item 5). The engine
+     * aborts inside its computation, so this really stops rather than discarding
+     * the result afterwards.
+     */
+    fun cancelTranscription(stt: com.kamsiob.kamai.voice.SttEngine) {
+        if (_transcribing.value) stt.cancel()
     }
 
     /**

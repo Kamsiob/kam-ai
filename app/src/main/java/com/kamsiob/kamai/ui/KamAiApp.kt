@@ -523,6 +523,9 @@ private fun ConversationScreen(
                 app.repository.fileForStt(model),
             )
         },
+        onCancelTranscription = {
+            chat.cancelTranscription(com.kamsiob.kamai.voice.Voice.stt(context))
+        },
         messages = messages,
         mode = mode,
         streaming = streaming,

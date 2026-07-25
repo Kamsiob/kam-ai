@@ -4321,3 +4321,40 @@ open until it finishes.", and both actions are disabled while it runs.
 
 Verified on the phone: the tests pass against the in-memory database, the app still holds every
 conversation afterwards, and `pm list packages` shows one Kam AI.
+
+## Item 5: transcription can be stopped, and silence stops pretending to be speech
+
+Transcription was the last slow operation with no way out. It said "Turning your voice into
+text..." and then held the composer until whisper finished, however long the recording. Pack
+install already had percentage, pause, resume and cancel; TTS already toggled to stop; search is
+local and instant. Transcription was the gap.
+
+whisper.cpp's `whisper_full_params` carries an `abort_callback` polled before each computation, so
+a real cancel was available and simply not wired. There is now an atomic flag in the whisper
+bridge, a `nativeRequestStop` beside the language model's, and `SttEngine.cancel()`. The
+microphone button stays tappable while transcribing and the placeholder reads "Turning your voice
+into text. Tap to stop."
+
+`nativeRequestStop` deliberately does not take the bridge mutex. Transcription holds it for its
+whole run, so waiting for it would mean waiting for the thing being cancelled. The flag is atomic
+for exactly that reason. It is cleared when a transcription starts rather than when one is
+cancelled, so a stop arriving between two runs cannot kill the next one before it begins.
+
+`Result.Cancelled` is a separate case from `Result.Error` because an abort also comes back as
+empty text, and telling somebody who just tapped stop that their audio "did not come through
+clearly" is a lie about their microphone. A cancel says nothing at all: they watched it stop.
+
+### And a bug found by doing it
+
+Recording a few seconds of silence typed the literal string **[BLANK_AUDIO]** into the composer.
+whisper does not return an empty string when it hears nothing, it returns a marker, and the engine
+only checked for empty text. Nobody would have found this by reading the code.
+
+`SpeechText` strips it. Rather than listing every marker whisper might emit, which goes stale with
+each model and language, the rule is structural: anything in square brackets or parentheses is
+whisper annotating rather than transcribing, so strip those, and if nothing is left then nothing
+was said. Silence now gets the honest "That did not come through clearly" and an empty composer.
+
+The known cost is written into the tests: somebody dictating "the total (before tax) was twelve"
+loses the parenthetical. Accepted, because whisper rarely produces bracketed punctuation from
+speech and the alternative is a list that rots.

@@ -13,6 +13,10 @@ internal object WhisperBridge {
     @Volatile
     private var libraryLoaded = false
 
+    /** Whether the native library is loaded, without trying to load it. Callers
+     *  that only want to stop something must not trigger a load to do it. */
+    val isLibraryLoaded: Boolean get() = libraryLoaded
+
     @Volatile
     private var loadFailure: String? = null
 
@@ -46,4 +50,8 @@ internal object WhisperBridge {
     external fun nativeTranscribe(pcm: FloatArray, nThreads: Int, language: String): String
 
     external fun nativeFree()
+
+    /** Asks an in-flight transcription to stop. Safe to call at any time; the
+     *  flag is cleared when the next transcription starts. */
+    external fun nativeRequestStop()
 }

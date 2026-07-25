@@ -30,6 +30,32 @@ class SttEngine(
     sealed interface Result {
         data class Ok(val text: String) : Result
         data class Error(val message: String) : Result
+
+        /**
+         * The user stopped it. Distinct from [Error] because an abort also comes
+         * back as empty text, and telling somebody who just tapped stop that
+         * their audio "did not come through clearly" is a lie about their
+         * microphone.
+         */
+        data object Cancelled : Result
+    }
+
+    /** Set by [cancel], cleared at the start of each run. */
+    @Volatile
+    private var cancelRequested = false
+
+    /**
+     * Abandons a transcription that is already running.
+     *
+     * whisper polls the abort flag before each computation, so a long dump stops
+     * within a graph instead of running to the end with nobody waiting for it
+     * (item 5). Guarded on the library actually being loaded, so calling this on
+     * a surface that never transcribed cannot throw `UnsatisfiedLinkError`, which
+     * is the same trap the language model side hit in #47.
+     */
+    fun cancel() {
+        cancelRequested = true
+        if (WhisperBridge.isLibraryLoaded) WhisperBridge.nativeRequestStop()
     }
 
     /**
@@ -53,6 +79,7 @@ class SttEngine(
             return@withContext Result.Error("Nothing was recorded. Try again.")
         }
 
+        cancelRequested = false
         onBeforeLoad()
 
         val loadError = WhisperBridge.nativeLoad(modelFile.absolutePath)
@@ -63,9 +90,13 @@ class SttEngine(
         try {
             // whisper.cpp uses "auto" for language detection via an empty code.
             val lang = if (language == "auto") "" else language
-            val text = WhisperBridge.nativeTranscribe(pcm, threadCount(), lang).trim()
+            val raw = WhisperBridge.nativeTranscribe(pcm, threadCount(), lang).trim()
+            // whisper answers silence with "[BLANK_AUDIO]" rather than nothing,
+            // and that used to land in the composer as if it had been spoken.
+            val text = SpeechText.spokenWords(raw)
             if (text.isEmpty()) {
-                Result.Error("That did not come through clearly. Try again in a quieter spot.")
+                if (cancelRequested) Result.Cancelled
+                else Result.Error("That did not come through clearly. Try again in a quieter spot.")
             } else {
                 Result.Ok(text)
             }

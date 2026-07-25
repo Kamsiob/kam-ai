@@ -83,6 +83,9 @@ class WorkbenchViewModel(
                 is com.kamsiob.kamai.voice.SttEngine.Result.Ok ->
                     setInput(if (_input.value.isBlank()) r.text else "${_input.value.trimEnd()} ${r.text}")
                 is com.kamsiob.kamai.voice.SttEngine.Result.Error -> _notice.value = r.message
+                // The user stopped it and watched it stop; saying so would be
+                // the app talking to itself.
+                com.kamsiob.kamai.voice.SttEngine.Result.Cancelled -> Unit
             }
             _transcribing.value = false
         }
