@@ -14,6 +14,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.foundation.background
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -124,6 +130,7 @@ private fun OverlayPanel(
     val streaming by vm.streaming.collectAsStateWithLifecycle()
     val notice by vm.notice.collectAsStateWithLifecycle()
     val recording by vm.recording.collectAsStateWithLifecycle()
+    val recordedSeconds by vm.recordedSeconds.collectAsStateWithLifecycle()
     val transcribing by vm.transcribing.collectAsStateWithLifecycle()
     val voiceAvailable by vm.voiceAvailable.collectAsStateWithLifecycle()
     val openWithVoice by vm.openWithVoice.collectAsStateWithLifecycle()
@@ -314,6 +321,53 @@ private fun OverlayPanel(
             }
             Spacer(Modifier.height(12.dp))
 
+            // Listening, said unmistakably.
+            //
+            // The only sign the microphone was live used to be the small round
+            // button changing fill and glyph, on a panel over somebody else's
+            // screen. That is not enough for a surface whose whole point is that
+            // you opened it by holding a button and started talking (owner
+            // feedback).
+            if (recording) {
+                ListeningBar(seconds = recordedSeconds)
+                Spacer(Modifier.height(12.dp))
+            } else if (transcribing) {
+                TranscribingBar()
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // What it heard, given back before the answer.
+            //
+            // Speaking used to transcribe and ask in one go, and the transcript
+            // went into a view-model field the panel never read, so the answer
+            // arrived with no sign of what the question had been. On a small
+            // model that mishears, being able to see "you asked X" is the
+            // difference between a wrong answer and a wrong question.
+            if (question.isNotBlank() && (answer.isNotEmpty() || streaming)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.tonalFill)
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text(
+                        "You said",
+                        style = KamTheme.type.mono,
+                        color = colors.tonalText,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        question,
+                        style = KamTheme.type.secondary,
+                        color = colors.tonalText,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+
             // Answer / status
             if (answer.isNotEmpty() || streaming) {
                 Box(
@@ -482,4 +536,98 @@ private fun RoundBtn(
             .semantics { contentDescription = desc },
         contentAlignment = Alignment.Center,
     ) { content() }
+}
+
+/**
+ * The "I am listening" state, made unmissable.
+ *
+ * The assistant panel opens over whatever the user was doing, often because they
+ * held the power button and started talking straight away. Before this the only
+ * sign the microphone was live was a small round button swapping its glyph and
+ * fill, which is far too quiet for the one moment where being wrong costs the
+ * user a whole sentence (owner feedback).
+ *
+ * Three pulsing bars rather than a spinner: a spinner means "wait", and this
+ * means "go on, I can hear you". The elapsed count is there so a long thought
+ * visibly registers as still being captured.
+ */
+@Composable
+private fun ListeningBar(seconds: Int) {
+    val colors = KamTheme.colors
+    val reduced = com.kamsiob.kamai.ui.theme.reducedMotion()
+    val transition = rememberInfiniteTransition(label = "listening")
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.tonalFill)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .semantics(mergeDescendants = true) {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = "Listening. Tap stop when you are done."
+            },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            repeat(3) { index ->
+                // Each bar runs on its own offset so they read as a level meter
+                // rather than three things blinking together.
+                val animated by transition.animateFloat(
+                    initialValue = 6f,
+                    targetValue = 18f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 520, delayMillis = index * 130),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                    label = "bar$index",
+                )
+                // Reduced motion gets three still bars rather than none, so the
+                // state still reads as a level meter.
+                val height = if (reduced) 12.dp else animated.dp
+                Box(
+                    Modifier
+                        .padding(end = 4.dp)
+                        .size(width = 4.dp, height = height)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(colors.tonalText),
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            "Listening",
+            style = KamTheme.type.label,
+            color = colors.tonalText,
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            "${seconds}s",
+            style = KamTheme.type.mono,
+            color = colors.tonalText,
+        )
+    }
+}
+
+/** The gap between speaking and the answer, which used to be silent. */
+@Composable
+private fun TranscribingBar() {
+    val colors = KamTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = colors.accent)
+        Spacer(Modifier.width(12.dp))
+        Text(
+            "Turning your voice into text",
+            style = KamTheme.type.label,
+            color = colors.textSecondary,
+        )
+    }
 }

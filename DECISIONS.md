@@ -4929,3 +4929,31 @@ was the text and which part was the instruction.
 - **More air** between the sections and before the result.
 - "Or say what to do with it" became "Or describe the change yourself", which says what to type
   rather than restating the section heading.
+
+## Owner feedback: the assistant panel gave no sign it was listening, and never showed what it heard
+
+Two problems, both reported directly.
+
+**Listening was invisible.** The only sign the microphone was live was a small round button swapping
+its glyph and fill. On a panel that opens over whatever the user was doing, usually because they
+held the power button and started talking immediately, that is far too quiet for the one moment
+where being wrong costs a whole sentence.
+
+There is now a `ListeningBar`: three bars animating on staggered offsets, the word Listening, and a
+live seconds count. Bars rather than a spinner on purpose, because a spinner means "wait" and this
+means "go on, I can hear you". The count is there so a long thought visibly registers as still
+being captured. Reduced motion gets three still bars rather than nothing, so the state still reads
+as a level meter. A `TranscribingBar` fills the gap between stopping and the answer, which was
+silent.
+
+**It never showed what it heard.** `stopAndTranscribe` set `_question` and called `ask` in the same
+breath, and the panel's text field is local state that never observed `question`, so the transcript
+went nowhere. The answer arrived with no sign of what the question had been.
+
+The panel now shows "You said <text>" above the answer. On a small model that mishears, seeing the
+question back is the difference between knowing you got a wrong answer and knowing you asked a
+wrong question.
+
+Verified on the device by triggering the assistant over the home screen: the listening bar counts
+up, the transcribing bar appears on stop, and silence gets the honest "That did not come through
+clearly" rather than nothing.

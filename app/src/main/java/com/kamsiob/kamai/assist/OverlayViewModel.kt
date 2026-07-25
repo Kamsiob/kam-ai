@@ -163,12 +163,23 @@ class OverlayViewModel(app: Application) : AndroidViewModel(app) {
         _notice.value = null
         if (recorder.start(viewModelScope)) _recording.value = true
         else _notice.value = "The microphone could not be opened."
+        _recordedSeconds.value = 0
+        viewModelScope.launch {
+            while (_recording.value) {
+                _recordedSeconds.value = recorder.seconds.toInt()
+                kotlinx.coroutines.delay(250)
+            }
+        }
     }
 
     /** Lets the surface dismiss a notice, as the chat screen already could. */
     fun dismissNotice() {
         _notice.value = null
     }
+
+    /** Seconds captured so far, so the panel can show the recording growing. */
+    private val _recordedSeconds = MutableStateFlow(0)
+    val recordedSeconds: StateFlow<Int> = _recordedSeconds.asStateFlow()
 
     fun stopAndTranscribe() {
         if (!_recording.value) return
