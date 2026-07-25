@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kamsiob.kamai.download.Downloader
+import com.kamsiob.kamai.llm.MeasuredSpeed
 import com.kamsiob.kamai.model.TierModel
 import com.kamsiob.kamai.model.TierRecommendation
 import com.kamsiob.kamai.ui.components.KamChip
@@ -55,6 +56,8 @@ fun ModelScreen(
     onResume: (String) -> Unit,
     onCancel: (String) -> Unit,
     onActivate: (TierModel) -> Unit,
+    /** What this phone has measured for each model, by id (item 22). */
+    measuredSpeeds: Map<String, String?> = emptyMap(),
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -91,6 +94,7 @@ fun ModelScreen(
                 onResume = { onResume(model.id) },
                 onCancel = { onCancel(model.id) },
                 onActivate = { onActivate(model) },
+                measuredSpeed = measuredSpeeds[model.id],
             )
             Spacer(Modifier.height(11.dp))
         }
@@ -145,6 +149,7 @@ fun ModelScreen(
                         onResume = { onResume(model.id) },
                         onCancel = { onCancel(model.id) },
                         onActivate = { onActivate(model) },
+                        measuredSpeed = measuredSpeeds[model.id],
                         advanced = true,
                     )
                     Spacer(Modifier.height(9.dp))
@@ -168,6 +173,8 @@ private fun ModelCard(
     onResume: () -> Unit,
     onCancel: () -> Unit,
     onActivate: () -> Unit,
+    /** This phone's stored measurement for the model, if it has one. */
+    measuredSpeed: String? = null,
     advanced: Boolean = false,
 ) {
     val colors = KamTheme.colors
@@ -236,6 +243,14 @@ private fun ModelCard(
         // models can be compared at a glance (item 22).
         Spacer(Modifier.height(8.dp))
         CapabilityRow(model)
+
+        // Measured here, on this phone, from generations the user has actually
+        // run. Nothing is claimed for a model nobody has used, and nothing is
+        // claimed from a single run (item 22).
+        MeasuredSpeed.describe(measuredSpeed)?.let { line ->
+            Spacer(Modifier.height(6.dp))
+            Text(line, style = KamTheme.type.secondary, color = colors.textSecondary)
+        }
         // Every advanced model states plainly whether it is likely to run here.
         if (advanced) {
             Spacer(Modifier.height(6.dp))

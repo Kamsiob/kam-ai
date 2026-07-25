@@ -41,6 +41,17 @@ class InferenceEngine(
 
     private val loadLock = Mutex()
 
+    /**
+     * Called after each generation with the model that produced it and the decode
+     * rate in tokens per second.
+     *
+     * The app has always measured this and only ever written it to logcat. Item
+     * 22 asks for a speed figure with real numbers behind it, and the honest
+     * number is the one this phone just produced, not one measured on somebody
+     * else's hardware and shipped in a table.
+     */
+    var onMeasured: ((modelId: String, decodeTokensPerSecond: Double) -> Unit)? = null
+
     private val _state = MutableStateFlow<EngineState>(EngineState.NoModel)
     val state: StateFlow<EngineState> = _state.asStateFlow()
 
@@ -263,6 +274,13 @@ class InferenceEngine(
                 " (${"%.1f".format(prefillTps)} tok/s) decode=${produced}tok/${"%.0f".format(decodeMs)}ms" +
                 " (${"%.1f".format(decodeTps)} tok/s) threads=${threadCount()} ctx=${contextSize}",
         )
+
+        // Short generations say more about load and warm-up than about speed, so
+        // they are not worth recording. Fifty tokens is a couple of sentences.
+        val measuredModel = (_state.value as? EngineState.Ready)?.model
+        if (measuredModel != null && produced >= 50 && decodeTps > 0) {
+            onMeasured?.invoke(measuredModel.id, decodeTps)
+        }
 
         onStop(reason)
         close()

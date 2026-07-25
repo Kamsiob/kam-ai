@@ -32,6 +32,9 @@ class KamRepository(
          *  things and somebody may well want a grid of projects and a list of
          *  chats (#50). */
         const val PROJECTS_VIEW = "projects.view"
+
+        /** Measured decode speed per model, on this phone (item 22). */
+        fun measuredSpeed(modelId: String) = "perf.decode.$modelId"
         const val THEME = "theme"
         const val WEB_SEARCH_ENABLED = "search.enabled"
         const val WEB_SEARCH_ENDPOINT = "search.endpoint"

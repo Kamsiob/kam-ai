@@ -4405,3 +4405,37 @@ than describing a route to nowhere.
 
 Verified on the phone: the action appears beside the heading, the picker lists only unassigned
 chats and scrolls, and it is absent when everything is already assigned.
+
+## Item 22: a speed figure with something real behind it
+
+The model picker gave a name, a size, a licence and capability chips, and said nothing about what
+any of it would feel like. Item 22 asks for a measured speed rating with real numbers.
+
+**Not a table shipped with the app.** Phones differ by more than the models do. The Basic tier
+decodes at eleven tokens a second on this phone and could be half that on another, so a number
+measured here and shipped to everyone is precisely the confident wrong answer this app exists not
+to give.
+
+So it is measured where it matters. The engine has always computed decode tokens per second and
+only written it to logcat; it now also reports it, and every generation long enough to mean
+something folds into a running average for the model that produced it.
+
+The judgements:
+
+- **Fifty tokens minimum.** A short answer measures load and warm-up more than speed.
+- **Two samples before it says anything.** One run could be a cold start or a moment of
+  throttling. A model nobody has run says nothing at all, which is the honest state.
+- **A rolling mean capped at twenty samples**, so one throttled run cannot dominate and a phone
+  whose behaviour changes over months still reflects how it behaves now.
+- **Words, not tokens.** Nobody outside this codebase thinks in tokens. An English token averages
+  about three quarters of a word, which is an approximation, and is why the line says "about".
+- **A damaged stored value is ignored and overwritten**, not shown and not fatal.
+
+The figure on the phone reads "About 4 words a second on this phone" under Balanced, and nothing
+under the tiers that have not been measured twice. That matches the 5.9 to 6.4 tokens per second
+measured for E4B by hand earlier tonight, which is the point: the number in the interface and the
+number in this document come from the same place.
+
+What remains in item 22: the quality rating, the input-bar gating and the three-state controls.
+Gating has nothing to gate today, since every shipped model is text plus documents and no images,
+so it wants doing when a model with different capabilities actually exists.

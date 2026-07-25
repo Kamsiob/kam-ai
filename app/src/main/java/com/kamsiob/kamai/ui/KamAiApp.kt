@@ -747,7 +747,9 @@ private fun ModelHost(app: AppViewModel) {
     val activeModel by app.activeModel.collectAsStateWithLifecycle()
     val downloads by app.downloads.collectAsStateWithLifecycle()
 
+    val measuredSpeeds by app.measuredSpeeds.collectAsStateWithLifecycle()
     ModelScreen(
+        measuredSpeeds = measuredSpeeds,
         totalRamGb = app.totalRamGb,
         tiers = app.tiers,
         advanced = com.kamsiob.kamai.model.ModelCatalog.advanced,

@@ -46,6 +46,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Chats list view. Compact is the default and the last used is restored. */
     enum class ChatsView { COMFORTABLE, COMPACT, GRID }
 
+    /** Stored speed per model id, so the picker can show what this phone does. */
+    private val _measuredSpeeds = MutableStateFlow<Map<String, String?>>(emptyMap())
+    val measuredSpeeds: StateFlow<Map<String, String?>> = _measuredSpeeds.asStateFlow()
+
     private val _ready = MutableStateFlow(false)
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
 
@@ -123,12 +127,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {
+        // Every generation long enough to mean anything updates what this phone
+        // has measured for the model that produced it (item 22). The engine has
+        // always computed this and only logged it.
+        engine.onMeasured = { modelId, tps ->
+            viewModelScope.launch {
+                val key = KamRepository.Keys.measuredSpeed(modelId)
+                repository.putSetting(
+                    key,
+                    com.kamsiob.kamai.llm.MeasuredSpeed.fold(repository.setting(key), tps),
+                )
+                _measuredSpeeds.value = _measuredSpeeds.value + (modelId to repository.setting(key))
+            }
+        }
+
         viewModelScope.launch {
             // A process death can leave a response half written. Repair it
             // before any screen reads it, so it is never shown as if finished.
             repository.repairIncompleteMessages()
 
             _onboardingDone.value = repository.isOnboardingDone()
+            _measuredSpeeds.value = com.kamsiob.kamai.model.ModelCatalog.all
+                .associate { m -> m.id to repository.setting(KamRepository.Keys.measuredSpeed(m.id)) }
             _projectsView.value = runCatching {
                 ChatsView.valueOf(repository.setting(KamRepository.Keys.PROJECTS_VIEW).orEmpty())
             }.getOrDefault(ChatsView.COMFORTABLE)
