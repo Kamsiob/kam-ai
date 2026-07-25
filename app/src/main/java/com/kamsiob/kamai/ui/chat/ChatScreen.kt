@@ -298,7 +298,18 @@ fun ChatScreen(
         }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    // The keyboard inset belongs to the whole screen, not to the composer.
+    //
+    // `imePadding()` used to sit on the composer alone, which made the composer
+    // as tall as its own content *plus the entire keyboard*. In a column with a
+    // weighted message list above it, that squeezed the list towards nothing:
+    // in landscape the keyboard is most of the screen, so the transcript
+    // vanished completely and the composer itself was pushed to a sliver, so
+    // you could not see the conversation or what you were typing (#62).
+    //
+    // Applied here, the column is laid out in the space above the keyboard, the
+    // composer keeps its natural height, and the list gets whatever is left.
+    Column(modifier = modifier.fillMaxSize().imePadding()) {
         // The open conversation's title sits at the top so it is always clear
         // which chat this is, with rename, archive, and delete beside it. Shown
         // once the conversation exists (has content), not on a blank new chat.
@@ -1507,7 +1518,6 @@ private fun Composer(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .imePadding()
             .padding(horizontal = KamTheme.dimens.screenPadding, vertical = 8.dp),
     ) {
       // The attached document, shown as a removable chip above the field.

@@ -3844,3 +3844,40 @@ No unit test, and worth stating why: `ChatViewModel` has no test harness, since 
 repository, engine, and model manager. Building one for this would be a bigger and more useful
 piece of work than the fix it would cover, and it is not something to start at two in the morning
 inside an unrelated change.
+
+## Issue #62, third attempt, and this one is the actual cause
+
+Two earlier attempts tonight tried to detect the keyboard (`WindowInsets.ime.getBottom`, then
+`WindowInsets.isImeVisible`) so the layout could react to it. Both returned false on the device
+and were reverted, and #62 was filed with a suggestion to try `BoxWithConstraints`.
+
+The suggestion was wrong too, and so was the diagnosis. Nothing needed to detect the keyboard.
+
+`imePadding()` was on the **composer**, not on the screen. That makes the composer as tall as its
+own content *plus the whole keyboard*. In a column with a weighted message list above it, the
+list is what gives way: in landscape the keyboard is most of the screen, so the transcript went to
+zero height and the composer itself was squeezed to a sliver. Neither the conversation nor what
+you were typing was visible.
+
+Moved to the root column. The column is now laid out in the space above the keyboard, the composer
+keeps its natural height, and the list takes what is left. Verified in landscape (composer fully
+visible and usable, mode row intact) and in portrait (unchanged, transcript and composer both fine).
+
+### What is still true in landscape, and is not a bug
+
+With the keyboard up in landscape there is about 136dp of usable height. Header, title, mode row
+and composer come to more than that on their own, so the transcript is not visible while typing.
+
+Hiding the title and the mode row when space is tight would buy about 10dp, which is not a
+transcript, in exchange for chrome that appears and disappears. Not worth it. This is a phone in
+landscape with a keyboard covering two thirds of it, and the requirement that matters, being able
+to see and use the composer, is met.
+
+MASTER_SPEC asks for state preserved across rotation and for every screen to be rotated, which is
+why this was worth three attempts rather than a decision to drop landscape.
+
+### A device setting I changed
+
+Testing needed `accelerometer_rotation` off and `user_rotation` forced. Both are restored:
+rotation is back to automatic and the phone is in portrait. If auto-rotate was deliberately off
+before tonight, that is the one setting to put back.
