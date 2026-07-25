@@ -24,16 +24,52 @@ object ConversationTitler {
     private const val TITLE_MAX_TOKENS = 24
     private const val TITLE_MAX_CHARS = 60
 
+    /**
+     * Whether a titling pass should run at all.
+     *
+     * Pure, and separate from the work, because this is the rule that decides how
+     * often a multi-second model run happens, and getting it wrong is expensive
+     * rather than merely wrong. Extracted after a conversation sitting at exactly
+     * the refresh milestone was found re-titling itself on every open (#38).
+     *
+     * @param messageCount real messages, with display-only mode markers already
+     *   removed.
+     */
+    fun shouldTitle(hasTitle: Boolean, messageCount: Int, allowRefresh: Boolean): Boolean {
+        // Nothing to go on yet: one message is a question with no answer.
+        if (messageCount < 2) return false
+        // Never titled, so anything is better than nothing.
+        if (!hasTitle) return true
+        // Already titled. Only the refresh milestone may replace it, and only
+        // when the caller is one that can actually have moved the conversation
+        // past that milestone.
+        return allowRefresh && messageCount == TITLE_REFRESH_AT
+    }
+
     /** Generic filler a title must never be; the first user message is used instead. */
     private val GENERIC = setOf(
         "title", "conversation", "new conversation", "new chat", "untitled",
         "chat", "response", "answer", "reply", "here is the title", "a title",
     )
 
+    /**
+     * @param allowRefresh whether this call may also *replace* an existing title
+     *   at the refresh milestone. False for the safety net that runs when a
+     *   conversation is merely opened.
+     *
+     *   That distinction matters more than it looks. The refresh fires when the
+     *   history is exactly [TITLE_REFRESH_AT] long, and opening a conversation
+     *   does not change its length, so a conversation sitting at exactly that
+     *   many messages re-titled itself **every single time it was opened**. The
+     *   user watched the title change under them for no reason, and each one was
+     *   a model run that overwrote the KV cache and cost the next real turn a full
+     *   re-prefill. See #38.
+     */
     suspend fun titleIfNeeded(
         repository: KamRepository,
         engine: InferenceEngine,
         conversationId: String,
+        allowRefresh: Boolean = true,
     ) {
         val conversation = repository.conversation(conversationId) ?: return
         if (conversation.titleIsManual) return
@@ -41,9 +77,14 @@ object ConversationTitler {
         // Ignore display-only mode markers when judging content and building the source.
         val history = repository.messages(conversationId).filter { it.role != Role.SYSTEM }
         if (history.size < 2) return
-        val isFirstTitle = conversation.title == null
-        val isRefresh = history.size == TITLE_REFRESH_AT
-        if (!isFirstTitle && !isRefresh) return
+        if (!shouldTitle(
+                hasTitle = conversation.title != null,
+                messageCount = history.size,
+                allowRefresh = allowRefresh,
+            )
+        ) {
+            return
+        }
 
         // Title with the model when it is already resident, for the best result.
         // Never load a multi-gigabyte model just to title a conversation on open:

@@ -225,7 +225,13 @@ class ChatViewModel(
         // engine at the same time as a reply.
         titlingJob?.cancel()
         titlingJob = viewModelScope.launch {
-            ConversationTitler.titleIfNeeded(repository, engine, conversationId)
+            // Fills in a missing title only. Opening a conversation must never
+            // re-title it: the length has not changed, so the refresh milestone
+            // would fire again on every open, rewriting a title the user was
+            // reading and costing a re-prefill each time (#38).
+            ConversationTitler.titleIfNeeded(
+                repository, engine, conversationId, allowRefresh = false,
+            )
         }
     }
 

@@ -3225,3 +3225,39 @@ Workbench session".
 **MIGRATION_5_6 ran against the owner's real database** on the first install carrying it.
 Every conversation, title, mode dot, timestamp and snippet came through unchanged, and no
 crash. That is the version 6 migration verified on real data rather than only on seeded data.
+
+## The titling cost, partly fixed and honestly bounded (#38)
+
+Earlier today the auto-titling pass was measured at roughly 28 seconds per turn, because it
+overwrites the KV cache and the next real turn then re-prefills the whole conversation. That
+figure was real but it conflated two different things, and only one of them is now fixed.
+
+**Fixed: a conversation re-titled itself every time it was opened.** The refresh fires when
+the history is exactly `TITLE_REFRESH_AT` long, and opening a conversation does not change its
+length, so any conversation sitting at exactly that many messages ran the model again on every
+single open. The user watched the title change under them for no reason, which is the
+retitling noticed while verifying #49, and each pass cost the next turn a full re-prefill. The
+safety net that runs on open now fills in a *missing* title only.
+
+The rule moved out of the suspend function into `ConversationTitler.shouldTitle`, pure and
+tested, because it decides how often a multi-second model run happens and getting it wrong is
+expensive rather than merely wrong. Five tests, including the regression itself: opening a
+conversation at the milestone must not re-title it.
+
+Verified on the phone: opening conversations now produces no `KamPerf` entries at all, where
+before it could produce a titling pass each time.
+
+**Not fixed: the first title still costs one re-prefill.** Measured after the change, a turn
+in a fresh conversation logs its own answer and then a 218-token titling pass, and the turn
+after that pays for the cache the titler overwrote. That is now a one-time cost per
+conversation rather than a recurring one, which is the difference between an annoyance and the
+30-to-45-second complaint that started #38.
+
+**The remaining fix is a separate KV sequence**, and it is a native change rather than a
+Kotlin one. Everything currently uses sequence 0: `llama_memory_seq_rm` is hard-coded to it and
+`llama_batch_get_one` implies it. Titling on its own sequence would leave the conversation's
+cache untouched entirely. That belongs with the round 3 performance staging rather than being
+rushed in beside a UI fix, and it is the thing to do first there.
+
+**#51 to #56 are still gated on it.** A measurement taken while the first title wipes the cache
+mid-conversation is measuring the titler, not the change being tested.
