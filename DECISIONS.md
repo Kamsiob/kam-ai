@@ -4244,3 +4244,31 @@ and is probably the right answer for this project either way.
 CPU affinity, the physical batch sweep, the link and codegen flags, and the E2B baseline. Nothing
 was changed on guesswork, and nothing was kept that did not measurably win, because nothing
 measurable was won yet.
+
+## The per-tier baseline, both tiers, and where the old number came from
+
+E2B measured the same way as E4B: same prompt, same 4 threads, long generations, phone at 33.8 C.
+
+| tier | model | prefill | decode |
+| --- | --- | --- | --- |
+| Basic | Gemma 4 E2B q4_k_m, 3.1 GB, ctx 4096 | 78.1 and 56.6 tok/s | **11.0 and 10.8 tok/s** |
+| Balanced | Gemma 4 E4B q4_k_m, 5.0 GB, ctx 6144 | 33.0, 34.3, 35.9 tok/s | **5.9, 6.4, 5.9 tok/s** |
+
+So E2B decodes about **1.8 times** faster than E4B and prefills about **2.2 times** faster.
+
+**That settles where "4 threads gives 9.2 to 10.6 tok/s" came from.** E2B measures 10.8 to 11.0.
+The figure was taken on the Basic tier and then carried in DECISIONS and #51 as though it
+described the app. It does not describe what most people will actually experience, because
+Balanced is what the app recommends on a 16 GB phone and Balanced runs at about six tokens a
+second.
+
+The two prefill numbers for E2B differ because of prompt length, not variance: 916 tokens ran at
+78.1 tok/s and 45 tokens at 56.6, since the fixed cost per call weighs more on a short prompt.
+Decode is the stable figure and the one to compare on.
+
+Caveat worth keeping with the numbers: the tiers also differ in context size, 4096 against 6144,
+so this is a comparison of two shipped configurations rather than of two model sizes in isolation.
+That is the right comparison for deciding what a user gets, and the wrong one for attributing the
+difference to parameter count alone.
+
+The active model was returned to Balanced afterwards, which is where the owner had it.
