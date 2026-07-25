@@ -24,6 +24,54 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### Overnight session of 25 July, working through issue #39
+
+**#39 is the end-to-end workflow audit and is still open.** Everything below came out of
+driving the app on the phone rather than reading it. Every item is committed with its own
+DECISIONS.md entry; this is the index, not the detail.
+
+Fixed and verified on the device:
+
+- **The mode picker's Workbench promise.** It advertised "Opens a linked Workbench" and
+  opened whichever unlinked session was most recent. Now opens empty and pairs with the
+  chat once the first run produces something. Two of my own defects on the way: a null
+  `_linkTo` read by `init` (Kotlin initialises in declaration order) and a race where the
+  restore resumed after the screen had claimed the Workbench.
+- **The Workbench note that had never been shown.** `modeSwitchNotice(Mode.BENCH)` had copy
+  and a doc comment and was unreachable, because the picker routes Workbench to navigation
+  and only the mode-switch path writes notes.
+- **Copy, share and plain-text export handed over Markdown source.** `markdownToPlainText`
+  now runs the same parser the screen runs. The plain-text export was the worst of the
+  three: it emitted Markdown, so the format choice changed only the file extension.
+- **No date separators inside a conversation.** `ChatDates`, with the clock and zone
+  injected. Calendar days rather than elapsed time; the weekday window stops at six days.
+- **The composer grew without limit on a long paste**, until the transcript was a sliver
+  and the cursor was off screen. Capped at eight lines, counted in lines so the cap survives
+  large accessibility font sizes.
+- **Editing a message was an unmarked gesture.** A pencil action under user messages, plus
+  a click label on the bubble.
+- **Nothing in the app was ever announced.** `liveRegion` appeared nowhere; the mode banner
+  and every toast are now polite live regions. **Not yet heard with TalkBack.**
+- **A project chat could not choose its mode.** The project screen uses the same segmented
+  control as Chats now.
+- **A file attached to a new chat was silently discarded**, because `attach` returned early
+  when the conversation did not exist yet. Held and written when it is created.
+- **#62, landscape, is fixed and closed.** `imePadding()` was on the composer rather than
+  the screen. Two earlier attempts to detect the keyboard were both wrong.
+- **DESIGN said input is disabled while streaming; the code never did.** The code was right
+  and DESIGN now says so.
+
+Raised rather than changed:
+
+- **#63**, the segmented control labels Brainstorm "Storm", a word taught nowhere. DESIGN
+  names those four labels explicitly, so it is the owner's call.
+- **#64**, the Copy/Follow up/Share menu on a text selection has never appeared.
+  `SelectionContainer` no longer consults `LocalTextToolbar`. The issue carries the
+  replacement API and the open problem of getting the selected text out of it.
+
+Still to do on #39: Discover mode identity, long voice brain dump, timed-exercise
+interruption. Test suite stands at 271 passing, no failures.
+
 **Just finished:** issue #24, the version 4 to version 5 migration. The migration SQL now
 lives in `KamDatabase.MIGRATION_4_5_SQL`, which the shipped `Migration` object executes,
 and `MigrationSqlTest` (pure JVM, real SQLite over JDBC) drives those exact statements over
