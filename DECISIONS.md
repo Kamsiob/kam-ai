@@ -4822,3 +4822,8 @@ open on #13, and this fix keeps working afterwards: when packs carry real articl
 simply stops matching and the prompt returns everywhere.
 
 The pack copy pulled off the phone for the measurement was deleted afterwards.
+
+Verified on the phone, both branches. "Syrian Wars" has a passage identical to its preview and
+Quiz me now goes straight to "Question 1 of 4" with no prompt. "Duchy of Brittany" and "Portuguese
+Empire" both have longer passages and still show "Read the full moment first?", which is the case
+the prompt was written for.
