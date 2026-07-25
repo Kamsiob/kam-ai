@@ -1165,7 +1165,13 @@ private fun ActionRow(
         IconAction(
             icon = Icons.Rounded.ContentCopy,
             description = "Copy",
-            onClick = { clipboard.setText(AnnotatedString(text)) },
+            // The rendered text, not the Markdown source. Copying an answer
+            // used to paste "### Heading" and "**bold**" into somebody's notes.
+            onClick = {
+                clipboard.setText(
+                    AnnotatedString(com.kamsiob.kamai.ui.components.markdownToPlainText(text)),
+                )
+            },
             tint = colors.textTertiary,
         )
         IconAction(

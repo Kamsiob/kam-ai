@@ -37,6 +37,38 @@ class ShareRenderTest {
     }
 
     @Test
+    fun thePlainTextExportIsActuallyPlainText() {
+        // Choosing plain text over Markdown used to change the file extension and
+        // nothing else: the Markdown source went out either way (#39).
+        val formatted = listOf(
+            msg(Role.USER, "summarize it", 1),
+            msg(Role.ASSISTANT, "## Two reasons\n\n- it is **cheap**\n- it is `fast`", 2),
+        )
+        val text = Share.renderThread("Reasons", formatted)
+
+        assertThat(text).contains("Kam AI: Two reasons")
+        assertThat(text).contains("- it is cheap")
+        assertThat(text).contains("- it is fast")
+        assertThat(text).doesNotContain("##")
+        assertThat(text).doesNotContain("**")
+        assertThat(text).doesNotContain("`")
+    }
+
+    @Test
+    fun theMarkdownExportKeepsTheMarkdown() {
+        // The other half of the same choice. This one is supposed to be source.
+        val formatted = listOf(msg(Role.ASSISTANT, "it is **cheap**", 1))
+        assertThat(Share.renderThreadMarkdown("Reasons", formatted)).contains("it is **cheap**")
+    }
+
+    @Test
+    fun aUsersOwnAsterisksAreNeverEaten() {
+        // Only the assistant writes Markdown. Somebody typing 2 * 3 gets 2 * 3.
+        val typed = listOf(msg(Role.USER, "is 2 * 3 * 4 the same as 4 * 3 * 2", 1))
+        assertThat(Share.renderThread(null, typed)).contains("You: is 2 * 3 * 4 the same as 4 * 3 * 2")
+    }
+
+    @Test
     fun anUntitledThreadStillGetsAHeading() {
         val text = Share.renderThread(null, thread.take(2))
         assertThat(text).startsWith("Kam AI conversation")

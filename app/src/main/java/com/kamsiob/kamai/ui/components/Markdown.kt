@@ -149,6 +149,73 @@ sealed interface MdBlock {
     data object Divider : MdBlock
 }
 
+/**
+ * The same text as [MarkdownText] renders, as plain text fit for the clipboard,
+ * the share sheet, and a plain-text export.
+ *
+ * Copy used to hand over the raw source, so an answer that looked clean on screen
+ * arrived in somebody's notes as `### Heading` and `**bold**`. This runs the same
+ * [parseMarkdown] the screen does, so what is copied is what was read, including
+ * the tolerance for half-finished Markdown: an unterminated `**` is literal text
+ * on screen and stays literal text here.
+ *
+ * Emphasis markers go, because unrendered they are noise. List markers stay, as
+ * `-` and `1.`, because a list without them stops being a list: they read as an
+ * ordinary list in a plain-text destination, and become one again in any
+ * destination that understands Markdown. Code fences go while their contents are
+ * kept exactly, spaces and all.
+ */
+fun markdownToPlainText(text: String): String {
+    val out = StringBuilder()
+    parseMarkdown(text).forEach { block ->
+        if (out.isNotEmpty()) out.append("\n\n")
+        when (block) {
+            is MdBlock.Heading -> out.append(plainInline(block.text))
+            is MdBlock.Paragraph -> out.append(plainInline(block.text))
+            is MdBlock.Bullet ->
+                out.append(block.items.joinToString("\n") { "- " + plainInline(it) })
+            is MdBlock.Numbered ->
+                out.append(
+                    block.items.mapIndexed { n, item ->
+                        "${block.start + n}. " + plainInline(item)
+                    }.joinToString("\n"),
+                )
+            // Code is never touched: whitespace is part of it.
+            is MdBlock.Code -> out.append(block.code)
+            is MdBlock.Quote -> out.append(plainInline(block.text))
+            MdBlock.Divider -> out.append("---")
+        }
+    }
+    return out.toString()
+}
+
+/**
+ * [inline] without the styling: the same walk, the same tolerance, dropping the
+ * markers instead of turning them into spans. Kept beside it deliberately, since
+ * the two have to agree about what counts as emphasis or the clipboard stops
+ * matching the screen.
+ */
+private fun plainInline(text: String): String = buildString {
+    var i = 0
+    while (i < text.length) {
+        when {
+            text.startsWith("**", i) -> {
+                val end = text.indexOf("**", i + 2)
+                if (end > i + 1) { append(text, i + 2, end); i = end + 2 } else { append("**"); i += 2 }
+            }
+            text[i] == '`' -> {
+                val end = text.indexOf('`', i + 1)
+                if (end > i) { append(text, i + 1, end); i = end + 1 } else { append('`'); i++ }
+            }
+            text[i] == '*' -> {
+                val end = text.indexOf('*', i + 1)
+                if (end > i + 1) { append(text, i + 1, end); i = end + 1 } else { append('*'); i++ }
+            }
+            else -> { append(text[i]); i++ }
+        }
+    }
+}
+
 private val HEADING = Regex("^(#{1,6})\\s+(.*)$")
 private val BULLET = Regex("^\\s*[-*+]\\s+(.*)$")
 private val NUMBERED = Regex("^\\s*(\\d+)[.)]\\s+(.*)$")

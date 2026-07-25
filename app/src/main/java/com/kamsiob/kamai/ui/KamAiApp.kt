@@ -549,7 +549,10 @@ private fun ConversationScreen(
         onContinueIncomplete = chat::continueLast,
         onDiscardIncomplete = chat::discardLast,
         onReport = { message -> reportResponse(context, message.content, app) },
-        onShareResponse = { message -> Share.text(context, message.content) },
+        // Shared as the reader saw it, not as Markdown source.
+        onShareResponse = { message ->
+            Share.text(context, com.kamsiob.kamai.ui.components.markdownToPlainText(message.content))
+        },
         onShareThread = {
             // The conversation's real title, not null: a shared thread used to
             // head "Kam AI conversation" even when it had one (#41).

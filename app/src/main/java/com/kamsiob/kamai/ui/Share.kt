@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.core.content.FileProvider
 import com.kamsiob.kamai.data.MessageEntity
 import com.kamsiob.kamai.data.Role
+import com.kamsiob.kamai.ui.components.markdownToPlainText
 import java.io.File
 
 /**
@@ -42,8 +43,14 @@ object Share {
         messages.forEach { m ->
             when (m.role) {
                 Role.SYSTEM -> appendLine("[ ${m.content.trim()} ]")
+                // Left exactly as typed. Only the assistant writes Markdown, and
+                // running a user's own words through a Markdown stripper would
+                // quietly eat their asterisks.
                 Role.USER -> appendLine("You: ${m.content.trim()}")
-                else -> appendLine("Kam AI: ${m.content.trim()}")
+                // The user picked plain text over Markdown and got Markdown
+                // anyway, which made the choice between the two formats mean
+                // nothing except the file extension.
+                else -> appendLine("Kam AI: ${markdownToPlainText(m.content).trim()}")
             }
             appendLine()
         }

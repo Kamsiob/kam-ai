@@ -3578,3 +3578,37 @@ the control gets two different names for the same thing.
 
 Not changed here, because DESIGN.md section 106 names those four segment labels explicitly, and
 that is a written decision rather than drift. Filed for the owner instead.
+
+## Issue #39, third finding: copy handed over the source, not the answer
+
+Assistant text is Markdown and is rendered as Markdown on screen. Copy, Share this response, and
+the plain-text export all passed `message.content` straight through, so an answer that read
+cleanly in the app arrived in somebody's notes as `## Fruits` and `**Apple**`.
+
+The plain-text export was the worst of the three. Export offers Markdown or plain text; the plain
+branch emitted the same Markdown source as the other one, so the choice changed the file
+extension and nothing else.
+
+`markdownToPlainText` runs the same `parseMarkdown` the screen runs, so what is copied is what
+was read, including the tolerance for half-finished Markdown: an unterminated `**` is literal on
+screen and stays literal on the clipboard.
+
+What goes and what stays, since it is a judgement rather than an obvious rule:
+
+- Emphasis and heading markers and backticks go. Unrendered they are noise.
+- List markers stay, as `-` and `1.`, because a list without them stops being a list. They read
+  as an ordinary list anywhere, and become a real list again in any destination that understands
+  Markdown.
+- Code block contents are copied byte for byte, fences dropped. Whitespace is part of code.
+- A user's own words are never put through it. Only the assistant writes Markdown, and stripping
+  a message somebody typed would quietly eat the asterisks in "2 * 3 * 4".
+
+Verified on the phone by copying a rendered answer and pasting it back into the composer. The
+clipboard held "Fruits", a blank line, then the three items with their dashes, and no markup.
+
+### Left alone deliberately
+
+The Workbench result and the overlay answer are drawn with plain `Text`, not the Markdown
+renderer, so any markup in them is already visible on screen. Their clipboard and their display
+agree today, and converting only the copy would break that agreement. Whether those two surfaces
+should render Markdown at all is a separate question and not one to decide inside a copy fix.
