@@ -4772,3 +4772,23 @@ telling the model an uncovered question "is worth flagging", which was changed t
 This is worth recording because prompt changes are usually taken on faith. Here the same code path,
 before and after, produced the word the interface uses instead of the word it had abandoned. The
 instruction reached the model and the model reached the user.
+
+## Item 21's escape, verified, and a bug I nearly filed that was not one
+
+Tapped "Continue in open chat" from the grounded discussion. It does everything item 21 claims:
+the scope banner goes, the mode indicator becomes General, the history carries forward, and a
+centred note appears:
+
+> Opened up to an open chat. Kam AI is no longer confined to the passage and will answer from what
+> it knows, where a small model can misremember, so check anything that matters.
+
+Honest about what changed and what it costs.
+
+I read that note on the phone as "check **any thing** that matters" and went looking for the typo.
+The source says "anything". Zoomed into the screenshot, so does the screen: the gap is kerning
+between the "y" and the "t" in this font at that size.
+
+Recording it because it is the second time tonight that reading a screenshot nearly produced a
+false bug report, after the toast that had already faded. Both times the fix was to go back and
+look harder at the actual evidence rather than write up the impression. A screenshot is not a
+transcript.
