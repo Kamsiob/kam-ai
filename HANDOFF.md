@@ -103,9 +103,15 @@ subset from 415 KB to 5.8 KB, 18 glyphs**, rebuildable with `tools/subset_fraunc
 subset does not fall back, it simply does not render. `Modifier.edgeFadeHorizontal` landed in
 the same pass and is on both Workbench chip rows.
 
-**Next concrete step:** **#33's kind filter and #35's scroll restoration**, both small and in
-files already open, then **#32 Workbench linking**, which touches the data model and needs
-MIGRATION_5_6 so it lands before anything else that reads conversation structure. Still open against the
+**Also finished: #31 (built, issue left open), #33 and #35, all verified on the phone.**
+#35 turned up three defects worth knowing about: a user stop during prefill was reported as
+"Something went wrong reading that" when the user had simply pressed stop, the restored scroll
+position was being overwritten ~90ms later by the streaming-follow effect, and sending while
+scrolled up did nothing visible. All three fixed.
+
+**Next concrete step:** **#32 Workbench linking**, which touches the data model and needs
+MIGRATION_5_6, so it lands before anything else that reads conversation structure. Then #34
+(keyboard and reachability, unblocked by #29), #36 (public copy), #39 (the workflow audit). Still open against the
 overlay surface, to be done together whenever it is next touched: **#61** (the recording
 button drawing in the reserved gold) and **#60** (the leftover "flag" wording). Full order in
 section 4.
@@ -247,7 +253,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #29 | Per-mode empty-state nudges | **closed, verified on the phone** in all four modes. Fraunces Italic bundled and subset to 5.8 KB; sketches are Compose paths rather than assets; `edgeFadeHorizontal` landed with it |
 | #31 | Auto-archive: Off / 3 / 7 / 30 days, pinned exempt, count before confirming, undo | **built, 13 tests.** Settings verified on the phone; **the pass itself has never fired there**, since nothing on that device is old enough to match. Issue left open until it is watched working |
 | #32 | Workbench linking, both directions | not started. **Touches the data model, needs MIGRATION_5_6.** No Workbench entity exists; it persists two strings through the settings table |
-| #33 | Filter follow-ups by kind alongside source | not started. Brainstorm-defaults-to-pursue path also unverified |
+| #33 | Filter follow-ups by kind alongside source | **closed, verified on the phone.** The Brainstorm-defaults-to-pursue path is verified and now covered by tests |
 | #34 | Keyboard and reachability audit | not started. Nothing in the app reacts to the keyboard opening and the message list has no IME padding. #29 is done, so this is unblocked |
 | #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll are now **seen working on the phone** (#43). The failure-state half is **unblocked**: #40 is closed and the stop reason is now recorded honestly. Scroll restoration on reopening is still not done |
 | #36 | Onboarding and public copy for four modes | not started. Do after #29 and #42 |
