@@ -190,6 +190,11 @@ class PublicCopyTest {
         // The value of these is a model identifier like "Q4_K_M", never shown as
         // a word, and renaming the property would be churn with no reader.
         val allowedIdentifiers = Regex("quantisation")
+        // WrapUp.REQUESTS matches what the *user* types, not what the app writes.
+        // A British user asking to "summarise what we have" is asking to wrap up,
+        // and dropping the spelling the app does not use would only fail to
+        // understand them. The rule is about the app's own voice.
+        val allowedInputPatterns = Regex("summarise what")
         val literal = Regex("""\"[^\"\n]*\"""")
 
         val offenders = mutableListOf<String>()
@@ -198,7 +203,11 @@ class PublicCopyTest {
             .forEach { file ->
                 literal.findAll(file.readText())
                     .map { it.value }
-                    .filter { british.containsMatchIn(it) && !allowedIdentifiers.containsMatchIn(it) }
+                    .filter {
+                        british.containsMatchIn(it) &&
+                            !allowedIdentifiers.containsMatchIn(it) &&
+                            !allowedInputPatterns.containsMatchIn(it)
+                    }
                     .forEach { offenders += "${file.name}: ${it.take(70)}" }
             }
 

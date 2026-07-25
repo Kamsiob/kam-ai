@@ -36,6 +36,40 @@ object WrapUp {
      * naming a method is exactly what it echoes back. Ends by forbidding the
      * question, since that is the specific failure.
      */
+    /**
+     * Whether a typed message is asking to finish (#58).
+     *
+     * The Wrap-up control puts [INSTRUCTION] where the model cannot lose track of
+     * it, and typing the same request in the composer went through the ordinary
+     * path and hit the same failure the control was built to fix: several
+     * exchanges deep, "let's wrap up" got another question. Most people will
+     * type it rather than find the control, so the typed path has to reach the
+     * same place.
+     *
+     * Matched on phrases rather than keywords. "summary" alone would fire on
+     * "give me a summary of what a hub and spoke is", which is a question inside
+     * the session and not a request to end it.
+     *
+     * Only consulted in Brainstorm, where the cost of a false positive is a
+     * summary somebody did not ask for, one turn earlier than they wanted.
+     */
+    fun isRequest(text: String): Boolean {
+        val t = text.lowercase().trim()
+        if (t.length > 120) return false
+        return REQUESTS.any { t.contains(it) }
+    }
+
+    private val REQUESTS = listOf(
+        "wrap up", "wrap this up", "wrap it up",
+        "let's stop", "lets stop", "let's finish", "lets finish",
+        "that's enough", "thats enough", "enough for now",
+        "sum up", "sum this up", "summarise what", "summarize what",
+        "pull it together", "pull this together",
+        "what have we got", "where have we got to",
+        "i'm done", "im done", "we're done", "were done",
+        "converge",
+    )
+
     const val INSTRUCTION =
         "Close this session now. Write the summary itself, not a description of how you " +
             "would write it. Give it in three short parts: the themes in what I said, " +

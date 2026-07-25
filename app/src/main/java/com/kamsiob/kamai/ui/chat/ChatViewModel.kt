@@ -446,7 +446,11 @@ class ChatViewModel(
             explainModeIfFirstTime(id)
             repository.addMessage(id, Role.USER, trimmed)
             maybeManualRemember(id, trimmed)
-            respond(id)
+            // Typing "let's wrap up" reaches the same place as the Wrap-up
+            // control, rather than the ordinary path where the instruction loses
+            // against a long history and comes back as another question (#58).
+            val wrapping = _mode.value == Mode.BRAINSTORM && WrapUp.isRequest(trimmed)
+            respond(id, continuePrompt = if (wrapping) WrapUp.INSTRUCTION else null)
         }
     }
 

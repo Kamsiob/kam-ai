@@ -5588,3 +5588,52 @@ and which should take precedence. A causal claim ("working from home makes peopl
 less productive, so our team should go back to the office") gets the crux and a
 challenge separating causation from confounders. The empirical branch's "tell
 them to bookmark it" did not appear in that reply; the substance did.
+
+## Brainstorm: stop reading the instructions aloud, and take the typed exit (#58)
+
+Two failures found by using the mode on the phone rather than by reading it.
+
+**It announced its own method.** Opening with "I want to start a podcast but
+that is all I have" produced "Only a topic or problem, no idea yet. We'll use
+STARBURSTING." That is the selection rule quoted back at the user, with the
+method's capitalised label in it. The prompt had told it to "Name the method,
+then do it", which turns out to be an instruction to do exactly this. That clause
+is gone. The plan is now stated in the model's own words about the user's own
+subject, with the failure shown as an example so a small model can tell the two
+apart, and the method list is picked from "silently".
+
+**Typing the exit did not work.** The Wrap-up control exists because the
+convergence instruction loses against a long history; typing "let's wrap up" went
+down the ordinary path and hit the same failure the control was built to fix, and
+typing is what most people will do since the control is in a menu.
+`WrapUp.isRequest` recognises the phrasings and routes them to exactly the same
+mechanism. Matched on phrases rather than keywords, because "summary" alone fires
+on "give me a summary of what hub and spoke means", which is a question inside the
+session. Long messages are excluded: somebody mid-flow who happens to use the
+words is brainstorming, not asking to finish.
+
+`PublicCopyTest`'s British-spelling guard needed scoping for this. `REQUESTS`
+contains "summarise what", which the app never writes but a British user types.
+The rule is about the app's own voice, and refusing to understand a spelling is
+not the same as not using it.
+
+The budget rose from 1600 to 1660, deliberately, after trimming everything that
+could be trimmed. It is paid for the same way LOGIC's rise was: the system prompt
+is prefilled once per conversation and reused from the KV cache, so this is sixty
+estimated tokens at the start of a session, not sixty per turn.
+
+**Device-verified on four of the five openings #58 asks for.** A tangle of
+unsorted thoughts gets an unload-then-theme plan; a single vague idea gets
+question-led exploration; a clear idea gets core-then-branches; the typed wrap-up
+converges into themes, energy, unresolved and one next step, with no question at
+the end and no method named.
+
+**One partial, recorded rather than hidden.** Somebody being too cautious ("everything
+I think of sounds stupid") should get the worst-possible-idea method. Before the
+change it made their embarrassment the subject and offered to reframe. After it,
+it suspends judgment and asks for the ideas "even the ones you think are stupid",
+which is the useful half, but it frames the exercise as an unload and still opens
+by reading their mood back to them. Rules 1 and 8 are adjacent and the
+discrimination between them under emotional language is beyond this model size
+with prompt wording alone. The behaviour is now acceptable — judgment suspended,
+nothing handed over — and the gap is real.

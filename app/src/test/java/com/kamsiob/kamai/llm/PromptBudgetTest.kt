@@ -48,7 +48,20 @@ class PromptBudgetTest {
             // exists to protect time to first token, and that trade improves it by
             // a wide margin. See DECISIONS.md, "Issue #57".
             Mode.LOGIC to 1080,
-            Mode.BRAINSTORM to 1600,
+            // Raised from 1600 to 1660 for #58, deliberately and not quietly, and
+            // after trimming everything that could be trimmed. Two device-found
+            // failures paid for it. The mode announced its own method ("Only a
+            // topic, no idea yet, we will use STARBURSTING"), which is the model
+            // reading its instructions to the user; and it answered somebody
+            // calling their own ideas stupid by making their embarrassment the
+            // subject rather than running the method for exactly that case.
+            //
+            // What pays for it: the system prompt is prefilled once per
+            // conversation and then reused from the KV cache, so this is sixty
+            // estimated tokens at the start of a session, not sixty per turn. The
+            // same trade recorded for LOGIC above, and the budget exists to
+            // protect time to first token, which prefix reuse protects far more.
+            Mode.BRAINSTORM to 1660,
             Mode.BENCH to 660,
             Mode.OVERLAY to 600,
             Mode.DISCOVER to 750,
