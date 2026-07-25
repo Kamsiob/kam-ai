@@ -5328,3 +5328,47 @@ is cut, so it has no heading and is shown as itself, in primary text over three
 lines so the card still carries weight. Saving an excerpt produces a paragraph
 every time, which is why the second half of the bug became worth fixing exactly
 when excerpts became savable.
+
+## A Discover discussion is a sheet over Discover, not a screen instead of it (#11, #21)
+
+Discussing a passage pushed the full chat screen. That is the wrong shape for
+what is happening. A chat is somewhere you go and stay; a grounded discussion is
+a question about the passage in front of you, and when it is over you are still
+looking at the passage. The full screen said otherwise: it replaced Discover,
+gave the discussion a conversation header with rename and archive beside it, and
+left the back button as the only way out.
+
+`GroundedSheet` slides up over whatever opened it, at 0.86 of the screen so the
+app bar and the top of the Discover card stay visible behind a 32% scrim. The
+first attempt used 0.92 and read as a full screen, because the only strip left
+over was the status bar and there was nothing behind the scrim to see.
+
+The header carries what the transcript used to have to say. The moment's title,
+and under it the topic and the scope — "History · answers come from this passage
+only". `ChatScreen` gains `scoped`, which drops its conversation header, its
+grounded banner and the hairline between them, since on this surface all three
+would restate the header a few pixels below it.
+
+The two ways out mean different things. Close returns to the passage and leaves
+the conversation in Chats like any other. Expand is item 21's escape hatch: it
+lifts the grounding, drops the honest note about a small model's recall into the
+transcript, and opens the whole history in the full chat window. It is one tap
+from inside the sheet, which is where somebody is standing when they discover
+the passage will not answer their question.
+
+`GroundedDiscussion` carries the title and topic alongside the conversation id,
+because a sheet handed only an id could say nothing about what it is scoped to
+until the titler had been round. The topic, not `sourceTitle`: for a Wikipedia
+pack the source title is the article name, which is also the moment title, so
+the header read "Merovingian dynasty" over "from Merovingian dynasty".
+
+Dismissal sets the transition's target state and reports back once the exit has
+run, rather than removing the sheet outright, which took it away in a single
+frame and read as a crash. The target state is set inside `remember` rather than
+in an effect: set it later and the close effect sees false/false for one frame
+and shuts the sheet before it opens.
+
+Device-verified end to end: the sheet arrives over Discover, the keyboard pushes
+the composer without covering the transcript, a grounded question is answered
+from the passage, and Expand lifts the scope and opens the full chat with the
+history and the note intact.

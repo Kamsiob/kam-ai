@@ -256,6 +256,13 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
     // the app". Only Chats with an empty stack falls through and exits.
     var backGesture by remember { mutableStateOf(BackGesture()) }
 
+    // A Discover discussion runs on a sheet over whatever opened it, rather than
+    // as a pushed screen (#11). Held here, above the screen stack, because the
+    // point of the surface is that the screen underneath stays where it was.
+    var groundedTarget by remember {
+        mutableStateOf<com.kamsiob.kamai.data.KamRepository.GroundedDiscussion?>(null)
+    }
+
     KamPredictiveBack(
         enabled = stack.isNotEmpty() || tab != NavItem.CHATS,
         onProgress = { backGesture = it },
@@ -298,7 +305,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                 label = "screen",
             ) { pushed ->
                 when (pushed) {
-                    null -> TabContent(app, tab, stack)
+                    null -> TabContent(app, tab, stack, onGrounded = { groundedTarget = it })
                     is Pushed.Conversation -> ConversationScreen(
                         app, pushed.id, pushed.startMode, pushed.initialText, pushed.vmKey,
                         onExit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) },
@@ -332,7 +339,9 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     Pushed.AppLock -> LockSettingsHost(app)
                     Pushed.AutoArchive -> AutoArchiveHost(app)
                     Pushed.Archived -> ArchivedHost(app, stack)
-                    Pushed.SavedMoments -> SavedMomentsHost(app, stack)
+                    Pushed.SavedMoments -> SavedMomentsHost(
+                        app, stack, onGrounded = { groundedTarget = it },
+                    )
                     Pushed.CustomInstructions -> CustomInstructionsHost(app, stack)
                     is Pushed.Project -> ProjectHost(app, stack, pushed.id)
                 }
@@ -349,6 +358,18 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
             } else {
                 Box(Modifier.navigationBarsPadding())
             }
+        }
+
+        groundedTarget?.let { target ->
+            GroundedSheetHost(
+                app = app,
+                target = target,
+                onClose = { groundedTarget = null },
+                onExpanded = {
+                    groundedTarget = null
+                    stack.add(Pushed.Conversation(target.conversationId))
+                },
+            )
         }
 
         KamToast(
@@ -370,6 +391,7 @@ private fun TabContent(
     app: AppViewModel,
     tab: NavItem,
     stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+    onGrounded: (com.kamsiob.kamai.data.KamRepository.GroundedDiscussion) -> Unit,
 ) {
     when (tab) {
         NavItem.CHATS -> {
@@ -419,7 +441,7 @@ private fun TabContent(
             )
         }
 
-        NavItem.DISCOVER -> DiscoverHost(app, stack)
+        NavItem.DISCOVER -> DiscoverHost(app, stack, onGrounded)
 
         NavItem.FOLLOW_UPS -> {
             val open by app.openFollowUps.collectAsStateWithLifecycle()
@@ -431,7 +453,7 @@ private fun TabContent(
                 onRemove = app::deleteFollowUp,
                 onOpenSource = { stack.add(Pushed.Conversation(it)) },
                 onOpenMoment = { packId, momentId ->
-                    app.openSavedMoment(packId, momentId) { stack.add(Pushed.Conversation(it)) }
+                    app.openSavedMoment(packId, momentId, onGrounded)
                 },
                 onSetKind = app::setFollowUpKind,
             )
@@ -452,6 +474,8 @@ private fun ConversationScreen(
     onOpenWorkbench: (String?) -> Unit = {},
     /** Opens the Workbench session this chat is paired with, when it has one. */
     onOpenWorkbenchSession: (String) -> Unit = {},
+    /** True inside the Discover sheet, which supplies its own header (#11). */
+    scoped: Boolean = false,
 ) {
     val context = LocalContext.current
     val chat: ChatViewModel = viewModel(
@@ -626,6 +650,7 @@ private fun ConversationScreen(
         projectOptions = allProjects.map { it.id to it.name },
         conversationProjectId = conversationProjectId,
         grounded = grounded,
+        scoped = scoped,
         onContinueOpen = chat::continueInOpenChat,
         onMoveToProject = { projectId ->
             chat.conversationId.value?.let { app.assignConversationToProject(it, projectId) }
@@ -804,6 +829,7 @@ private fun ModelHost(app: AppViewModel) {
 private fun DiscoverHost(
     app: AppViewModel,
     stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+    onGrounded: (com.kamsiob.kamai.data.KamRepository.GroundedDiscussion) -> Unit,
 ) {
     val context = LocalContext.current
     val vm: com.kamsiob.kamai.ui.discover.DiscoverViewModel = viewModel()
@@ -855,7 +881,7 @@ private fun DiscoverHost(
             val packId = s.packId
             val momentId = s.momentId
             if (packId != null && momentId != null) {
-                vm.openSaved(packId, momentId) { id -> stack.add(Pushed.Conversation(id)) }
+                vm.openSaved(packId, momentId, onGrounded)
             }
         },
         onOpenSavedList = { stack.add(Pushed.SavedMoments) },
@@ -865,7 +891,8 @@ private fun DiscoverHost(
         com.kamsiob.kamai.ui.discover.ReaderSheet(
             moment = current!!,
             onDismiss = vm::closeReader,
-            onDiscuss = { vm.discuss { id -> vm.closeReader(); stack.add(Pushed.Conversation(id)) } },
+            // Grounded: a sheet over Discover, not a screen instead of it (#11).
+            onDiscuss = { vm.discuss { opened -> vm.closeReader(); onGrounded(opened) } },
             onExplore = { vm.explore { id -> vm.closeReader(); stack.add(Pushed.Conversation(id)) } },
             onOpenSource = openUrl,
         )
@@ -1308,7 +1335,9 @@ private fun AutoArchiveHost(app: AppViewModel) {
 @Composable
 private fun SavedMomentsHost(
     @Suppress("UNUSED_PARAMETER") app: AppViewModel,
+    @Suppress("UNUSED_PARAMETER")
     stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
+    onGrounded: (com.kamsiob.kamai.data.KamRepository.GroundedDiscussion) -> Unit,
 ) {
     val vm: com.kamsiob.kamai.ui.discover.DiscoverViewModel = viewModel()
     LaunchedEffect(Unit) { vm.refresh() }
@@ -1319,8 +1348,45 @@ private fun SavedMomentsHost(
             val packId = s.packId
             val momentId = s.momentId
             if (packId != null && momentId != null) {
-                vm.openSaved(packId, momentId) { id -> stack.add(Pushed.Conversation(id)) }
+                vm.openSaved(packId, momentId, onGrounded)
             }
         },
     )
+}
+
+/**
+ * The Discover discussion sheet, with the conversation running inside it (#11).
+ *
+ * The view model is fetched with the same key `ConversationScreen` uses, so this
+ * and the transcript below it are the same instance. That is what lets the
+ * header's expand control lift the grounding on the conversation the sheet is
+ * showing, rather than on a second copy of it.
+ *
+ * Expanding is the escape hatch from item 21, not just a change of window: it
+ * lifts the passage scope, drops the honest note about a small model's recall
+ * into the transcript, and opens the whole history in the full chat. Somebody
+ * only reaches for it because the passage would not answer their question.
+ */
+@Composable
+private fun GroundedSheetHost(
+    app: AppViewModel,
+    target: com.kamsiob.kamai.data.KamRepository.GroundedDiscussion,
+    onClose: () -> Unit,
+    onExpanded: () -> Unit,
+) {
+    val chat: ChatViewModel = viewModel(
+        key = "chat-${target.conversationId}",
+        factory = ChatViewModel.factory(app.repository, app.engine, app.modelManager),
+    )
+    com.kamsiob.kamai.ui.discover.GroundedSheet(
+        title = target.title,
+        source = target.source,
+        onClose = onClose,
+        onExpand = {
+            chat.continueInOpenChat()
+            onExpanded()
+        },
+    ) {
+        ConversationScreen(app, target.conversationId, scoped = true)
+    }
 }

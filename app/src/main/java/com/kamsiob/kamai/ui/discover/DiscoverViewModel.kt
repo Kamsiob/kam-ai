@@ -118,14 +118,18 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Opens a saved moment as a grounded discussion, since the pack card for it
      *  may no longer be the dealt one. */
-    fun openSaved(packId: String, momentId: String, onReady: (String) -> Unit) {
+    fun openSaved(
+        packId: String,
+        momentId: String,
+        onReady: (KamRepository.GroundedDiscussion) -> Unit,
+    ) {
         viewModelScope.launch {
-            val id = repository.openMomentDiscussion(packId, momentId)
-            if (id == null) {
+            val opened = repository.openMomentDiscussion(packId, momentId)
+            if (opened == null) {
                 _notice.value = "That moment's pack is not installed. Get it again from Packs."
                 return@launch
             }
-            onReady(id)
+            onReady(opened)
         }
     }
 
@@ -344,7 +348,7 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
      * Grounded chat: "Discuss this passage". Creates a conversation confined to the
      * passage and hands it to the main app to open.
      */
-    fun discuss(onReady: (String) -> Unit) {
+    fun discuss(onReady: (KamRepository.GroundedDiscussion) -> Unit) {
         val m = _current.value ?: return
         viewModelScope.launch {
             val id = repository.createConversation(Mode.DISCOVER)
@@ -354,7 +358,7 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
                 incomplete = false,
             )
             repository.setDiscoverGrounding(id, m.passage)
-            onReady(id)
+            onReady(KamRepository.GroundedDiscussion(id, m.title, m.topic))
         }
     }
 

@@ -74,8 +74,13 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       import. Device-verified: save -> appears in Follow-ups under DISCOVER -> reopen from either place ->
       unsave removes it; clean migration over existing data.
 - [x] 10. Filter Follow-ups by source. Done (light chip row, All + each source). (chat, Logic, Discover); light, obvious, clear reset.
-- [ ] 11. Discover discussion uses a scoped slide-up surface, not full chat window (title, source,
-      distinct look, design system, no amber).
+- [x] 11. Discover discussion uses a scoped slide-up surface, not full chat window. DONE:
+      `GroundedSheet` over Discover at 0.86 height with a 32% scrim, grabber, moment title and a
+      "topic · answers come from this passage only" line; `ChatScreen(scoped = true)` drops the
+      conversation header, grounded banner and hairline that would restate it. Close returns to the
+      passage; Expand lifts the grounding, adds the honest recall note and opens the full chat
+      (which is item 21's escape). Design system throughout, no amber. Device-verified: arrival,
+      keyboard, a grounded answer, and the expand path with history intact.
 - [x] 12. Logic mode. DONE: persistent LogicBanner + "Logic Partner" tonal pill while active
       (design system, no amber); inline centered SYSTEM note at each switch point (both directions,
       stays in history) via new Role.SYSTEM (filtered from the model prompt and list snippet); mode
@@ -136,7 +141,7 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       (N)" link on Chats shown only when some exist; open / Move to Chats (unarchive) / Delete;
       archiving reversible, deletion not. Archive/delete from header pop back to the list.
       Device-verified: header, menu, archive->link->archived view->unarchive round trip.
-- [~] 21. Discover scope boundary visible before hit. DONE: a grounded discussion now states its
+- [x] 21. Discover scope boundary visible before hit. DONE: a grounded discussion now states its
       scope up front with a GroundedBanner ("Staying with this passage. Answers come from the text
       above, not the wider web."; design-system tonal fill, book icon, no amber) and offers a one-tap
       "Continue in open chat" that lifts the grounding, switches the conversation to open Chat (so its
@@ -145,8 +150,8 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       carries forward. Device-verified: banner shown, escape lifts scope, note added, mode = Chat,
       persists across reopen. Grounded vs open already differ at selection (ReaderSheet's Discuss vs
       Explore, with the plain explanation of each). REMAINING: the scoped slide-up surface itself
-      (item 11, a distinct presentation rather than the full chat window); broader audit for other
-      invisible walls.
+      (item 11) is now DONE, and the one-tap escape lives in the sheet header. REMAINING: broader
+      audit for other invisible walls.
 - [~] 22. Capability transparency (declarative capabilities + model-picker chips with tap-to-explain done + verified; speed/quality ratings, input-bar gating, 3-state controls remain). Orig: declarative per-model capabilities in catalog; input bar adapts
       (hide unsupported controls on every surface); three states (can't/can't-afford/not-installed);
       filter pickers; honest model switching with existing attachments. Model picker shows

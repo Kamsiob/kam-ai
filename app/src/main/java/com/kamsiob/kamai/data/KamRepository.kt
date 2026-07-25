@@ -410,7 +410,28 @@ class KamRepository(
      * that holds the moment is no longer installed. Lives here so the Follow-ups
      * list can open a saved moment without pulling in the Discover view model.
      */
-    suspend fun openMomentDiscussion(packId: String, momentId: String): String? {
+    /**
+     * What the scoped Discover surface needs to introduce itself: the
+     * conversation to run, and the passage it is confined to (#11).
+     *
+     * The title and source travel with the id because the surface is a sheet
+     * over Discover, not a chat screen, and a sheet that opened with only a
+     * conversation id could say nothing about what it is scoped to until the
+     * titler had been round.
+     */
+    data class GroundedDiscussion(
+        val conversationId: String,
+        val title: String,
+        /**
+         * The moment's topic, not its `sourceTitle`. For a Wikipedia pack the
+         * source title is the article name, which is also the moment title, so
+         * the sheet header read "Merovingian dynasty" over "from Merovingian
+         * dynasty". The topic is the one thing the header does not already say.
+         */
+        val source: String,
+    )
+
+    suspend fun openMomentDiscussion(packId: String, momentId: String): GroundedDiscussion? {
         val m = momentById(packId, momentId) ?: return null
         val id = createConversation(Mode.DISCOVER)
         addMessage(
@@ -419,7 +440,7 @@ class KamRepository(
             incomplete = false,
         )
         setDiscoverGrounding(id, m.passage)
-        return id
+        return GroundedDiscussion(id, m.title, m.topic)
     }
     fun observeSavedMoments(): Flow<List<FollowUpEntity>> = db.followUps().observeSavedMoments()
     suspend fun isMomentSaved(packId: String, momentId: String): Boolean =

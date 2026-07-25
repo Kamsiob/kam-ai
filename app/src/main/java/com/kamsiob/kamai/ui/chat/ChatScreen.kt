@@ -172,6 +172,13 @@ fun ChatScreen(
     projectOptions: List<Pair<String, String>> = emptyList(),
     conversationProjectId: String? = null,
     grounded: Boolean = false,
+    /**
+     * True when this transcript is running inside the Discover sheet rather than
+     * as a screen of its own (#11). The sheet carries the title and the scope in
+     * its header, so the conversation header and the grounded banner would be the
+     * same two facts stated twice, ten pixels apart.
+     */
+    scoped: Boolean = false,
     onContinueOpen: () -> Unit = {},
     onMoveToProject: (String?) -> Unit = {},
     onRenameConversation: (String) -> Unit = {},
@@ -347,7 +354,7 @@ fun ChatScreen(
         // The open conversation's title sits at the top so it is always clear
         // which chat this is, with rename, archive, and delete beside it. Shown
         // once the conversation exists (has content), not on a blank new chat.
-        if (messages.isNotEmpty()) {
+        if (messages.isNotEmpty() && !scoped) {
             ConversationHeader(
                 title = conversationTitle,
                 projectOptions = projectOptions,
@@ -373,7 +380,7 @@ fun ChatScreen(
 
         // A grounded Discover discussion states its scope up front, and offers the
         // one-tap way out so an out-of-scope question never dead-ends (item 21).
-        if (grounded) {
+        if (grounded && !scoped) {
             Box(Modifier.padding(horizontal = KamTheme.dimens.screenPadding, vertical = 4.dp)) {
                 GroundedBanner(onContinueOpen = onContinueOpen)
             }
@@ -382,7 +389,7 @@ fun ChatScreen(
         // A hairline separates the header zone (title and mode) from the
         // conversation, so the title clearly belongs to the bar above, not the
         // messages below.
-        if (messages.isNotEmpty()) {
+        if (messages.isNotEmpty() && !scoped) {
             Spacer(Modifier.height(6.dp))
             Box(
                 Modifier
