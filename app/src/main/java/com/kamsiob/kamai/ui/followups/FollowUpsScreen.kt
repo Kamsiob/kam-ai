@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import com.kamsiob.kamai.data.FollowUpEntity
 import com.kamsiob.kamai.ui.chats.relativeTime
 import com.kamsiob.kamai.ui.components.EmptyState
+import com.kamsiob.kamai.ui.components.edgeFadeHorizontal
 import com.kamsiob.kamai.ui.components.Eyebrow
 import com.kamsiob.kamai.ui.theme.KamTheme
 import com.kamsiob.kamai.ui.theme.expressiveSpec
@@ -80,15 +81,25 @@ fun FollowUpsScreen(
 ) {
     val colors = KamTheme.colors
     var completedExpanded by remember { mutableStateOf(false) }
-    // Filter by where an item came from. null means everything.
-    var filter by remember { mutableStateOf<com.kamsiob.kamai.data.Mode?>(null) }
+    // Two filters, independent and combined: where an item came from, and which
+    // kind it is (#33). Null on either means everything.
+    var sourcePick by remember { mutableStateOf<com.kamsiob.kamai.data.Mode?>(null) }
+    var kindPick by remember { mutableStateOf<com.kamsiob.kamai.data.FollowUpKind?>(null) }
+
     val sources = remember(open, completed) {
-        (open + completed).map { it.sourceMode }.distinct()
+        com.kamsiob.kamai.data.FollowUpFilter.sourcesIn(open, completed)
     }
-    // A filter that no longer matches anything (its last item was removed) falls back to All.
-    if (filter != null && filter !in sources) filter = null
-    val shownOpen = if (filter == null) open else open.filter { it.sourceMode == filter }
-    val shownCompleted = if (filter == null) completed else completed.filter { it.sourceMode == filter }
+    val kinds = remember(open, completed) {
+        com.kamsiob.kamai.data.FollowUpFilter.kindsIn(open, completed)
+    }
+    // A filter that no longer matches anything falls back to All rather than
+    // stranding the user on an empty list for a reason they cannot see. The kind
+    // one matters as much as the source one, because the user can change an
+    // item's kind while filtered by it.
+    val filter = com.kamsiob.kamai.data.FollowUpFilter.resolve(sourcePick, sources)
+    val kindFilter = com.kamsiob.kamai.data.FollowUpFilter.resolve(kindPick, kinds)
+    val shownOpen = com.kamsiob.kamai.data.FollowUpFilter.apply(open, filter, kindFilter)
+    val shownCompleted = com.kamsiob.kamai.data.FollowUpFilter.apply(completed, filter, kindFilter)
 
     Column(modifier = modifier.fillMaxSize()) {
         Text(
@@ -110,15 +121,20 @@ fun FollowUpsScreen(
             return@Column
         }
 
-        // A quiet filter, shown only when items come from more than one place.
+        // Quiet filters, each shown only when there is more than one thing to
+        // choose between. A row with a single option filters nothing and is only
+        // clutter.
         if (sources.size > 1) {
-            SourceFilterRow(sources = sources, selected = filter, onSelect = { filter = it })
-            Spacer(Modifier.height(4.dp))
+            SourceFilterRow(sources = sources, selected = filter, onSelect = { sourcePick = it })
         }
+        if (kinds.size > 1) {
+            KindFilterRow(kinds = kinds, selected = kindFilter, onSelect = { kindPick = it })
+        }
+        if (sources.size > 1 || kinds.size > 1) Spacer(Modifier.height(4.dp))
 
         if (shownOpen.isEmpty() && shownCompleted.isEmpty()) {
             Text(
-                "Nothing from ${filterLabel(filter)} yet.",
+                com.kamsiob.kamai.data.FollowUpFilter.emptyLine(filter, kindFilter),
                 style = KamTheme.type.body, color = colors.textTertiary,
                 modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding, vertical = 12.dp),
             )
@@ -184,15 +200,8 @@ fun FollowUpsScreen(
 }
 
 /** Short label for a source filter value; null is everything. */
-private fun filterLabel(mode: com.kamsiob.kamai.data.Mode?): String = when (mode) {
-    null -> "All"
-    com.kamsiob.kamai.data.Mode.GENERAL -> "General"
-    com.kamsiob.kamai.data.Mode.LOGIC -> "Logic"
-    com.kamsiob.kamai.data.Mode.BRAINSTORM -> "Brainstorm"
-    com.kamsiob.kamai.data.Mode.DISCOVER -> "Discover"
-    com.kamsiob.kamai.data.Mode.BENCH -> "Workbench"
-    com.kamsiob.kamai.data.Mode.OVERLAY -> "Quick ask"
-}
+private fun filterLabel(mode: com.kamsiob.kamai.data.Mode?): String =
+    com.kamsiob.kamai.data.FollowUpFilter.sourceLabel(mode)
 
 /**
  * A light, horizontal row of source filters: All plus each place items came from.
@@ -210,6 +219,7 @@ private fun SourceFilterRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .edgeFadeHorizontal()
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = KamTheme.dimens.screenPadding, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -218,6 +228,48 @@ private fun SourceFilterRow(
             val on = option == selected
             Text(
                 filterLabel(option),
+                style = KamTheme.type.label,
+                color = if (on) colors.tonalText else colors.textSecondary,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(if (on) colors.tonalFill else colors.surfaceSecondary)
+                    .clickable { onSelect(option) }
+                    .semantics { this.selected = on }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The same quiet row, for kind rather than source (#33). Its own function rather
+ * than a generic one over two unrelated enums, which would need a label lambda
+ * and read worse than the duplication it saved.
+ */
+@Composable
+private fun KindFilterRow(
+    kinds: List<com.kamsiob.kamai.data.FollowUpKind>,
+    selected: com.kamsiob.kamai.data.FollowUpKind?,
+    onSelect: (com.kamsiob.kamai.data.FollowUpKind?) -> Unit,
+) {
+    val colors = KamTheme.colors
+    val options = listOf<com.kamsiob.kamai.data.FollowUpKind?>(null) + kinds
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .edgeFadeHorizontal()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = KamTheme.dimens.screenPadding, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEach { option ->
+            val on = option == selected
+            Text(
+                when (option) {
+                    null -> "All kinds"
+                    com.kamsiob.kamai.data.FollowUpKind.CHECK -> "To check"
+                    com.kamsiob.kamai.data.FollowUpKind.PURSUE -> "To pursue"
+                },
                 style = KamTheme.type.label,
                 color = if (on) colors.tonalText else colors.textSecondary,
                 modifier = Modifier

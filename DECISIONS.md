@@ -3080,3 +3080,38 @@ with "What claim do you want tested?", the Brainstorm brain with "All right. Wha
 got?" in genuine italic serif with every glyph present, and the Workbench anvil and hammer
 with "The result lands here." in mono. The chip-row fade is visible on the Workbench actions,
 with "Fix gramma..." fading off the right edge.
+
+## Issue #33: filtering follow-ups by kind
+
+The kind label and the user override already shipped. What was missing was the filter, and a
+path HANDOFF listed as "written, never verified": Brainstorm defaulting to pursue.
+
+**Two independent filters that combine**, source and kind, rather than one replacing the
+other. Each row appears only when there is more than one thing to choose between, since a row
+with a single option filters nothing and is only clutter.
+
+The interesting part is not the filtering but **what happens when a filter stops matching**.
+The user can change an item's kind while filtered by that kind, or complete the last item from
+a source, and either leaves the list looking empty for a reason they cannot see. Both fall
+back to everything rather than stranding them. That is why the logic is in
+`FollowUpFilter` rather than inline in the screen: it is the part worth testing.
+
+Kinds are always listed check-then-pursue rather than in arrival order, so the two chips never
+swap places under the user's finger. Sources keep first-seen order for the same reason. Both
+rows read from the open and completed lists together, or completing the last open Pursue item
+would make its chip vanish while the item is still on screen.
+
+**The Brainstorm default moved out of the view model** into `FollowUpFilter.kindFor` so it is
+covered by tests rather than only by its one call site. Twelve tests in all.
+
+These are the third chip row DESIGN.md said needed the horizontal fade, so
+`edgeFadeHorizontal` is applied here as well as to the two in Workbench.
+
+Verified on the phone: asked Brainstorm about starting a weekend bakery, bookmarked its
+answer, and the toast read **"Saved to pursue"** with the item landing as `To pursue` /
+`BRAINSTORM`. Both filter rows then appeared, and filtering to To pursue left only that item.
+
+Incidentally verified at the same time, and worth recording because #25 is still open:
+**Brainstorm behaved exactly as specified.** Given only a topic it answered "Only a topic, no
+idea yet. I'll use STARBURSTING." and asked across who, what, when, where, why and how rather
+than handing over any ideas.

@@ -446,13 +446,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun flag(snippet: String, mode: Mode, conversationId: String?, messageId: String?) =
         viewModelScope.launch {
-            // Set the kind from where it came: something saved from Brainstorm is an
-            // idea to pursue; everything else defaults to something to check (Part 5).
-            val kind = if (mode == Mode.BRAINSTORM) {
-                com.kamsiob.kamai.data.FollowUpKind.PURSUE
-            } else {
-                com.kamsiob.kamai.data.FollowUpKind.CHECK
-            }
+            // Set the kind from where it came (Part 5). The mapping lives in
+            // FollowUpFilter so it is covered by tests rather than only by this
+            // call site.
+            val kind = com.kamsiob.kamai.data.FollowUpFilter.kindFor(mode)
             repository.flag(snippet, mode, conversationId, messageId, kind = kind)
             showToast(if (kind == com.kamsiob.kamai.data.FollowUpKind.PURSUE) "Saved to pursue" else "Saved to Follow-ups")
         }
