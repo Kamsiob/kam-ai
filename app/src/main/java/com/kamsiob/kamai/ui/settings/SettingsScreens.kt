@@ -957,7 +957,7 @@ fun SafetyScreen(modifier: Modifier = Modifier) {
         val paragraphs = listOf(
             "The model runs on your phone, which means it is small. It knows less " +
                 "than the big cloud AIs and it gets things wrong, especially dates, " +
-                "names, numbers, and anything it would need to have memorised exactly.",
+                "names, numbers, and anything it would need to have memorized exactly.",
             "Treat its answers as a starting point, not a final word. When something " +
                 "matters, check it against a source you trust. That is what the " +
                 "bookmark and the Follow-ups tab are for: mark it, move on, and come " +

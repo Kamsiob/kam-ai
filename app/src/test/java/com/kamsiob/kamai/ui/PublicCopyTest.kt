@@ -172,6 +172,39 @@ class PublicCopyTest {
         assertThat(SystemPrompts.grounded("a passage").lowercase()).doesNotContain("flag")
     }
 
+    @Test
+    fun noStringInTheAppUsesBritishIseSpelling() {
+        // The app writes -ize. Two instances had already slipped through in
+        // different files: "reorganised" in the Workbench note, beside chips
+        // reading "Summarize", and "memorised" on the "Kam AI can be wrong"
+        // screen. Both were found by reading the screen rather than the code,
+        // which is a poor way to catch spelling.
+        //
+        // Specific stems rather than a blanket "-ised", because advised, raised,
+        // promised and surprised are all correct and common.
+        val british = Regex(
+            "organis|recognis|customis|prioritis|apologis|normalis|optimis|" +
+                "summaris|memoris|categoris|emphasise|analyse",
+            RegexOption.IGNORE_CASE,
+        )
+        // The value of these is a model identifier like "Q4_K_M", never shown as
+        // a word, and renaming the property would be churn with no reader.
+        val allowedIdentifiers = Regex("quantisation")
+        val literal = Regex("""\"[^\"\n]*\"""")
+
+        val offenders = mutableListOf<String>()
+        repoFile("app/src/main/java/com/kamsiob/kamai").walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .forEach { file ->
+                literal.findAll(file.readText())
+                    .map { it.value }
+                    .filter { british.containsMatchIn(it) && !allowedIdentifiers.containsMatchIn(it) }
+                    .forEach { offenders += "${file.name}: ${it.take(70)}" }
+            }
+
+        assertThat(offenders).isEmpty()
+    }
+
     /** The name a mode is introduced by in public copy. BENCH is Workbench. */
     private fun displayNameOf(mode: Mode): String = when (mode) {
         Mode.GENERAL -> "General"

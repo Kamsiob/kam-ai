@@ -4707,3 +4707,28 @@ the Markdown file keeps everything.
 
 The file is also named from the conversation title rather than the first thing anybody said, which
 is the #41 fix still holding.
+
+## A second British spelling, and a guard that generalises
+
+The "Kam AI can be wrong" screen said the model gets things wrong, "especially dates, names,
+numbers, and anything it would need to have **memorised** exactly".
+
+That is the second of these. The first was "reorganised" in the Workbench note, sitting beside
+chips reading "Summarize" and "Reorganize". Both were found by reading a screen, which is a poor
+way to catch spelling, and the guard added for the first one only covered the mode banners and
+notices, so it could never have caught this.
+
+`noStringInTheAppUsesBritishIseSpelling` now scans every single-line string literal in the app.
+Specific stems rather than a blanket "-ised", because advised, raised, promised and surprised are
+all correct and common, and a rule that fires on those would be turned off within a week.
+
+`quantisation` is allowed: it is a property name whose value is a model identifier like "Q4_K_M",
+never rendered as a word, and renaming it would be churn with no reader on the other end. Same
+reasoning as leaving `flagMissed` alone during #60.
+
+### The screen itself, which is good
+
+"The model runs on your phone, which means it is small. It knows less than the big cloud AIs and
+it gets things wrong." Then the bookmark and Follow-ups as the answer to that, and a plain
+statement that it is not a substitute for a qualified professional. That is the honest-limits
+framing the positioning asks for, said without hedging.
