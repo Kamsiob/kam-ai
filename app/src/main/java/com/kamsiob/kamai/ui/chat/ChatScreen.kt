@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -364,30 +365,43 @@ fun ChatScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(messages, key = { it.id }) { message ->
-                        if (message.role == Role.SYSTEM) {
-                            ModeSwitchNote(message.content)
-                            return@items
+                    itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
+                        // One item holds the separator and the turn below it, so
+                        // the two can never be scrolled apart.
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // A conversation picked up days later used to read as one
+                            // unbroken exchange, with nothing anywhere saying a night
+                            // had passed between two turns (#39).
+                            ChatDates.separatorBefore(
+                                previous = messages.getOrNull(index - 1)?.createdAt,
+                                current = message.createdAt,
+                                now = System.currentTimeMillis(),
+                            )?.let { DateSeparator(it) }
+
+                            if (message.role == Role.SYSTEM) {
+                                ModeSwitchNote(message.content)
+                            } else {
+                                MessageRow(
+                                    onContinue = onContinueIncomplete,
+                                    onDiscard = onDiscardIncomplete,
+                                    message = message,
+                                    flagged = message.id in flaggedMessageIds,
+                                    ttsAvailable = ttsAvailable,
+                                    speaking = message.id == speakingMessageId,
+                                    isLast = message.id == messages.lastOrNull()?.id,
+                                    onFlag = { onFlag(message) },
+                                    onRegenerate = onRegenerate,
+                                    onReport = { onReport(message) },
+                                    onShareResponse = { onShareResponse(message) },
+                                    onShareThread = onShareThread,
+                                    onExportThread = onExportThread,
+                                    onShareText = onShareText,
+                                    onFollowUpSelection = { text -> onFollowUpSelection(message, text) },
+                                    onPlay = { onPlay(message) },
+                                    onEdit = { onEdit(message, it) },
+                                )
+                            }
                         }
-                        MessageRow(
-                            onContinue = onContinueIncomplete,
-                            onDiscard = onDiscardIncomplete,
-                            message = message,
-                            flagged = message.id in flaggedMessageIds,
-                            ttsAvailable = ttsAvailable,
-                            speaking = message.id == speakingMessageId,
-                            isLast = message.id == messages.lastOrNull()?.id,
-                            onFlag = { onFlag(message) },
-                            onRegenerate = onRegenerate,
-                            onReport = { onReport(message) },
-                            onShareResponse = { onShareResponse(message) },
-                            onShareThread = onShareThread,
-                            onExportThread = onExportThread,
-                            onShareText = onShareText,
-                            onFollowUpSelection = { text -> onFollowUpSelection(message, text) },
-                            onPlay = { onPlay(message) },
-                            onEdit = { onEdit(message, it) },
-                        )
                     }
                     // Show the thinking indicator the instant work starts, through
                     // model load and prompt ingestion, not only once the empty answer
@@ -1259,6 +1273,36 @@ private fun ModeSwitchNote(text: String) {
                 .background(colors.surfaceSecondary)
                 .padding(horizontal = 14.dp, vertical = 8.dp),
         )
+    }
+}
+
+/**
+ * The day a conversation moved to, drawn between the turns (#39).
+ *
+ * Quieter than a mode-switch note, and deliberately not a bubble: nothing was
+ * said here, the calendar simply moved. A hairline either side, the day in the
+ * middle, in the same tertiary text as every other piece of chrome in the
+ * transcript. It is one node to a screen reader, so the rules read as "Yesterday"
+ * rather than announcing two decorative dividers around it.
+ */
+@Composable
+private fun DateSeparator(label: String) {
+    val colors = KamTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(1f).height(1.dp).background(colors.border))
+        Text(
+            label,
+            style = KamTheme.type.secondary,
+            color = colors.textTertiary,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        Box(Modifier.weight(1f).height(1.dp).background(colors.border))
     }
 }
 

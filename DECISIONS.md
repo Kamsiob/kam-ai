@@ -3612,3 +3612,39 @@ The Workbench result and the overlay answer are drawn with plain `Text`, not the
 renderer, so any markup in them is already visible on screen. Their clipboard and their display
 agree today, and converting only the copy would break that agreement. Whether those two surfaces
 should render Markdown at all is a separate question and not one to decide inside a copy fix.
+
+## Issue #39, fourth finding: a conversation never said a day had passed
+
+Chats gives every conversation a relative time. Inside a conversation there was no sense of time
+at all, so one picked up a week later read as a single unbroken exchange: the answer above and
+the question below looked like they happened in the same sitting.
+
+`ChatDates` decides when to draw a separator and what to call the day. It takes its clock and its
+zone, so the awkward cases are tested rather than discovered at midnight or on New Year's Day.
+
+The judgements worth recording:
+
+- **The first message is a special case.** A conversation that all happened today opens with no
+  separator, because "Today" at the top of today's conversation says nothing. One that started
+  earlier is dated, which is the entire point of the feature.
+- **Calendar days, not elapsed time.** Two messages a minute apart across midnight are separated;
+  fourteen hours apart within one day are not. What is being reported is that the date changed.
+- **The weekday window stops at six days, not seven.** Seven days back is the same weekday as
+  today, so "Wednesday" would read as this morning.
+- **The reader's own zone decides.** Half eight in the evening in New York is already tomorrow in
+  UTC, and the user's calendar is the one that means anything to them.
+- Today and Yesterday by name, then the weekday, then the date, with the year only when it is not
+  this one.
+
+The separator is one node to a screen reader, so it reads as "Yesterday" rather than announcing
+two decorative rules around it. It sits in the same list item as the turn below it, so the two
+cannot be scrolled apart.
+
+Verified on the phone against a real conversation from Thursday, which now opens with "Thursday"
+above the first message.
+
+### Noticed and deliberately left alone
+
+Old conversations still carry mode notices reading "Back to Chat", from before the four-mode
+rename. That is what the app said at the time, and a transcript is a record. Rewriting what
+somebody's history says would be worse than leaving it accurate.
