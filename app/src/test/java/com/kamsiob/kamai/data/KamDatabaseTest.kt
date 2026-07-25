@@ -203,4 +203,74 @@ class KamDatabaseTest {
         db.settings().put(SettingEntity("chats.view", "grid"))
         assertThat(db.settings().get("chats.view")).isEqualTo("grid")
     }
+
+    // Workbench pairing lifecycle (#32). These run at all only because the test
+    // task moved to JDK 21; the whole class used to fail before any assertion.
+
+    @Test
+    fun aLinkIsWrittenOnBothSidesSoEitherCanFollowIt() = runTest {
+        seedConversation(id = "session")
+        seedConversation(id = "chat")
+        db.conversations().setLink("session", "chat")
+        db.conversations().setLink("chat", "session")
+
+        assertThat(db.conversations().linkOf("session")).isEqualTo("chat")
+        assertThat(db.conversations().linkOf("chat")).isEqualTo("session")
+    }
+
+    @Test
+    fun anUnlinkedConversationHasNoLink() = runTest {
+        seedConversation(id = "alone")
+        assertThat(db.conversations().linkOf("alone")).isNull()
+    }
+
+    @Test
+    fun breakingTheLinkClearsBothSides() = runTest {
+        // Otherwise the other half is left pointing at a conversation that no
+        // longer considers itself linked, and offers to open it.
+        seedConversation(id = "session")
+        seedConversation(id = "chat")
+        db.conversations().setLink("session", "chat")
+        db.conversations().setLink("chat", "session")
+
+        db.conversations().setLink("session", null)
+        db.conversations().setLink("chat", null)
+
+        assertThat(db.conversations().linkOf("session")).isNull()
+        assertThat(db.conversations().linkOf("chat")).isNull()
+    }
+
+    @Test
+    fun linkingDoesNotDisturbAnythingElseAboutEitherRow() = runTest {
+        seedConversation(id = "session", title = "Tightened", pinned = true)
+        seedConversation(id = "chat", title = "About it")
+        val before = db.conversations().byId("session")!!
+
+        db.conversations().setLink("session", "chat")
+
+        val after = db.conversations().byId("session")!!
+        assertThat(after.title).isEqualTo(before.title)
+        assertThat(after.pinned).isEqualTo(before.pinned)
+        assertThat(after.updatedAt).isEqualTo(before.updatedAt)
+        assertThat(after.mode).isEqualTo(before.mode)
+        assertThat(after.linkedConversationId).isEqualTo("chat")
+    }
+
+    @Test
+    fun aWorkbenchSessionIsRewrittenRatherThanAppendedTo() = runTest {
+        // A session is the current state of one piece of text, not a transcript of
+        // every attempt, so running again replaces its two messages.
+        seedConversation(id = "session")
+        db.messages().insert(MessageEntity("m1", "session", Role.USER, "first ask", now))
+        db.messages().insert(MessageEntity("m2", "session", Role.ASSISTANT, "first result", now + 1))
+
+        db.messages().deleteForConversation("session")
+        db.messages().insert(MessageEntity("m3", "session", Role.USER, "second ask", now + 2))
+        db.messages().insert(MessageEntity("m4", "session", Role.ASSISTANT, "second result", now + 3))
+
+        val messages = db.messages().forConversation("session")
+        assertThat(messages).hasSize(2)
+        assertThat(messages.map { it.content })
+            .containsExactly("second ask", "second result").inOrder()
+    }
 }

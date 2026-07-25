@@ -650,7 +650,20 @@ class KamRepository(
         if (ids.isNotEmpty()) db.conversations().setArchivedBulk(ids, archived = false)
     }
 
-    suspend fun deleteConversation(id: String) = db.conversations().delete(id)
+    /**
+     * Deletes a conversation, and releases the other half of a Workbench pairing
+     * first (#32).
+     *
+     * The link is a plain id with no foreign key, so deleting one side would
+     * otherwise leave the other pointing at a conversation that no longer exists.
+     * That is not a crash, it is worse: an "Open the Workbench session" menu item
+     * that opens an empty Workbench, with nothing to tell the user why. Clearing
+     * it means the surviving half simply stops offering a link it cannot honour.
+     */
+    suspend fun deleteConversation(id: String) {
+        unlinkConversation(id)
+        db.conversations().delete(id)
+    }
 
     /** Editing truncates the tail and re-answers. There is no branching. */
     suspend fun truncateAfter(conversationId: String, message: MessageEntity) =
