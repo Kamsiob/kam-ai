@@ -32,7 +32,6 @@ class GoldRuleTest {
         "ModelScreen.kt" to "locked tier warnings",
         "Confirm.kt" to "destructive confirmation labels",
         "Common.kt" to "the destructive row label, and the Support button's fill",
-        "Shell.kt" to "the Follow-ups count badge, which is saved items",
         "FollowUpsScreen.kt" to "saved items",
         "DiscoverScreen.kt" to "the bookmark when set",
         "ChatsScreen.kt" to "Delete labels, and the saved dot",
