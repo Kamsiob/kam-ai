@@ -52,7 +52,39 @@ target_link_libraries(kamai
         android
         log)
 
-target_compile_options(kamai PRIVATE -O3 -fvisibility=hidden)
+# Codegen and link flags, issue #51.
+#
+# Every one of these is about what ends up in the .so rather than how fast the
+# arithmetic is: the maths is already handled by -O3 and the arm64 extensions
+# above. A 45 MB native library is most of the download, and dead code in it
+# costs the user data and disk for nothing.
+#
+#   -ffunction-sections / -fdata-sections with --gc-sections lets the linker drop
+#   anything unreachable, which in a vendored llama.cpp is a great deal: the app
+#   uses a fraction of what the library can do.
+#
+#   --icf=all folds functions with identical bodies into one. Templated code
+#   generates a lot of these.
+#
+#   -fvisibility=hidden was already here and is doing more work now: with
+#   sections and gc, hidden symbols are genuinely removable rather than merely
+#   unexported.
+#
+#   max-page-size=16384 is not an optimisation. Android 15 devices can boot with
+#   16 KB pages, and a library linked for 4 KB will not load on them at all. It
+#   costs a little padding and buys the app still working on hardware that is
+#   already shipping.
+target_compile_options(kamai PRIVATE
+    -O3
+    -fvisibility=hidden
+    -fvisibility-inlines-hidden
+    -ffunction-sections
+    -fdata-sections)
+
+target_link_options(kamai PRIVATE
+    -Wl,--gc-sections
+    -Wl,--icf=all
+    -Wl,-z,max-page-size=16384)
 
 # Keep ggml and llama symbols internal to this library. Without this the static
 # archives export thousands of ggml symbols, which would collide at runtime with
@@ -130,7 +162,17 @@ target_link_libraries(kamwhisper
         android
         log)
 
-target_compile_options(kamwhisper PRIVATE -O3 -fvisibility=hidden)
+target_compile_options(kamwhisper PRIVATE
+    -O3
+    -fvisibility=hidden
+    -fvisibility-inlines-hidden
+    -ffunction-sections
+    -fdata-sections)
+
+target_link_options(kamwhisper PRIVATE
+    -Wl,--gc-sections
+    -Wl,--icf=all
+    -Wl,-z,max-page-size=16384)
 
 # Same reasoning as libkamai above: keep this library's ggml copy fully internal
 # so it cannot collide with the other one. Only the WhisperBridge JNI entry

@@ -5091,3 +5091,43 @@ memory saving for no measurable speed cost, on a phone where memory is the bindi
 Flash attention is a prerequisite for quantised KV in llama.cpp, so the two go in together. The
 fallback to AUTO and f16 is not decoration: if a future model or build cannot do flash attention,
 the app degrades to exactly today's behaviour rather than failing to open a context at all.
+
+## Issue #51: link and codegen flags
+
+Added to both native targets: `-ffunction-sections -fdata-sections` with `--gc-sections`,
+`--icf=all`, `-fvisibility-inlines-hidden` alongside the visibility flag that was already there,
+and `-Wl,-z,max-page-size=16384`.
+
+The shipped libraries are **3.03 MB** (`libkamai.so`) and **0.92 MB** (`libkamwhisper.so`) stripped
+inside the APK. The 45 MB figure sitting in the build directory is the unstripped object and was
+never what anybody downloads, which is worth writing down because it is alarming and meaningless.
+
+**The page-size flag is not an optimisation and matters most.** Android 15 devices can boot with 16
+KB pages, and a library linked for 4 KB will not load on them at all. Verified with `llvm-readelf`:
+every LOAD segment now aligns to `0x4000`. It costs a little padding and buys the app still running
+on hardware that is already shipping.
+
+Verified the app still works afterwards, because `--gc-sections` and `--icf` are exactly the flags
+that can strip something reachable only through JNI: loaded a model, asked a question, got an
+answer.
+
+## Issue #56: the batch sweep, and why 512 stays
+
+`n_batch`/`n_ubatch` are 512. Tried 1024 for both.
+
+The honest result is that **this measurement was not reliable enough to act on**. Prefill rate
+depends on prompt length, and getting a fixed prompt through the UI proved harder than expected:
+the chat list reorders as conversations are used, and searching matched different conversations
+across runs, so the sizes came out as 938, 210, 1013 and 219 tokens rather than a constant. The one
+roughly comparable pair, 938 tokens at 31.3 tok/s against 1013 tokens at 32.4 tok/s, is inside the
+noise and slightly favours the larger batch on a slightly larger prompt, which proves nothing.
+
+Kept at 512 under #51's own rule: changes stay only if they measurably win, and this did not
+measurably do anything. Recording the failed methodology rather than a number, because the next
+person will otherwise repeat it.
+
+**What a real sweep needs**, for whoever does it: a fixed prompt driven below the UI, either a
+debug entry point that ingests a canned prompt of known length or an instrumentation test calling
+the bridge directly. Prefill also matters less than it looks, since the prefix reuse from #38 skips
+it entirely for a continuing conversation; the case this would improve is reopening a long
+conversation cold.
