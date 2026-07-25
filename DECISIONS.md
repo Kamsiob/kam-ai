@@ -4111,3 +4111,16 @@ actually went wrong, which is gold spreading into files nobody was thinking abou
 using it fails the test, and the fix is either not to, or to add it and say in the commit which of
 the four uses it is. A second test pins the three recording buttons together, since they drifted
 apart once already.
+
+## Conversation snippets showed the source, not the answer
+
+Spotted on the phone while checking the gold work, in grid view. The card for a formatted answer
+read `## Fruits * **Apple`.
+
+The same defect as copy handing over Markdown source, one surface along, and it had been sitting
+in the most-looked-at screen in the app. `cleanSnippet` already existed from the #59 work, so this
+is the same function doing one more job: strip stray template markers, flatten the Markdown, and
+collapse to a single line, because a preview has one line and a heading followed by a list
+otherwise arrives as a run of blank space.
+
+Still display only. The stored row is untouched.

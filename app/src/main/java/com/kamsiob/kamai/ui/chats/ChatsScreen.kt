@@ -1100,18 +1100,28 @@ private fun com.kamsiob.kamai.data.ConversationSummary.displayTitle(): String =
     title ?: cleanSnippet()?.take(48)?.takeIf { it.isNotBlank() } ?: "Untitled chat"
 
 /**
- * The snippet with stray template markers taken out (#59).
+ * The snippet as a reader would see the answer, not as it is stored.
  *
- * The card for a conversation from before the #49 fix read "Hello. How can I
- * help you. `</start_of_turn>`" in the owner's own chat list, because the marker
- * is in the stored message and nothing looked at it again on the way to a card.
+ * Two things were leaking through. Stray template markers from before the #49
+ * fix, so a card read "Hello. How can I help you. `</start_of_turn>`" (#59). And
+ * Markdown source, so a card for a formatted answer read "## Fruits * **Apple",
+ * which is the same defect as copying the source instead of the answer, one
+ * surface along.
  *
- * Display only. The row is not rewritten, since editing somebody's stored
- * conversations to fix a rendering problem is not a trade worth making, and
- * there is no way to tell a leaked marker from one they typed.
+ * Flattened to a single line as well, since a preview has one line to work with
+ * and a heading followed by a list otherwise arrives as a run of blank space.
+ *
+ * Display only. The stored row is not rewritten: editing somebody's
+ * conversations to fix a rendering problem is not a trade worth making, and a
+ * leaked marker cannot be told from one they typed.
  */
 private fun com.kamsiob.kamai.data.ConversationSummary.cleanSnippet(): String? =
-    snippet?.let { com.kamsiob.kamai.llm.PromptBuilder.withoutControlTokens(it).trim() }
+    snippet?.let { raw ->
+        val text = com.kamsiob.kamai.ui.components.markdownToPlainText(
+            com.kamsiob.kamai.llm.PromptBuilder.withoutControlTokens(raw),
+        )
+        text.replace(Regex("\\s+"), " ").trim()
+    }
 
 /**
  * The archived chats view (item 20). Archived conversations live here, off the
