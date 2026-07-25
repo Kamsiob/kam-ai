@@ -5249,3 +5249,31 @@ harmless reads is a rule somebody switches off.
 The two fixed tests are allowlisted too, since they name the dangerous calls inside the comments
 explaining why they no longer make them. A guard that fires on its own explanation is a guard
 people delete.
+
+## An interrupted recording is transcribed, not thrown away (#65)
+
+Leaving the chat mid-recording used to call `cancelRecording()`, which dropped
+the audio and posted "Recording stopped when you left, and was not saved." That
+notice was added in #39 because the loss had previously been silent, and it is
+honest, but it is still the app telling you it threw away minutes of your
+thinking. The flagship voice flow in MASTER_SPEC is a long Brainstorm brain
+dump; an incoming call in the middle of one was enough to lose all of it.
+
+`stopAndKeepDraft` now runs instead whenever a transcription model is present.
+It transcribes in `viewModelScope`, which outlives the composable, so the work
+finishes after the screen has gone and the words land in `draft`. The view model
+is keyed by conversation id, so they reappear in the conversation they were
+spoken into and nowhere else. `cancelRecording` stays for the no-model case,
+where there is genuinely nothing to be done with the audio.
+
+Two things stay deliberately quiet. Under two seconds is still discarded, on the
+same threshold `cancelRecording` uses for its notice: that length is a brush
+against the microphone, and transcribing it puts a cough or `[BLANK_AUDIO]` into
+somebody's composer. A transcription *failure* says nothing at all, because the
+user has already left and the notice would surface later attached to whatever
+they are doing then.
+
+The joining rules are extracted as `appendToDraft` and tested in
+`DraftAppendTest`, since that is the part whose mistakes are visible: whisper
+prefixes its output with a space, and a composer that opens indented or with a
+doubled space looks broken in a way the feature is not.

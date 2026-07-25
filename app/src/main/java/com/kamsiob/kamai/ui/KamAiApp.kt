@@ -501,9 +501,20 @@ private fun ConversationScreen(
     }
 
     // The screen going away should not leave the mic recording or a voice reading.
-    DisposableEffect(Unit) {
+    DisposableEffect(sttModel) {
         onDispose {
-            chat.cancelRecording()
+            // Leaving mid-recording keeps what was said rather than dropping it
+            // (#65). The transcription runs in the view model's scope, so it
+            // finishes after this screen has gone and lands in the draft.
+            val model = sttModel
+            if (model != null) {
+                chat.stopAndKeepDraft(
+                    com.kamsiob.kamai.voice.Voice.stt(context),
+                    app.repository.fileForStt(model),
+                )
+            } else {
+                chat.cancelRecording()
+            }
             app.stopSpeaking()
         }
     }

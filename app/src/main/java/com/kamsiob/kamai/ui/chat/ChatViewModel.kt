@@ -214,6 +214,53 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * The screen is going away mid-recording, so keep what was said (#65).
+     *
+     * [cancelRecording] above tells the user their minutes of talking are gone,
+     * which is honest and no help at all. When a transcription model is present
+     * there is no reason to throw the audio away: transcribe it and leave the
+     * words in the draft, where the composer will show them on return.
+     *
+     * The work runs in `viewModelScope`, which outlives the composable, so it
+     * finishes after the screen has gone. The view model is keyed by
+     * conversation, so the words reappear in the conversation they were spoken
+     * into and nowhere else.
+     *
+     * Under two seconds is still discarded, for the same reason [cancelRecording]
+     * stays quiet below that: it is a brush against the microphone rather than a
+     * thought, and transcribing it would drop a cough into someone's composer.
+     */
+    fun stopAndKeepDraft(
+        stt: com.kamsiob.kamai.voice.SttEngine,
+        modelFile: java.io.File,
+    ) {
+        if (!_recording.value) return
+        val spoken = recorder.seconds
+        _recording.value = false
+        val pcm = recorder.stop()
+        if (spoken < 2f) return
+        _transcribing.value = true
+        viewModelScope.launch {
+            when (val r = stt.transcribe(modelFile, pcm)) {
+                is com.kamsiob.kamai.voice.SttEngine.Result.Ok -> {
+                    val joined = appendToDraft(draft, r.text)
+                    if (joined != draft) {
+                        draft = joined
+                        _notice.value =
+                            "Recording stopped when you left. What you said is in the message box."
+                    }
+                }
+                // The user has already left. A notice about a failure they cannot
+                // see and did not ask for would only surface later, out of
+                // context, attached to whatever they are doing then.
+                is com.kamsiob.kamai.voice.SttEngine.Result.Error -> Unit
+                com.kamsiob.kamai.voice.SttEngine.Result.Cancelled -> Unit
+            }
+            _transcribing.value = false
+        }
+    }
+
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val messages: StateFlow<List<MessageEntity>> =
         _conversationId
@@ -857,4 +904,20 @@ class ChatViewModel(
          *  it cheap: only when the user has spoken this many times. */
         const val AUTO_MEMORY_EVERY = 3
     }
+}
+
+/**
+ * Joins speech kept from an interrupted recording onto whatever was already
+ * typed (#65).
+ *
+ * Separate from the view model so the joining rules can be tested without a
+ * database, a microphone, or a transcription model. Returns [draft] unchanged
+ * when there is nothing to add, which is how the caller knows whether to say
+ * anything.
+ */
+internal fun appendToDraft(draft: String, heard: String): String {
+    val text = heard.trim()
+    if (text.isEmpty()) return draft
+    if (draft.isBlank()) return text
+    return "${draft.trimEnd()} $text"
 }
