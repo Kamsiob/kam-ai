@@ -66,6 +66,16 @@ data class ConfirmRequest(
     /** When set, the MAJOR second step requires typing this word exactly. */
     val confirmWord: String? = null,
     val confirmLabel: String = "Delete",
+    /**
+     * Whether confirming destroys something.
+     *
+     * Defaults to true, because that is what this dialog was built for and every
+     * caller but one is a Delete, Forget or Erase. The exception is the quiz
+     * prompt, "Read the full moment first?", where confirming just starts a
+     * quiz: DESIGN reserves gold for destructive labels, and that one was
+     * wearing it for asking a question (#61).
+     */
+    val destructive: Boolean = true,
     /** The dismiss button label. Defaults to the reassuring "Keep it" that suits
      *  destructive confirmations; other prompts can name the safe path plainly. */
     val cancelLabel: String = "Keep it",
@@ -155,9 +165,13 @@ fun ConfirmDialog(
                 val wordSatisfied = request.confirmWord == null ||
                     typed.trim().equals(request.confirmWord, ignoreCase = true)
 
+                // Gold only when confirming actually destroys something. A
+                // multi-step confirmation always does, by construction.
+                val confirmColor = if (request.destructive) colors.goldText else colors.accent
+
                 when {
                     request.tier == ConfirmTier.SINGLE -> DialogTextButton(
-                        request.confirmLabel, colors.goldText,
+                        request.confirmLabel, confirmColor,
                         onClick = onSecondStepReady,
                     )
                     step == 1 -> DialogTextButton(

@@ -4553,3 +4553,34 @@ you ask it to". Turned airplane mode on and used the app.
 Nothing to fix. Recorded because a claim this central is worth having checked rather than assumed,
 and because "verified in airplane mode on the device" is the kind of statement that should have a
 date attached to it. Airplane mode was turned back off.
+
+## An eleventh gold violation, and why the guard did not catch it
+
+Found by taking a Discover quiz. The prompt "Read the full moment first?" offers **Quiz me
+anyway** in the reserved gold. Starting a quiz destroys nothing.
+
+It comes from `ConfirmDialog`, which drew every confirm label in gold. That was right for what it
+was built for, since eleven of its twelve callers are a Delete, Forget or Erase, and wrong for the
+twelfth. `ConfirmRequest` now carries `destructive`, defaulting to true so nothing else changes,
+and the quiz prompt sets it false.
+
+**`GoldRuleTest` did not catch this, and could not.** It pins which *files* may name a gold
+colour, and `Confirm.kt` is legitimately on that list for destructive labels. A wrong use inside an
+allowed file is invisible to it. That limitation is written in the test's own doc comment, and this
+is the case that proves it: the guard catches gold spreading to new places, not gold being misused
+where it already belongs.
+
+### Checked and left alone
+
+The auto-archive confirmation, "Archive N", is also arguably not destructive, since archiving is
+reversible and the toast offers an undo. Left in gold: it is a bulk change to a lot of
+conversations at once, and a moment's pause there is worth more than the consistency point. Noted
+rather than changed, because it is a judgement and not an obvious error like the quiz one.
+
+### The rest of the Discover journey, which is good
+
+Read a passage, took the quiz, revealed an answer. The prompt before a quiz is genuinely
+thoughtful: "The quiz is drawn from the full passage, not just the preview. Reading it first gives
+you a fair shot." The quiz asks, then reveals, then asks "Did you get it right?" with Yes and
+Missed it, which is honest self-assessment rather than pretending a small model can mark free
+text. The save action reads "Bookmark this for later", so the #60 wording landed here too.

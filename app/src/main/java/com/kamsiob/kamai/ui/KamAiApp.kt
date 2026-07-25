@@ -858,6 +858,9 @@ private fun DiscoverHost(
                     "it first gives you a fair shot.",
                 confirmLabel = "Quiz me anyway",
                 cancelLabel = "Read it first",
+                // Starting a quiz destroys nothing, so it does not wear the
+                // reserved gold (#61).
+                destructive = false,
                 onConfirm = { vm.quizMe(force = true); Unit },
             ),
             onDismiss = { vm.cancelQuiz(); vm.openReader() },
