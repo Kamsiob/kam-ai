@@ -4749,3 +4749,26 @@ than the reserved gold, which is the #61 work showing up in a place I had not de
 revisited.
 
 The document was removed from the phone afterwards.
+
+## The grounded Discover discussion, and proof the prompt fix reached the user
+
+Opened a saved Discover moment from Follow-ups. It reopens as a grounded discussion exactly as
+item 21 describes: the scope banner ("Staying with this passage. Answers come from the text above,
+not the wider web.") with the book icon and tonal fill, the one-tap "Continue in open chat"
+escape, an opening line naming the passage, and the mode control hidden, since a grounded
+discussion is not one of the four modes.
+
+Then asked something the passage does not cover, "Who won the 1998 World Cup":
+
+> The passage doesn't cover the 1998 World Cup. You should **bookmark** that to look up properly.
+
+The boundary holds: it declines to answer from memory and says so in one line, rather than filling
+the gap from a small model's recollection.
+
+**And it says "bookmark".** Earlier tonight, before the #60 work, a conversation on this exact path
+produced "That is worth flagging to look up properly." That wording came from the grounded prompt
+telling the model an uncovered question "is worth flagging", which was changed to "bookmarking".
+
+This is worth recording because prompt changes are usually taken on faith. Here the same code path,
+before and after, produced the word the interface uses instead of the word it had abandoned. The
+instruction reached the model and the model reached the user.
