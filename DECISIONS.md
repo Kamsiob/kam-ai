@@ -3819,3 +3819,28 @@ the morning.
 Recording the shape of it as much as the decision: a spec sentence and an unexplained constant
 disagreed for a long time, and nothing failed, because neither one is executable. The fix for
 that class of drift is a comment at the constant, not a better memory.
+
+## Issue #39, twelfth finding: attaching a file to a new chat threw it away
+
+`ChatViewModel.attach` opened with `val convId = _conversationId.value ?: return`. A new chat is
+not written to the database until the first message is sent, so in the one case where somebody is
+most likely to attach something, that early return fired. The user opened the file picker, browsed
+to a document, chose it, and the app did nothing whatsoever. No chip, no notice, no error.
+Reproduced on the phone before touching anything.
+
+The obvious fix is to create the conversation on attach, and it is the wrong one: DESIGN keeps
+creation lazy so that backing out of an unused new chat leaves no empty row, and attaching a file
+is not by itself a conversation.
+
+So the extracted text is held in the view model and written when the conversation is created, just
+before the first message, so the first question can be about it. `removeAttachment` clears the
+held copy too, so a file attached to a new chat can be taken off again without sending anything.
+
+Verified end to end on the phone: attach in a fresh chat, ask "Which river is mentioned in the
+attached file", get "The Tagus is mentioned in the attached file." That fact exists only in the
+attached document.
+
+No unit test, and worth stating why: `ChatViewModel` has no test harness, since it takes a real
+repository, engine, and model manager. Building one for this would be a bigger and more useful
+piece of work than the fix it would cover, and it is not something to start at two in the morning
+inside an unrelated change.

@@ -310,6 +310,12 @@ class ChatViewModel(
             val id = _conversationId.value ?: repository.createConversation(_mode.value).also {
                 _conversationId.value = it
             }
+            // Anything attached before this conversation existed goes in now,
+            // before the prompt is built, so the first question can be about it.
+            pendingAttachment?.let { (name, text) ->
+                repository.setAttachment(id, name, text)
+                pendingAttachment = null
+            }
             repository.addMessage(id, Role.USER, trimmed)
             maybeManualRemember(id, trimmed)
             respond(id)
@@ -406,12 +412,30 @@ class ChatViewModel(
     val attachedName: StateFlow<String?> = _attachedName.asStateFlow()
 
     /** Extracts text from [uri] on-device and attaches it to this conversation. */
+    /**
+     * A file attached before this conversation exists in the database.
+     *
+     * A new chat is not written until the first message is sent, so that backing
+     * out of one leaves no empty row. Attaching used to give up on that: it read
+     * the conversation id, found null, and returned. The user picked a document
+     * out of the file picker and the app discarded it without a word, no chip,
+     * no notice, no error (#39).
+     *
+     * Held here instead and written when the conversation is created. Attaching
+     * a file is not, on its own, a reason to leave an empty conversation behind.
+     */
+    private var pendingAttachment: Pair<String, String>? = null
+
     fun attach(context: android.content.Context, uri: android.net.Uri) {
-        val convId = _conversationId.value ?: return
         viewModelScope.launch {
             when (val r = com.kamsiob.kamai.files.FileExtractor.extract(context, uri)) {
                 is com.kamsiob.kamai.files.FileExtractor.Result.Ok -> {
-                    repository.setAttachment(convId, r.name, r.text)
+                    val convId = _conversationId.value
+                    if (convId != null) {
+                        repository.setAttachment(convId, r.name, r.text)
+                    } else {
+                        pendingAttachment = r.name to r.text
+                    }
                     _attachedName.value = r.name
                     _notice.value = "Attached ${r.name}. Ask about it."
                 }
@@ -421,11 +445,12 @@ class ChatViewModel(
     }
 
     fun removeAttachment() {
+        // Works before the conversation exists too, so a file attached to a new
+        // chat can be taken off again without sending anything first.
+        pendingAttachment = null
+        _attachedName.value = null
         val convId = _conversationId.value ?: return
-        viewModelScope.launch {
-            repository.clearAttachment(convId)
-            _attachedName.value = null
-        }
+        viewModelScope.launch { repository.clearAttachment(convId) }
     }
 
     private suspend fun buildPrompt(
