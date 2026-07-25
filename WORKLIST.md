@@ -19,8 +19,9 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       create projects; per-project instructions (capped, re-injected, project-isolated); new chat in
       a project; move existing chats in/out via header picker (non-retroactive notice); main list
       excludes project chats; 'In <project>' indicator in the open chat; delete-project moves chats
-      back to Chats. Device-verified (pirate project). REMAINING: multi-select bulk 'move to project'
-      from the chat list; add-existing-from-inside-a-project; optional project notes field (migration).
+      back to Chats. Device-verified (pirate project). Bulk 'move to project' from the chat list and
+      add-existing-from-inside-a-project both done and device-verified 25 July, sharing the project
+      picker that moved into ui/components. REMAINING: optional project notes field (migration).
       Original scope: Remove the bottom-nav "New" button to make room for Projects
       (owner). Nav order: Projects, Chats, Follow-ups, Discover (no Today; cancelled, see below).
       Build Projects (named container, persistent instructions + notes re-injected
@@ -48,7 +49,12 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       on send; testable `showThinkingIndicator` + unit test. DONE ALSO: quiz shows a spinner while generating and is cancelled on dismiss/leaving Discover
       (job cancelled + engine stopped) so it never surfaces unexpectedly. REMAINING: full app-wide
       audit of every slow op for immediate feedback + a real cancel path (transcription, TTS, pack
-      install, export/import, search).
+      install, export/import, search). DONE 25 July, issue closed: transcription now aborts through
+      whisper's abort_callback and the mic reads "Tap to stop"; pack install already had percentage,
+      pause, resume and cancel; TTS already toggled to stop; search is local and instant; export and
+      import gained a spinner and disabled controls. That audit also found two data-loss problems,
+      both fixed: connectedAndroidTest wiped the real database, and a replace-mode restore could
+      delete everything and stop halfway. Plus [BLANK_AUDIO] reaching the composer.
 - [x] 6. Read aloud cannot be stopped. Play now toggles to a Stop control while a response is being
       read and stops immediately when tapped; only one thing speaks at a time (starting a new read
       stops the current); a new message stops any read; nav-away already stops. `toggleSpeak` +
