@@ -5545,3 +5545,46 @@ picker if a vision model is ever added.
 Speed is reported as a measured number from this phone rather than a rating out
 of five, which was the original ask. A measurement somebody can check beats a
 score they cannot.
+
+## Logic Partner: the values-stop had to be a branch, not a footnote (#57)
+
+The argument-analysis method was already in the prompt — claim, grounds,
+warrant, qualifier, claim kind, then the crux and the kind of disagreement — and
+the values case still did not land. Reproduced on the phone with "Zoos are
+simply wrong. Keeping animals caged for our entertainment is immoral, full
+stop.":
+
+> The claim is that keeping animals caged for entertainment is immoral.
+> I disagree on the warrant. What standard of morality are you using to define
+> "immoral" in this context?
+
+Two failures in two lines. Demanding a standard of morality for a normative
+claim is the category error the mode is supposed to avoid, and it is exactly
+what makes the mode look stupid. And "I disagree on the warrant" is a label
+announcing a move rather than the move.
+
+The instruction was there, at position five in a long prompt, phrased as
+something to mention: "Say which disagreement you are in. ... Values: say so, and
+stop pretending argument resolves it." A small model does not act on that. It
+acts on an explicit branch with a concrete procedure, so the values case is now
+one, placed immediately after the restatement, with the useful work spelled out:
+name the principle they apply, name the strongest competing principle, ask which
+they keep when the two collide. Then three prohibitions naming the failure
+observed: never demand evidence for a values claim, never ask them to define
+their morality, never treat their conclusion as the error. Plus, for every
+branch, "never announce your move, make it: 'I disagree with the warrant' is a
+label, not an objection."
+
+Paid for inside the existing budget rather than raising it again. #57 said any
+rise had to be bought with the stage 2 caching work, which is not done, so the
+whole prompt was tightened instead — the claim-kind enumeration removed from the
+silent-read paragraph since the branches below name the kinds anyway, and a dozen
+smaller compressions. 1228 estimated tokens on the first draft, 1079 shipped,
+against the 1080 budget.
+
+Device-verified on both branches. The same values claim now gets "This is a
+values disagreement", the principle applied, the strongest competing principle,
+and which should take precedence. A causal claim ("working from home makes people
+less productive, so our team should go back to the office") gets the crux and a
+challenge separating causation from confounders. The empirical branch's "tell
+them to bookmark it" did not appear in that reply; the substance did.
