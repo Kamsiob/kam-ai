@@ -3317,3 +3317,23 @@ where all four labels now sit fully inside the pill, and at 1.0, where the contr
 pixel-unchanged.
 
 The device font size was set back to 1.0 afterwards, since it is the owner's setting.
+
+### Landscape plus keyboard, found and not fixed
+
+Rotating to landscape and tapping the composer squeezes the message list to zero height: the
+header, the mode indicator and the composer consume the whole window, and the user can type
+into a conversation none of which is visible. Portrait is fine, because the composer's
+`imePadding()` rises and the weighted list shrinks to match; landscape has no room left to
+give after the keyboard takes half of a 411dp window.
+
+**Not fixed, and worth recording why.** The intended fix is for the title and mode indicator
+to give up their space while typing on a short window. Neither `WindowInsets.ime.getBottom`
+nor `WindowInsets.isImeVisible` fired in that composable on the device, though `imePadding()`
+on the composer plainly works, so the guard I wrote changed nothing. Two attempts, both
+verified on the phone, both ineffective. Rather than leave a guard in the code that silently
+does nothing, it was reverted and filed as #62 with what was tried and a suggested approach
+that avoids the inset APIs entirely: decide from a measured `BoxWithConstraints` height, since
+with `adjustResize` the window itself shrinks.
+
+The rule being followed here is the one in this file already: when the same thing fails twice
+in the same way, record it and move rather than looping on it.
