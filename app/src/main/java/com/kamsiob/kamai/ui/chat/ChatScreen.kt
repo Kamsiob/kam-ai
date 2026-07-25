@@ -157,6 +157,9 @@ fun ChatScreen(
     /** Where to open the list, and where to report it back to (#35). */
     initialScrollIndex: Int = 0,
     initialScrollOffset: Int = 0,
+    /** False for a conversation never opened before, which starts at the newest
+     *  message rather than at a position nobody chose. */
+    hasSavedScroll: Boolean = false,
     onScrollChanged: (Int, Int) -> Unit = { _, _ -> },
     /** An unsent draft to restore, and where to report it back to (#35). */
     onDraftChanged: (String) -> Unit = {},
@@ -173,6 +176,7 @@ fun ChatScreen(
 ) {
     val colors = KamTheme.colors
     val listState = rememberLazyListState()
+    val screenScope = androidx.compose.runtime.rememberCoroutineScope()
 
     // The top banner is a switch-triggered reminder: it appears when the user
     // changes mode in this session, and does not replay when an existing
@@ -208,14 +212,21 @@ fun ChatScreen(
     // last read at the bottom both want the default. Reported back on every
     // settled scroll so the caller holds the position rather than this screen,
     // which does not survive being navigated away from.
+    // This decides where the conversation opens, and it has to be the only thing
+    // that does. The streaming-follow effect below used to win the race on open
+    // and slide everything to the newest message, so a restored position was
+    // visibly overwritten a frame later. Opening at the latest message is now one
+    // branch of this rather than a competing effect.
     var scrollRestored by remember { mutableStateOf(false) }
     LaunchedEffect(messages.isNotEmpty()) {
-        if (!scrollRestored && messages.isNotEmpty()) {
-            scrollRestored = true
-            if (initialScrollIndex > 0 || initialScrollOffset > 0) {
-                runCatching { listState.scrollToItem(initialScrollIndex, initialScrollOffset) }
-            }
+        if (scrollRestored || messages.isEmpty()) return@LaunchedEffect
+        if (hasSavedScroll) {
+            runCatching { listState.scrollToItem(initialScrollIndex, initialScrollOffset) }
+        } else {
+            // Never opened before, so the newest message is the right place.
+            listState.followToEnd()
         }
+        scrollRestored = true
     }
     LaunchedEffect(listState.isScrollInProgress) {
         if (!listState.isScrollInProgress && scrollRestored) {
@@ -255,7 +266,18 @@ fun ChatScreen(
     // newest text, and scrolling to the item's start would sit at the top of a
     // long answer while it grew below the fold.
     LaunchedEffect(messages.size, messages.lastOrNull()?.content?.length, streaming) {
-        if (messages.isNotEmpty() && followLatch.shouldFollow(atBottom)) {
+        // Gated on the opening position having been decided, so following cannot
+        // run before it and undo it.
+        // Only while something is actually streaming. Following exists to keep up
+        // with text as it is written, and on open there is nothing to keep up
+        // with: this effect used to fire once as the messages loaded, see a list
+        // that had not been measured yet (so atBottom was trivially true), and
+        // slide straight to the newest message, overwriting the position the
+        // restore above had just set. Sending sets streaming before it writes the
+        // message, so a new turn is still followed.
+        if (scrollRestored && streaming && messages.isNotEmpty() &&
+            followLatch.shouldFollow(atBottom)
+        ) {
             listState.followToEnd()
         }
     }
@@ -431,7 +453,18 @@ fun ChatScreen(
         Composer(
             enabled = true,
             streaming = streaming,
-            onSend = onSend,
+            onSend = { text ->
+                // Sending is a deliberate act, so it always goes to the bottom,
+                // exactly like tapping jump-to-latest. The no-yank rule (#43) is
+                // about text arriving while you are reading something else, not
+                // about your own message: without this, sending while scrolled up
+                // left the user staring at old messages with no sign anything had
+                // happened. Reachable now that a conversation reliably reopens
+                // where it was left (#35).
+                followLatch.jumpTapped()
+                screenScope.launch { listState.followToEnd() }
+                onSend(text)
+            },
             onStop = onStop,
             initialText = initialComposerText,
             onTextChanged = onDraftChanged,

@@ -475,6 +475,7 @@ private fun ConversationScreen(
         onDraftChanged = chat::rememberDraft,
         initialScrollIndex = chat.scrollIndex,
         initialScrollOffset = chat.scrollOffset,
+        hasSavedScroll = chat.hasSavedScroll,
         onScrollChanged = chat::rememberScroll,
         attachedName = attachedName,
         onAttach = {

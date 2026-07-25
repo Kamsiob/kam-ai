@@ -96,13 +96,21 @@ class ChatViewModel(
     var scrollOffset: Int = 0
         private set
 
-    /** True until the saved position has been applied once, so restoring happens
-     *  on opening rather than fighting the user later. */
-    var scrollRestored: Boolean = false
+    /**
+     * Whether this conversation has a position worth restoring at all.
+     *
+     * Needed because index 0 offset 0 is both "the user was reading the very top"
+     * and "nothing has been recorded", and those want opposite behaviour: the
+     * first should be restored, the second should open at the newest message like
+     * it always has.
+     */
+    var hasSavedScroll: Boolean = false
+        private set
 
     fun rememberScroll(index: Int, offset: Int) {
         scrollIndex = index
         scrollOffset = offset
+        hasSavedScroll = true
     }
 
     // Voice typing. The recorder captures 16 kHz mono; transcription runs through

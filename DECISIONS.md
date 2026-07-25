@@ -3159,3 +3159,28 @@ file.
 
 Verified on the phone: stopping eight seconds into a long prompt now logs "ingest aborted by
 request; sequence cleared" and shows **"You stopped this one."**
+
+### Two scroll defects the restoration work exposed
+
+Both found on the phone, neither visible from the code alone.
+
+**The opening position had two things deciding it.** The restore ran, and then the
+streaming-follow effect fired as the messages loaded, saw a list that had not been measured
+yet (so `atBottom` was trivially true), and slid to the newest message. The restore was
+correct and then immediately overwritten, about ninety milliseconds later. Following is now
+gated on `streaming`, which is what it is for: on open there is nothing to keep up with.
+Sending sets `streaming` before it writes the message, so a new turn is still followed.
+
+Proved by instrumenting both paths rather than reasoning about them. The log read
+`open hasSaved=true idx=0 off=0`, then `followEffect restored=true atBottom=true`, then
+`save idx=3 off=149`. The temporary logging was removed once it had answered the question.
+
+**Sending while scrolled up did nothing visible.** The no-yank rule from #43 is about text
+arriving while you are reading something else, not about your own message, but the follow
+path could not tell them apart: `shouldFollow(atBottom)` was false, so a send left the user
+staring at old messages with no sign anything had happened. Sending now goes to the bottom
+and releases the latch, exactly like tapping jump-to-latest, because it is the same kind of
+deliberate act.
+
+That second one predates this work, but it was hard to reach while every conversation opened
+at the newest message anyway. Making restoration work is what made it reachable.
