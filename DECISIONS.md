@@ -4792,3 +4792,33 @@ Recording it because it is the second time tonight that reading a screenshot nea
 false bug report, after the toast that had already faded. Both times the fix was to go back and
 look harder at the actual evidence rather than write up the impression. A screenshot is not a
 transcript.
+
+## Issue #13, measured, and the honesty problem that falls out of it
+
+Pulled the shipped history pack off the phone and queried it rather than describing the problem
+from the outside. 2000 moments, 8.0 MB:
+
+| | |
+| --- | --- |
+| Average preview | 1,041 characters |
+| Average passage | 2,026 characters |
+| Median passage | 1,814 characters |
+| Passages over 5,000 characters | 34 of 2000 |
+| Total passage text | 4.1 MB |
+
+The "full" passage averages about three hundred words, which is a Wikipedia lead section. #13 is
+right that these are intros rather than articles.
+
+**The number that matters: 635 of 2000 moments, 32%, have a passage byte-identical to their
+preview.** Another 40% are under 1,500 characters.
+
+That has a consequence today, separate from the discussion quality #13 is about. Tapping Quiz me
+shows "The quiz is drawn from the full passage, not just the preview. Reading it first gives you a
+fair shot." For a third of the pack that is not true: there is nothing extra, and "Read it first"
+sends the user to the words they just read.
+
+The prompt is now skipped when the passage and the preview are the same. The pipeline work stays
+open on #13, and this fix keeps working afterwards: when packs carry real articles the condition
+simply stops matching and the prompt returns everywhere.
+
+The pack copy pulled off the phone for the measurement was deleted afterwards.

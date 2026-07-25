@@ -213,7 +213,12 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
         val m = _current.value ?: return
         quizJob?.cancel()
         quizJob = viewModelScope.launch {
-            if (!force && !repository.wasReaderOpened(m.packId, m.id)) {
+            // Only worth asking when there is more to read. A third of the
+            // shipped history pack has a passage byte-identical to its preview,
+            // and for those the prompt promises "a fair shot" from reading text
+            // the user has already seen, and sends them to the same words (#13).
+            val hasMoreToRead = m.passage.trim() != m.preview.trim()
+            if (!force && hasMoreToRead && !repository.wasReaderOpened(m.packId, m.id)) {
                 _quiz.value = QuizState.NeedsReader
                 return@launch
             }
