@@ -5225,3 +5225,27 @@ pushes it there, an ellipsis is the honest failure rather than a nickname nobody
 
 `ModeColors.shortName` is deleted rather than left unused, so there is no second set of names for
 somebody to reach for later. DESIGN updated to describe the segments as carrying the full names.
+
+## Issue #67: a guard so the data-destroying test pattern cannot come back
+
+Two instrumentation tests destroyed real user data when run the standard way, both passed while
+doing it, and neither ever fired only because every run in this project happened to be filtered to
+specific classes.
+
+`InstrumentationSafetyTest` reads the instrumentation sources as text and fails if any of them
+calls `deleteEverything`, `DatabaseKey.destroy`, `KamRepository.get` or `KamDatabase.get` without
+being on a short allowlist that carries a reason. A second test names the two that did the damage
+and asserts the specific fix in each is still there: the in-memory database in one, the `assumeFalse`
+guard in the other.
+
+**It is a JVM test on purpose.** A guard against instrumentation tests must not itself need a
+device, or it runs exactly as rarely as the thing it is guarding.
+
+It found a third file immediately. `WhisperTranscribeTest` calls `KamRepository.get(context)` to
+read `voiceDir()` and locate the installed model. Checked by hand: it writes nothing. Allowlisted
+with that reason, because read-only is where this guard draws its line, and a rule that fires on
+harmless reads is a rule somebody switches off.
+
+The two fixed tests are allowlisted too, since they name the dangerous calls inside the comments
+explaining why they no longer make them. A guard that fires on its own explanation is a guard
+people delete.
