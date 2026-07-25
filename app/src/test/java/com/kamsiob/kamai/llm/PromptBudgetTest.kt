@@ -35,7 +35,19 @@ class PromptBudgetTest {
         // bloat fails but the current prompts pass.
         val budgets = mapOf(
             Mode.GENERAL to 620,
-            Mode.LOGIC to 1000,
+            // Raised from 1000 to 1080 for #57, deliberately and not quietly. The
+            // argument-analysis method (claim, grounds, warrant, qualifier, claim
+            // kind, then the crux and the kind of disagreement) cannot be added for
+            // free. It was written as compactly as it can be said and still came to
+            // ~1052, down from ~1156 on the first draft.
+            //
+            // What paid for it: the titling fix measured the same day took the warm
+            // turn from re-prefilling 1068 tokens to 36. Fifty-odd estimated tokens
+            // of system prompt, once per conversation and amortised by prefix reuse
+            // after that, against a thousand saved on every ongoing turn. The budget
+            // exists to protect time to first token, and that trade improves it by
+            // a wide margin. See DECISIONS.md, "Issue #57".
+            Mode.LOGIC to 1080,
             Mode.BRAINSTORM to 1600,
             Mode.BENCH to 660,
             Mode.OVERLAY to 600,

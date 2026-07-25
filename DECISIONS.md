@@ -3421,3 +3421,55 @@ Neither is a rule breach and both are prompt shaping, which is exactly what #58 
    pick" reads as the instruction being recited back rather than followed silently.
 
 Both belong to #58 and are noted there.
+
+## Issue #57: argument analysis in Logic Partner, and the budget it cost
+
+The mode now reads an argument before attacking it: the claim as one proposition apart from
+the reasons and the feeling around it, the grounds, the **warrant** (the unstated principle
+joining grounds to claim, which is where arguments are usually actually weak), the qualifier
+and scope, and the kind of claim, since attacking a values claim with evidence is a category
+error. The analysis is explicitly never printed: it is how the mode reads, not what it says.
+
+Then: restate the argument in its strongest honest form, find the crux (the one thing that,
+resolved differently, changes the conclusion) and pursue that instead of scattering
+objections, and say which kind of disagreement is in play, with the empirical case pointing at
+a bookmark rather than inventing a figure.
+
+Every existing commitment was kept: argue from their premises rather than recall, do not fold
+without new reasoning, attack the idea and not the person, no persona, and step away plainly
+if the user brings distress.
+
+### The budget conflict, resolved rather than ignored
+
+The issue was explicit that this could not be added for free, and that raising the number
+quietly was not acceptable. The prompt was written as compactly as it can be said and still
+came to about 1052 estimated tokens against a 1000 budget, down from 1156 on the first draft
+after two compaction passes that removed no commitment.
+
+**So the budget rose to 1080, and here is what paid for it.** The titling fix measured the same
+day took a warm turn from re-prefilling 1068 tokens to 36. Fifty-odd estimated tokens of
+system prompt, paid once per conversation and amortised by prefix reuse afterwards, against a
+thousand tokens saved on every ongoing turn. The budget exists to protect time to first token,
+and that trade improves it by a wide margin. The reasoning is written into
+`PromptBudgetTest` beside the number, so the next person to read it finds the justification
+rather than an unexplained increase.
+
+### What landed on the device, and what did not
+
+Verified on Gemma 4 E4B with a causal claim and a values claim. **#57 stays open**, because the
+issue asks for six claim types and because two of them show the method only partly landing.
+
+Landed: the restatement is a real restatement rather than an echo when the claim has content
+("You're arguing that loyalty is a more important factor than convenience in the context of
+team structure"), the attack goes at mechanism and definition rather than at the surface
+wording, and a definitional angle appeared unprompted on the values claim.
+
+Did not land: on a plainly flagged values claim ("that is just what I value") it did **not**
+name the disagreement as one about values and stop pretending argument resolves it. It pressed
+on with a mechanism question instead. That is the single most distinctive instruction in the
+new method and it is the one a small model is not reliably executing. On the causal claim the
+opening restatement was a verbatim echo rather than a strengthened one.
+
+Worth trying next: making "name the kind of disagreement" earlier and more imperative, and
+testing whether the analysis list is simply too long for E4B to hold alongside everything else.
+Iterating prompt wording against a phone is a slow loop and was not finished tonight.
