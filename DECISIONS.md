@@ -5187,3 +5187,20 @@ instead of a corrupt cache. That last one is the same class of problem as #49, w
 causes to settle.
 
 **Recommendation: do this next, on its own, with the same evidence discipline as #38.**
+
+## Issue #66: DESIGN updated to the three groups Settings actually has
+
+DESIGN described a "Personalization" group holding Appearance, Custom instructions and App lock.
+No such group exists; those three sit in the other two. Several rows that exist now were never in
+DESIGN's list at all: Memory, Archive old chats, Confirm before deleting a chat, and the two
+power-button rows.
+
+**DESIGN was updated to match the app rather than the app to match DESIGN.** The grouping the
+screen actually uses, "On this device", "Data and connections", "The app", is coherent on its own
+terms, and the newer rows were placed by somebody looking at the whole screen rather than at a
+sentence written before half of them existed. Re-cutting a settings screen to satisfy a document
+would have made it worse.
+
+This is the opposite call from most of the drift found this session, where the document was right
+and the code had wandered. Which way it goes depends on which one is better, not on which one is
+older.
