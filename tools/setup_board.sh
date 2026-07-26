@@ -100,22 +100,25 @@ make_select() {
     --name "$name" --data-type SINGLE_SELECT "${args[@]}" >/dev/null
 }
 
+# The six fields the specification names: Status, Platform, Area, Priority,
+# Size, Actual. Recovered from issue #99, which recorded them at the time the
+# instruction was given. An earlier draft of this script invented a different
+# set (Area, Size, Risk, Verified on device) and would have built the wrong
+# board convincingly, which is worse than building none.
+
+make_select "Platform" "Android" "Linux" "Shared"
+
 make_select "Area" \
   "Inference" "Chat" "Projects" "Discover" "Voice" "Storage" "Settings" \
   "Onboarding" "Design system" "Build and release" "Docs"
 
+make_select "Priority" "P0" "P1" "P2" "P3"
+
+# Size is the estimate. Actual is what it took. Two fields rather than one
+# because overwriting the estimate with the outcome destroys the only evidence
+# of whether estimates are any good.
 make_select "Size" "XS" "S" "M" "L" "XL"
-
-make_select "Risk" \
-  "Low" "Touches data" "Touches keys" "Touches native" "User visible copy"
-
-if ! has_field "Verified on device"; then
-  say "Creating field 'Verified on device'."
-  gh project field-create "$NUM" --owner "$OWNER" \
-    --name "Verified on device" --data-type DATE >/dev/null
-else
-  say "Field 'Verified on device' present."
-fi
+make_select "Actual" "XS" "S" "M" "L" "XL"
 
 # Status: add the three states a bare project lacks. GraphQL, because the CLI
 # cannot edit an existing single-select's options.

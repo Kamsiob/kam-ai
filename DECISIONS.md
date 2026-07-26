@@ -1466,6 +1466,41 @@ system, and the Gemma model switch. Those are all real and are in the repository
 permission problem. The launch work resumes at Phase 8 exactly as specified,
 against an app that actually has the six surfaces.
 
+### The project board and CI activation: token scopes only the owner can grant
+
+Recorded here because the standing rule is that a blocker goes in this section,
+and this one had been living only in issue #99.
+
+The CLI token carries `gist`, `read:org`, `repo`. Every ProjectsV2 read needs
+`read:project` and every write needs `project`, so the board cannot be created
+and cannot even be inspected: `gh project list --owner Kamsiob` fails with
+`INSUFFICIENT_SCOPES` before returning any data. Pushing a file under
+`.github/workflows/` needs `workflow`, so continuous integration cannot be
+activated either.
+
+**What the owner needs to do:** run `gh auth refresh -s project,read:project,workflow`.
+It opens a browser device flow, which is why it cannot be done on his behalf.
+
+Everything that does not depend on those scopes was done rather than waited on:
+the label taxonomy, issue and pull request templates, the release milestone, the
+community health files, the pinned roadmap, and the board itself written as an
+idempotent script at `tools/setup_board.sh` so the scope grant is followed by one
+command rather than an afternoon.
+
+Two steps in that script are printed rather than performed, and those are API
+limits rather than scope limits: ProjectsV2 has no view-creation mutation, and
+enabling the built-in workflows is only possible in the interface.
+
+### Custom issue types are not available on a user account
+
+The later addendum asked for issue types as a first class field.
+`GET /users/Kamsiob/issue-types` returns 404: issue types are an organisation
+feature, and `Kamsiob` is a user account. No token scope changes this.
+
+The options are to move the repository into an organisation, or to accept the
+label taxonomy as the equivalent, which is what is in place. Recorded so the gap
+is a known decision rather than an unexplained omission.
+
 ### Nothing else is blocked
 
 The Pixel initially reported as `unauthorized` over ADB, which would have
