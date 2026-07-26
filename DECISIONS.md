@@ -5733,3 +5733,45 @@ edit, so getting your own words back out meant retyping them. Long-press now
 copies, tap still edits, and both copy paths confirm with a toast — the action
 row's Copy was silent before, which is fine beside a visible button and not fine
 for a gesture with no affordance at all.
+
+## Long replies scroll themselves, third time (#74)
+
+Reported three times. The two earlier fixes were both real and both incomplete,
+which is worth recording because the pattern was mine: each time I found *a*
+bug, fixed it, and stopped looking.
+
+Round one removed an animated scroll that every token cancelled. Round two
+removed an `atBottom` requirement from `shouldFollow`, which was false exactly
+when following was needed. Both true, neither sufficient.
+
+The rest of it, found by reading the wiring instead of guessing:
+
+**The follow effect was destroyed and rebuilt on every token.** It was a
+`LaunchedEffect` keyed on the answer's length, so each token cancelled the
+previous scroll mid-flight and started another. Now it is one coroutine per
+response, keyed on `streaming`, watching the length through `snapshotFlow` and
+`conflate`. A burst of tokens produces one scroll to where the text now ends,
+rather than a queue of scrolls to places it has already left.
+
+**Any drag turned following off for the rest of the answer.** A
+`DragInteraction.Start` closed a latch that only reopened when the last message's
+end came back on screen — and during a long answer the text keeps growing past
+the fold, so it never did. One incidental touch meant the jump-to-latest arrow
+was the only way back, for the whole answer. The arrow is for returning after
+deliberately scrolling up. It was never meant to be required.
+
+`FollowLatch` is gone. Following is now decided by one question asked fresh on
+every token: how far is the reader from the bottom? Within a third of a viewport,
+follow; further, leave them alone.
+
+That is safe for the reason the original latch existed to guard against, and the
+guard had the direction backwards. Text arriving pushes a reader *away* from the
+bottom, never towards it. Nothing can carry somebody back into following except
+their own scrolling, which is precisely the intent that should resume it — with
+no state to reset and nothing to tap.
+
+Device-verified on all three cases, with 400-word answers. Untouched: the view
+tracks the newest text continuously and ends at the bottom. Scrolled up
+mid-stream: two samples fifteen seconds apart are pixel-identical while text
+keeps arriving. Scrolled back down: following resumes on its own and lands on the
+end of the answer.

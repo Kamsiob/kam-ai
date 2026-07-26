@@ -13,6 +13,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import kotlinx.coroutines.flow.conflate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.DragInteraction
@@ -308,49 +309,53 @@ fun ChatScreen(
         }
     }
 
-    // Once the user takes over during a response, following stops for the rest of
-    // that response (#43). A drag is the signal, rather than "is the list
-    // scrolling", because the latter is also true while the code scrolls the list
-    // itself, which would latch against our own following.
-    val followLatch = remember { FollowLatch() }
-    LaunchedEffect(listState) {
-        listState.interactionSource.interactions.collect { interaction ->
-            if (interaction is DragInteraction.Start) followLatch.userDragged()
-        }
-    }
-
-    // Coming back to the bottom by hand is how following resumes.
-    LaunchedEffect(atBottom) {
-        if (atBottom) followLatch.returnedToBottom()
-    }
-
-    // A new message is a new response, which follows from the start again. This
-    // is declared before the effect below so it has already run when that one
-    // fires on the same change.
-    LaunchedEffect(messages.size) {
-        followLatch.newResponseStarted()
-    }
-
-    // Follow the stream as it writes, unless the user is reading elsewhere. The
-    // large offset asks for a position past the end of the last item, which the
-    // list clamps to the very bottom of the content: following has to mean the
-    // newest text, and scrolling to the item's start would sit at the top of a
-    // long answer while it grew below the fold.
-    LaunchedEffect(messages.size, messages.lastOrNull()?.content?.length, streaming) {
+    // Follow the stream as it writes (#74).
+    //
+    // One coroutine for the whole response, not one per token. This used to be a
+    // LaunchedEffect keyed on the answer's length, which meant every token
+    // cancelled the previous scroll mid-flight and started another: continuous
+    // churn on a fast stream, and worst on exactly the long answers where
+    // following matters. snapshotFlow watches the length from inside a single
+    // coroutine that lives as long as the response does.
+    //
+    // Whether to follow is asked fresh each time, from how far the reader is
+    // from the bottom, and nothing is remembered between tokens. There used to be
+    // a latch closed by any drag and reopened only when the last message's end
+    // came back on screen; during a long answer the text keeps growing past the
+    // fold, so it never reopened, and one incidental touch turned following off
+    // for the rest of the answer with the jump-to-latest arrow as the only way
+    // back. The arrow is for returning after deliberately scrolling up. It is not
+    // meant to be required.
+    val latestMessages by androidx.compose.runtime.rememberUpdatedState(messages)
+    LaunchedEffect(streaming, scrollRestored) {
         // Gated on the opening position having been decided, so following cannot
-        // run before it and undo it.
-        // Only while something is actually streaming. Following exists to keep up
-        // with text as it is written, and on open there is nothing to keep up
-        // with: this effect used to fire once as the messages loaded, see a list
-        // that had not been measured yet (so atBottom was trivially true), and
-        // slide straight to the newest message, overwriting the position the
-        // restore above had just set. Sending sets streaming before it writes the
-        // message, so a new turn is still followed.
-        if (scrollRestored && streaming && messages.isNotEmpty() &&
-            followLatch.shouldFollow()
-        ) {
-            listState.followToEnd(animate = false)
+        // run before it and undo a restored position. Only while something is
+        // actually streaming: on open there is nothing to keep up with. Sending
+        // sets streaming before it writes the message, so a new turn is followed
+        // from its first token.
+        if (!streaming || !scrollRestored) return@LaunchedEffect
+
+        androidx.compose.runtime.snapshotFlow {
+            latestMessages.lastOrNull()?.content?.length ?: 0
         }
+            // The scroll matters, the intermediate lengths do not. Conflating
+            // means a burst of tokens produces one scroll to wherever the text
+            // now ends, rather than a queue of scrolls to places it has left.
+            .conflate()
+            .collect { _ ->
+                val info = listState.layoutInfo
+                val last = info.visibleItemsInfo.lastOrNull()
+                val distance = ScrollFollow.distanceFromBottom(
+                    lastVisibleIndex = last?.index,
+                    lastVisibleItemEnd = if (last == null) 0 else last.offset + last.size,
+                    totalItems = info.totalItemsCount,
+                    viewportEnd = info.viewportEndOffset,
+                )
+                val viewport = info.viewportEndOffset - info.viewportStartOffset
+                if (ScrollFollow.shouldFollow(distance, viewport)) {
+                    listState.followToEnd(animate = false)
+                }
+            }
     }
 
     // The keyboard inset belongs to the whole screen, not to the composer.
@@ -516,7 +521,6 @@ fun ChatScreen(
                             .clickable {
                                 // Tapping this is the user asking to follow again,
                                 // so it releases the latch as well as scrolling.
-                                followLatch.jumpTapped()
                                 scope.launch { listState.followToEnd() }
                             }
                             .semantics { contentDescription = "Jump to the latest message" },
@@ -569,7 +573,6 @@ fun ChatScreen(
                 // left the user staring at old messages with no sign anything had
                 // happened. Reachable now that a conversation reliably reopens
                 // where it was left (#35).
-                followLatch.jumpTapped()
                 screenScope.launch { listState.followToEnd() }
                 onSend(text)
             },

@@ -77,74 +77,83 @@ class ScrollFollowTest {
             .isTrue()
     }
 
+    // --- following, decided by distance rather than by a latch (#74) ---
+
+    private fun distance(
+        lastVisibleIndex: Int?,
+        lastVisibleItemEnd: Int,
+        totalItems: Int,
+    ) = ScrollFollow.distanceFromBottom(
+        lastVisibleIndex = lastVisibleIndex,
+        lastVisibleItemEnd = lastVisibleItemEnd,
+        totalItems = totalItems,
+        viewportEnd = viewportEnd,
+    )
+
+    /** Viewport height, matching the 0..1000 viewport used throughout. */
+    private val viewport = 1000
+
     @Test
-    fun followingIsOnByDefault() {
-        val latch = FollowLatch()
-        assertThat(latch.userTookControl).isFalse()
-        assertThat(latch.shouldFollow()).isTrue()
+    fun `an untouched reader is followed however long the answer gets`() {
+        // The report, three times over: a long reply stops scrolling itself. The
+        // reader has not moved, so each token leaves them a line or two from the
+        // bottom, which is well inside the threshold.
+        assertThat(ScrollFollow.shouldFollow(distance(4, 1040, 5), viewport)).isTrue()
+        assertThat(ScrollFollow.shouldFollow(distance(4, 1200, 5), viewport)).isTrue()
     }
 
     @Test
-    fun followingKeepsGoingOnceTheAnswerHasGrownPastTheFold() {
-        // The bug this replaced: following used to require being at the bottom,
-        // which is false the instant a long answer outgrows the screen. It could
-        // only follow while it did not need to.
-        val latch = FollowLatch()
-        assertThat(latch.shouldFollow()).isTrue()
+    fun `a reader who has scrolled up is left alone`() {
+        // Deliberately gone back to re-read something. A third of a screen is far
+        // more than any single token moves the text.
+        assertThat(ScrollFollow.shouldFollow(distance(4, 1400, 5), viewport)).isFalse()
+        assertThat(ScrollFollow.shouldFollow(distance(4, 3000, 5), viewport)).isFalse()
     }
 
     @Test
-    fun aDragStopsFollowingForTheRestOfTheResponse() {
-        val latch = FollowLatch()
-        latch.userDragged()
-        // Even back at the bottom, this response does not resume following on its
-        // own. That is the whole point of the latch: no snapping back.
-        assertThat(latch.shouldFollow()).isFalse()
+    fun `scrolling back down resumes following with nothing to reset`() {
+        // The whole point of dropping the latch. There is no state to clear and
+        // no arrow to tap: the same question asked again simply answers yes.
+        val away = distance(4, 2000, 5)
+        assertThat(ScrollFollow.shouldFollow(away, viewport)).isFalse()
+        val back = distance(4, 1050, 5)
+        assertThat(ScrollFollow.shouldFollow(back, viewport)).isTrue()
     }
 
     @Test
-    fun aDragLatchesInEitherDirection() {
-        // The issue asks for this explicitly: scrolling down is taking control
-        // just as much as scrolling up.
-        val latch = FollowLatch()
-        latch.userDragged()
-        latch.userDragged()
-        assertThat(latch.userTookControl).isTrue()
+    fun `growth can only push a reader away from the bottom, never towards it`() {
+        // The worry behind the original latch, which had the direction backwards.
+        // Text arriving increases the distance; nothing but the user's own
+        // scrolling decreases it.
+        val before = distance(4, 1100, 5)!!
+        val afterMoreText = distance(4, 1300, 5)!!
+        assertThat(afterMoreText).isGreaterThan(before)
     }
 
     @Test
-    fun returningToTheBottomResumesFollowing() {
-        val latch = FollowLatch()
-        latch.userDragged()
-        latch.returnedToBottom()
-        assertThat(latch.shouldFollow()).isTrue()
+    fun `a reader miles up the transcript is not dragged anywhere`() {
+        // The end of the content is not even in view, so there is no distance to
+        // measure and no case for moving them.
+        assertThat(ScrollFollow.shouldFollow(distance(1, 900, 5), viewport)).isFalse()
     }
 
     @Test
-    fun tappingJumpToLatestResumesFollowing() {
-        val latch = FollowLatch()
-        latch.userDragged()
-        latch.jumpTapped()
-        assertThat(latch.shouldFollow()).isTrue()
+    fun `an unmeasured list is never scrolled`() {
+        // Viewport zero means the layout has not run. Following then would move a
+        // list that does not know its own size, which is how a restored scroll
+        // position used to get overwritten on open.
+        assertThat(ScrollFollow.shouldFollow(0, 0)).isFalse()
     }
 
     @Test
-    fun theNextResponseFollowsAgain() {
-        // The latch is per-response, so having read at your own pace through one
-        // answer does not turn following off for good.
-        val latch = FollowLatch()
-        latch.userDragged()
-        latch.newResponseStarted()
-        assertThat(latch.shouldFollow()).isTrue()
+    fun `an empty list is at distance zero and is followed`() {
+        assertThat(distance(null, 0, 0)).isEqualTo(0)
+        assertThat(ScrollFollow.shouldFollow(distance(null, 0, 0), viewport)).isTrue()
     }
 
     @Test
-    fun aLatchedResponseStaysLatchedThroughFastTokenArrival() {
-        // Tokens arriving quickly must not shake the latch loose. Nothing about
-        // content growth touches it; only the four explicit events do.
-        val latch = FollowLatch()
-        latch.userDragged()
-        repeat(200) { assertThat(latch.shouldFollow()).isFalse() }
-        assertThat(latch.userTookControl).isTrue()
+    fun `the end being exactly on screen is distance zero, not negative`() {
+        assertThat(distance(4, 900, 5)).isEqualTo(0)
     }
+
 }
