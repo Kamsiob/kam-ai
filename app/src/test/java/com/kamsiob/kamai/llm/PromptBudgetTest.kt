@@ -22,8 +22,10 @@ class PromptBudgetTest {
     @Test
     fun generalPromptStaysTight() {
         val tokens = approxTokens(SystemPrompts.forMode(Mode.GENERAL))
-        // Measured ~450 tokens after the #38 trim; fail if it drifts past 600.
-        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 600)
+        // Measured ~450 after the #38 trim and ~689 after #91 added four worked
+        // formatting examples in place of a described rule. Fail if it drifts past
+        // 700, which is the deliberate ceiling recorded in the budget map below.
+        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 700)
     }
 
     @Test
@@ -33,8 +35,27 @@ class PromptBudgetTest {
         // Budgets are the estimator's chars/3.6, which overshoots the real
         // tokenizer by ~15 percent, set just above the trimmed sizes so creeping
         // bloat fails but the current prompts pass.
+        // Every budget here rose for #91, in one deliberate step, and the
+        // reasoning is the same for all of them because the cost lands in the
+        // shared hard rules. Measured after the change: GENERAL 689, LOGIC 1247,
+        // BRAINSTORM 1808, BENCH 727, OVERLAY 666, DISCOVER 801. Each budget sits
+        // just above its measurement, per this file's own convention.
+        //
+        // Responses used no headings or lists at all. The diagnosis was precise: a
+        // tested answer produced "User Experience and Interface Design." as an
+        // ordinary sentence, which is a heading written as prose. The model was
+        // organizing its thinking and not emitting the syntax, because the rules
+        // described the shape in words instead of showing it. Four worked
+        // examples replaced that description and cost about seventy estimated
+        // tokens net in GENERAL, after the old described paragraph came out.
+        //
+        // What pays for it: the system prompt is prefilled once per conversation
+        // and then reused from the KV cache (#52), so this is eighty tokens at the
+        // start of a session rather than eighty per turn. It is also the single
+        // most visible quality problem in the app, which no amount of token
+        // discipline elsewhere makes up for.
         val budgets = mapOf(
-            Mode.GENERAL to 620,
+            Mode.GENERAL to 700,
             // Raised from 1000 to 1080 for #57, deliberately and not quietly. The
             // argument-analysis method (claim, grounds, warrant, qualifier, claim
             // kind, then the crux and the kind of disagreement) cannot be added for
@@ -47,7 +68,7 @@ class PromptBudgetTest {
             // after that, against a thousand saved on every ongoing turn. The budget
             // exists to protect time to first token, and that trade improves it by
             // a wide margin. See DECISIONS.md, "Issue #57".
-            Mode.LOGIC to 1080,
+            Mode.LOGIC to 1260,
             // Raised from 1600 to 1660 for #58, deliberately and not quietly, and
             // after trimming everything that could be trimmed. Two device-found
             // failures paid for it. The mode announced its own method ("Only a
@@ -61,10 +82,10 @@ class PromptBudgetTest {
             // estimated tokens at the start of a session, not sixty per turn. The
             // same trade recorded for LOGIC above, and the budget exists to
             // protect time to first token, which prefix reuse protects far more.
-            Mode.BRAINSTORM to 1660,
-            Mode.BENCH to 660,
-            Mode.OVERLAY to 600,
-            Mode.DISCOVER to 750,
+            Mode.BRAINSTORM to 1820,
+            Mode.BENCH to 740,
+            Mode.OVERLAY to 680,
+            Mode.DISCOVER to 820,
         )
         budgets.forEach { (mode, budget) ->
             val tokens = approxTokens(SystemPrompts.forMode(mode))

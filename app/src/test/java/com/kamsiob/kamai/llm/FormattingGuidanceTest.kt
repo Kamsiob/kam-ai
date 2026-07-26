@@ -11,12 +11,17 @@ import org.junit.Test
  */
 class FormattingGuidanceTest {
 
-    // The #38 trim reworded the first half of this guidance from "match the format
-    // to the content" to "match the length to the question", which says the same
-    // thing in fewer tokens. The guard is on the guidance being present in every
-    // mode, not on the exact sentence, so the marker moved with it.
-    private val marker = "match the length to the question"
-    private val antiOverFormat = "Do not over-format"
+    // The wording has moved twice. #38 shortened "match the format to the content"
+    // to "match the length to the question", and #91 replaced the whole described
+    // rule with four worked examples, because a described shape is exactly what
+    // the model was failing to follow. The guard is on the guidance being present
+    // in every mode, not on any one sentence, so the markers move with it.
+    private val marker = "match the shape of the answer to the question"
+
+    // The anti-over-formatting half matters as much as the rest: swinging from
+    // walls of text to bullets everywhere would be a worse outcome than the
+    // original bug.
+    private val antiOverFormat = "Never a heading on a short answer"
 
     @Test
     fun `every mode prompt carries the formatting guidance`() {
@@ -32,5 +37,82 @@ class FormattingGuidanceTest {
         val prompt = SystemPrompts.grounded("some passage text")
         assertThat(prompt).contains(marker)
         assertThat(prompt).contains(antiOverFormat)
+    }
+}
+
+/**
+ * The formatting guidance shows the shape rather than describing it (#91).
+ *
+ * The bug was precise: a tested answer produced "User Experience and Interface
+ * Design." as an ordinary sentence, which is a heading written as prose. The
+ * model was organizing its thinking and not emitting the syntax, because the
+ * rules described the shape in words. A small model follows a demonstrated shape
+ * far more reliably than a described rule.
+ *
+ * These pin the demonstration, because "describe it more clearly" is the natural
+ * thing for a future edit to do and is exactly what did not work.
+ */
+class FormattingExamplesTest {
+
+    private val prompt = SystemPrompts.forMode(com.kamsiob.kamai.data.Mode.GENERAL)
+
+    /**
+     * The prompt with its line wrapping flattened.
+     *
+     * Assertions are about what the model reads, and the model reads one string.
+     * Matching the source's line breaks would make a reflow look like a deleted
+     * rule, which is a test failing for a reason nobody cares about.
+     */
+    private val flat = prompt.replace(Regex("\\s+"), " ")
+
+    @Test
+    fun `a one-line question is shown answered in one line, with no structure`() {
+        assertThat(prompt).contains("When was the Eiffel Tower built?")
+        assertThat(prompt).contains("It was finished in 1889")
+    }
+
+    @Test
+    fun `steps are shown as a numbered list`() {
+        assertThat(prompt).contains("How do I reset it?")
+        assertThat(prompt).contains("1. Hold the side button")
+    }
+
+    @Test
+    fun `options are shown as bullets, not numbers`() {
+        // A model will otherwise number unordered things and imply a sequence.
+        assertThat(prompt).contains("What are my options for storage?")
+        assertThat(prompt).contains("- An external drive")
+    }
+
+    @Test
+    fun `a multi-part question is shown with real heading syntax`() {
+        // The whole point: the markdown appears in the example, so the model has
+        // seen the characters rather than a description of them.
+        assertThat(prompt).contains("## Cost")
+        assertThat(prompt).contains("## What to watch")
+    }
+
+    @Test
+    fun `the triggers are conditions, never the word appropriate`() {
+        assertThat(prompt).contains("Numbers only when order matters")
+        assertThat(prompt).contains("bullets otherwise")
+        assertThat(prompt).contains("long enough to scan")
+        // "Appropriate" is the word that makes a rule unfollowable.
+        assertThat(prompt.lowercase()).doesNotContain("as appropriate")
+        assertThat(prompt.lowercase()).doesNotContain("where appropriate")
+    }
+
+    @Test
+    fun `the anti-over-formatting rules survived the change`() {
+        // Swinging from walls of text to bullets everywhere would be worse than
+        // the original bug, and bullets everywhere is the clearest sign of
+        // generic machine output.
+        listOf(
+            "Never a heading on a short answer",
+            "never prose turned into bullets",
+            "never a single-item list",
+            "never restate the question",
+            "never summarize at the end",
+        ).forEach { assertThat(flat).contains(it) }
     }
 }

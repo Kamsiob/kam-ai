@@ -6153,3 +6153,50 @@ Device-verified on a 490-token answer. Untouched: the view tracks to the end.
 Scrolled up mid-stream: two screenshots sixteen seconds apart are pixel-identical
 while text keeps arriving. Sent while scrolled two screens up: the view is at the
 bottom showing the new answer stream.
+
+## Responses had no structure because the rules described it instead of showing it (#91)
+
+The diagnosis was handed over and it was exactly right, which saved the wrong
+investigation. A tested answer produced "User Experience and Interface Design." as
+an ordinary sentence. That is a heading written as prose: the model was organizing
+its thinking into sections and simply not emitting the syntax. So neither the
+renderer nor the model was at fault.
+
+**The renderer was checked first anyway, and it was broken in two places.**
+`MarkdownText` was used only in the chat and the summary sheet. The assistant
+overlay and the Workbench result both used a plain `Text`, so an answer that used
+a list showed the user its asterisks. Workbench is the worse of the two, since
+asking it to reorganize something into bullets is an ordinary request and it
+returned the syntax. Both now render markdown. The parser itself was already
+covered by tests for headings, bullets, numbered lists, fences and quotes.
+
+**The fix was replacing description with demonstration.** The old rules said
+"match the length to the question", "numbered lists only for real steps", "short
+headings only on a long answer with distinct parts". All true, all unfollowable by
+a small model. Four worked examples went in instead: a one-line factual question
+answered in one line, a request for steps as a numbered list, a request for
+options as bullets, and a multi-part question with two `##` headings. The markdown
+characters appear in the prompt, so the model has seen them rather than a
+description of them.
+
+Explicit triggers replaced the word that made the old rules unusable: numbers only
+when order matters and bullets otherwise, because a model will otherwise number
+unordered things and imply a sequence that does not exist. `FormattingExamplesTest`
+asserts the prompt contains no "as appropriate" or "where appropriate".
+
+The anti-over-formatting half was kept and is now tested, because swinging to
+bullets everywhere would be worse than the original bug, and bullets everywhere is
+the clearest sign of generic machine output.
+
+Cost: about seventy estimated tokens net in GENERAL after the old described
+paragraph came out, and every mode's budget rose in one deliberate step, since the
+cost lands in the shared hard rules. Measured after: GENERAL 689, LOGIC 1247,
+BRAINSTORM 1808, BENCH 727, OVERLAY 666, DISCOVER 801. Paid for the same way as
+the two earlier prompt rises: the system prompt is prefilled once per conversation
+and reused from the KV cache, so this is seventy tokens at the start of a session
+rather than seventy per turn.
+
+Device-verified both directions. "Give me a detailed organized breakdown of what
+to consider when choosing a laptop" produced real rendered headings: Portability
+and Build, Operating System and Software, Use Case Matching. "What year was the
+Eiffel Tower finished" produced one line with no structure at all.

@@ -247,11 +247,21 @@ fun WorkbenchScreen(
                     .background(colors.tonalFill)
                     .padding(14.dp),
             ) {
-                Text(
-                    output.ifEmpty { "Working..." },
-                    style = KamTheme.type.body,
-                    color = colors.textPrimary,
-                )
+                // Markdown, rendered (#91). Workbench is asked to reorganize
+                // things, and "turn this into bullets" produced a result showing
+                // the user asterisks rather than bullets.
+                if (output.isEmpty()) {
+                    Text(
+                        "Working...",
+                        style = KamTheme.type.body,
+                        color = colors.textPrimary,
+                    )
+                } else {
+                    com.kamsiob.kamai.ui.components.MarkdownText(
+                        text = output,
+                        color = colors.textPrimary,
+                    )
+                }
             }
             if (output.isNotEmpty() && !running) {
                 Spacer(Modifier.height(10.dp))

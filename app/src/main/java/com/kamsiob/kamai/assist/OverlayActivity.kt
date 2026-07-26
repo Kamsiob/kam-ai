@@ -378,11 +378,22 @@ private fun OverlayPanel(
                         .background(colors.surface)
                         .padding(14.dp),
                 ) {
-                    Text(
-                        answer.ifEmpty { "Thinking..." },
-                        style = KamTheme.type.body,
-                        color = colors.textPrimary,
-                    )
+                    // Markdown, rendered, like the chat (#91). This was a plain
+                    // Text, so an answer that used a list showed the user its
+                    // syntax. The overlay gets short answers, but "short" and
+                    // "never a list" are different claims.
+                    if (answer.isEmpty()) {
+                        Text(
+                            "Thinking...",
+                            style = KamTheme.type.body,
+                            color = colors.textPrimary,
+                        )
+                    } else {
+                        com.kamsiob.kamai.ui.components.MarkdownText(
+                            text = answer,
+                            color = colors.textPrimary,
+                        )
+                    }
                 }
                 if (answer.isNotEmpty() && !streaming) {
                     Spacer(Modifier.height(8.dp))
