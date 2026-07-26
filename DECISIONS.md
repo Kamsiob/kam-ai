@@ -6782,3 +6782,43 @@ commits show as Unverified rather than passing silently.
 
 Going forward only. History is not rewritten and nothing is retroactively signed,
 which would be dishonest and would destroy traceability that already exists.
+
+
+## The first cold read test, and what it caught
+
+Run immediately after the board was populated, which is the point: a test run only
+when everything is known to be fine tests nothing. Four failures, all real.
+
+**The milestone was lying by a wide margin.** It read 26 percent complete, because
+only 19 issues had ever been assigned to it while 87 were closed. Someone checking
+how close the release was would have been told a quarter when the honest figure is
+86 percent. Fixed by assigning every closed issue to `v1.0.0 (Android)`, since
+everything built so far is the first Android release. The two `Declined` items
+were deliberately left out: they are decisions recorded rather than work
+delivered, and counting them would inflate the figure with things that were on
+purpose never built.
+
+**Two of three blocked items did not say what they were waiting on.** Only #111
+carried the `blocked` label and stated its blocker. #110 and #113 sat in the
+Blocked column explaining nothing, which is the most common failure in an
+otherwise decent tracker and is visible to anyone who looks. Both now name the
+blocker and what would clear it.
+
+**Two recently closed issues had no trace to the code that resolved them.** #106
+and #107 were written after the work was done, so the commit could not reference a
+number that did not yet exist. History is not rewritten to fix that. Instead each
+issue now carries a comment naming the commit, which restores the trace in the
+direction that matters: from the issue to the code.
+
+**Nine open issues had no acceptance criteria.** Their bodies were otherwise good,
+stating the situation and the reasoning, but without criteria closing any of them
+would have been a judgement call that nobody could check afterwards. All nine now
+carry criteria in checkable terms. #101 deliberately does not: it is the pinned
+roadmap, a living document rather than a piece of work with a definition of done.
+
+**What did not fail:** every issue traced from the tracker to a commit where the
+commit carried its number, the parent and child breakdown under #3 was accurate,
+and the board's platform separation was complete with all 104 issues on Android.
+
+The test is repeated before every release. It is in this file rather than in
+anyone's memory for the same reason the acceptance criteria are on the issues.
