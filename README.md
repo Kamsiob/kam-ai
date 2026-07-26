@@ -142,6 +142,11 @@ and speaks, down to the copy. Both are kept current with the code rather than
 written once at the start; where the code and those documents disagree, the
 documents are the source of truth and the code is wrong.
 
+Work is tracked in the open. The
+[project board](https://github.com/users/Kamsiob/projects/1) is public and holds
+every issue, open and closed, with what platform it belongs to and what state it
+is in. Nothing is marked done until it has been verified on real hardware.
+
 Decisions are recorded as they are made. [DECISIONS.md](DECISIONS.md) holds every
 nontrivial architectural and product call along with the reasoning, including the
 ones that turned out to be wrong and the approaches that failed and should not be
@@ -192,6 +197,7 @@ which applies to the pack content only.
 
 ## Project
 
+- [Board](https://github.com/users/Kamsiob/projects/1): what is being worked on, what is blocked, and what has shipped
 - [Roadmap](https://github.com/Kamsiob/kam-ai/issues?q=is%3Aissue+label%3Aroadmap): what is planned and what is deliberately not
 - [Issues](https://github.com/Kamsiob/kam-ai/issues): the authoritative record of state
 - [Contributing](CONTRIBUTING.md), [Architecture](ARCHITECTURE.md), [Security](SECURITY.md), [Code of conduct](CODE_OF_CONDUCT.md)
