@@ -230,6 +230,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
     if (!onboardingDone) {
         val downloads by app.downloads.collectAsStateWithLifecycle()
         // Onboarding downloads one recommended model; show its progress.
+        var voiceQueued by remember { mutableStateOf(false) }
         val onboardingDl = downloads.firstOrNull {
             it.kind == "model" && it.status != com.kamsiob.kamai.download.Downloads.Status.PAUSED
         }
@@ -240,6 +241,16 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                 if (it.status == com.kamsiob.kamai.download.Downloads.Status.DONE) 1f else it.fraction
             },
             onDownload = app::downloadModel,
+            // One recommended speech setup for this phone rather than a choice
+            // between transcription tiers, which is not a decision worth handing
+            // to somebody who has not used the app yet (#77).
+            voiceLabel = com.kamsiob.kamai.voice.SttCatalog
+                .recommendedFor(app.totalRamGb).downloadLabel,
+            voiceQueued = voiceQueued,
+            onAddVoice = {
+                voiceQueued = true
+                app.downloadStt(com.kamsiob.kamai.voice.SttCatalog.recommendedFor(app.totalRamGb))
+            },
             onFinish = app::finishOnboarding,
             onSupport = { openUrl(Links.SUPPORT) },
         )

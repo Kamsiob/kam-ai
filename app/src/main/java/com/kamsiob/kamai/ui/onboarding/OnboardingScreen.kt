@@ -59,6 +59,7 @@ import com.kamsiob.kamai.ui.components.Eyebrow
 import com.kamsiob.kamai.ui.components.KamChip
 import com.kamsiob.kamai.ui.components.KamMark
 import com.kamsiob.kamai.ui.components.PrimaryButton
+import com.kamsiob.kamai.ui.components.SecondaryButton
 import com.kamsiob.kamai.ui.components.TextActionButton
 import com.kamsiob.kamai.ui.theme.KamMotion
 import com.kamsiob.kamai.ui.theme.KamTheme
@@ -78,6 +79,11 @@ fun OnboardingScreen(
     tiers: List<TierModel>,
     downloadProgress: Float?,
     onDownload: (TierModel) -> Unit,
+    /** The recommended speech setup for this phone, with its combined size (#77). */
+    voiceLabel: String = "",
+    /** True once it has been queued, so the card stops offering it again. */
+    voiceQueued: Boolean = false,
+    onAddVoice: () -> Unit = {},
     onFinish: () -> Unit,
     onSupport: () -> Unit,
     modifier: Modifier = Modifier,
@@ -128,7 +134,13 @@ fun OnboardingScreen(
                     onDownload = onDownload,
                     onContinue = advance,
                 )
-                5 -> SlideFive(onSupport = onSupport, onFinish = onFinish)
+                5 -> SlideOptional(
+                    voiceLabel = voiceLabel,
+                    voiceQueued = voiceQueued,
+                    onAddVoice = onAddVoice,
+                    onContinue = advance,
+                )
+                6 -> SlideFive(onSupport = onSupport, onFinish = onFinish)
             }
         }
 
@@ -687,4 +699,126 @@ private fun SlideFive(onSupport: () -> Unit, onFinish: () -> Unit) {
             }
         },
     )
+}
+
+/**
+ * The two optional additions, offered while the model downloads (#77).
+ *
+ * The insight this slide exists for: a model download is minutes, not seconds, so
+ * the wait is the right place to put the two decisions that are genuinely
+ * optional. Nobody is blocked, nothing starts on its own, and each card can be
+ * declined without touching the other.
+ *
+ * The packs card deliberately does **not** offer a download. Packs are chosen by
+ * topic and somebody five minutes into the app has no idea which topics they
+ * want; pointing at where they live is more use than picking one for them. The
+ * voice card does offer, because there is one sensible answer for a given phone
+ * and choosing between transcription tiers is not a decision worth handing to
+ * someone who has not used the app yet.
+ */
+@Composable
+private fun SlideOptional(
+    voiceLabel: String,
+    voiceQueued: Boolean,
+    onAddVoice: () -> Unit,
+    onContinue: () -> Unit,
+) {
+    val colors = KamTheme.colors
+
+    SlideScaffold(
+        eyebrow = OnboardingCopy.slideOptional.eyebrow,
+        title = OnboardingCopy.slideOptional.title,
+        body = {
+            Staggered(2) {
+                Text(
+                    OnboardingCopy.OPTIONAL_INTRO,
+                    style = KamTheme.type.bodyLarge,
+                    color = colors.textSecondary,
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+
+            Staggered(3) {
+                OptionalCard(
+                    title = OnboardingCopy.VOICE_CARD_TITLE,
+                    body = OnboardingCopy.VOICE_CARD_BODY,
+                    size = voiceLabel,
+                    action = if (voiceQueued) null else "Add it",
+                    // Queued behind the model rather than run alongside it: the
+                    // model is what makes the app work at all, and two large
+                    // downloads at once make both slower.
+                    note = if (voiceQueued) "Queued after the model" else null,
+                    onAction = onAddVoice,
+                )
+            }
+            Spacer(Modifier.height(11.dp))
+            Staggered(4) {
+                OptionalCard(
+                    title = OnboardingCopy.PACKS_CARD_TITLE,
+                    body = OnboardingCopy.PACKS_CARD_BODY,
+                    size = "",
+                    action = null,
+                    note = OnboardingCopy.PACKS_CARD_ACTION + ": the Discover tab",
+                    onAction = {},
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            Staggered(5) {
+                Text(
+                    OnboardingCopy.SETTINGS_LINE,
+                    style = KamTheme.type.secondary,
+                    color = colors.textTertiary,
+                )
+            }
+        },
+        footer = {
+            PrimaryButton(
+                OnboardingCopy.slideOptional.button,
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
+}
+
+@Composable
+private fun OptionalCard(
+    title: String,
+    body: String,
+    size: String,
+    action: String?,
+    note: String?,
+    onAction: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
+            .background(colors.surface)
+            .border(1.dp, colors.border, RoundedCornerShape(KamTheme.dimens.cardRadius))
+            .padding(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                title,
+                style = KamTheme.type.cardTitle,
+                color = colors.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            if (size.isNotBlank()) {
+                Text(size, style = KamTheme.type.mono, color = colors.textTertiary)
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(body, style = KamTheme.type.secondary, color = colors.textSecondary)
+        if (action != null) {
+            Spacer(Modifier.height(12.dp))
+            SecondaryButton(action, onClick = onAction, modifier = Modifier.fillMaxWidth())
+        }
+        if (note != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(note, style = KamTheme.type.secondary, color = colors.textTertiary)
+        }
+    }
 }

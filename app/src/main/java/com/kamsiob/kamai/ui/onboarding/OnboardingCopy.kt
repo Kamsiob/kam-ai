@@ -142,5 +142,40 @@ object OnboardingCopy {
 
     const val SUPPORT_BUTTON = "Support this work"
 
-    const val SLIDE_COUNT = 6
+    /**
+     * The optional additions, offered while the model downloads (#77).
+     *
+     * Two cards, each declinable on its own. Not stacked into one all-or-nothing
+     * choice, and neither started automatically.
+     */
+    val slideOptional = Slide(
+        eyebrow = "Optional",
+        title = "Two things you can add",
+        button = "Continue",
+    )
+
+    const val OPTIONAL_INTRO =
+        "Both are optional and both can be added later in Settings. The model is " +
+            "downloading in the background either way."
+
+    const val VOICE_CARD_TITLE = "Speaking instead of typing"
+
+    const val VOICE_CARD_BODY =
+        "Talk and it turns your voice into text on the phone, and reads answers back " +
+            "aloud. The voice can be changed later."
+
+    const val PACKS_CARD_TITLE = "Something to read"
+
+    const val PACKS_CARD_BODY =
+        "Discover deals you a short read from an offline pack built from Wikipedia, " +
+            "with a quiz and a discussion held to the passage. Packs are a few megabytes " +
+            "each and live in Discover, where you can pick the topics you actually want."
+
+    const val PACKS_CARD_ACTION = "Where to find them"
+
+    const val SETTINGS_LINE =
+        "Models, voices and packs all live in Settings if you want to change or add " +
+            "anything later."
+
+    const val SLIDE_COUNT = 7
 }
