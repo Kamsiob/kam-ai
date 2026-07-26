@@ -48,7 +48,8 @@ one from and then discuss, with its own tab.
 
 ## Screenshots
 
-Captured from the running app on a Pixel 10 Pro XL, never from a mockup.
+Captured from the running app on a Pixel 10 Pro XL, never from a mockup. Light
+and dark, since the app ships both and you will only ever use one of them.
 
 | | | |
 |---|---|---|
@@ -56,6 +57,18 @@ Captured from the running app on a Pixel 10 Pro XL, never from a mockup.
 | Chats, with the four modes below. Tapping one starts a conversation with that job | A conversation. Answers use headings and lists when the content calls for them, and plain prose when it does not | Discover deals you something to read, offline, and will discuss it without straying from the passage |
 | ![Projects](docs/screenshots/projects-light.png) | ![Follow-ups](docs/screenshots/followups-light.png) | ![Choosing a mode](docs/screenshots/modepicker.png) |
 | Projects keep related chats under shared instructions and notes | Follow-ups collects everything you saved, from anywhere in the app | Switching mode mid-conversation, without losing what was said |
+
+<details>
+<summary><b>The same six screens in dark</b></summary>
+
+<br>
+
+| | | |
+|---|---|---|
+| ![Chats, dark](docs/screenshots/chats-dark.png) | ![A conversation, dark](docs/screenshots/chat-dark.png) | ![Discover, dark](docs/screenshots/discover-dark.png) |
+| ![Projects, dark](docs/screenshots/projects-dark.png) | ![Follow-ups, dark](docs/screenshots/followups-dark.png) | ![Choosing a mode, dark](docs/screenshots/modepicker-dark.png) |
+
+</details>
 
 ## More than a chat box
 
