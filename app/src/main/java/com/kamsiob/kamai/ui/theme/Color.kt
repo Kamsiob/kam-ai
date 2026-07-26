@@ -36,6 +36,18 @@ private val LightBorder           = Color(0x141B241E) // rgba(27,36,30,0.08)
 private val DarkBackground        = Color(0xFF0F1512)
 private val DarkSurface           = Color(0xFF182019)
 private val DarkSurfaceSecondary  = Color(0xFF131A15)
+
+/**
+ * The moving pill in a segmented control, which needs to read against
+ * [DarkSurfaceSecondary] behind it (#69).
+ *
+ * It used to be [DarkSurface], #182019, sitting on #131A15. Five points apart on
+ * each channel is nothing: the indicator that tells you which mode you are in
+ * was very nearly invisible on dark, while the same pair in light mode is pure
+ * white on a warm grey and reads instantly. This is a deliberate step lighter,
+ * chosen to give dark mode a contrast a person can actually see.
+ */
+private val DarkControlThumb      = Color(0xFF2A352C)
 private val DarkTonalFill         = Color(0xFF1D2E23)
 private val DarkTonalText         = Color(0xFF9FDDBA)
 private val DarkTextPrimary       = Color(0xFFEDF2EA)
@@ -78,6 +90,9 @@ data class KamColors(
     /** Soft gold tint for backgrounds behind gold content. */
     val amberFill: Color,
     val border: Color,
+    /** The moving pill in a segmented control. Lighter than [surface] on dark,
+     *  where surface-on-surfaceSecondary was almost invisible (#69). */
+    val controlThumb: Color,
     val isDark: Boolean,
 )
 
@@ -90,6 +105,8 @@ fun lightKamColors(accent: Accent) = KamColors(
     background = LightBackground,
     surface = LightSurface,
     surfaceSecondary = LightSurfaceSecondary,
+    // Unchanged: white on warm grey is what light mode already does well.
+    controlThumb = LightSurface,
     tonalFill = accent.lightTonalFill,
     tonalText = accent.lightTonalText,
     textPrimary = LightTextPrimary,
@@ -108,6 +125,7 @@ fun darkKamColors(accent: Accent) = KamColors(
     background = DarkBackground,
     surface = DarkSurface,
     surfaceSecondary = DarkSurfaceSecondary,
+    controlThumb = DarkControlThumb,
     tonalFill = accent.darkTonalFill,
     tonalText = accent.darkTonalText,
     textPrimary = DarkTextPrimary,

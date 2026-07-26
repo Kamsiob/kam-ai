@@ -5703,3 +5703,33 @@ grows with the history, which is the case that hurt most.
 The save is written in about 185 ms for 31 MB, on the end of a turn that took a
 minute, and it happens before titling so it captures the conversation rather than
 the titling prompt.
+
+## Chats before Projects, and a mode control you can see in the dark (#68, #69, #70)
+
+Three owner-reported items, all small and all about the app being pleasant to
+use rather than correct.
+
+**Nav order (#68).** Projects sat first, which put a container ahead of the thing
+being contained. Chats is the home root — an empty back stack falls through to
+it, a new chat starts there, most sessions live there — so it goes first.
+Declaration order in `NavItem` is the display order and nothing depends on the
+ordinals, so reordering the enum is the whole change.
+
+**Mode control height (#69).** 34dp to 36.5dp, seven percent, because it read as
+cramped against the navigation bar under it. It is one constant, `BASE_HEIGHT`,
+because the sliding thumb is positioned against the same number.
+
+**Mode control thumb in dark mode (#69).** The moving pill was `colors.surface`
+on `colors.surfaceSecondary`. In light that is pure white on a warm grey and
+reads instantly. In dark it was #182019 on #131A15 — five points apart on each
+channel — so the indicator telling you which mode you are in was very nearly
+invisible. The palette gains `controlThumb`: unchanged white in light, and
+#2A352C in dark, a deliberate step lighter. A theme field rather than a local
+tweak, because the next segmented control should not have to rediscover this.
+
+**Long-press to copy your own message (#70).** An answer could be selected, or
+copied from its action row. Your own message had exactly one gesture, tap to
+edit, so getting your own words back out meant retyping them. Long-press now
+copies, tap still edits, and both copy paths confirm with a toast — the action
+row's Copy was silent before, which is fine beside a visible button and not fine
+for a gesture with no affordance at all.

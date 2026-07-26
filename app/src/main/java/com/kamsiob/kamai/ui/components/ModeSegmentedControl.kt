@@ -90,11 +90,14 @@ fun SegmentedModeControl(
     // has to keep a fixed height, because the sliding thumb is positioned against
     // it, so the height follows the font instead of ignoring it.
     //
-    // The label is 14sp at scale 1, so 34dp leaves comfortable room; the ratio is
-    // kept and the result floored at the original height so ordinary text sizes
-    // are unchanged and only larger ones grow.
+    // The label is 14sp at scale 1, so the base leaves comfortable room; the
+    // ratio is kept and the result floored at the base so ordinary text sizes are
+    // unchanged and only larger ones grow.
+    //
+    // 36.5dp rather than the original 34: seven percent taller, asked for because
+    // the control read as cramped against the navigation bar below it (#69).
     val fontScale = LocalDensity.current.fontScale
-    val height = (34.dp * fontScale).coerceAtLeast(34.dp)
+    val height = (BASE_HEIGHT * fontScale).coerceAtLeast(BASE_HEIGHT)
 
     BoxWithConstraints(
         modifier = modifier
@@ -144,7 +147,10 @@ fun SegmentedModeControl(
                 }
                 .shadow(3.dp, CircleShape)
                 .clip(CircleShape)
-                .background(colors.surface),
+                // Its own colour, not `surface`. On dark, surface and
+                // surfaceSecondary are five points apart and the thumb all but
+                // vanished; light mode is unchanged (#69).
+                .background(colors.controlThumb),
         )
 
         // Drag handling across the whole control. Tracks the nearest detent and
@@ -260,3 +266,12 @@ fun SegmentedModeControl(
         }
     }
 }
+
+/**
+ * The control's height at the default text size.
+ *
+ * 34dp originally, raised seven percent to 36.5dp because it read as cramped
+ * against the navigation bar under it (#69). Everything else in the control is
+ * positioned against this, including the sliding thumb, so it is one number.
+ */
+private val BASE_HEIGHT = 36.5.dp
