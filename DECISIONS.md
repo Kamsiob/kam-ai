@@ -6039,3 +6039,73 @@ answers the app thought were shaky would be making a claim about all the others.
 The wording is a note and not a disclaimer: "Anything here worth checking? The
 bookmark saves it to Follow-ups." leaves the judgement with the reader. A test
 pins that it never apologizes, never warns, and carries no exclamation mark.
+
+## Declined: dynamic resource allocation and adaptive inference paths (#97)
+
+Proposed by the assistant when asked what would make it better. Recorded rather
+than dismissed, because the observation underneath it is correct and will come up
+again: every request costs roughly the same regardless of how hard it is, which
+is wasteful.
+
+The mechanism proposed is not implementable in this stack. Compute per token is
+fixed by the model's architecture, so there is no dial that dedicates more
+processing to a harder question. Routing parts of one prompt to different
+specialised models and stitching the results is not something llama.cpp supports
+here, and a dedicated numerical module of the kind described does not exist.
+Worth noting that the assistant appended its own caveat suggesting the idea be
+verified, which was the right instinct and is the honest-limits behaviour working
+as designed.
+
+The one established version of the idea is model cascading: simple requests to a
+smaller model, harder ones escalated. It is real and works in server settings. It
+is a poor fit here for two specific reasons. It needs more than one model
+available for use, which conflicts directly with the one-resident-model rule, and
+that rule exists because of low-memory failures already hit on this device. And
+the cost of unloading and loading between models would very likely exceed
+anything the routing saved.
+
+The useful part is already being addressed and must not be duplicated. The real
+driver of both time and battery is the number of tokens generated. A short
+question answered in four hundred words wastes far more than any routing scheme
+would recover, and the response-formatting work (#91) already requires a short
+factual question to get a short answer with no imposed structure. Same benefit,
+no extra architecture, no memory cost.
+
+If it comes up again: the problem is real, the answer is response length
+discipline plus the queued inference work, and cascading would only be worth
+revisiting if the one-resident-model rule were relaxed for an unrelated reason.
+
+## Declined: automatic model selection per request (#98)
+
+Where a user has several models installed, detecting which suits a request and
+using it. Three things rule it out, and the first is arithmetic rather than
+preference.
+
+Only one model is ever resident, so routing means unloading one and loading
+another, and a model switch discards the conversation cache. Answering a
+supposedly simple question on a smaller model would cost a full model load plus a
+full re-prefill of the conversation, which is far more expensive than answering
+with the model already loaded. The routing would usually make things slower. No
+amount of better routing logic changes that.
+
+Detection is unreliable. Length or keywords will be wrong often, and using a
+model to classify the request first adds exactly the latency the idea was meant
+to remove.
+
+Silent quality variance is the wrong behaviour for this app. A user getting a
+noticeably worse answer with no indication why contradicts the transparency
+everything else here is built on.
+
+Behind this is a deliberate hardware position. Development and judgement are
+anchored to a mid-range reference device rather than the fastest current
+hardware, because most people will not have a flagship and an experience tuned to
+fast hardware is frequently poor on anything slower. Features whose cost falls
+hardest on slower devices are held to a higher bar, and this one fails it.
+
+A context-based variant was considered: a default model per mode or entry point,
+chosen when a conversation starts rather than mid-conversation, for example the
+overlay preferring the smallest installed model. Technically sound, since there is
+no cache to lose at the start of a conversation. Declined for now on the same
+grounds, because switching between conversations would still pay a model load on
+exactly the devices least able to absorb it. Revisit only if measured model load
+times fall far enough that a switch is imperceptible.
