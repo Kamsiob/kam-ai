@@ -45,9 +45,26 @@ destroys whatever is on the device.
 
 ## Conventions
 
-**Commits.** Present tense, subject line under about seventy characters, and a
-body explaining why rather than what. Reference the issue number. Every commit
-should trace to a reason.
+**Commits.** One shape, followed without exception:
+
+```
+<kind>: <short imperative summary> (#123)
+
+Body, where the reasoning is not obvious from the diff. What was tried,
+what was found, why this way and not the other way.
+```
+
+`<kind>` is one of `feat`, `fix`, `perf`, `docs`, `refactor`, `test`, `build`,
+or `chore`. Subject line under about seventy characters, present tense, and the
+issue number referenced so every commit traces to a reason and every issue
+traces to the code that resolved it.
+
+The particular convention matters far less than sticking to it. A log where
+every message has the same shape reads as one project; a log mixing three styles
+reads as whoever happened to be typing that day. This repository mixed area
+prefixes with kind prefixes until it was settled here, and history is not
+rewritten to match, so commits before that point look different and are left
+alone. Dependabot's own `Bump ...` subjects are also left as they are.
 
 **Branches.** Name them for the issue they address. One logical change per
 branch. Anything that changes behaviour goes through a pull request; typos and
