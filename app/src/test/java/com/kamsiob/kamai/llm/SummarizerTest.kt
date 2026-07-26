@@ -123,9 +123,18 @@ class SummarizerTest {
 
     @Test
     fun `the instructions never ask for advice or a closing question`() {
+        val flat = { s: String -> s.replace(Regex("\\s+"), " ") }
         listOf(Summarizer.WHOLE_INSTRUCTION, Summarizer.COMBINE_INSTRUCTION).forEach {
-            assertThat(it).contains("not add anything")
+            assertThat(flat(it)).contains("not add anything")
         }
-        assertThat(Summarizer.WHOLE_INSTRUCTION).contains("do not end with a question")
+        assertThat(flat(Summarizer.WHOLE_INSTRUCTION)).contains("do not end with a question")
+    }
+
+    @Test
+    fun `the instruction states the length the token cap enforces`() {
+        // A cap the model does not know about produces a summary cut off mid
+        // sentence, which is worse than a long one. 200 tokens is roughly 150
+        // words, so the two numbers have to move together (#90).
+        assertThat(Summarizer.WHOLE_INSTRUCTION).contains("150 words")
     }
 }

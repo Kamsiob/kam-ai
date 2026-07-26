@@ -86,11 +86,11 @@ object Summarizer {
 
     /** The instruction for one pass over a whole conversation. */
     val WHOLE_INSTRUCTION = """
-        Summarize the conversation below for the person who had it. Give it in
-        three short parts: what was discussed, what was decided or concluded, and
-        anything left open. Write the summary itself, not a description of how you
-        would write it. Do not add advice, do not add anything that was not said,
-        and do not end with a question.
+        Summarize this conversation for me in under 150 words. Three short parts:
+        what was discussed, what was decided or concluded, and anything left open.
+        Write the summary itself, not a description of how you would write it. Do
+        not add advice, do not add anything that was not said, and do not end with
+        a question.
     """.trimIndent()
 
     /** The instruction for one section of a long conversation. */

@@ -1630,7 +1630,7 @@ internal fun showThinkingIndicator(streaming: Boolean, lastRole: Role?, lastCont
 
 /** Three dots, preceding a response. */
 @Composable
-private fun TypingIndicator(modifier: Modifier = Modifier) {
+internal fun TypingIndicator(modifier: Modifier = Modifier) {
     val colors = KamTheme.colors
     val reduced = reducedMotion()
 

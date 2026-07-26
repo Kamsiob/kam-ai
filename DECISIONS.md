@@ -6298,3 +6298,54 @@ Evaluate the result as a stranger would, and fix what fails.
   work.
 
 Report what failed and what was corrected, every time.
+
+## Summarize was slow because it threw the cache away (#90)
+
+Reported as almost two minutes on a twelve hundred word conversation. Measured
+before changing anything, because the arithmetic turned out to explain all of it:
+
+| | Before | After, warm | After, cold |
+|---|---|---|---|
+| Prefill | 1490 tok / 46 s | **107 tok / 3.8 s** | 1490 tok / 48 s |
+| Decode | ~400 tok / ~80 s | **79 tok / 14.9 s** | 94 tok / 18.7 s |
+| First text visible | at the end | **4 s** | ~48 s |
+| Total | ~120 s | **~19 s** | ~67 s |
+
+Three causes, in order of size.
+
+**It built a prompt that shared no prefix with the cache.** The first version sent
+a minimal instruction plus the transcript through `PromptBuilder.oneShot`, which
+looks like the efficient choice and is the opposite: the context holds
+`[system][turn][turn]...` and that prompt is `[instruction][transcript]`, so the
+diff found nothing and re-prefilled the whole conversation. Passing the
+instruction as `pending` to `buildPrompt` produces the conversation's own prompt
+with the instruction as the final turn, so only the instruction is new. The system
+prompt and mode rules ride along, which is not waste: they are already cached, and
+paying a few hundred cached tokens to avoid re-reading fifteen hundred uncached
+ones is the entire trade. The advice to strip everything but the transcript would
+have made this slower, not faster.
+
+**The output was capped at 400 tokens**, which at five tokens a second is eighty
+seconds on its own. Now 200, and the instruction says "under 150 words" too,
+because a cap the model does not know about produces a summary cut off mid
+sentence.
+
+**Nothing was shown until it finished.** It streams now. Four seconds to first
+text reads as fast; forty seconds of a static word reads as broken even when it
+finishes sooner. The indicator is the same animated one a chat response uses, so
+the same motion means the same thing everywhere, and it only has to cover the gap
+before the first token.
+
+**One more bug found by measuring rather than reasoning.** After the cache change
+the cold measurement was unchanged at 1490 tokens, because the persisted-cache
+restore lived inside `respond()` and summarize does not go through it. The restore
+is now `restorePersistedCache`, called by both. The cold column above is still
+1490 in this measurement for a separate and correct reason: `ConversationState`
+keeps one file at a time, and the most recent answer had been in a different
+conversation, so there was genuinely nothing saved for this one to restore.
+
+Sectioning is gone from this path. A conversation being summarized is by
+definition held in the context it is being summarized from, so the only real case
+is a history longer than the budget, which `buildPrompt` already trims. When it
+trims, the sheet says which portion was covered rather than presenting a partial
+reading as a whole one.

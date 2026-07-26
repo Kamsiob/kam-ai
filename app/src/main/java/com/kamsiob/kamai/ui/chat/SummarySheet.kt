@@ -68,6 +68,13 @@ fun SummarySheet(
             when (state) {
                 is ChatViewModel.SummaryState.Working -> {
                     Spacer(Modifier.height(14.dp))
+                    // The same animated indicator a response in chat uses, so the
+                    // same motion means the same thing everywhere. It replaced a
+                    // static word, which read as frozen (#90). Once streaming
+                    // starts this only has to cover the gap before the first
+                    // token, which is now a second or two rather than fifty.
+                    TypingIndicator()
+                    Spacer(Modifier.height(10.dp))
                     Text(state.step, style = KamTheme.type.body, color = colors.textSecondary)
                     Spacer(Modifier.height(18.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -112,22 +119,30 @@ fun SummarySheet(
                         MarkdownText(text = state.text, color = colors.textPrimary)
                     }
                     Spacer(Modifier.height(16.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TextActionButton("Copy", onClick = { onCopy(state.text) })
-                        TextActionButton("Share", onClick = { onShare(state.text) })
-                        Spacer(Modifier.weight(1f))
-                        TextActionButton("Close", onClick = onDismiss)
+                    if (state.streaming) {
+                        // Nothing to copy, share or keep until it is finished, and
+                        // offering those mid-stream would save half a summary.
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextActionButton("Stop", onClick = onCancel)
+                        }
+                    } else {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TextActionButton("Copy", onClick = { onCopy(state.text) })
+                            TextActionButton("Share", onClick = { onShare(state.text) })
+                            Spacer(Modifier.weight(1f))
+                            TextActionButton("Close", onClick = onDismiss)
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        PrimaryButton(
+                            "Keep it in Follow-ups",
+                            onClick = onSave,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
-                    Spacer(Modifier.height(8.dp))
-                    PrimaryButton(
-                        "Keep it in Follow-ups",
-                        onClick = onSave,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
                 }
 
                 ChatViewModel.SummaryState.Idle -> Unit

@@ -596,6 +596,15 @@ class ChatViewModel(
     private var lastMemoriesUsed: Int = 0
 
     /**
+     * How many of the oldest turns the last built prompt had to drop to fit (#90).
+     *
+     * Read straight after [buildPrompt], like [lastMemoriesUsed]. A summary of a
+     * conversation longer than the window covers only what fitted, and the sheet
+     * says which portion rather than presenting a partial reading as a whole one.
+     */
+    private var lastPromptDroppedTurns: Int = 0
+
+    /**
      * The conversation whose saved cache has already been restored in this
      * process (#52).
      *
@@ -606,6 +615,27 @@ class ChatViewModel(
     private var restoredFor: String? = null
 
     /**
+     * Puts this conversation's saved KV cache back, once per open (#52).
+     *
+     * Extracted because [summarize] needs it too and did not have it, which is
+     * why the first attempt at #90 measured no better on a cold start: it built
+     * the conversation's prompt, correctly expecting the cache to match, against a
+     * context that was still empty. 1490 tokens of prefill and forty-six seconds,
+     * for a cache that was sitting on disk unread.
+     *
+     * Failure is not handled because there is nothing to handle: no file, a file
+     * for another model, or a rejected blob all mean the prompt is prefilled as it
+     * would have been anyway.
+     */
+    private suspend fun restorePersistedCache(conversationId: String) {
+        if (restoredFor == conversationId) return
+        restoredFor = conversationId
+        modelManager.activeId()?.let { modelId ->
+            ConversationState.restore(repository.appContext, engine, conversationId, modelId)
+        }
+    }
+
+    /**
      * Summarizing this conversation, on request only (#86).
      *
      * Never automatic and never on opening: it costs time and battery, and the
@@ -614,7 +644,12 @@ class ChatViewModel(
     sealed interface SummaryState {
         data object Idle : SummaryState
         data class Working(val step: String) : SummaryState
-        data class Ready(val text: String, val provenance: String) : SummaryState
+        data class Ready(
+            val text: String,
+            val provenance: String,
+            /** True while tokens are still arriving, so the sheet can say so. */
+            val streaming: Boolean = false,
+        ) : SummaryState
         data class NotWorthIt(val message: String) : SummaryState
         data class Failed(val message: String) : SummaryState
     }
@@ -624,7 +659,26 @@ class ChatViewModel(
 
     private var summaryJob: Job? = null
 
-    /** Runs a summary. Cancellable, per the rule that anything slow must be. */
+    /**
+     * Runs a summary. Cancellable, per the rule that anything slow must be.
+     *
+     * **Built from the conversation's own prompt, not a fresh one.** The first
+     * version sent a minimal instruction plus the transcript through
+     * `PromptBuilder.oneShot`, which looks like the efficient thing and is the
+     * opposite: that prompt shares almost no prefix with what the context already
+     * holds, so the whole conversation was re-prefilled from scratch. Measured on
+     * a twelve hundred word conversation, roughly sixteen hundred tokens at about
+     * 33 tok/s is fifty seconds before a single token of summary appears, and four
+     * hundred output tokens at about 5 tok/s is another eighty. That is the
+     * reported two minutes, and it is arithmetic rather than mystery.
+     *
+     * Passing the instruction as `pending` to [buildPrompt] produces the
+     * conversation's prompt with the instruction as the final turn, so the cached
+     * prefix matches and only the instruction is new. The system prompt and mode
+     * rules ride along, which is not waste: they are already in the cache, and
+     * paying a few hundred cached tokens to avoid re-reading sixteen hundred
+     * uncached ones is the whole trade.
+     */
     fun summarize() {
         if (_streaming.value) return
         val id = _conversationId.value ?: return
@@ -633,13 +687,15 @@ class ChatViewModel(
             _summary.value = SummaryState.Working("Reading the conversation")
             val history = repository.messages(id)
                 .filter { it.role == Role.USER || it.role == Role.ASSISTANT }
-                .map { "${if (it.role == Role.USER) "Them" else "You"}: ${it.content}" }
+                .map { it.content }
 
-            val contextSize = engine.contextSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT
-            // Room for the instruction and the summary itself, not just the input.
-            val budget = ((contextSize - RESERVED_FOR_REPLY) * CHARS_PER_TOKEN * 0.7).toInt()
-            val plan = Summarizer.plan(history, budget.coerceAtLeast(1000))
-
+            // Only two outcomes matter now that the conversation's own cache is
+            // reused: it is too short to bother with, or it is summarized in one
+            // pass. Sectioning is gone from this path because the conversation by
+            // definition fits the context it is being held in; where the history
+            // is longer than the budget, buildPrompt trims the oldest turns and
+            // the sheet says which portion was covered rather than pretending.
+            val plan = Summarizer.plan(history, budgetChars = Int.MAX_VALUE)
             if (plan is Summarizer.Plan.TooShort) {
                 _summary.value = SummaryState.NotWorthIt(plan.message)
                 return@launch
@@ -657,31 +713,46 @@ class ChatViewModel(
             }
 
             runCatching {
-                when (plan) {
-                    is Summarizer.Plan.Whole -> {
-                        _summary.value = SummaryState.Working("Summarizing")
-                        val text = runPass(Summarizer.WHOLE_INSTRUCTION, plan.text)
-                        _summary.value = SummaryState.Ready(text, Summarizer.provenance(plan))
-                    }
-                    is Summarizer.Plan.Sectioned -> {
-                        val parts = plan.sections.mapIndexed { i, section ->
-                            _summary.value = SummaryState.Working(
-                                "Summarizing part ${i + 1} of ${plan.sections.size}",
-                            )
-                            runPass(Summarizer.SECTION_INSTRUCTION, section)
-                        }
-                        _summary.value = SummaryState.Working("Putting the parts together")
-                        val text = runPass(
-                            Summarizer.COMBINE_INSTRUCTION,
-                            parts.joinToString("\n\n"),
-                        )
-                        _summary.value = SummaryState.Ready(
-                            text,
-                            Summarizer.provenance(plan, plan.sections.size),
-                        )
-                    }
-                    is Summarizer.Plan.TooShort -> Unit
+                // Before the prompt is built, so the cached prefix it is counting
+                // on actually exists (#90).
+                restorePersistedCache(id)
+                val prompt = buildPrompt(id, pending = Summarizer.WHOLE_INSTRUCTION)
+                val covered = lastPromptDroppedTurns
+                val provenance = if (covered > 0) {
+                    "Kam AI's reading of the most recent part of this conversation. " +
+                        "The earliest $covered turns did not fit and are not included."
+                } else {
+                    Summarizer.provenance(Summarizer.Plan.Whole(""))
                 }
+
+                // Streamed, because a summary that starts appearing after two
+                // seconds feels fast even if it takes twenty, and one that shows
+                // nothing for twenty feels broken even if it finishes sooner.
+                val builder = StringBuilder()
+                var first = true
+                engine.generate(prompt, Mode.BENCH, maxTokens = SUMMARY_MAX_TOKENS)
+                    .collect { chunk ->
+                        builder.append(chunk.text)
+                        if (first) {
+                            first = false
+                            _summary.value = SummaryState.Ready(
+                                PromptBuilder.cleanOutput(builder.toString()),
+                                provenance,
+                                streaming = true,
+                            )
+                        } else {
+                            _summary.value = SummaryState.Ready(
+                                PromptBuilder.cleanOutput(builder.toString()),
+                                provenance,
+                                streaming = true,
+                            )
+                        }
+                    }
+                _summary.value = SummaryState.Ready(
+                    PromptBuilder.cleanOutput(builder.toString()),
+                    provenance,
+                    streaming = false,
+                )
             }.onFailure {
                 if (it is kotlinx.coroutines.CancellationException) throw it
                 _summary.value = SummaryState.Failed(
@@ -893,6 +964,9 @@ class ChatViewModel(
         val fitted = PromptBuilder.fitToBudget(turns, budget.coerceAtLeast(256)) {
             PromptBuilder.roughTokenCount(it)
         }
+        // Recorded for the summary, which has to say which portion it covered
+        // when the whole conversation did not fit (#90).
+        lastPromptDroppedTurns = fitted.droppedForBudget
 
         // Context overflow: warn, never silently drop. When the oldest turns no
         // longer fit, say so plainly, once per conversation, so the user knows the
@@ -993,14 +1067,7 @@ class ChatViewModel(
             // Failure is not handled because there is nothing to handle: no file,
             // a file for another model, a rejected blob, all mean the prompt is
             // built and prefilled exactly as it was before any of this existed.
-            if (restoredFor != conversationId) {
-                restoredFor = conversationId
-                modelManager.activeId()?.let { modelId ->
-                    ConversationState.restore(
-                        repository.appContext, engine, conversationId, modelId,
-                    )
-                }
-            }
+            restorePersistedCache(conversationId)
 
             val prompt = buildPrompt(conversationId, pending = continuePrompt)
             // Continuing appends to the answer that stopped rather than adding a
@@ -1176,11 +1243,16 @@ class ChatViewModel(
         /**
          * How long a summary may run to (#86).
          *
-         * Three short parts, so a few hundred tokens. A cap rather than a hope:
-         * a model that starts rambling turns a summary into the thing it was
-         * meant to replace.
+         * A cap rather than a hope: a model that rambles turns a summary into
+         * the thing it was meant to replace.
+         *
+         * Was 400, which is eighty seconds of decode on this device at around
+         * five tokens a second, and half of the two minutes #90 reported. Three
+         * short parts fit in 200, and the instruction now asks for that length
+         * too, since a cap the model does not know about produces a summary cut
+         * off mid sentence.
          */
-        const val SUMMARY_MAX_TOKENS = 400
+        const val SUMMARY_MAX_TOKENS = 200
 
         /** Memory gets at most this fraction of the context, so it never crowds
          *  out the instructions or the conversation. */
