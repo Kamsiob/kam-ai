@@ -14,6 +14,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import kotlinx.coroutines.flow.conflate
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.DragInteraction
@@ -365,6 +367,33 @@ fun ChatScreen(
             }
     }
 
+    // Find in this conversation (#85). Opened from the header overflow, closed
+    // without disturbing anything: the transcript is never filtered, only marked,
+    // so leaving search puts the reader back exactly where they were reading.
+    var finding by remember { mutableStateOf(false) }
+    var findQuery by remember { mutableStateOf("") }
+    var findIndex by remember { mutableStateOf(0) }
+
+    val findMatches = remember(messages, findQuery) {
+        if (!finding || findQuery.isBlank()) {
+            emptyList()
+        } else {
+            FindInChat.matches(
+                messages.map { com.kamsiob.kamai.ui.components.markdownToPlainText(it.content) },
+                findQuery,
+            )
+        }
+    }
+    // A new query starts at the first match rather than wherever the last one
+    // left off, which would otherwise land somebody in the middle of a different
+    // set of results.
+    LaunchedEffect(findQuery) { findIndex = 0 }
+
+    val activeMessageIndex = findMatches.getOrNull(findIndex)?.messageIndex
+    LaunchedEffect(findIndex, findMatches) {
+        activeMessageIndex?.let { runCatching { listState.animateScrollToItem(it) } }
+    }
+
     // The keyboard inset belongs to the whole screen, not to the composer.
     //
     // `imePadding()` used to sit on the composer alone, which made the composer
@@ -389,9 +418,26 @@ fun ChatScreen(
                 onRename = onRenameConversation,
                 onOpenWorkbenchSession = onOpenWorkbenchSession,
                 onWrapUp = onWrapUp.takeIf { com.kamsiob.kamai.llm.WrapUp.availableIn(mode) },
+                onFind = { finding = true },
                 onArchive = onArchiveConversation,
                 onDelete = onDeleteConversation,
                 modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
+            )
+        }
+
+        if (finding) {
+            FindBar(
+                query = findQuery,
+                onQueryChange = { findQuery = it },
+                label = FindInChat.countLabel(findIndex, findMatches.size),
+                enabled = findMatches.isNotEmpty(),
+                onPrevious = {
+                    findIndex = FindInChat.step(findIndex, findMatches.size, forward = false)
+                },
+                onNext = {
+                    findIndex = FindInChat.step(findIndex, findMatches.size, forward = true)
+                },
+                onClose = { finding = false; findQuery = "" },
             )
         }
 
@@ -513,6 +559,8 @@ fun ChatScreen(
                                     onEdit = { onEdit(message, it) },
                                     onOpenMemory = onOpenMemory,
                                     onCopied = onCopied,
+                                    highlight = if (finding) findQuery else "",
+                                    highlightActive = index == activeMessageIndex,
                                 )
                             }
                         }
@@ -821,6 +869,8 @@ private fun ConversationHeader(
     onOpenWorkbenchSession: (() -> Unit)? = null,
     /** Set only in a mode that has a session to close (#58). */
     onWrapUp: (() -> Unit)? = null,
+    /** Opens find-in-conversation (#85). */
+    onFind: () -> Unit = {},
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -875,6 +925,14 @@ private fun ConversationHeader(
                 onDismissRequest = { menuOpen = false },
                 containerColor = colors.surface,
             ) {
+                // First, because it is the one thing here somebody reaches for
+                // mid-read rather than at the end of a conversation (#85).
+                androidx.compose.material3.DropdownMenuItem(
+                    text = {
+                        Text("Find in this chat", style = KamTheme.type.body, color = colors.textPrimary)
+                    },
+                    onClick = { menuOpen = false; onFind() },
+                )
                 androidx.compose.material3.DropdownMenuItem(
                     text = { Text("Rename", style = KamTheme.type.body, color = colors.textPrimary) },
                     onClick = { menuOpen = false; renaming = true },
@@ -974,6 +1032,10 @@ private fun MessageRow(
     onOpenMemory: () -> Unit,
     /** Confirms a copy, since neither gesture that copies leaves any other trace. */
     onCopied: () -> Unit = {},
+    /** Find-in-chat term to mark in this message, and whether this is the one
+     *  the find is currently sitting on (#85). */
+    highlight: String = "",
+    highlightActive: Boolean = false,
 ) {
     val clipboard = LocalClipboardManager.current
     // An answer that has not produced any text yet is represented by the thinking
@@ -1081,11 +1143,29 @@ private fun MessageRow(
                             com.kamsiob.kamai.ui.components.MarkdownText(
                                 text = shown,
                                 color = colors.textPrimary,
+                                highlight = highlight,
+                                highlightActive = highlightActive,
                             )
                         }
                     } else {
                         Text(
-                            shown,
+                            // Marked the same way an answer is, so a search finds
+                            // your own words as visibly as its own.
+                            FindInChat.highlight(
+                                text = androidx.compose.ui.text.AnnotatedString(shown),
+                                query = highlight,
+                                activeStart = null,
+                                allColor = colors.accent.copy(
+                                    alpha = if (highlightActive) {
+                                        FindInChat.ACTIVE_MARK_ALPHA
+                                    } else {
+                                        FindInChat.MARK_ALPHA
+                                    },
+                                ),
+                                activeColor = colors.accent.copy(
+                                    alpha = FindInChat.ACTIVE_MARK_ALPHA,
+                                ),
+                            ),
                             style = KamTheme.type.body,
                             color = colors.tonalText,
                         )
@@ -1957,4 +2037,78 @@ private fun ExcerptDialog(
 internal fun memoryNote(count: Int): String = when (count) {
     1 -> "Used 1 thing it remembers about you"
     else -> "Used $count things it remembers about you"
+}
+
+/**
+ * The find-in-conversation bar (#85).
+ *
+ * Sits under the header rather than replacing it, so the conversation it is
+ * searching stays named. The transcript is never filtered, only marked: filtering
+ * would throw away the context that makes a match mean anything, and leaving
+ * search would then have to rebuild where the reader was. Closing it here simply
+ * stops marking.
+ */
+@Composable
+private fun FindBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    label: String,
+    enabled: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val colors = KamTheme.colors
+    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = KamTheme.dimens.screenPadding, vertical = 6.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.surfaceSecondary)
+            .padding(start = 14.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(1f)) {
+            if (query.isEmpty()) {
+                Text(
+                    "Find in this chat",
+                    style = KamTheme.type.body,
+                    color = colors.textTertiary,
+                )
+            }
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                singleLine = true,
+                textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
+                cursorBrush = SolidColor(colors.accent),
+                modifier = Modifier.fillMaxWidth().focusRequester(focus),
+            )
+        }
+        // The count is a fact, so it wears the mono face like every other number.
+        if (query.isNotBlank()) {
+            Text(label, style = KamTheme.type.mono, color = colors.textTertiary)
+            IconAction(
+                icon = Icons.Rounded.KeyboardArrowUp,
+                description = "Previous match",
+                onClick = { if (enabled) onPrevious() },
+                tint = if (enabled) colors.textSecondary else colors.textTertiary,
+            )
+            IconAction(
+                icon = Icons.Rounded.KeyboardArrowDown,
+                description = "Next match",
+                onClick = { if (enabled) onNext() },
+                tint = if (enabled) colors.textSecondary else colors.textTertiary,
+            )
+        }
+        IconAction(
+            icon = Icons.Rounded.Close,
+            description = "Close find",
+            onClick = onClose,
+            tint = colors.textSecondary,
+        )
+    }
 }

@@ -44,16 +44,41 @@ fun MarkdownText(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = KamTheme.colors.textPrimary,
+    /** A find-in-chat term to mark wherever it appears (#85). Blank marks nothing. */
+    highlight: String = "",
+    /** True on the message the find is currently sitting on, which gets the
+     *  stronger of the two marks so next and previous visibly do something. */
+    highlightActive: Boolean = false,
 ) {
     val blocks = remember(text) { parseMarkdown(text) }
     val colors = KamTheme.colors
     val type = KamTheme.type
 
+    // Marked in two weights: every match, and the message being looked at.
+    val allMark = colors.accent.copy(alpha = com.kamsiob.kamai.ui.chat.FindInChat.MARK_ALPHA)
+    val activeMark =
+        colors.accent.copy(alpha = com.kamsiob.kamai.ui.chat.FindInChat.ACTIVE_MARK_ALPHA)
+    fun marked(s: androidx.compose.ui.text.AnnotatedString) =
+        if (highlight.isBlank()) {
+            s
+        } else {
+            com.kamsiob.kamai.ui.chat.FindInChat.highlight(
+                text = s,
+                query = highlight,
+                // Inside a rendered block the plain-text offsets of the message do
+                // not line up, so the active message marks all of its matches
+                // strongly rather than pretending to know which one.
+                activeStart = null,
+                allColor = if (highlightActive) activeMark else allMark,
+                activeColor = activeMark,
+            )
+        }
+
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         blocks.forEach { block ->
             when (block) {
                 is MdBlock.Heading -> Text(
-                    inline(block.text, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily),
+                    marked(inline(block.text, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily)),
                     style = when (block.level) {
                         1 -> type.sectionTitle
                         2 -> type.cardTitle
@@ -63,7 +88,7 @@ fun MarkdownText(
                 )
 
                 is MdBlock.Paragraph -> Text(
-                    inline(block.text, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily),
+                    marked(inline(block.text, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily)),
                     style = type.body,
                     color = color,
                 )
@@ -73,7 +98,7 @@ fun MarkdownText(
                         Text("•", style = type.body, color = colors.textTertiary)
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            inline(item, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily),
+                            marked(inline(item, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily)),
                             style = type.body, color = color, modifier = Modifier.weight(1f),
                         )
                     }
@@ -84,7 +109,7 @@ fun MarkdownText(
                         Text("${block.start + i}.", style = type.body, color = colors.textTertiary)
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            inline(item, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily),
+                            marked(inline(item, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily)),
                             style = type.body, color = color, modifier = Modifier.weight(1f),
                         )
                     }
@@ -117,7 +142,7 @@ fun MarkdownText(
                     ) { Text(" ", style = type.body) }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        inline(block.text, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily),
+                        marked(inline(block.text, colors.surfaceSecondary, colors.textPrimary, type.mono.fontFamily)),
                         style = type.body, color = colors.textSecondary, modifier = Modifier.weight(1f),
                     )
                 }

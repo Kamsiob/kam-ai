@@ -5976,3 +5976,37 @@ gets their download back the moment they are on it.
 Verified on the phone: a reinstall mid-download killed the app at 1.06 GB and the
 download picked itself back up without any interaction, reaching 1.10 GB thirty
 seconds later.
+
+## Find in this conversation (#85)
+
+Searching across conversations existed. Searching inside one did not, which is
+where it is most needed: a long conversation is exactly where something gets
+lost, and it is the first thing anyone tries in a chat interface.
+
+Reached from the conversation's overflow, first in the list, because it is the
+one item there somebody reaches for mid-read rather than at the end. The bar sits
+under the header rather than replacing it, so the conversation it is searching
+stays named.
+
+**The transcript is never filtered, only marked.** Filtering would throw away the
+context that makes a match mean anything, and leaving search would then have to
+rebuild where the reader was. Closing simply stops marking, which is what makes
+exiting non-destructive without any special handling, and is also why this does
+not fight the scroll restore or the streaming follow.
+
+Matches wrap round rather than going dead at the last one, since otherwise the
+end of the results makes somebody scroll back to the top by hand. The count reads
+as a position, "3 of 12", or says "No matches" rather than showing a zero.
+
+Two mark weights: every match, and the message the find is sitting on. Marking
+everything shows how dense the term is in a long answer; marking the current
+message differently is what stops next and previous feeling like they do nothing
+when a message contains the word four times. Inside a rendered Markdown block the
+plain-text offsets do not line up with the message's, so the active message marks
+all of its own matches strongly rather than pretending to know which one.
+
+**A contrast bug caught by looking at it.** The first version used `tonalFill`
+for ordinary matches, which is invisible on a user's own message because that
+bubble is already `tonalFill`. Both marks are now the accent at low alpha, which
+reads on `surface` and on `tonalFill` alike, and the two alphas live in one place
+so the two renderers cannot drift apart.
