@@ -6200,3 +6200,101 @@ Device-verified both directions. "Give me a detailed organized breakdown of what
 to consider when choosing a laptop" produced real rendered headings: Portability
 and Build, Operating System and Software, Use Case Matching. "What year was the
 Eiffel Tower finished" produced one line with no structure at all.
+
+## The tracker is part of the work (#99, #100, #101)
+
+This is a public repository, so the tracker is not private scaffolding. What was
+set up, and what was deliberately left out.
+
+**Labels are a taxonomy, not a pile.** Audited the existing set: `duplicate`,
+`invalid`, `question`, `good first issue` and `help wanted` had zero uses between
+them, and `mode` and `performance` duplicated meaning that belongs in an area
+label. The eighteen issues on `mode` and nine on `performance` were migrated to
+`area:modes` and `area:inference` and the old labels deleted. What remains is
+three type labels, thirteen `area:` labels, `blocked`, `release-blocker`,
+`record`, and the two contribution signals reinstated on request. Nothing that
+is used once and abandoned.
+
+**One milestone, v1.0.0**, holding every open issue. Two are flagged on the issue
+itself as candidates to move out rather than silently left in: #13 needs a pack
+build pipeline, and #55 is hours of downloads and measurement that informs a
+future default. Both flagged as questions for the owner rather than decided,
+because scoping a release is not mine to decide.
+
+**Two hard blockers, both token scopes.** The maintenance token carries `gist`,
+`read:org`, `repo`. Creating a Project needs `project` and `read:project`;
+pushing anything under `.github/workflows/` needs `workflow`. Both fail with the
+exact errors recorded in #99. One `gh auth refresh` fixes both, and it is
+interactive, so it cannot be done on the owner's behalf. Everything not dependent
+on those scopes was done rather than deferred.
+
+**Continuous integration is written and green rather than written and red.** The
+workflow lives at `docs/ci/ci.yml` until the scope exists, with the three
+commands to activate it beside it. Making lint pass surfaced two real defects,
+which is the argument for gating it at all: `KamTileService` called an API 34
+method with minSdk 31, so the quick-settings tile crashed on Android 12 and 13,
+and `KamAiApp` cast `LocalContext` to `FragmentActivity`, which throws rather
+than degrading. Zero lint errors now. The fifty warnings are not gated, because
+gating them at once would mean a permanently red badge or a blanket suppression,
+and a badge everyone has learned to ignore is worse than none.
+
+**No shipped versions to reconstruct.** Asked to create milestones for past
+releases, and the honest answer is that there are none: `git tag` returns nothing,
+and the only GitHub release is `discover-packs-v1`, which is a content-pack asset
+rather than an app version. No release history was invented. v1.0.0 will be the
+first, and the issue-to-milestone-to-notes-to-artefact chain starts there.
+
+**Deliberately not added:** no wiki, no code owners file, no review requirements
+one person cannot satisfy, no story points or sprints, no automated changelog
+generator, no badge collection beyond build, licence and release. The test for
+anything later is whether it will be kept current and whether it answers a
+question somebody actually has.
+
+## The front page is a living document too
+
+Recorded as a standing rule rather than a periodic task, because the README goes
+stale faster than anything else in the project: nothing forces it to change when
+the software does.
+
+Every commit asks whether it made anything on the front page wrong, and fixes it
+in the same commit. The repository description, topics, About section and website
+field describe what the app currently is. The README still answers, for someone
+with no context: what this is and who for, what it looks like, what it can and
+cannot do, how to install, how to build, and the licence.
+
+**The capability and limitation lists are the part most likely to become a lie**,
+because features get added and limitations removed while nobody revisits the
+paragraph describing them. That matters more here than in most projects: honest
+limits are a stated value, and a README overstating the software undermines the
+thing it is overstating.
+
+Screenshots are recaptured in the same pass as any material change to a screen's
+layout, controls, colours or copy. From the running app on the device, never a
+mockup, in both themes, keeping the same set of screens so the story stays
+coherent rather than accumulating whatever was captured most recently. The full
+set is recaptured before any release regardless of what changed, because small
+changes drift the whole picture.
+
+## The cold read test, to run before every release
+
+Evaluate the result as a stranger would, and fix what fails.
+
+- Open the project with no context: is it obvious what the product is, which
+  platforms, what state, and what is next?
+- Open five issues at random, including old ones: does each state its situation,
+  why it matters, and how to verify it is done?
+- Trace three recently closed issues to the commits that resolved them.
+- Every item in Blocked says what it is waiting on.
+- The milestone percentage matches what HANDOFF.md says about how close the
+  release is. If not, one of them is wrong.
+- Read the README as a stranger, and check **every factual claim against the
+  built application**, including the capability and limitation lists, the install
+  and build instructions, and every screenshot. A claim that cannot be verified
+  quickly is itself a finding, because a claim nobody can check will eventually
+  be wrong.
+- The most recent ten commits and five pull requests each trace to an issue, say
+  what was tested and where, and passed integration.
+- The profile orients somebody in under a minute with no decoration doing the
+  work.
+
+Report what failed and what was corrected, every time.
