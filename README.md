@@ -4,110 +4,137 @@
 [![Licence: AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue)](LICENSE)
 [![Release](https://img.shields.io/badge/release-none%20yet-lightgrey)](https://github.com/Kamsiob/kam-ai/releases)
 
-**A private thinking and drafting tool that runs entirely on your phone.**
+**An AI that runs on your phone instead of somebody else's computer.**
 
-Kam AI downloads an AI model onto your Android phone and runs it there. Your
-conversations, memory, projects and follow-ups stay on the device. There is no
-account, no subscription, no ads, and nothing is collected. Turn on airplane
-mode and it still works.
+You download a model once. After that, everything happens on the device: what you
+ask, what it answers, and anything you save. There is no account to create,
+nothing to subscribe to, no ads, and nothing about you is sent anywhere. Put the
+phone in airplane mode and it still works.
 
-> Kam AI is under active construction. This README describes what is built so
-> far and is updated at the end of every phase.
+> Kam AI is still being built. This page describes what actually works today, not
+> what is planned.
 
-## What it is, and what it is not
+## What it is good at, and what it is not
 
-Kam AI is good at transforming, organizing and rephrasing text you give it, at
-everyday questions, and at pushing back on your ideas.
+It is at its best when you give it something to work with: tidying a messy draft,
+reorganising notes you dumped in a hurry, answering everyday questions, and
+arguing with an idea until you know whether it holds up.
 
-**Kam AI is not a private ChatGPT.** A model small enough to fit on a phone
-knows less than the big cloud models, gets some facts wrong, cannot make images,
-and is weaker at long polished documents. The app says so plainly and builds
-around it: anything worth checking gets a bookmark into Follow-ups instead of a
-confident guess.
+**It is not a private ChatGPT, and saying it was would be dishonest.** A model
+small enough to live on a phone knows less than the enormous ones running in data
+centres. It gets facts wrong sometimes, it cannot make pictures, and it is weaker
+at long, polished documents. The app is built around admitting that rather than
+hiding it. When something is worth double checking, you get a bookmark to come
+back to instead of a confident guess.
 
-There are no characters, no roleplay, no pretend companion, and no emotional
-manipulation. Those are stated design commitments, not just internal rules.
+There are no characters to talk to, no roleplay, no pretend friend, and nothing
+engineered to keep you opening the app. Those are commitments, not settings you
+can turn on later.
 
-**It thinks with you, not for you.** That is the difference the modes are built
-around, and it is why one of them refuses to hand you ideas at all.
+**It thinks with you, not for you.** That is what the four modes are really
+about, and it is why one of them refuses to hand you ideas at all.
 
 ## The four modes
 
-One AI, four ways of working. A mode is chosen when a chat starts and can be
-switched at any time.
+Same AI, four ways of working. You pick one when a chat starts, and you can
+switch at any point without losing what was said.
 
 | Mode | What it does |
 |---|---|
-| **General** | Everyday questions and back-and-forth. |
-| **Logic Partner** | Argues the other side and pokes holes in your thinking. It concedes when you are right, and does not fold just because you disagree. |
-| **Brainstorm** | Will not hand you ideas. It pulls them out of you, using a named facilitation method and asking one question at a time. |
-| **Workbench** | Paste something in and get it rewritten, tightened, or reorganized. Sessions are saved and can be reopened, and each can be linked to a chat about its result. |
+| **General** | Ordinary questions and back and forth. Start here. |
+| **Logic Partner** | Takes the opposite side and tests your reasoning. It admits when you are right, and it does not cave just because you pushed back. |
+| **Brainstorm** | Refuses to hand you ideas. It asks one question at a time and pulls your own out of you instead. |
+| **Workbench** | Paste something in and get it rewritten, tightened or reorganised. Sessions are saved, and each one can be linked to a chat about the result. |
 
-Discover is not a mode. It is a source: offline packs of short reads you can pull
-one from and then discuss, with its own tab.
+Discover is not a mode, it is somewhere to read. Offline packs of short articles:
+pull one out, read it, then talk about it.
 
-## Screenshots
+## What it looks like
 
-Captured from the running app on a Pixel 10 Pro XL, never from a mockup. Light
-and dark, since the app ships both and you will only ever use one of them.
+Real captures from the phone, never mockups.
 
-| | | |
-|---|---|---|
-| ![Chats](docs/screenshots/chats-light.png) | ![A conversation](docs/screenshots/chat-light.png) | ![Discover](docs/screenshots/discover-light.png) |
-| Chats, with the four modes below. Tapping one starts a conversation with that job | A conversation. Answers use headings and lists when the content calls for them, and plain prose when it does not | Discover deals you something to read, offline, and will discuss it without straying from the passage |
-| ![Projects](docs/screenshots/projects-light.png) | ![Follow-ups](docs/screenshots/followups-light.png) | ![Choosing a mode](docs/screenshots/modepicker.png) |
-| Projects keep related chats under shared instructions and notes | Follow-ups collects everything you saved, from anywhere in the app | Switching mode mid-conversation, without losing what was said |
+<table>
+<tr>
+<td width="33%"><img src="docs/screenshots/chats-light.png" alt="The chat list"></td>
+<td width="33%"><img src="docs/screenshots/chat-light.png" alt="A conversation"></td>
+<td width="33%"><img src="docs/screenshots/discover-light.png" alt="Discover"></td>
+</tr>
+<tr>
+<td><b>Your chats.</b> The four modes sit along the bottom. Tapping one starts a new conversation with that job.</td>
+<td><b>A conversation.</b> Answers use headings and lists when the content needs them, and plain sentences when it does not.</td>
+<td><b>Discover</b> deals you something to read, offline, then discusses it without wandering off the page.</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/projects-light.png" alt="Projects"></td>
+<td><img src="docs/screenshots/followups-light.png" alt="Follow-ups"></td>
+<td><img src="docs/screenshots/modepicker.png" alt="Choosing a mode"></td>
+</tr>
+<tr>
+<td><b>Projects</b> keep related chats together under instructions and notes they all share.</td>
+<td><b>Follow-ups</b> is where everything you saved ends up, from anywhere in the app.</td>
+<td><b>Switching mode</b> partway through a chat, keeping everything already said.</td>
+</tr>
+</table>
 
 <details>
-<summary><b>The same six screens in dark</b></summary>
+<summary><b>The same screens in dark</b></summary>
 
 <br>
 
-| | | |
-|---|---|---|
-| ![Chats, dark](docs/screenshots/chats-dark.png) | ![A conversation, dark](docs/screenshots/chat-dark.png) | ![Discover, dark](docs/screenshots/discover-dark.png) |
-| ![Projects, dark](docs/screenshots/projects-dark.png) | ![Follow-ups, dark](docs/screenshots/followups-dark.png) | ![Choosing a mode, dark](docs/screenshots/modepicker-dark.png) |
+<table>
+<tr>
+<td width="33%"><img src="docs/screenshots/chats-dark.png" alt="The chat list, dark"></td>
+<td width="33%"><img src="docs/screenshots/chat-dark.png" alt="A conversation, dark"></td>
+<td width="33%"><img src="docs/screenshots/discover-dark.png" alt="Discover, dark"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/projects-dark.png" alt="Projects, dark"></td>
+<td><img src="docs/screenshots/followups-dark.png" alt="Follow-ups, dark"></td>
+<td><img src="docs/screenshots/modepicker-dark.png" alt="Choosing a mode, dark"></td>
+</tr>
+</table>
 
 </details>
 
-## More than a chat box
+## What else it does
 
-- **Hold the power button** to ask something without leaving what you are doing.
-  Speak or type; the answer arrives over the top of whatever is on screen.
-- **Talk instead of typing.** Your voice becomes text on the phone itself, with
-  whisper.cpp, and the model will tidy a rambling voice note into notes or a
-  draft.
+- **Hold the power button** to ask something without leaving whatever you are in
+  the middle of. Speak or type, and the answer appears over the top of the app
+  you were using.
+- **Talk instead of typing.** Your voice is turned into text on the phone itself,
+  and it will tidy a rambling voice note into something you can actually use.
 - **Attach a document** and ask about what is in it. The file never leaves the
-  phone, and if it is longer than the model can hold, the app says so rather
-  than quietly truncating it.
-- **Projects** keep related chats together under instructions they all follow.
-- **Follow-ups** is one bookmark for the whole app: anything worth checking or
-  coming back to lands in the same list, told apart by where it came from.
-- **Memory** keeps the durable things it notices. Everything it has kept is
-  listed in full in Settings, and any of it can be deleted.
-- **Read aloud** with an on-device voice, male or female, downloaded separately.
-- **Backup and restore** writes everything to one passphrase-locked file, so
-  moving to a new phone does not mean starting over.
+  phone. If it is too long to fit, the app tells you rather than quietly cutting
+  off the end and answering anyway.
+- **Projects** keep related chats together, with instructions and background that
+  every chat inside them already knows.
+- **Follow-ups** is one bookmark for the whole app. Anything worth checking, or
+  worth coming back to, lands in the same list.
+- **Memory** holds the lasting things it picks up about you. You can read all of
+  it in Settings, and delete any of it.
+- **Read aloud** in a voice that also runs on the phone. Male or female,
+  downloaded separately so you only get it if you want it.
+- **Backup and restore** puts everything into one file locked with a passphrase
+  you choose, so moving to a new phone does not mean starting over.
 
 ## Install
 
-Two ways to get it, and they are the same app.
+Two ways to get it. Same app either way.
 
-**Google Play.** The usual route. Updates arrive on their own.
+**From Google Play.** The normal route, and updates arrive on their own.
 
-**GitHub releases.** For people who avoid the Play Store or run a de-Googled
-device, every version is also published here as a plain APK you can download and
-install directly. Grab the newest `.apk` from
-[Releases](https://github.com/kamsiob/kam-ai/releases). The first time you open
-an APK, Android will ask you to allow installs from whichever app you used to
-open it, usually your browser or file manager. That is a one time permission for
-that app, not for Kam AI.
+**Straight from here.** If you avoid the Play Store, or your phone has no Google
+services on it, every version is also published as a plain APK you can install
+yourself. Download the newest `.apk` from
+[Releases](https://github.com/kamsiob/kam-ai/releases) and open it. Android will
+ask once whether to allow installs from whichever app you opened it with, usually
+your browser or file manager. That permission is about that app, not about Kam AI.
 
-The two builds are signed with different keys, so Android treats them as
-separate apps. You cannot install one on top of the other. To switch, uninstall
-the one you have first, then install the other. Your conversations can come with
-you: use Settings, then Backup and restore to export a file before uninstalling,
-and import it after.
+One thing worth knowing before you choose: the two are signed with different keys,
+so Android treats them as separate apps and will not install one over the other.
+If you want to switch later, uninstall the one you have first. Your conversations
+can come with you. Go to Settings, then Backup and restore, and export a file
+before you uninstall, then import it afterwards.
 
 ## Building it yourself
 
@@ -133,52 +160,87 @@ generates tokens through the JNI bridge:
     ./tools/fetch_smoke_model.sh
     ./gradlew :app:connectedDebugAndroidTest
 
-## How it is put together
+## How it actually works
 
-The short version: Kotlin and Jetpack Compose, single activity, Material 3 with a
-fully custom theme and no dynamic colour, because the palette carries meaning.
-llama.cpp compiled for arm64 behind a thin JNI bridge, with the generation loop in
-Kotlin so streaming, stopping and thermal backoff sit next to the rest of the
-logic. One SQLite database through Room and SQLCipher holds everything, shaped so
-a backup is a single portable file.
+The technical section. Everything above is written for someone deciding whether
+to install it; this part assumes you want to know what is under it.
 
-[ARCHITECTURE.md](ARCHITECTURE.md) has the long version: the components and their
-responsibilities, how inference is integrated, how data is stored and protected,
-the threading and lifecycle model, and where the significant constraints come
-from.
+**Inference.** llama.cpp, pinned to a known tag and compiled from source for
+arm64, behind a deliberately thin JNI bridge. The generation loop lives in Kotlin
+rather than in C++, so streaming, cancellation and thermal backoff sit next to the
+rest of the app's logic instead of being trapped behind the native boundary. Built
+with `-O3` and the ARM extensions that matter on recent silicon: dotprod, i8mm,
+fp16, weight repacking, flash attention on auto, `mmap` for the weights. Thread
+count is capped to the performance cores, which alone was worth 54 percent on the
+mid tier model. GPU offload is not used; on this stack it is slower than CPU, and
+that measurement is written down rather than assumed.
+
+**The KV cache is treated as a real asset.** Reopening a conversation restores its
+cache from disk through `llama_state_seq_get_data` instead of re-reading the
+transcript, which took one measured case from 656 tokens and 20 seconds down to 29
+tokens and 2 seconds. Prefix diffing means an ongoing conversation only ever
+prefills what actually changed.
+
+**Which model you get depends on your phone.** Memory is measured at runtime and a
+tier is chosen from it, because loading a model that does not fit does not degrade
+gracefully, it fails. There is one model resident at a time, on purpose.
+
+**Storage.** One SQLite database through Room, encrypted with SQLCipher. The key
+is a software data key wrapped by the Android Keystore, and the reason it works
+that way is worth stating: hardware backed StrongBox turned out to encrypt about
+13 bytes in 20 seconds, which is fine for wrapping a key and useless for
+encrypting a database. The schema is deliberately flat and free of device specific
+values, so a backup is one portable file rather than an export that only restores
+onto the phone it came from.
+
+**It is already sync ready, though nothing syncs.** Every row carries a Lamport
+stamp and the identity of the install that wrote it, deletions leave tombstones,
+and the conflict rule is tested for convergence from both sides. There is no
+transport, no server and no network code. Those pieces are free to add before
+there is data in the wild and impossible to add correctly afterwards.
+
+**Interface.** Kotlin and Jetpack Compose, one activity, Material 3 with a fully
+custom theme and no dynamic colour, because the palette carries meaning that a
+wallpaper should not be allowed to reassign.
+
+**Voice.** whisper.cpp for speech to text and sherpa-onnx for speech back, both on
+the device, both in their own shared libraries with their own copy of ggml so the
+two never collide at link time.
+
+[ARCHITECTURE.md](ARCHITECTURE.md) goes further: the components and their
+responsibilities, the threading and lifecycle model, and where the constraints
+come from. [DECISIONS.md](DECISIONS.md) has the reasoning behind each of the calls
+above, including the ones that turned out to be wrong.
 
 ## Approach
 
-The app is specified before it is built. [MASTER_SPEC.md](MASTER_SPEC.md)
-describes what it does and [DESIGN.md](DESIGN.md) describes how it looks, moves
-and speaks, down to the copy. Both are kept current with the code rather than
-written once at the start; where the code and those documents disagree, the
-documents are the source of truth and the code is wrong.
+The app is written down before it is built. [MASTER_SPEC.md](MASTER_SPEC.md) says
+what it does and [DESIGN.md](DESIGN.md) says how it looks, moves and speaks, down
+to the wording. Both are kept current with the code rather than written once at
+the start, and where the code and those documents disagree, the documents are
+right and the code is wrong.
+
+Decisions are recorded as they are made. [DECISIONS.md](DECISIONS.md) holds every
+architectural and product call that was not obvious, along with why, including the
+ones that turned out to be wrong and the approaches that failed and should not be
+tried again. Two feature requests are in there as declined, with the arithmetic
+that rules them out, so nobody has to relitigate them from scratch.
 
 Work is tracked in the open. The
 [project board](https://github.com/users/Kamsiob/projects/1) is public and holds
-every issue, open and closed, with what platform it belongs to and what state it
-is in. Nothing is marked done until it has been verified on real hardware.
+every issue, open and closed, what platform it belongs to, and what state it is
+in. An issue says what the situation is, why it matters, and what would have to be
+true for it to be finished, so closing one is checkable rather than a matter of
+opinion.
 
-Decisions are recorded as they are made. [DECISIONS.md](DECISIONS.md) holds every
-nontrivial architectural and product call along with the reasoning, including the
-ones that turned out to be wrong and the approaches that failed and should not be
-retried. Two feature requests are recorded there as declined, with the arithmetic
-that rules them out, so they do not get re-proposed from scratch.
+Nothing counts as finished until it has run on a real phone. Tests are necessary
+and nowhere near sufficient: several defects in this codebase compiled cleanly,
+passed their tests, and were still wrong on the device. Some of the most useful
+comments in the source are the ones recording exactly that.
 
-The [issue tracker](https://github.com/Kamsiob/kam-ai/issues) is the authoritative
-record of state. An issue states the current situation, why it matters, and
-acceptance criteria in checkable terms, so that closing one is verifiable rather
-than a judgement call. Working notes go on the issue as the work happens.
-
-Nothing is marked finished until it has been verified on real hardware. Unit tests
-are necessary and not sufficient: several defects in this codebase compiled,
-passed their tests, and were wrong on the device, and a few of the most useful
-comments in the source record exactly that.
-
-[HANDOFF.md](HANDOFF.md) is maintained so the project can be picked up cold, with
-the measurements taken, the approaches that failed, and an honest state of every
-unfinished thing.
+[HANDOFF.md](HANDOFF.md) exists so the project can be picked up cold, with the
+measurements taken, the things that failed, and an honest account of everything
+unfinished.
 
 ### How this is built
 
