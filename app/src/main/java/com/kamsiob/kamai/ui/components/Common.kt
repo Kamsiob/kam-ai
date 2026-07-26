@@ -32,6 +32,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -232,14 +235,57 @@ fun SettingsGroup(
     }
 }
 
+/**
+ * What sits in a row's trailing slot (#95).
+ *
+ * Exactly one of these, and **never a value, a size or a count**. That single rule
+ * is what keeps the right edge of every row in the app aligned, and breaking it is
+ * what made an earlier attempt look broken: a chevron on one row and "5.0 GB" on
+ * the next put the two edges in different places and the card read as ragged.
+ *
+ * Values go in the description line beneath the row name instead, where there is
+ * room for them and where a figure can sit in the mono face without fighting the
+ * row's alignment.
+ */
+sealed interface RowTrailing {
+    /** The row opens something. */
+    data object Navigate : RowTrailing
+
+    /** An on or off setting. The description says what off means. */
+    data class Toggle(val on: Boolean, val onChange: (Boolean) -> Unit) : RowTrailing
+
+    /** One choice among several mutually exclusive ones. */
+    data class Choice(val selected: Boolean) : RowTrailing
+
+    /** Nothing: the row acts on tap and has nowhere to go. */
+    data object None : RowTrailing
+}
+
+/** The fixed width of that slot, the same on every row in the application. */
+private val TRAILING_SLOT = 40.dp
+
+/** The icon column's width, which the dividers start after. */
+private val ICON_COLUMN = 30.dp + 14.dp
+
 @Composable
 fun SettingsRow(
     title: String,
     modifier: Modifier = Modifier,
+    /**
+     * The line beneath the name. This is where values, sizes, counts and status
+     * go, never the trailing slot (#95). Set [monoTail] when it ends in a figure.
+     */
     subtitle: String? = null,
-    trailing: String? = null,
+    /**
+     * A figure appended to the subtitle in the utility mono face, so it reads as
+     * data while the words around it stay in the body face.
+     */
+    monoTail: String? = null,
     icon: ImageVector? = null,
-    /** Destructive rows carry the amber label. */
+    /** The tile colour. Chosen for separation from the rows around it. */
+    tile: com.kamsiob.kamai.ui.theme.TileColor = com.kamsiob.kamai.ui.theme.TileColor.Slate,
+    trailing: RowTrailing = RowTrailing.Navigate,
+    /** Destructive rows carry a brick tile and a brick name. */
     destructive: Boolean = false,
     showDivider: Boolean = true,
     enabled: Boolean = true,
@@ -248,6 +294,8 @@ fun SettingsRow(
     val colors = KamTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val tileColor = (if (destructive) com.kamsiob.kamai.ui.theme.TileColor.Brick else tile)
+        .of(colors.isDark)
 
     Column {
         Row(
@@ -266,16 +314,29 @@ fun SettingsRow(
                     },
                 )
                 .defaultMinSize(minHeight = KamTheme.dimens.minTouchTarget)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                // The same vertical padding on every row. A row with no
+                // description is simply shorter rather than padded to match its
+                // neighbours.
+                .padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (icon != null) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = if (destructive) colors.goldText else colors.textSecondary,
-                    modifier = Modifier.size(20.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(tileColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        icon,
+                        // The tile is decoration for scanning. A screen reader
+                        // gets the row name and its state, never this.
+                        contentDescription = null,
+                        tint = com.kamsiob.kamai.ui.theme.TileGlyph,
+                        modifier = Modifier.size(17.dp),
+                    )
+                }
                 Spacer(Modifier.width(14.dp))
             }
             Column(Modifier.weight(1f)) {
@@ -284,25 +345,90 @@ fun SettingsRow(
                     style = KamTheme.type.bodyEmphasis,
                     color = when {
                         !enabled -> colors.textTertiary
-                        destructive -> colors.goldText
+                        destructive -> com.kamsiob.kamai.ui.theme.TileColor.Brick.of(colors.isDark)
                         else -> colors.textPrimary
                     },
                 )
-                if (subtitle != null) {
+                if (subtitle != null || monoTail != null) {
                     Spacer(Modifier.height(2.dp))
-                    Text(subtitle, style = KamTheme.type.secondary, color = colors.textSecondary)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (subtitle != null) {
+                            Text(
+                                subtitle,
+                                style = KamTheme.type.secondary,
+                                color = colors.textTertiary,
+                            )
+                        }
+                        if (monoTail != null) {
+                            if (subtitle != null) Spacer(Modifier.width(6.dp))
+                            Text(
+                                monoTail,
+                                style = KamTheme.type.mono,
+                                color = colors.textTertiary,
+                            )
+                        }
+                    }
                 }
             }
-            if (trailing != null) {
-                Spacer(Modifier.width(12.dp))
-                Text(trailing, style = KamTheme.type.mono, color = colors.textTertiary)
+            Box(
+                modifier = Modifier.width(TRAILING_SLOT),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                when (trailing) {
+                    RowTrailing.Navigate -> Icon(
+                        Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = colors.textTertiary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    is RowTrailing.Toggle -> androidx.compose.material3.Switch(
+                        checked = trailing.on,
+                        onCheckedChange = trailing.onChange,
+                        colors = androidx.compose.material3.SwitchDefaults.colors(
+                            checkedThumbColor = colors.onAccent,
+                            checkedTrackColor = colors.accent,
+                            uncheckedThumbColor = colors.textTertiary,
+                            uncheckedTrackColor = colors.surfaceSecondary,
+                            uncheckedBorderColor = colors.border,
+                        ),
+                    )
+                    is RowTrailing.Choice -> RadioDot(selected = trailing.selected)
+                    RowTrailing.None -> Unit
+                }
             }
         }
         if (showDivider) {
             HorizontalDivider(
                 color = colors.border,
                 thickness = 1.dp,
-                modifier = Modifier.padding(start = 16.dp),
+                // Starts at the text column, so the icon column reads as an
+                // unbroken rail down the card.
+                modifier = Modifier.padding(start = 14.dp + ICON_COLUMN),
+            )
+        }
+    }
+}
+
+/** The radio indicator for one choice among several. */
+@Composable
+private fun RadioDot(selected: Boolean) {
+    val colors = KamTheme.colors
+    Box(
+        modifier = Modifier
+            .size(20.dp)
+            .clip(CircleShape)
+            .background(if (selected) colors.accent else Color.Transparent)
+            .then(
+                if (selected) Modifier else Modifier.border(2.dp, colors.border, CircleShape),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            Icon(
+                Icons.Rounded.Check,
+                contentDescription = null,
+                tint = colors.onAccent,
+                modifier = Modifier.size(13.dp),
             )
         }
     }

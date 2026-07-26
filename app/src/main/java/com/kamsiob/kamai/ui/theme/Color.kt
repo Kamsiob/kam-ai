@@ -72,6 +72,38 @@ val MarkCoreEdge      = Color(0xFF1F6B44)
  * set and maps a Material scheme alongside it for the stock components.
  */
 @Immutable
+/**
+ * The settings row icon palette (#95).
+ *
+ * Muted earth tones, deliberately, so a tile sits within the warm background
+ * rather than popping off it. If a tile draws the eye away from its row's text it
+ * is too strong.
+ *
+ * Their purpose is scanning: somebody should find the row they want by shape and
+ * colour without reading the whole list, which is why adjacent rows get visibly
+ * different tiles. Colours are assigned for separation rather than meaning, with
+ * one exception: [Brick] always means destructive, so that is identifiable by
+ * colour as well as by wording. Never by colour alone, though; the glyph and the
+ * row name always carry the meaning.
+ */
+enum class TileColor(private val light: Color, private val dark: Color) {
+    Pine(Color(0xFF456B55), Color(0xFF4E7A61)),
+    Slate(Color(0xFF556C78), Color(0xFF5E7684)),
+    Terracotta(Color(0xFF9C6853), Color(0xFFA5715B)),
+    Ochre(Color(0xFF9A8144), Color(0xFFA38A4B)),
+    Umber(Color(0xFF7C6553), Color(0xFF87705D)),
+    Teal(Color(0xFF476F6B), Color(0xFF4F7A75)),
+    Olive(Color(0xFF6E7754), Color(0xFF78815C)),
+    Sage(Color(0xFF7E8A75), Color(0xFF87927E)),
+    Brick(Color(0xFF8E5A50), Color(0xFF996257)),
+    ;
+
+    fun of(isDark: Boolean): Color = if (isDark) dark else light
+}
+
+/** The glyph inside a tile: a warm off white, in both themes. */
+val TileGlyph = Color(0xFFF6F3EC)
+
 data class KamColors(
     val background: Color,
     val surface: Color,

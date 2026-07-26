@@ -68,7 +68,7 @@ import com.kamsiob.kamai.ui.theme.KamTheme
 private val screenPad @Composable get() = KamTheme.dimens.screenPadding
 
 /**
- * Settings: three grouped sections, then the Support this work button.
+ * Settings: the support signpost, then three grouped sections.
  *
  * Rows whose feature does not exist yet are not shown at all. DESIGN.md is
  * explicit that a visible row with honest coming-soon text is not acceptable,
@@ -118,9 +118,9 @@ fun SettingsScreen(
         Text("Settings", style = KamTheme.type.screenTitle, color = colors.textPrimary)
         Spacer(Modifier.height(14.dp))
 
-        // A signpost, above the first group, so the support action does not
-        // require scrolling the whole screen to find (#94). The full ask stays at
-        // the bottom, unchanged.
+        // Above the first group, so the support action does not require scrolling
+        // the whole screen to find (#94). It is the only ask on the screen: the
+        // repeat at the bottom was removed in #105.
         SupportSignpost(onSupport = onSupport)
         Spacer(Modifier.height(20.dp))
 
@@ -128,7 +128,7 @@ fun SettingsScreen(
             SettingsRow(
                 title = "Model",
                 subtitle = activeModel?.displayName ?: "Nothing downloaded yet",
-                trailing = activeModel?.downloadLabel,
+                monoTail = activeModel?.downloadLabel,
                 onClick = onModel,
             )
             SettingsRow(
@@ -148,7 +148,7 @@ fun SettingsScreen(
             )
             SettingsRow(
                 title = "Storage",
-                trailing = formatBytes(storageBytes),
+                monoTail = formatBytes(storageBytes),
                 onClick = onStorage,
                 showDivider = false,
             )
@@ -363,11 +363,11 @@ fun AboutScreen(
         Spacer(Modifier.height(26.dp))
 
         SettingsGroup(null) {
-            SettingsRow(title = "YouTube", trailing = "@kamsiob") { onLink(Links.YOUTUBE) }
-            SettingsRow(title = "GitHub", trailing = "github.com/kamsiob") { onLink(Links.GITHUB) }
-            SettingsRow(title = "Website", trailing = "kamsiob.com") { onLink(Links.WEBSITE) }
-            SettingsRow(title = "Telegram", trailing = "Kamsiob Lab") { onLink(Links.TELEGRAM) }
-            SettingsRow(title = "Feedback", trailing = "hello@kamsiob.com") {
+            SettingsRow(title = "YouTube", subtitle = "@kamsiob") { onLink(Links.YOUTUBE) }
+            SettingsRow(title = "GitHub", subtitle = "github.com/kamsiob") { onLink(Links.GITHUB) }
+            SettingsRow(title = "Website", subtitle = "kamsiob.com") { onLink(Links.WEBSITE) }
+            SettingsRow(title = "Telegram", subtitle = "Kamsiob Lab") { onLink(Links.TELEGRAM) }
+            SettingsRow(title = "Feedback", subtitle = "hello@kamsiob.com") {
                 onEmail(Links.FEEDBACK_EMAIL)
             }
             SettingsRow(
@@ -900,7 +900,7 @@ fun LicensesScreen(
                         components.forEachIndexed { index, (name, licence) ->
                             SettingsRow(
                                 title = name,
-                                trailing = licence,
+                                subtitle = licence,
                                 showDivider = index != components.lastIndex,
                             )
                         }
