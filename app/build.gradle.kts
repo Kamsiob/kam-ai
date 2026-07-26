@@ -119,6 +119,18 @@ android {
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
+            // initWith does not copy proguardFiles. Without this the build runs
+            // R8 with none of our keep rules, which is worse than not testing
+            // minification at all: it would strip the JNI bridges and then fail
+            // in a way that looks like a native bug rather than a missing rule.
+            // Caught because R8 stopped on a missing class our rules already
+            // suppress, and there was no configuration.txt to explain it.
+            setProguardFiles(
+                listOf(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro",
+                ),
+            )
         }
         release {
             isMinifyEnabled = true

@@ -6894,3 +6894,67 @@ ignored and the same file staged is correctly caught.
 
 This audit is now part of the pre-release checks and runs before every release
 rather than only this one.
+
+
+## The release build, tested for the first time
+
+Every build up to this point was a debug build, so minification had never run
+against the app in anger. This is the part most likely to fail a launch, because
+R8 breaks things that only fail when called rather than when compiled.
+
+### How it was tested without destroying the owner's data
+
+The release build cannot install over a debug build: the signatures differ and
+Android refuses the upgrade. Uninstalling first would destroy the Keystore entry
+that wraps the database key, which makes every existing conversation permanently
+unreadable, and cost a multi-gigabyte model re-download on top.
+
+So there is now a `releaseCheck` build type: identical to release in minification,
+resource shrinking and keep rules, signed with the debug key so it upgrades in
+place. It is not shippable and is never uploaded, and the wrong signature is what
+guarantees that. Testing a ProGuard rule is not worth someone's conversations.
+
+An in-app export was taken first regardless, as a safety net, and that doubled as
+the export half of the release testing.
+
+### What R8 broke, and what it did not
+
+**Found and fixed: `initWith` does not copy `proguardFiles`.** The new build type
+inherited from release and silently ran R8 with none of the app's keep rules. That
+is worse than not testing minification at all, because it would have stripped the
+JNI bridges and failed in a way that looks like a native bug. Caught because R8
+stopped on a missing class the rules already suppress and there was no
+`configuration.txt` to explain why. `setProguardFiles` is now explicit.
+
+**Found and fixed: a missing optional decoder.** pdfbox can hand a JPEG2000 image
+to `com.gemalto.jp2.JP2Decoder`, which is not a dependency here. R8 could not
+resolve the reference and stopped. Not shipping that decoder is deliberate:
+JPEG2000 inside a PDF is rare, it would be a fourth native library, and the
+failure without it is one image in one unusual document not rendering inside a
+feature whose job is reading text. `-dontwarn com.gemalto.jp2.**` records that
+choice rather than hiding it.
+
+**Verified working under minification**, on the device:
+
+- The app launches and the encrypted database opens, so Room and SQLCipher
+  survive R8 with the existing keep rules.
+- Native inference runs. `KamPerf` recorded a real generation: 651 tokens
+  prefilled at 18 tokens per second, then decode. The JNI bridges are intact,
+  which is the single thing most likely to have broken.
+- Auto-titling works, which is a second inference pass through the same bridge.
+- Export produces a valid file: 29,446 bytes with the `KAMBAK01` header, written
+  by the minified serializer.
+
+### Two things measured along the way
+
+**Cold time to first token is 38 seconds** on a freshly rebooted phone, with
+prefill accounting for 36 of them. That reproduces #38 exactly and is the honest
+figure for a first message after a cold start.
+
+**The memory guard fires under ordinary conditions.** Before rebooting, a 16 GB
+phone had 1.88 GB available, because the system, the camera provider and Google's
+own AICore were holding the rest. Gemma 4 E4B needs about 5 GB, so the app
+correctly refused and said what to do. Our own process was holding 128 MB, so this
+is not a leak. It does mean the Balanced tier can be unavailable on a device that
+nominally supports it, which is a real product observation rather than a defect,
+and it is tracked rather than filed as a bug.

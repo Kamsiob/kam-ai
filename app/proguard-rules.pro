@@ -42,3 +42,14 @@
 # Keep line numbers so a stack trace someone pastes into an issue is readable.
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# pdfbox-android can hand a JPEG2000 image to com.gemalto.jp2.JP2Decoder, an
+# optional decoder that is not a dependency here and is not shipped. R8 sees the
+# reference, cannot resolve the class, and stops.
+#
+# Not shipping it is deliberate rather than an oversight: JPEG2000 inside a PDF
+# is rare, the decoder is another native library in an app that already carries
+# three, and the failure mode without it is one image in one unusual PDF not
+# rendering, in a feature whose job is reading text out of the file. If a real
+# document ever needs it, adding the dependency is the fix and this line goes.
+-dontwarn com.gemalto.jp2.**
