@@ -693,3 +693,75 @@ a debug reinstall, and the Play Console account actions.
    thing to check under #34.
 7. Does the app behave when the model is switched with a conversation open? KV reuse makes
    this more interesting than it was: a switch must invalidate the cached token vector.
+
+## SECTION 9: THE PROJECT BOARD, AND KEEPING IT CURRENT
+
+The board is at **https://github.com/users/Kamsiob/projects/1**. It is an account
+level project rather than a repository one, because a Linux desktop repository is
+planned and a repository scoped board could not hold both.
+
+It is the authoritative record of state. Where it, this document and the tracker
+disagree, the code and the device are the arbiter and the documents get corrected.
+
+### What a session with no memory needs to do
+
+**With every commit, make the board reflect reality.** Where an automation
+handles it, verify it actually fired rather than assuming. Where it does not, set
+Platform, Area, Priority and Size on new items by hand, because nothing can infer
+those.
+
+**Open an issue at the moment of discovery** and let the automation place it. Do
+not track real work as a draft item; drafts are only for things not yet decided
+to be work, which today means the Linux and Shared entries.
+
+**Keep work in progress genuinely limited.** One person works on one thing, so
+more than one or two items in In progress means the board is lying about focus.
+Anything not actively being worked on goes back to Ready or Blocked.
+
+**Every item in Blocked names what it is waiting on, on its own issue**, along
+with what would unblock it. A Blocked column of unexplained items is the most
+common failure in an otherwise decent tracker and is immediately visible.
+
+**Nothing sits in In progress or In review for long without a note** saying why.
+Silence on a stalled item is what makes a board look abandoned.
+
+**Never mark Done what has not been verified on the device.** Merged is not done.
+
+The board does not need to look busy. If work pauses for weeks it simply stops
+moving, and on a public repository that accurately signals the project is not
+being worked on right now, which is honest and useful. The requirement is that it
+is correct while work is happening, not that it appears active while it is not.
+
+### The standard issues are held to
+
+An issue is a specification, not a reminder. Every one states what the current
+behaviour or situation is, why it matters or what it blocks, and acceptance
+criteria in checkable terms. The acceptance criteria are the load bearing part:
+without them, closing an issue is a judgement call and nobody can verify the
+claim afterwards.
+
+Bugs state how to reproduce them and on what device. Design changes reference the
+relevant section of DESIGN.md rather than restating it. Dependencies between
+issues are linked so ordering is visible rather than remembered. Working notes go
+on the issue as progress happens, not only at closing, so a session with no
+memory can resume from a real position.
+
+Where a body of work has several genuinely separate parts it becomes a parent
+issue holding the intent and the overall criteria, with a child per part carrying
+its own. Never more than two levels, and never a parent with a single child.
+
+### The platform boundary
+
+Everything in this repository to date is Android. All 104 issues carry
+`Platform: Android`, the release milestone is named `v1.0.0 (Android)`, and the
+Linux and Shared work exists only as drafts on the board until the Linux
+repository is created. Anything that must stay identical across both platforms is
+`Shared`, and the five entries under it are the ones that diverge silently if
+nobody tracks them.
+
+### What cannot be done through the API
+
+Views, charts and the built in automations have no creation mutation in the
+ProjectsV2 API. They are configured in the interface, and `tools/board.py` prints
+the instructions rather than pretending to have done it. Everything else about
+the board is scripted in that file, which is idempotent and safe to re-run.

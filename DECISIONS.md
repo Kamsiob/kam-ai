@@ -1466,30 +1466,15 @@ system, and the Gemma model switch. Those are all real and are in the repository
 permission problem. The launch work resumes at Phase 8 exactly as specified,
 against an app that actually has the six surfaces.
 
-### The project board and CI activation: token scopes only the owner can grant
+### The project board and CI activation: resolved
 
-Recorded here because the standing rule is that a blocker goes in this section,
-and this one had been living only in issue #99.
-
-The CLI token carries `gist`, `read:org`, `repo`. Every ProjectsV2 read needs
-`read:project` and every write needs `project`, so the board cannot be created
-and cannot even be inspected: `gh project list --owner Kamsiob` fails with
-`INSUFFICIENT_SCOPES` before returning any data. Pushing a file under
-`.github/workflows/` needs `workflow`, so continuous integration cannot be
-activated either.
-
-**What the owner needs to do:** run `gh auth refresh -s project,read:project,workflow`.
-It opens a browser device flow, which is why it cannot be done on his behalf.
-
-Everything that does not depend on those scopes was done rather than waited on:
-the label taxonomy, issue and pull request templates, the release milestone, the
-community health files, the pinned roadmap, and the board itself written as an
-idempotent script at `tools/setup_board.sh` so the scope grant is followed by one
-command rather than an afternoon.
-
-Two steps in that script are printed rather than performed, and those are API
-limits rather than scope limits: ProjectsV2 has no view-creation mutation, and
-enabling the built-in workflows is only possible in the interface.
+The CLI token carried `gist`, `read:org`, `repo`, which is not enough for
+ProjectsV2 or for pushing a workflow file. The owner granted `project`,
+`read:project` and `workflow`, and both were completed immediately afterwards.
+Kept here rather than deleted, because the shape of the failure is worth
+recognising next time: every ProjectsV2 read returned `INSUFFICIENT_SCOPES`
+before returning any data, so it was not possible even to determine whether a
+board existed.
 
 ### Custom issue types are not available on a user account
 
@@ -1500,6 +1485,22 @@ feature, and `Kamsiob` is a user account. No token scope changes this.
 The options are to move the repository into an organisation, or to accept the
 label taxonomy as the equivalent, which is what is in place. Recorded so the gap
 is a known decision rather than an unexplained omission.
+
+### The copyright status of machine written code under a copyleft licence
+
+Raised, not resolved, and deliberately left for the owner to look into
+independently.
+
+The implementation here is written by a coding agent. There is an unsettled legal
+question about the copyright status of machine written code and how that interacts
+with AGPL-3.0, which this repository carries. Copyleft works by exercising
+copyright over the work; if the status of the code's authorship is unclear then so
+is the mechanism the licence relies on.
+
+No legal language has been added anywhere, the licence has not been altered, and
+nothing in the repository takes a position on it. This is recorded so that it is a
+known open question rather than something nobody thought about, and it is the
+owner's to pursue.
 
 ### Nothing else is blocked
 
@@ -6600,3 +6601,111 @@ Left open deliberately, because it is a decision for whoever builds sync:
   not something to settle in advance of the feature.
 - **Transport.** Not chosen. Nothing in the data model depends on it, which was
   part of the point.
+
+
+## Project management: the board, and the standard it is held to
+
+Recorded here so it survives independently of the instruction that produced it.
+
+### The board
+
+One account level project, `Kam AI`, at https://github.com/users/Kamsiob/projects/1,
+linked to `Kamsiob/kam-ai`. Account level rather than repository level because a
+Linux desktop repository is planned and a repository scoped board could not hold
+both without being rebuilt.
+
+**Six fields, and no others.**
+
+| Field | Values |
+|---|---|
+| Status | Backlog, Ready, In progress, Blocked, In review, Done |
+| Platform | Android, Linux, Shared |
+| Area | Inference, Conversations, Modes, Memory, Projects, Discover, Voice, Storage, Settings, Security, Onboarding, Release, Infrastructure |
+| Priority | Blocks release, High, Normal, Low |
+| Size | XS, S, M, L, XL |
+| Actual | XS, S, M, L, XL |
+
+Status is a single select rather than labels so an item cannot hold two
+conflicting statuses and drift into an incoherent state during a long unattended
+run. Size is the estimate set before work starts; Actual is what it took, set when
+it closes. Keeping both is the only thing that makes estimating real rather than
+decorative, because the gap between them is the only information it produces. If
+they diverge consistently in one direction, that goes here and the way estimates
+are made changes.
+
+### The platform boundary
+
+Every issue in this repository to date is Android work, and all 104 carry
+`Platform: Android`. That is the clean line: the Android release is everything
+that exists, the Linux work is seven drafts, and Shared is five drafts covering
+what must stay identical across both. The `v1.0.0 (Android)` milestone is named
+for its platform so the boundary is visible from the tracker as well as the
+board.
+
+Shared covers the database schema, the export and import format including its
+version, the design tokens, the mode definitions and their system instructions,
+and user facing copy appearing on both. Those are precisely where two
+independently built platforms diverge silently, so they are tracked work rather
+than an assumption.
+
+### What is derived and what is maintained by hand
+
+Status is derived from issue state wherever the built in automations handle it,
+because status maintained by hand during a long unattended session goes stale and
+status derived from issue state cannot. Platform, Area, Priority and Size are set
+by hand, since nothing can infer them.
+
+### Labels and types
+
+Custom issue types are an organisation feature and this is a user account, so the
+label taxonomy carries the kind of work instead: `bug`, `enhancement`,
+`documentation`, plus `blocked`, `record`, `release-blocker`, `good first issue`,
+`help wanted`, and thirteen `area:` labels matching the Area field values. The
+duplication between the `area:` labels and the Area field is accepted because the
+labels are visible in the tracker where the field is not.
+
+### What was reconstructed retroactively, and how
+
+Items before 2026-07-26 were reconstructed from the git history, the completed
+sections of the task documents, the work inventory in HANDOFF.md and this file.
+The reconstruction is not complete and is not claimed to be, and the board README
+says so. Anything carrying the `record` label is a retroactive entry rather than
+something tracked as it happened.
+
+### Deliberate exclusions
+
+Each is a decision, not a gap.
+
+No wiki, because wikis go stale and duplicate documentation that belongs in the
+repository where it is versioned with the code. No code owners file. No review
+requirements, which one person cannot satisfy. No iteration or sprint fields:
+time boxing has no meaning for one person working continuously, and an iteration
+field that does not reflect a real cadence is the clearest possible example of
+process being performed rather than run. Size and Actual already carry the
+throughput information iterations would be reached for. No story points. No
+delivery metrics of the kind used to assess engineering organisations, since they
+measure properties of teams. No automated changelog generators; release notes are
+derived from the issues in the closed milestone. No supply chain levelling beyond
+artefact provenance. No badge collections beyond the few carrying real
+information.
+
+The test for anything considered later is whether it will be kept current and
+whether it answers a question somebody actually has. Anything failing either is
+removed rather than left to decay, because unmaintained process reads worse than
+absent process.
+
+### The cold read test
+
+Before every release, the board and the documentation are evaluated the way a
+stranger would: open the project with no context and ask whether the product,
+platforms, state and next step are obvious; open five issues at random including
+old ones and ask whether each states its situation, its significance and how to
+verify it is finished; trace three recently closed issues to the commits that
+resolved them; check that every item in Blocked names what it is waiting on;
+check the milestone percentage against what HANDOFF.md claims; check that parent
+progress figures match reality; read the README as a stranger and check every
+factual claim against the built application, including the capability and
+limitation lists and every screenshot.
+
+Whatever fails is fixed and recorded. This is process rather than memory, which
+is the point of writing it down here.
