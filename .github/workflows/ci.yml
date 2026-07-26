@@ -21,6 +21,15 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The secret check greps history-adjacent state, and a shallow clone
+          # would let a secret committed earlier pass unnoticed.
+          fetch-depth: 0
+
+      - name: Check that nothing secret is committed
+        # First, so a leak fails the run before anything slower has a chance to
+        # succeed and make the build look fine.
+        run: tools/check_secrets.sh
 
       - name: Set up JDK
         uses: actions/setup-java@v4

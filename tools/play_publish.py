@@ -6,7 +6,7 @@ store listing text. It cannot set the Data Safety form or the content rating;
 those are one-time manual steps in the Play Console, listed in LAUNCH.md.
 
 The service account key lives outside the repo at
-~/.kamsiob-secrets/play-service-account.json (kamsiob@kamsiob-503213.iam...),
+~/.kamsiob-secrets/play-service-account.json,
 invited with rights in the B7 Collective Play Console.
 
   python3 tools/play_publish.py upload-bundle --aab path/to/app-release.aab [--track internal]

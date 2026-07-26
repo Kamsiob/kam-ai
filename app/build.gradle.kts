@@ -99,6 +99,27 @@ android {
             applicationIdSuffix = ""
             isMinifyEnabled = false
         }
+        // The release build's minification, shrinking and keep rules, signed with
+        // the debug key so it installs over an existing debug build in place.
+        //
+        // This exists because the thing that breaks at release is minification,
+        // not signing, and the only way to test minification used to be to
+        // uninstall the app first: the release signature differs, so Android
+        // refuses the upgrade. Uninstalling destroys the Keystore entry that
+        // wraps the database key, which makes every existing conversation
+        // permanently unreadable, and costs a multi-gigabyte model re-download
+        // on top. Paying that to test a ProGuard rule is a bad trade.
+        //
+        // Identical to release in every way that can break at runtime. It is not
+        // a shippable artifact and is never uploaded: the signature is wrong for
+        // that on purpose.
+        create("releaseCheck") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

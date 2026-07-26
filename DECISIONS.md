@@ -8,7 +8,7 @@ anything that could not be done without the owner. Newest phase at the bottom.
 ### Secrets
 
 The Play service account JSON key was sitting in the project folder at the start
-of the run (`kamsiob-503213-159c76e1da43.json`). It was moved, before git was
+of the run (a file named for the cloud project and key id). It was moved, before git was
 initialized, to:
 
     ~/.kamsiob-secrets/play-service-account.json   (mode 600, directory mode 700)
@@ -6822,3 +6822,75 @@ and the board's platform separation was complete with all 104 issues on Android.
 
 The test is repeated before every release. It is in this file rather than in
 anyone's memory for the same reason the acceptance criteria are on the issues.
+
+
+## Security audit before release, 2026-07-26
+
+Run against the **entire git history**, not only the working tree, because a
+public repository is cloned, cached and scraped, so anything committed and later
+deleted is still exposed.
+
+### What was checked, and how
+
+- **Every path ever added**, across all branches:
+  `git log --all --diff-filter=A --name-only`, filtered for key material,
+  credential files, and anything matching credential, secret, token, password or
+  passphrase. Five matches, all false positives by name: two tests about the
+  passphrase layer and about stored template tokens, a design tokens test, and
+  the two standard Gradle properties files.
+- **Content across every commit**, with `git log --all -S` for `BEGIN PRIVATE
+  KEY`, `BEGIN RSA PRIVATE KEY`, `service_account`, `private_key_id`, the GitHub
+  token prefixes `ghp_`, `gho_` and `github_pat_`, and `storePassword`,
+  `keyPassword`, `storeFile`. Four commits matched and all four are benign: a
+  Python import of `service_account`, a call reading a key from a path variable,
+  and Gradle lines that read passwords out of an external properties file rather
+  than containing them.
+- **Workflow files**, for secret handling and for anything echoed. The CI
+  workflow touches no credentials at all.
+- **Every committed image**, for personal content. The status bars carry a clock,
+  app icons, signal, wifi and battery, and no notification text, no names and no
+  message previews.
+- **Ignore rules against their own history**, to see whether they predate the
+  files they protect.
+
+### Result: no credential has ever been committed
+
+No keystore, no service account key, no password, no passphrase, no token, in the
+working tree or anywhere in history. Nothing needs revoking.
+
+**The ignore rules came first.** `.gitignore` was created 2026-07-22 carrying
+`*.jks`, `keystore.properties`, `secrets/` and the service account patterns. The
+upload keystore was generated 2026-07-23. The protection existed before the thing
+it protects, which is the only ordering that actually protects anything.
+
+### What was found and fixed: the publishing account was named
+
+Not a credential and not usable on its own, so this is disclosure rather than
+compromise, and it does not call for revocation. It was still worth removing:
+
+- The service account address and the cloud project id appeared in
+  `MASTER_SPEC.md` twice and in `tools/play_publish.py`.
+- `DECISIONS.md` named the original key file, whose filename embeds the project
+  id and part of the key id.
+
+Together those named an account with administrative rights on the publishing
+console, and pointed at where its key lives. Each is now a reference to the
+account rather than its identity. What the documents say is unchanged; what they
+give away is not.
+
+Left in place deliberately: the keystore's SHA-256 fingerprint. A signing
+certificate fingerprint is public by construction, since it ships inside every
+signed artifact, and recording it is how a fingerprint gets checked.
+
+### So it cannot recur
+
+`tools/check_secrets.sh` fails if anything secret-shaped is tracked, if a private
+key block or a provider token prefix appears in a tracked file, if a signing
+password is assigned a literal rather than read from outside, or if the service
+account address returns. It runs **first** in CI, before anything slower, so a
+leak fails the run rather than being buried under a green build. It checks what
+git tracks rather than what sits on disk, so an ignored local file is correctly
+ignored and the same file staged is correctly caught.
+
+This audit is now part of the pre-release checks and runs before every release
+rather than only this one.
