@@ -1,4 +1,4 @@
-# Worklist — owner bug-fix / refinement pass (2026-07-23)
+# Worklist: owner bug-fix / refinement pass (2026-07-23)
 
 Standalone task list from hands-on phone testing, layered on the standing directive
 to finish the whole app. Each item: fix at the root, verify on the connected phone,
@@ -10,7 +10,7 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
 
 ## Items
 
-- [x] 1. New chat opens the most recent chat instead of a new one (HIGH — blocks Logic testing).
+- [x] 1. New chat opens the most recent chat instead of a new one (HIGH, blocks Logic testing).
       Root cause: view model keyed "chat-" (empty id sentinel) shared across all new chats,
       so the cached VM kept the previous conversation's id. Fixed with unique per-new-chat
       key via `conversationVmKey`. Unit test + device verified (open existing -> new chat empty;
@@ -34,7 +34,7 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       enforced by buildPrompt (withProject only when conversation.projectId matches) + separate
       storage (ProjectEntity.instructions vs settings key); keep this in the Projects UI.
 - [~] 3. Inference far slower than expected. DONE: native build confirmed optimized (Release/-O3/
-      dotprod+i8mm+fp16/repack/mmap/flash-attn AUTO/n_batch 512 — not a debug-native issue);
+      dotprod+i8mm+fp16/repack/mmap/flash-attn AUTO/n_batch 512, not a debug-native issue);
       thread count fixed (perf cores capped at 4; measured E2B 6.9 -> 10.6 tok/s, +54%, on device;
       KamPerf logcat instrumentation added; debug.kamai.threads override). GPU offload unsupported
       (CPU correct). REMAINING: speculative decoding w/ Gemma-4 drafters (verify exist + llama.cpp
@@ -172,13 +172,13 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
 ## Final steps (owner-directed)
 
 - [ ] FINAL. Update everything for release: GitHub repo (push), store listing descriptions, fresh
-      in-app screenshots (real, over ADB), README, website copy, Q&A — all of it, kept consistent
+      in-app screenshots (real, over ADB), README, website copy, Q&A, all of it, kept consistent
       with the app's actual capabilities. Then the APK on GitHub and the AAB on the computer are the
       very last steps (only when the owner says ready).
 
 ## Cancelled
 
-- [x] Today tab — CANCELLED (Four-Mode Update Part 9, issue #37). Every other part of the app works
+- [x] Today tab, CANCELLED (Four-Mode Update Part 9, issue #37). Every other part of the app works
       on material the user brings; Today would have delivered content to the user, duplicating
       Discover at a far higher cost in maintenance, background scheduling, permissions, and a privacy
       claim that would have needed weakening. Cut deliberately, added to Not planned. The privacy

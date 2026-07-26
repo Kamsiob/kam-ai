@@ -122,20 +122,18 @@ fun IconAction(
 }
 
 /**
- * The bottom navigation destinations, in display order. Settings is not one of
- * them. The order is Projects, Chats, Follow-ups, Discover; there is no Today
- * tab (cancelled, see DECISIONS.md and Not planned).
- */
-/**
- * The bottom navigation, in the order it is drawn.
+ * The bottom navigation destinations, in display order.
+ *
+ * Settings is not one of them, and there is no Today tab (cancelled, see
+ * DECISIONS.md and Not planned).
  *
  * Chats first because it is the home root: it is where an empty back stack falls
  * through to, it is where a new chat starts, and it is where most sessions live.
  * Projects sat first for a while and put a container ahead of the thing being
  * contained (#68).
  *
- * Declaration order is the display order — `NavItem.entries` is what the bar
- * iterates — and nothing anywhere depends on the ordinals, so reordering here is
+ * Declaration order is the display order, `NavItem.entries` being what the bar
+ * iterates, and nothing anywhere depends on the ordinals, so reordering here is
  * the whole change.
  */
 enum class NavItem(val label: String, val icon: ImageVector) {

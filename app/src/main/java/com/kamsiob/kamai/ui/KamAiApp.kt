@@ -294,6 +294,16 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                 },
             )
 
+            // Every screen shows what is downloading, not just the one that
+            // started it (#81). Under the brand bar and above the screen, so it
+            // is present without being in the way, and expanding rather than
+            // appearing so nothing jumps under a finger.
+            val allDownloads by app.downloads.collectAsStateWithLifecycle()
+            com.kamsiob.kamai.ui.components.DownloadIndicator(
+                items = allDownloads,
+                onOpen = { stack.add(Pushed.Storage) },
+            )
+
             // Screens slide 26dp in the direction of travel with a fade, and
             // going back slides the opposite way.
             val depth = stack.size

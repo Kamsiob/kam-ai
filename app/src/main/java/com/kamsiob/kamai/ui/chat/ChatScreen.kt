@@ -201,6 +201,13 @@ fun ChatScreen(
     onOpenMemory: () -> Unit = {},
     /** Confirms a copy, since neither gesture that copies leaves any other trace. */
     onCopied: () -> Unit = {},
+    /**
+     * Set when there is no model installed, so the empty state offers to get one
+     * rather than sending the user to Settings to hunt (#80).
+     */
+    setup: ModelSetupOffer? = null,
+    /** Live model download, shown in the chat with its own cancel (#78). */
+    download: ModelDownloadState? = null,
     onDeleteConversation: () -> Unit = {},
     onModeChange: (Mode) -> Unit,
     onOpenModel: () -> Unit = {},
@@ -435,10 +442,23 @@ fun ChatScreen(
                     // Centred in the empty space rather than pinned to the top,
                     // so an empty chat reads as a page waiting for something
                     // rather than a header with nothing under it.
-                    com.kamsiob.kamai.ui.components.ModeNudge(
-                        mode = mode,
-                        modifier = Modifier.align(Alignment.Center),
-                    )
+                    if (setup != null) {
+                        // The screen that needs the model is the screen that
+                        // offers it (#80).
+                        ModelSetupCard(
+                            modelName = setup.modelName,
+                            downloadLabel = setup.downloadLabel,
+                            explanation = setup.explanation,
+                            onDownload = setup.onDownload,
+                            onSeeOptions = setup.onSeeOptions,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    } else {
+                        com.kamsiob.kamai.ui.components.ModeNudge(
+                            mode = mode,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
@@ -1832,8 +1852,9 @@ private fun ConversationRenameDialog(
  * public route from a highlight to its text on this version of Compose.
  *
  * So the excerpt is chosen by editing rather than by highlighting. The field
- * opens with the whole answer as plain text — Markdown source in a Follow-up
- * reads as `### Heading`, which is not what anyone saved — and the user deletes
+ * opens with the whole answer as plain text, since Markdown source in a
+ * Follow-up reads as `### Heading` and is not what anyone saved, and the user
+ * deletes
  * down to the sentence they care about. It is one more gesture than a highlight
  * and it has the advantage of existing, of being visible in a menu rather than
  * hidden behind a long press, and of letting somebody keep two sentences from

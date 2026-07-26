@@ -5775,3 +5775,64 @@ tracks the newest text continuously and ends at the bottom. Scrolled up
 mid-stream: two samples fifteen seconds apart are pixel-identical while text
 keeps arriving. Scrolled back down: following resumes on its own and lands on the
 end of the answer.
+
+## The no-em-dash rule is about copy, not code
+
+Recorded because it was applied too broadly. The rule covers what a person
+reads: interface copy, empty states, notices, onboarding, help, error messages,
+store listings, the website, and the documents a human opens such as the README
+and the specification files.
+
+It does not cover code. Source, string identifiers, regular expressions, parsing
+logic, test fixtures and sample data are all outside it, and nothing functional
+should ever be bent to satisfy it. If text being processed happens to contain an
+em dash, it stays as it is; rewriting somebody's own words to satisfy a house
+style is not a transformation anyone asked for.
+
+What happened: four doc comments were rewritten to avoid the character. Nothing
+functional was changed, no string, identifier or expression was touched, and the
+rewrites are neutral English, so they stay. One of them turned out to sit above a
+stale duplicate comment that still described the old navigation order, which is
+now gone; that part was worth doing for its own reasons.
+
+`EmDashScopeTest` now checks the rule where it applies, over quoted string
+literals and the human-read documents, and deliberately skips comments. It exists
+as much to prevent the next over-application as to catch a violation, and it
+asserts its own scope so a future version that starts scanning comments fails and
+says why.
+
+## One download indicator, on every screen (#81)
+
+A model is gigabytes and minutes. Somebody who starts one and walks into the chat
+had no way to tell whether it was still going without navigating back to the
+screen they started it from.
+
+`DownloadIndicator` sits in the shell, under the brand bar and above whatever
+screen is showing, so it is present everywhere including chat, settings and
+Discover. A slim line rather than a banner, because it is on screen for minutes
+and has to be the kind of thing you stop noticing. It expands and shrinks rather
+than appearing and vanishing, so content below it moves smoothly instead of
+jumping under a finger already on its way to a tap.
+
+One treatment for models, voices and packs. A user waiting on a download does not
+care which of the three it is, and three indicators would be three things to
+learn. Several at once show the current one and how many are behind it, which is
+all a line that size can usefully carry; the detail screen has the rest, one tap
+away with pause and cancel.
+
+What counts as active is the part worth arguing about, so it is in
+`DownloadSummary` where it can be tested. Paused counts: a paused download is
+still something the user has on the go, and hiding it would make the pause look
+like a cancel. Verifying counts: hashing a multi-gigabyte file is slow enough to
+look like a hang. Finished does not, because completion already has its own quiet
+toast. Failed does not either, because a failure belongs where the user can act
+on it rather than following them from screen to screen.
+
+An unknown total shows no bar fill and the word "starting", rather than a bar
+claiming a position it does not have. Remaining bytes are floored at zero,
+because servers misreport content length often enough for a negative to reach
+the screen otherwise.
+
+Device-verified: started a pack download from Discover, saw the indicator on
+Discover and then on Chats after navigating, and watched it clear on completion
+without the layout jumping.

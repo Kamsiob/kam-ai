@@ -98,7 +98,7 @@ object PromptBuilder {
 
     /**
      * The turns that fit the budget, plus how many were dropped because they did
-     * not fit. [droppedForBudget] counts only budget drops — it deliberately
+     * not fit. [droppedForBudget] counts only budget drops, deliberately
      * excludes the leading-assistant trim below, which removes a turn that fit
      * for a purely structural reason. Callers use it to decide whether to warn
      * that the conversation has outgrown the model's memory; warning when only a
@@ -138,7 +138,7 @@ object PromptBuilder {
         // Never start the history on an assistant turn: an answer with no
         // question in front of it reads as if the model said it unprompted. A
         // Discover chat opens with an assistant greeting, so this fires on the
-        // first question — which is exactly why it must not count as a drop.
+        // first question, which is exactly why it must not count as a drop.
         while (kept.isNotEmpty() && kept.first().role == Role.ASSISTANT) {
             kept.removeFirst()
         }
