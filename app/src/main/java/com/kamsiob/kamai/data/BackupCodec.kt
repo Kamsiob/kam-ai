@@ -15,7 +15,27 @@ import org.json.JSONObject
  */
 object BackupCodec {
 
-    const val FORMAT_VERSION = 2
+    const val FORMAT_VERSION = 3
+
+    /**
+     * Writes the sync stamp onto a row's JSON, and reads it back.
+     *
+     * A backup has to carry these or a restore quietly resets them. That matters
+     * even though no sync exists yet, because a restore is precisely how a second
+     * device gets its first copy of everything: land it with every row at rev 0
+     * and that device starts counting from one while the original is in the
+     * thousands, so the original would win every disagreement between them
+     * forever regardless of which edit came later.
+     *
+     * Reading defaults to 0 and empty, which is what a version 2 backup written
+     * before these columns existed has to import as. That is the safe direction:
+     * an unstamped row loses to a stamped one rather than overwriting it.
+     */
+    private fun JSONObject.putStamp(rev: Long, writer: String): JSONObject =
+        apply { put("rev", rev); put("lastWriterId", writer) }
+
+    private fun JSONObject.rev(): Long = optLong("rev", 0L)
+    private fun JSONObject.writer(): String = optString("lastWriterId", "")
 
     // ---- helpers ----
     private fun JSONObject.s(k: String) = if (isNull(k)) null else optString(k, null)
@@ -34,6 +54,7 @@ object BackupCodec {
         put("projectId", e.projectId); put("createdAt", e.createdAt); put("updatedAt", e.updatedAt)
         put("pinned", e.pinned); put("archived", e.archived); put("titleIsManual", e.titleIsManual)
         put("groundingMomentId", e.groundingMomentId)
+        putStamp(e.rev, e.lastWriterId)
     }
     private fun conv(o: JSONObject): ConversationEntity {
         val mode = parseMode(o.getString("mode"))
@@ -47,23 +68,28 @@ object BackupCodec {
             projectId = o.s("projectId"), createdAt = o.l("createdAt"), updatedAt = o.l("updatedAt"),
             pinned = o.b("pinned"), archived = o.b("archived"),
             titleIsManual = o.b("titleIsManual"), groundingMomentId = o.s("groundingMomentId"),
+            rev = o.rev(), lastWriterId = o.writer(),
         )
     }
 
     private fun msg(e: MessageEntity) = JSONObject().apply {
         put("id", e.id); put("conversationId", e.conversationId); put("role", e.role.name)
         put("content", e.content); put("createdAt", e.createdAt); put("incomplete", e.incomplete)
-        put("stoppedReason", e.stoppedReason)
+        put("stoppedReason", e.stoppedReason); put("memoriesUsed", e.memoriesUsed)
+        putStamp(e.rev, e.lastWriterId)
     }
     private fun msg(o: JSONObject) = MessageEntity(
         o.getString("id"), o.getString("conversationId"), Role.valueOf(o.getString("role")),
         o.getString("content"), o.l("createdAt"), o.b("incomplete"), o.s("stoppedReason"),
+        memoriesUsed = o.i("memoriesUsed"),
+        rev = o.rev(), lastWriterId = o.writer(),
     )
 
     private fun proj(e: ProjectEntity) = JSONObject().apply {
         put("id", e.id); put("name", e.name); put("instructions", e.instructions)
         put("notes", e.notes)
         put("createdAt", e.createdAt); put("updatedAt", e.updatedAt); put("archived", e.archived)
+        putStamp(e.rev, e.lastWriterId)
     }
     private fun proj(o: JSONObject) = ProjectEntity(
         o.getString("id"), o.getString("name"), o.getString("instructions"),
@@ -72,15 +98,18 @@ object BackupCodec {
         // no notes rather than an exception (#2).
         o.optString("notes"),
         o.l("createdAt"), o.l("updatedAt"), o.b("archived"),
+        rev = o.rev(), lastWriterId = o.writer(),
     )
 
     private fun mem(e: MemoryEntity) = JSONObject().apply {
         put("id", e.id); put("text", e.text); put("createdAt", e.createdAt)
         put("updatedAt", e.updatedAt); put("sourceConversationId", e.sourceConversationId); put("auto", e.auto)
+        putStamp(e.rev, e.lastWriterId)
     }
     private fun mem(o: JSONObject) = MemoryEntity(
         o.getString("id"), o.getString("text"), o.l("createdAt"), o.l("updatedAt"),
         o.s("sourceConversationId"), o.b("auto"),
+        rev = o.rev(), lastWriterId = o.writer(),
     )
 
     private fun fu(e: FollowUpEntity) = JSONObject().apply {
@@ -90,6 +119,7 @@ object BackupCodec {
         put("kind", e.kind.name)
         put("completed", e.completed); put("createdAt", e.createdAt)
         put("completedAt", e.completedAt)
+        putStamp(e.rev, e.lastWriterId)
     }
     private fun fu(o: JSONObject) = FollowUpEntity(
         id = o.getString("id"), snippet = o.getString("snippet"),
@@ -101,12 +131,17 @@ object BackupCodec {
         kind = o.s("kind")?.let { runCatching { FollowUpKind.valueOf(it) }.getOrNull() } ?: FollowUpKind.CHECK,
         completed = o.b("completed"), createdAt = o.l("createdAt"),
         completedAt = if (o.isNull("completedAt")) null else o.l("completedAt"),
+        rev = o.rev(), lastWriterId = o.writer(),
     )
 
     private fun drawn(e: DrawnMomentEntity) = JSONObject().apply {
         put("packId", e.packId); put("momentId", e.momentId); put("drawnAt", e.drawnAt); put("readerOpened", e.readerOpened)
+        putStamp(e.rev, e.lastWriterId)
     }
-    private fun drawn(o: JSONObject) = DrawnMomentEntity(o.getString("packId"), o.getString("momentId"), o.l("drawnAt"), o.b("readerOpened"))
+    private fun drawn(o: JSONObject) = DrawnMomentEntity(
+        o.getString("packId"), o.getString("momentId"), o.l("drawnAt"), o.b("readerOpened"),
+        rev = o.rev(), lastWriterId = o.writer(),
+    )
 
     /** Legacy saved-moment row from a pre-unification backup, folded into the
      *  single follow-ups list on import so nothing is lost. */
@@ -133,8 +168,11 @@ object BackupCodec {
         o.l("installedAt"), o.b("active"),
     )
 
-    private fun setting(e: SettingEntity) = JSONObject().apply { put("key", e.key); put("value", e.value) }
-    private fun setting(o: JSONObject) = SettingEntity(o.getString("key"), o.getString("value"))
+    private fun setting(e: SettingEntity) = JSONObject().apply {
+        put("key", e.key); put("value", e.value); putStamp(e.rev, e.lastWriterId)
+    }
+    private fun setting(o: JSONObject) =
+        SettingEntity(o.getString("key"), o.getString("value"), o.rev(), o.writer())
 
     private inline fun <T> JSONArray.map(f: (JSONObject) -> T): List<T> =
         (0 until length()).map { f(getJSONObject(it)) }

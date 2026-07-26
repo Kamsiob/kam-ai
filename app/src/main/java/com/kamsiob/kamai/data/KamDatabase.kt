@@ -46,8 +46,9 @@ class Converters {
         QuizStatsEntity::class,
         ArtifactEntity::class,
         SettingEntity::class,
+        TombstoneEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -61,6 +62,7 @@ abstract class KamDatabase : RoomDatabase() {
     abstract fun discover(): DiscoverDao
     abstract fun artifacts(): ArtifactDao
     abstract fun settings(): SettingsDao
+    abstract fun tombstones(): TombstoneDao
 
     companion object {
         const val NAME = "kam-ai.db"
@@ -220,6 +222,66 @@ abstract class KamDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * The statements MIGRATION_8_9 runs. See MigrationV8ToV9SqlTest.
+         *
+         * Makes the schema sync-ready without building any sync. See Sync.kt for
+         * the reasoning behind each piece; what matters here is the migration.
+         *
+         * Two things, and both are additive:
+         *
+         * - A `rev` and `lastWriterId` on every table whose contents belong to the
+         *   user, which together order two versions of a row.
+         * - A `tombstones` table, so a deletion leaves a mark. Without one, a row
+         *   deleted here and a row this device has not yet heard of are the same
+         *   state, and the deleted one comes back from the other phone.
+         *
+         * `rev = 0` and `lastWriterId = ''` for everything already written, which
+         * reads as "before this device knew about sync" and sorts below any real
+         * write. That is the correct outcome: a row nobody has touched since sync
+         * existed should lose to one somebody has.
+         *
+         * Nothing is dropped, nothing is rewritten, and no table is recreated, so
+         * there is no window in which somebody's conversations exist only in a
+         * temporary table.
+         */
+        val MIGRATION_8_9_SQL = listOf(
+            "ALTER TABLE projects ADD COLUMN rev INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE projects ADD COLUMN lastWriterId TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE conversations ADD COLUMN rev INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE conversations ADD COLUMN lastWriterId TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE messages ADD COLUMN rev INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE messages ADD COLUMN lastWriterId TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE memory_entries ADD COLUMN rev INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE memory_entries ADD COLUMN lastWriterId TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE follow_ups ADD COLUMN rev INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE follow_ups ADD COLUMN lastWriterId TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE discover_drawn ADD COLUMN rev INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE discover_drawn ADD COLUMN lastWriterId TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE settings ADD COLUMN rev INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE settings ADD COLUMN lastWriterId TEXT NOT NULL DEFAULT ''",
+            """
+            CREATE TABLE IF NOT EXISTS tombstones (
+                entityType TEXT NOT NULL,
+                entityId TEXT NOT NULL,
+                rev INTEGER NOT NULL,
+                deviceId TEXT NOT NULL,
+                deletedAt INTEGER NOT NULL,
+                PRIMARY KEY(entityType, entityId)
+            )
+            """.trimIndent(),
+            // Indexed on rev because the only question ever asked of this table is
+            // "what has been deleted since I last spoke to you", and a table that
+            // is only ever scanned by that needs to answer it without a full scan.
+            "CREATE INDEX IF NOT EXISTS index_tombstones_rev ON tombstones (rev)",
+        )
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                MIGRATION_8_9_SQL.forEach(db::execSQL)
+            }
+        }
+
         @Volatile
         private var instance: KamDatabase? = null
 
@@ -256,6 +318,7 @@ abstract class KamDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
                     MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+                    MIGRATION_8_9,
                 )
                 .build()
         }

@@ -52,6 +52,16 @@ data class ProjectEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val archived: Boolean = false,
+    /**
+     * Logical time of the last write to this row, and which install made it.
+     *
+     * Together these are a [Stamp], which is what orders two versions of the same
+     * row against each other. Zero and empty mean "written before this device
+     * knew about sync", which every existing row is, and which sorts below any
+     * real write. See [Sync.kt] for why this is not `updatedAt`.
+     */
+    val rev: Long = 0,
+    val lastWriterId: String = "",
 )
 
 @Entity(
@@ -105,6 +115,16 @@ data class ConversationEntity(
      * came from is later removed. Null for ordinary conversations.
      */
     val groundingMomentId: String? = null,
+    /**
+     * Logical time of the last write to this row, and which install made it.
+     *
+     * Together these are a [Stamp], which is what orders two versions of the same
+     * row against each other. Zero and empty mean "written before this device
+     * knew about sync", which every existing row is, and which sorts below any
+     * real write. See [Sync.kt] for why this is not `updatedAt`.
+     */
+    val rev: Long = 0,
+    val lastWriterId: String = "",
 )
 
 /**
@@ -152,6 +172,16 @@ data class MessageEntity(
      * deleted memory living on in the transcript of every answer that used it.
      */
     val memoriesUsed: Int = 0,
+    /**
+     * Logical time of the last write to this row, and which install made it.
+     *
+     * Together these are a [Stamp], which is what orders two versions of the same
+     * row against each other. Zero and empty mean "written before this device
+     * knew about sync", which every existing row is, and which sorts below any
+     * real write. See [Sync.kt] for why this is not `updatedAt`.
+     */
+    val rev: Long = 0,
+    val lastWriterId: String = "",
 )
 
 @Entity(
@@ -169,6 +199,16 @@ data class MemoryEntity(
     /** True when the app decided to remember this rather than the user asking.
      *  Surfaced so a person can tell auto entries apart and prune them. PART 7. */
     val auto: Boolean = false,
+    /**
+     * Logical time of the last write to this row, and which install made it.
+     *
+     * Together these are a [Stamp], which is what orders two versions of the same
+     * row against each other. Zero and empty mean "written before this device
+     * knew about sync", which every existing row is, and which sorts below any
+     * real write. See [Sync.kt] for why this is not `updatedAt`.
+     */
+    val rev: Long = 0,
+    val lastWriterId: String = "",
 )
 
 @Entity(
@@ -210,6 +250,16 @@ data class FollowUpEntity(
     val completed: Boolean = false,
     val createdAt: Long,
     val completedAt: Long? = null,
+    /**
+     * Logical time of the last write to this row, and which install made it.
+     *
+     * Together these are a [Stamp], which is what orders two versions of the same
+     * row against each other. Zero and empty mean "written before this device
+     * knew about sync", which every existing row is, and which sorts below any
+     * real write. See [Sync.kt] for why this is not `updatedAt`.
+     */
+    val rev: Long = 0,
+    val lastWriterId: String = "",
 )
 
 // Discover state. Pack contents live in their own downloaded pack files; only
@@ -222,6 +272,16 @@ data class DrawnMomentEntity(
     val drawnAt: Long,
     /** Set once the reader has been opened, which skips the pre-quiz prompt. */
     val readerOpened: Boolean = false,
+    /**
+     * Logical time of the last write to this row, and which install made it.
+     *
+     * Together these are a [Stamp], which is what orders two versions of the same
+     * row against each other. Zero and empty mean "written before this device
+     * knew about sync", which every existing row is, and which sorts below any
+     * real write. See [Sync.kt] for why this is not `updatedAt`.
+     */
+    val rev: Long = 0,
+    val lastWriterId: String = "",
 )
 
 /**
@@ -265,4 +325,49 @@ data class ArtifactEntity(
 data class SettingEntity(
     @PrimaryKey val key: String,
     val value: String,
+    val rev: Long = 0,
+    val lastWriterId: String = "",
+)
+
+/**
+ * A record that a row was deleted, so that a delete can be told apart from never
+ * having heard of it.
+ *
+ * **Why a table of its own instead of a `deleted` flag on each row.** The flag is
+ * the more obvious design and it is the more dangerous one here. Every existing
+ * read would need `AND deleted = 0` added to it: forty-odd queries in
+ * [Daos.kt][com.kamsiob.kamai.data.ConversationDao], and the cost of missing one
+ * is deleted content appearing in the interface as though it were still there.
+ * That is a bad failure to leave available. A separate table leaves every read
+ * already correct, because a row that is gone is still gone.
+ *
+ * The price is that deleting now writes two statements instead of one, which is a
+ * single repository helper, and that this table grows. Growth is bounded by
+ * pruning: a tombstone exists to inform other devices, so once every device has
+ * been told it has no further use. Nothing prunes yet, because nothing syncs yet,
+ * and a tombstone is a row of two short strings and two integers.
+ *
+ * @param entityType the table name, matching the keys of [SyncPolicy.TABLES].
+ * @param entityId the deleted row's primary key. For `discover_drawn`, whose key
+ *   is composite, the two parts joined by `/`.
+ */
+@Entity(
+    tableName = "tombstones",
+    primaryKeys = ["entityType", "entityId"],
+    // Declared here and not only in the migration. Room validates indices as well
+    // as columns, so an index the migration creates and the entity does not
+    // mention makes the migration fail its own verification, which is what
+    // happened the first time this shipped to the phone. The name Room derives,
+    // index_tombstones_rev, is the one the migration creates.
+    indices = [Index("rev")],
+)
+data class TombstoneEntity(
+    val entityType: String,
+    val entityId: String,
+    /** Logical time of the deletion. See [LamportClock]. */
+    val rev: Long,
+    /** Which install deleted it, for the [Stamp] tiebreak. */
+    val deviceId: String,
+    /** Wall clock, for showing a person. Never used to order anything. */
+    val deletedAt: Long,
 )

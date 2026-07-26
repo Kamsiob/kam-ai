@@ -806,13 +806,17 @@ class KamRepository(
     suspend fun deleteConversation(id: String) {
         unlinkConversation(id)
         db.conversations().delete(id)
+        buryRow("conversations", id)
     }
 
     /** Editing truncates the tail and re-answers. There is no branching. */
     suspend fun truncateAfter(conversationId: String, message: MessageEntity) =
         db.messages().deleteAfter(conversationId, message.createdAt)
 
-    suspend fun deleteMessage(id: String) = db.messages().delete(id)
+    suspend fun deleteMessage(id: String) {
+        db.messages().delete(id)
+        buryRow("messages", id)
+    }
 
     /** Called at startup so a process death does not leave half a reply looking whole. */
     suspend fun repairIncompleteMessages(): Int = db.messages().repairIncomplete()
@@ -857,7 +861,10 @@ class KamRepository(
 
     suspend fun setFollowUpNote(id: String, note: String?) = db.followUps().setNote(id, note)
 
-    suspend fun deleteFollowUp(id: String) = db.followUps().delete(id)
+    suspend fun deleteFollowUp(id: String) {
+        db.followUps().delete(id)
+        buryRow("follow_ups", id)
+    }
 
     // Projects
 
@@ -921,7 +928,10 @@ class KamRepository(
      */
     suspend fun deleteProject(id: String, deleteConversations: Boolean) {
         if (deleteConversations) {
-            db.conversations().forProjectIds(id).forEach { db.conversations().delete(it) }
+            db.conversations().forProjectIds(id).forEach {
+                db.conversations().delete(it)
+                buryRow("conversations", it)
+            }
         } else {
             val now = System.currentTimeMillis()
             db.conversations().forProjectIds(id).forEach {
@@ -929,6 +939,7 @@ class KamRepository(
             }
         }
         db.projects().delete(id)
+        buryRow("projects", id)
     }
 
     // Memory
@@ -1025,12 +1036,23 @@ class KamRepository(
     suspend fun setMemoryMode(mode: com.kamsiob.kamai.llm.MemoryMode) =
         putSetting(Keys.MEMORY_MODE, mode.name)
 
-    suspend fun forget(id: String) = db.memory().deleteById(id)
+    suspend fun forget(id: String) {
+        db.memory().deleteById(id)
+        buryRow("memory_entries", id)
+    }
 
     /**
      * Delete everything. Downloaded models are optional because re-downloading
      * several gigabytes is a real cost and not everyone means that by "delete
      * my data".
+     *
+     * **This deliberately writes no tombstones, and clears the ones that exist.**
+     * Single deletes record a mark so that sync can carry the deletion to the
+     * other phone. A wipe must not: "erase what is on this phone" and "erase
+     * everything I own everywhere" are different requests, the screen asks the
+     * first, and turning it into the second would destroy a second device's copy
+     * on the strength of a confirmation that never mentioned it. If propagating a
+     * wipe is ever wanted it needs its own wording and its own confirmation.
      */
     suspend fun deleteEverything(includeDownloads: Boolean) {
         db.conversations().deleteAll()
@@ -1039,6 +1061,7 @@ class KamRepository(
         db.followUps().deleteAll()
         db.discover().deleteAllDrawn()
         db.discover().deleteAllStats()
+        db.tombstones().clear()
 
         if (includeDownloads) {
             db.artifacts().observeAll().let { }
@@ -1066,4 +1089,83 @@ class KamRepository(
         @Synchronized
         fun forgetInstance() { instance = null }
     }
+
+    // ---------------------------------------------------------------------
+    // Sync readiness. No sync, no transport, no network: see Sync.kt.
+    // ---------------------------------------------------------------------
+
+    /**
+     * This install's id, made once and then kept.
+     *
+     * Read through the settings table rather than held in a field so that it
+     * survives the database being closed and reopened, which the app lock does on
+     * every lock change.
+     */
+    private suspend fun deviceId(): String {
+        db.settings().get(SyncKeys.DEVICE_ID)?.let { return it }
+        val fresh = UUID.randomUUID().toString()
+        db.settings().put(SettingEntity(SyncKeys.DEVICE_ID, fresh))
+        return fresh
+    }
+
+    /**
+     * The next logical stamp, persisted before it is handed out.
+     *
+     * Persisted first on purpose. A stamp given to a caller and then lost to a
+     * process death would be issued a second time, and two different writes
+     * sharing a stamp is the one thing the ordering cannot recover from. Writing
+     * first means a crash costs a skipped number, and skipped numbers are free.
+     */
+    private suspend fun nextStamp(): Stamp {
+        val current = db.settings().get(SyncKeys.LAMPORT)?.toLongOrNull() ?: 0L
+        val next = current + 1
+        db.settings().put(SettingEntity(SyncKeys.LAMPORT, next.toString()))
+        return Stamp(next, deviceId())
+    }
+
+    /**
+     * Records that a row was deleted, so the deletion can outlive the row.
+     *
+     * Called after the delete rather than before: if the delete fails there is
+     * nothing to record, and a tombstone for a row that still exists would hide
+     * it from the interface once sync starts reading this table.
+     *
+     * Failures are swallowed. A tombstone is bookkeeping for a feature that does
+     * not exist yet, and refusing to delete somebody's conversation because the
+     * bookkeeping failed would be the wrong way round.
+     *
+     * **Cascades leave one tombstone, not many, and that is correct.** Deleting a
+     * conversation takes its messages with it through the foreign key, and none of
+     * them get a tombstone of their own. Watching a real delete on the phone
+     * record exactly one is what prompted checking this rather than assuming it:
+     * the conversation's tombstone is enough, because the other device applies the
+     * same delete and its own foreign key removes the same messages there. Writing
+     * a tombstone per message would mean thousands of rows saying what one already
+     * says.
+     */
+    private suspend fun buryRow(table: String, id: String) {
+        runCatching {
+            val stamp = nextStamp()
+            db.tombstones().put(
+                TombstoneEntity(
+                    entityType = table,
+                    entityId = id,
+                    rev = stamp.lamport,
+                    deviceId = stamp.deviceId,
+                    deletedAt = System.currentTimeMillis(),
+                ),
+            )
+            db.tombstones().count()
+        }.onSuccess { total ->
+            // Logged because the catch below is deliberately silent, and a step
+            // that fails quietly and is checked by nothing is a step that can be
+            // broken for months. The table name and a count only: an entity id is
+            // a handle on somebody's private content and does not belong in a log
+            // that any app on the phone could once read.
+            android.util.Log.d("KamSync", "tombstone recorded for $table, $total held")
+        }.onFailure {
+            android.util.Log.w("KamSync", "could not record a tombstone for $table", it)
+        }
+    }
+
 }

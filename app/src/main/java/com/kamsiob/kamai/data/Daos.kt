@@ -541,3 +541,42 @@ interface SettingsDao {
 
 /** How many conversations a project holds. See `observeProjectCounts`. */
 data class ProjectCount(val projectId: String, val count: Int)
+
+/**
+ * Reads and writes the record that a row was deleted.
+ *
+ * Everything here is additive and nothing else in the app consults it, because
+ * nothing syncs yet. It exists now so that a delete happening today still leaves
+ * the mark sync will need, rather than sync arriving to find months of deletions
+ * that were never recorded and cannot be recovered.
+ */
+@Dao
+interface TombstoneDao {
+
+    @Upsert
+    suspend fun put(tombstone: TombstoneEntity)
+
+    @Query("SELECT * FROM tombstones WHERE entityType = :type AND entityId = :id")
+    suspend fun find(type: String, id: String): TombstoneEntity?
+
+    /** Everything deleted since a peer last heard from this device. */
+    @Query("SELECT * FROM tombstones WHERE rev > :sinceRev ORDER BY rev")
+    suspend fun since(sinceRev: Long): List<TombstoneEntity>
+
+    @Query("SELECT COUNT(*) FROM tombstones")
+    suspend fun count(): Int
+
+    /**
+     * Drops tombstones every device has already been told about.
+     *
+     * Nothing calls this. It cannot be called correctly until there is something
+     * that knows what every device has seen, and pruning early is how a deleted
+     * row comes back on the one phone that had not synced yet.
+     */
+    @Query("DELETE FROM tombstones WHERE rev <= :everyDeviceHasSeenRev")
+    suspend fun prune(everyDeviceHasSeenRev: Long)
+
+    /** Used by the delete-everything wipe, which clears this table too. */
+    @Query("DELETE FROM tombstones")
+    suspend fun clear()
+}

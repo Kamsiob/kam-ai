@@ -587,14 +587,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Bulk chat delete. Tier two, because deleting several at once is major. */
     fun deleteConversations(ids: List<String>) {
         if (ids.isEmpty()) return
+        val n = ids.size
+        // "Delete 1 chats?" is what selecting a single chat used to ask, three
+        // times over in the one flow. Selecting one is the ordinary case, not an
+        // edge case, so it gets ordinary English.
         requestConfirm(
             ConfirmRequest(
                 tier = ConfirmTier.MAJOR,
-                title = "Delete ${ids.size} chats?",
-                body = "This removes ${ids.size} conversations and everything in them.",
-                undoneNote = "Those ${ids.size} conversations will be gone for good. A backup " +
-                    "is the only way to bring them back.",
-                confirmLabel = "Delete ${ids.size}",
+                title = if (n == 1) "Delete this chat?" else "Delete $n chats?",
+                body = if (n == 1) {
+                    "This removes the conversation and everything in it."
+                } else {
+                    "This removes $n conversations and everything in them."
+                },
+                undoneNote = if (n == 1) {
+                    "It will be gone for good. A backup is the only way to bring it back."
+                } else {
+                    "Those $n conversations will be gone for good. A backup " +
+                        "is the only way to bring them back."
+                },
+                confirmLabel = if (n == 1) "Delete" else "Delete $n",
                 onConfirm = {
                     viewModelScope.launch {
                         ids.forEach { repository.deleteConversation(it) }
@@ -699,10 +711,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         requestConfirm(
             ConfirmRequest(
                 tier = ConfirmTier.MAJOR,
-                title = "Forget ${ids.size} memories?",
-                body = "The selected ${ids.size} memories will be removed.",
-                undoneNote = "Those ${ids.size} memories will be gone for good.",
-                confirmLabel = "Forget ${ids.size}",
+                title = if (ids.size == 1) "Forget this memory?" else "Forget ${ids.size} memories?",
+                body = if (ids.size == 1) {
+                    "The selected memory will be removed."
+                } else {
+                    "The selected ${ids.size} memories will be removed."
+                },
+                undoneNote = if (ids.size == 1) {
+                    "It will be gone for good."
+                } else {
+                    "Those ${ids.size} memories will be gone for good."
+                },
+                confirmLabel = if (ids.size == 1) "Forget" else "Forget ${ids.size}",
                 onConfirm = {
                     viewModelScope.launch {
                         ids.forEach { repository.forget(it) }

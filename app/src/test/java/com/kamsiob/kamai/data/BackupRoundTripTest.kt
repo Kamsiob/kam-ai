@@ -151,4 +151,75 @@ class BackupRoundTripTest {
             BackupCrypto.decrypt(ByteArrayInputStream("not a backup file".toByteArray()), "x")
         }
     }
+
+    @Test
+    fun `a backup carries the sync stamps`() {
+        // A restore is how a second device gets its first copy of everything. If
+        // the stamps are dropped, that device starts counting from one while the
+        // original is in the thousands, and the original then wins every
+        // disagreement between them regardless of which edit came later.
+        val snapshot = BackupCodec.Snapshot(
+            conversations = listOf(
+                ConversationEntity(
+                    id = "c1", title = "Stamped", mode = Mode.GENERAL, modesUsed = "GENERAL",
+                    createdAt = 1, updatedAt = 2, rev = 41, lastWriterId = "device-a",
+                ),
+            ),
+            messages = listOf(
+                MessageEntity(
+                    id = "m1", conversationId = "c1", role = Role.USER, content = "Hello",
+                    createdAt = 3, memoriesUsed = 2, rev = 42, lastWriterId = "device-a",
+                ),
+            ),
+            projects = emptyList(), memory = emptyList(), followUps = emptyList(),
+            drawn = emptyList(), quizStats = emptyList(), artifacts = emptyList(),
+            settings = listOf(SettingEntity("theme", "dark", 43, "device-b")),
+        )
+
+        val back = BackupCodec.decode(BackupCodec.encode(snapshot, "1.0", 9))
+
+        assertEquals(41L, back.conversations.single().rev)
+        assertEquals("device-a", back.conversations.single().lastWriterId)
+        assertEquals(42L, back.messages.single().rev)
+        assertEquals(43L, back.settings.single().rev)
+        assertEquals("device-b", back.settings.single().lastWriterId)
+        // memoriesUsed was never written to a backup before this change, so an
+        // answer that used memory lost that fact on every restore. Fixed here
+        // because it is the same list of fields.
+        assertEquals(2, back.messages.single().memoriesUsed)
+    }
+
+    @Test
+    fun `an older backup with no stamps imports as unstamped`() {
+        // A version 2 file has no rev or lastWriterId keys at all. Those rows must
+        // import as rev 0 with no writer, which loses to any real write rather
+        // than overwriting one. Failing to import, or importing as rev 1, would
+        // both be worse.
+        val root = JSONObject(
+            """
+            {
+              "formatVersion": 2,
+              "conversations": [
+                {"id":"c1","title":"Old","mode":"GENERAL","modesUsed":"GENERAL",
+                 "createdAt":1,"updatedAt":2,"pinned":false,"archived":false,
+                 "titleIsManual":false}
+              ],
+              "settings": [{"key":"theme","value":"dark"}]
+            }
+            """.trimIndent(),
+        )
+
+        val back = BackupCodec.decode(root)
+
+        assertEquals(0L, back.conversations.single().rev)
+        assertEquals("", back.conversations.single().lastWriterId)
+        assertEquals(0L, back.settings.single().rev)
+        // And unstamped has to lose, or restoring an old backup would silently
+        // beat edits made since.
+        assertEquals(
+            Reconcile.Winner.REMOTE,
+            Reconcile.winner(local = Stamp(0, ""), remote = Stamp(1, "device-a")),
+        )
+    }
+
 }
