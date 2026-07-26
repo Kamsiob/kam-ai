@@ -211,20 +211,10 @@ fun SettingsScreen(
             SettingsRow(title = "About", onClick = onAbout, showDivider = false)
         }
 
-        Spacer(Modifier.height(26.dp))
-
-        Text(
-            OnboardingCopy.SUPPORT_LINE,
-            style = KamTheme.type.secondary,
-            color = colors.textTertiary,
-        )
-        Spacer(Modifier.height(12.dp))
-        PrimaryButton(
-            OnboardingCopy.SUPPORT_BUTTON,
-            onClick = onSupport,
-            modifier = Modifier.fillMaxWidth(),
-            amber = true,
-        )
+        // Nothing follows the last group. The support ask used to be repeated
+        // here under its own heading, which meant the screen asked twice: once
+        // at the top where it is seen, and again at the bottom where it read as
+        // a second, more insistent request. One ask is more persuasive than two.
         Spacer(Modifier.height(28.dp))
     }
 }
