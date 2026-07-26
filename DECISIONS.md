@@ -6514,3 +6514,54 @@ no coffee reference.
 `GoldRuleTest` caught the new file immediately, which is the guard working in the
 direction it was built for. The file is allowlisted with its reason, since the
 support action is one of the four sanctioned uses of gold.
+
+## The data model is sync-ready; sync is still not planned
+
+Two statements that look contradictory and are not, recorded together so nobody
+has to reconcile them later from the commit log.
+
+**Sync is not planned.** Conversations stay on the device. Backup and restore
+covers moving between phones, and that has not changed.
+
+**The data model no longer forecloses it.** Every row now carries a Lamport stamp
+and the id of the install that wrote it, deletions leave tombstones, a conflict
+rule exists and is tested for convergence, and every table declares whether it
+would sync. No transport, no server, no scheduler, no network code.
+
+The reason to do the second while still meaning the first: these are the
+decisions that are free before there is data in the wild and expensive after.
+Adding a tombstone table to a schema is a migration. Adding one to a schema that
+has been deleting rows without recording it for a year cannot recover the
+deletions that already happened, and those deletions are exactly what a first
+sync would resurrect. The same is true of ordering. Retrofitting a monotonic
+counter onto rows whose only timestamp is a wall clock means every row written
+before the change is unordered against every row written after.
+
+So the cost of doing it now is one migration and some columns nothing reads. The
+cost of doing it later is a class of data loss that cannot be repaired, on the
+first day the feature is switched on.
+
+### What was decided, and what was left open
+
+Decided, with the reasoning in `Sync.kt`:
+
+- Ordering is a Lamport clock, not `updatedAt` and not a plain counter.
+- Conflicts are last writer wins by stamp, tie broken on device id, with
+  deletion beating an edit at the same stamp.
+- Counters do not sync, because last writer wins on a counter loses counts.
+- Nothing describing this phone's disk syncs.
+- Settings sync by allowlist, so a key nobody has considered fails safe.
+- A newer wire version is refused whole rather than applied in part.
+- A wipe writes no tombstones. "Erase what is on this phone" and "erase
+  everything I own everywhere" are different requests and the screen asks the
+  first.
+
+Left open deliberately, because it is a decision for whoever builds sync:
+
+- **The key.** The database key is a software data key wrapped by Keystore and
+  deliberately non-exportable. That property is what makes the data safe at rest
+  and exactly what makes it useless on a second device. Sync needs a second,
+  user-held secret in the same shape as the backup passphrase, and choosing it is
+  not something to settle in advance of the feature.
+- **Transport.** Not chosen. Nothing in the data model depends on it, which was
+  part of the point.
