@@ -545,6 +545,7 @@ private fun ConversationScreen(
     val conversationTitle by chat.title.collectAsStateWithLifecycle()
     val conversationProjectId by chat.projectId.collectAsStateWithLifecycle()
     val grounded by chat.grounded.collectAsStateWithLifecycle()
+    val summaryState by chat.summary.collectAsStateWithLifecycle()
     val linkedSessionId by chat.linkedSessionId.collectAsStateWithLifecycle()
     val allProjects by app.projects.collectAsStateWithLifecycle()
 
@@ -696,6 +697,12 @@ private fun ConversationScreen(
         scoped = scoped,
         onOpenMemory = onOpenMemory,
         onCopied = { app.showToast("Copied") },
+        onSummarize = chat::summarize,
+        summary = summaryState,
+        onCancelSummary = chat::cancelSummary,
+        onDismissSummary = chat::dismissSummary,
+        onSaveSummary = chat::saveSummary,
+        onShareText = { text -> Share.text(context, text) },
         // No model means the chat cannot answer, so the chat offers to get one
         // rather than naming the problem and pointing at Settings (#80). Not
         // shown while a download is already running: the indicator above says so

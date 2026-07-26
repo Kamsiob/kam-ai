@@ -18,6 +18,7 @@ import com.kamsiob.kamai.llm.ModelManager
 import com.kamsiob.kamai.llm.MemoryExtractor
 import com.kamsiob.kamai.llm.MemoryMode
 import com.kamsiob.kamai.llm.PromptBuilder
+import com.kamsiob.kamai.llm.Summarizer
 import com.kamsiob.kamai.llm.SystemPrompts
 import com.kamsiob.kamai.llm.WrapUp
 import kotlinx.coroutines.Job
@@ -605,6 +606,136 @@ class ChatViewModel(
     private var restoredFor: String? = null
 
     /**
+     * Summarizing this conversation, on request only (#86).
+     *
+     * Never automatic and never on opening: it costs time and battery, and the
+     * user is the only one who knows whether this conversation is worth either.
+     */
+    sealed interface SummaryState {
+        data object Idle : SummaryState
+        data class Working(val step: String) : SummaryState
+        data class Ready(val text: String, val provenance: String) : SummaryState
+        data class NotWorthIt(val message: String) : SummaryState
+        data class Failed(val message: String) : SummaryState
+    }
+
+    private val _summary = MutableStateFlow<SummaryState>(SummaryState.Idle)
+    val summary: StateFlow<SummaryState> = _summary.asStateFlow()
+
+    private var summaryJob: Job? = null
+
+    /** Runs a summary. Cancellable, per the rule that anything slow must be. */
+    fun summarize() {
+        if (_streaming.value) return
+        val id = _conversationId.value ?: return
+        summaryJob?.cancel()
+        summaryJob = viewModelScope.launch {
+            _summary.value = SummaryState.Working("Reading the conversation")
+            val history = repository.messages(id)
+                .filter { it.role == Role.USER || it.role == Role.ASSISTANT }
+                .map { "${if (it.role == Role.USER) "Them" else "You"}: ${it.content}" }
+
+            val contextSize = engine.contextSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT
+            // Room for the instruction and the summary itself, not just the input.
+            val budget = ((contextSize - RESERVED_FOR_REPLY) * CHARS_PER_TOKEN * 0.7).toInt()
+            val plan = Summarizer.plan(history, budget.coerceAtLeast(1000))
+
+            if (plan is Summarizer.Plan.TooShort) {
+                _summary.value = SummaryState.NotWorthIt(plan.message)
+                return@launch
+            }
+
+            when (val status = modelManager.ensureLoaded()) {
+                is ModelManager.Status.Loaded -> Unit
+                else -> {
+                    _summary.value = SummaryState.Failed(
+                        "A model has to be ready before this can run. " +
+                            (status as? ModelManager.Status.Refused)?.reason.orEmpty(),
+                    )
+                    return@launch
+                }
+            }
+
+            runCatching {
+                when (plan) {
+                    is Summarizer.Plan.Whole -> {
+                        _summary.value = SummaryState.Working("Summarizing")
+                        val text = runPass(Summarizer.WHOLE_INSTRUCTION, plan.text)
+                        _summary.value = SummaryState.Ready(text, Summarizer.provenance(plan))
+                    }
+                    is Summarizer.Plan.Sectioned -> {
+                        val parts = plan.sections.mapIndexed { i, section ->
+                            _summary.value = SummaryState.Working(
+                                "Summarizing part ${i + 1} of ${plan.sections.size}",
+                            )
+                            runPass(Summarizer.SECTION_INSTRUCTION, section)
+                        }
+                        _summary.value = SummaryState.Working("Putting the parts together")
+                        val text = runPass(
+                            Summarizer.COMBINE_INSTRUCTION,
+                            parts.joinToString("\n\n"),
+                        )
+                        _summary.value = SummaryState.Ready(
+                            text,
+                            Summarizer.provenance(plan, plan.sections.size),
+                        )
+                    }
+                    is Summarizer.Plan.TooShort -> Unit
+                }
+            }.onFailure {
+                if (it is kotlinx.coroutines.CancellationException) throw it
+                _summary.value = SummaryState.Failed(
+                    "That did not finish. Nothing was changed, and you can try again.",
+                )
+            }
+        }
+    }
+
+    private suspend fun runPass(instruction: String, body: String): String {
+        val format = repository.activeModel()?.format ?: ChatFormat.GEMMA
+        val prompt = PromptBuilder.oneShot(format, instruction, body)
+        val builder = StringBuilder()
+        engine.generate(prompt, Mode.BENCH, maxTokens = SUMMARY_MAX_TOKENS)
+            .collect { builder.append(it.text) }
+        return PromptBuilder.cleanOutput(builder.toString())
+    }
+
+    /** Stops a summary in progress, leaving nothing behind. */
+    fun cancelSummary() {
+        summaryJob?.cancel()
+        summaryJob = null
+        engine.requestStop()
+        _summary.value = SummaryState.Idle
+    }
+
+    /** Closes the sheet. The summary was never part of the transcript. */
+    fun dismissSummary() {
+        _summary.value = SummaryState.Idle
+    }
+
+    /**
+     * Keeps a summary in Follow-ups, labelled as generated.
+     *
+     * Marked plainly rather than filed as something either party said, because a
+     * summary read back in a week is exactly the thing that would otherwise be
+     * mistaken for a quote.
+     */
+    fun saveSummary() {
+        val state = _summary.value as? SummaryState.Ready ?: return
+        val id = _conversationId.value
+        viewModelScope.launch {
+            repository.flag(
+                snippet = "Summary (written by Kam AI)\n\n${state.text}",
+                mode = _mode.value,
+                conversationId = id,
+                messageId = null,
+            )
+            _notice.value = "Saved to Follow-ups, marked as a generated summary."
+            _summary.value = SummaryState.Idle
+        }
+    }
+
+    /**
      * A conversation whose last message was typed before a model was ready, held
      * so it can be sent the moment one is (#78).
      *
@@ -1041,6 +1172,15 @@ class ChatViewModel(
         const val RESERVED_FOR_REPLY = 768
         const val DEFAULT_CONTEXT = 4096
         const val AUTO_MEMORY_MAX_TOKENS = 60
+
+        /**
+         * How long a summary may run to (#86).
+         *
+         * Three short parts, so a few hundred tokens. A cap rather than a hope:
+         * a model that starts rambling turns a summary into the thing it was
+         * meant to replace.
+         */
+        const val SUMMARY_MAX_TOKENS = 400
 
         /** Memory gets at most this fraction of the context, so it never crowds
          *  out the instructions or the conversation. */

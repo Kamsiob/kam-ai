@@ -203,6 +203,14 @@ fun ChatScreen(
     onOpenMemory: () -> Unit = {},
     /** Confirms a copy, since neither gesture that copies leaves any other trace. */
     onCopied: () -> Unit = {},
+    /** Runs a summary of this conversation, on request only (#86). */
+    onSummarize: () -> Unit = {},
+    /** The summary's state, driving the sheet. */
+    summary: ChatViewModel.SummaryState = ChatViewModel.SummaryState.Idle,
+    onCancelSummary: () -> Unit = {},
+    onDismissSummary: () -> Unit = {},
+    onSaveSummary: () -> Unit = {},
+    onShareText: (String) -> Unit = {},
     /**
      * Set when there is no model installed, so the empty state offers to get one
      * rather than sending the user to Settings to hunt (#80).
@@ -394,6 +402,22 @@ fun ChatScreen(
         activeMessageIndex?.let { runCatching { listState.animateScrollToItem(it) } }
     }
 
+    // The summary lives in a sheet rather than in the transcript (#86): a summary
+    // posted as a message becomes part of the conversation it describes and reads
+    // a week later as something one of the two of you said.
+    val clipboardForSummary = LocalClipboardManager.current
+    SummarySheet(
+        state = summary,
+        onCancel = onCancelSummary,
+        onDismiss = onDismissSummary,
+        onSave = onSaveSummary,
+        onCopy = {
+            clipboardForSummary.setText(AnnotatedString(it))
+            onCopied()
+        },
+        onShare = onShareText,
+    )
+
     // The keyboard inset belongs to the whole screen, not to the composer.
     //
     // `imePadding()` used to sit on the composer alone, which made the composer
@@ -419,6 +443,7 @@ fun ChatScreen(
                 onOpenWorkbenchSession = onOpenWorkbenchSession,
                 onWrapUp = onWrapUp.takeIf { com.kamsiob.kamai.llm.WrapUp.availableIn(mode) },
                 onFind = { finding = true },
+                onSummarize = onSummarize,
                 onArchive = onArchiveConversation,
                 onDelete = onDeleteConversation,
                 modifier = Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
@@ -871,6 +896,8 @@ private fun ConversationHeader(
     onWrapUp: (() -> Unit)? = null,
     /** Opens find-in-conversation (#85). */
     onFind: () -> Unit = {},
+    /** Runs a summary of this conversation, on request only (#86). */
+    onSummarize: () -> Unit = {},
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -932,6 +959,12 @@ private fun ConversationHeader(
                         Text("Find in this chat", style = KamTheme.type.body, color = colors.textPrimary)
                     },
                     onClick = { menuOpen = false; onFind() },
+                )
+                androidx.compose.material3.DropdownMenuItem(
+                    text = {
+                        Text("Summarize this chat", style = KamTheme.type.body, color = colors.textPrimary)
+                    },
+                    onClick = { menuOpen = false; onSummarize() },
                 )
                 androidx.compose.material3.DropdownMenuItem(
                     text = { Text("Rename", style = KamTheme.type.body, color = colors.textPrimary) },
