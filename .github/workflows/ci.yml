@@ -80,6 +80,26 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # llama.cpp and whisper.cpp are fetched rather than committed, since
+      # together they are hundreds of megabytes of source that would make this
+      # repository unreadable. The fetch scripts pin exact tags, so caching on
+      # those scripts' hashes is caching on the version itself: bump a tag and
+      # the cache key changes with it.
+      - name: Cache the fetched native sources
+        id: native-sources
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/src/main/cpp/llama.cpp
+            app/src/main/cpp/whisper.cpp
+          key: native-src-${{ hashFiles('tools/fetch_llama.sh', 'tools/fetch_whisper.sh') }}
+
+      - name: Fetch llama.cpp and whisper.cpp
+        if: steps.native-sources.outputs.cache-hit != 'true'
+        run: |
+          tools/fetch_llama.sh
+          tools/fetch_whisper.sh
+
       - name: Cache the native build
         uses: actions/cache@v4
         with:

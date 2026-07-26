@@ -6709,3 +6709,41 @@ limitation lists and every screenshot.
 
 Whatever fails is fixed and recorded. This is process rather than memory, which
 is the point of writing it down here.
+
+
+## The Linux desktop version: the decisions taken before any work
+
+Recorded now, while nothing has been built and reversing them is free.
+
+### It is a port, and a separate application
+
+The Linux version is Kam AI on the desktop: the same conversation surface, the
+same four modes, the same projects, memory and Discover, running inference in its
+own process and owning its own encrypted datastore.
+
+It is not a feature added to any other tool. Other local model tooling on the
+owner's machine is not a factor in this decision and does not constrain it.
+
+The one thing that genuinely differs is model acquisition. On Android the app
+must download and manage model files because nothing else on the phone will. On a
+desktop a model may already be sitting on disk, so the Linux port should be able
+to use a model that is already there rather than insisting on downloading its
+own copy. Whether that means pointing at a GGUF file or something else is an
+implementation question for when the work starts, not now.
+
+### Scope: Linux only
+
+macOS and Windows are out of scope and no work accounts for them. The owner
+cannot verify what he does not run, and an unverified platform is worse than one
+that does not exist.
+
+No abstraction, conditional path, or configuration is added in anticipation of a
+platform that is not being built. The interface framework being cross platform
+keeps more platforms possible later, and that is a future decision rather than a
+present constraint.
+
+### And not before the Android release
+
+This is planning only. Nothing about the Linux version is built until the Android
+release ships. The Linux and Shared items sit on the board as drafts, which is
+what drafts are for: things not yet decided to be work.
