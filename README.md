@@ -48,12 +48,14 @@ one from and then discuss, with its own tab.
 
 ## Screenshots
 
+Captured from the running app on a Pixel 10 Pro XL, never from a mockup.
+
 | | | |
 |---|---|---|
-| ![A new Logic Partner chat](docs/screenshots/newchat-logic.png) | ![Choosing a mode](docs/screenshots/modepicker.png) | ![The Workbench](docs/screenshots/workbench.png) |
-| A new chat, in the mode's own colour and voice | Switching mode mid-conversation, without losing what was said | Workbench: paste text in, pick a change, keep both versions |
-| ![Discover](docs/screenshots/discover.png) | ![Follow-ups](docs/screenshots/followups.png) | ![Projects](docs/screenshots/projects.png) |
-| Discover deals you something to read, offline | Follow-ups collects everything you saved, from anywhere | Projects keep related chats under shared instructions |
+| ![Chats](docs/screenshots/chats-light.png) | ![A conversation](docs/screenshots/chat-light.png) | ![Discover](docs/screenshots/discover-light.png) |
+| Chats, with the four modes below. Tapping one starts a conversation with that job | A conversation. Answers use headings and lists when the content calls for them, and plain prose when it does not | Discover deals you something to read, offline, and will discuss it without straying from the passage |
+| ![Projects](docs/screenshots/projects-light.png) | ![Follow-ups](docs/screenshots/followups-light.png) | ![Choosing a mode](docs/screenshots/modepicker.png) |
+| Projects keep related chats under shared instructions and notes | Follow-ups collects everything you saved, from anywhere in the app | Switching mode mid-conversation, without losing what was said |
 
 ## More than a chat box
 
