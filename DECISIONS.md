@@ -6747,3 +6747,38 @@ present constraint.
 This is planning only. Nothing about the Linux version is built until the Android
 release ships. The Linux and Shared items sit on the board as drafts, which is
 what drafts are for: things not yet decided to be work.
+
+
+## Commit signing, and what is still needed to finish it
+
+SSH signing rather than a GPG key, because there is no key material to manage
+beyond one file and no expiry to forget.
+
+Configured locally: `gpg.format ssh`, a dedicated ed25519 key at
+`~/.ssh/kamai_signing`, `commit.gpgsign` and `tag.gpgsign` both on, and an
+allowed signers file so `git log --show-signature` verifies locally.
+
+**What is outstanding, and it is one action for the owner.** Registering the
+public key on the GitHub account needs the `admin:ssh_signing_key` scope, which
+the CLI token does not carry:
+
+```
+gh auth refresh -h github.com -s admin:ssh_signing_key
+gh api -X POST user/ssh_signing_keys -f title="Kam AI commit signing" \
+  -f key="$(cat ~/.ssh/kamai_signing.pub)"
+```
+
+Or paste the contents of `~/.ssh/kamai_signing.pub` into Settings, SSH and GPG
+keys, as a **signing** key rather than an authentication key.
+
+Signing was left switched on rather than waiting for that, deliberately. GitHub
+evaluates a signature against the registered keys at the time it displays the
+commit, not at the time the commit was pushed, so every commit signed from now
+becomes Verified retroactively the moment the key is added. Waiting would mean
+losing that.
+
+Vigilant mode should be enabled on the account at the same time, so unsigned
+commits show as Unverified rather than passing silently.
+
+Going forward only. History is not rewritten and nothing is retroactively signed,
+which would be dishonest and would destroy traceability that already exists.

@@ -66,6 +66,9 @@ prefixes with kind prefixes until it was settled here, and history is not
 rewritten to match, so commits before that point look different and are left
 alone. Dependabot's own `Bump ...` subjects are also left as they are.
 
+**Signing.** Commits are signed with an SSH key. If you are contributing, sign
+yours too, or say so in the pull request if you cannot.
+
 **Branches.** Name them for the issue they address. One logical change per
 branch. Anything that changes behaviour goes through a pull request; typos and
 documentation touch-ups may go straight to `main`.
