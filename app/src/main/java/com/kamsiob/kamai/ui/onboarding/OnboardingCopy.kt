@@ -104,7 +104,8 @@ object OnboardingCopy {
             "Short reads from Wikipedia, offline, with a quiz and a discussion held to the " +
                 "passage.",
         "Projects" to
-            "Keep related chats together under instructions they all follow.",
+            "Keep related chats together, under instructions they all follow and notes " +
+                "they all start from.",
         "Follow-ups" to
             "Bookmark anything worth checking or coming back to, from anywhere in the app.",
     )

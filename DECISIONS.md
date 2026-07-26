@@ -5916,3 +5916,26 @@ Verified on the phone: a reinstall mid-download left the partial intact and the
 indicator reported it paused rather than lost, Storage showed it with Resume and
 Cancel and reported the 499 MB already on disk, and Resume carried on from where
 it stopped rather than starting again.
+
+## What onboarding and the Q&A actually explain (#82)
+
+The issue's premise was that Projects is never mentioned. It is: onboarding's
+features slide has always carried "Projects: keep related chats together under
+instructions they all follow". That line is now updated to mention notes, which
+did not exist when it was written.
+
+The audit the issue asked for found two real gaps, both in the Questions and
+answers screen rather than onboarding. Neither Projects nor Memory had an entry,
+and both are prominent: Projects is a quarter of the navigation bar, and Memory
+is the feature people are most likely to have a privacy question about.
+
+Both added. The Projects answer covers the distinction that actually confuses
+people, which is instructions against notes, and the one that quietly surprises
+them, which is that moving a chat in applies from that point on rather than
+backwards. The Memory answer says what is kept, that it is all listed and
+deletable, and that an answer which used memory says so underneath, which ties
+the FAQ to the indicator from #16 instead of describing them as separate things.
+
+Everything else prominent in the interface is covered: the four modes including
+Workbench, the power button, voice, follow-ups, content packs, model choices,
+backup, and why there is no cloud sync.

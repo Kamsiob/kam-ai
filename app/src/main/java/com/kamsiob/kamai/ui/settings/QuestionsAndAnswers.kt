@@ -56,6 +56,23 @@ object QuestionsAndAnswers {
                 "downloads, so you'll see the size before anything happens.",
         ),
         Entry(
+            "What is a project?",
+            "A folder for chats about the same thing, with its own instructions and its " +
+                "own notes. Instructions tell Kam AI how to behave in that project's " +
+                "chats; notes are background it should already know, like who the client " +
+                "is. Both apply only inside that project and never leak into anything " +
+                "else. Moving a chat into a project applies from that point on, not " +
+                "backwards over what was already said.",
+        ),
+        Entry(
+            "What does it remember about me?",
+            "Only what you ask it to, unless you turn on automatic memory in Settings, " +
+                "in which case it also keeps durable facts it notices, like a preference " +
+                "or an ongoing project. Everything it has kept is listed in Settings, " +
+                "then Memory, in full, and you can delete any of it or all of it. An " +
+                "answer that used something it remembers says so underneath.",
+        ),
+        Entry(
             "What is a follow-up?",
             "A bookmark you can put on any answer you want to double-check or dig into " +
                 "later. Saved things collect in the Follow-ups tab so nothing gets lost.",
