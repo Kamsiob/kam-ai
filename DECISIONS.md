@@ -5688,9 +5688,18 @@ A stale cache is slow, never wrong. The one thing that would be wrong is a blob
 from a different model, which llama.cpp cannot detect, so the file name carries
 the model id.
 
-**Verified so far:** the save path end to end, on the phone, with real
-conversations — 2281 tokens, 31 MB, encrypted and renamed in 185 ms, and the
-file present after a force-stop. **Not yet verified:** the payoff. The
-cold-start restore measurement was interrupted before it could be read. Until
-that number exists this is an implemented mechanism with a proven write path and
-an unproven read path, and it is written down that way rather than claimed.
+**Measured on the phone, one conversation, both directions.**
+
+| Cold start, same conversation | Prefill | Time to first token |
+|---|---|---|
+| Without a saved cache | 656 tokens | 20.4 s |
+| With the saved cache restored | 29 tokens | 2.0 s |
+
+668 tokens restored from a 17 MB file. Prefill falls to the new message alone,
+which is what "the cache is working" looks like, and the wait falls by a factor
+of ten. A larger conversation measured 1369 tokens and 39.7 s cold, so the saving
+grows with the history, which is the case that hurt most.
+
+The save is written in about 185 ms for 31 MB, on the end of a turn that took a
+minute, and it happens before titling so it captures the conversation rather than
+the titling prompt.
