@@ -494,7 +494,12 @@ private fun OverlayPanel(
                             Icon(
                                 if (recording) Icons.Rounded.Stop else Icons.Rounded.Mic,
                                 contentDescription = null,
-                                tint = if (recording) colors.tonalText else colors.textSecondary,
+                                // The accent, not textSecondary (#92). This is an
+                                // available action sitting next to the send button,
+                                // and a muted grey on the light background read as
+                                // disabled. A control that looks unavailable while
+                                // working is worse than one that genuinely is.
+                                tint = if (recording) colors.tonalText else colors.accent,
                                 modifier = Modifier.size(20.dp),
                             )
                         }

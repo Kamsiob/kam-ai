@@ -6405,3 +6405,29 @@ Continuous integration is not active yet, so local verification is what stands i
 for it, and that is stated on each pull request rather than implied.
 
 Processing the Dependabot queue is added to the pre-release cold read test.
+
+## The microphone read as disabled (#92)
+
+In the overlay and in the chat composer the microphone was tinted
+`textSecondary`, sitting immediately beside a fully-saturated accent send button.
+On the light background that reads as a disabled control, which is worse than one
+that genuinely is unavailable: the user does not try it.
+
+Both are the accent now. Talking instead of typing is a headline feature, not a
+secondary affordance, and it should look like the alternative to send that it is.
+
+**The audit that came with it.** Every other icon in the overlay and the composer
+was checked. The attach paperclip and the overlay bookmark stay `textSecondary`,
+and that is correct: they are genuinely secondary actions on a bordered surface,
+and neither sits next to a saturated control that makes it look switched off.
+Nothing else is greyed while functional. The attach control is hidden outright
+when the model cannot read documents (#22) rather than shown disabled, and the
+find bar's next and previous arrows dim only when there are genuinely no matches,
+with "No matches" written beside them, so the reason is on screen rather than
+implied.
+
+The chat composer is device-verified. The overlay is the identical one-line change
+to the identical `Icon` and tint, verified by reading rather than on screen,
+because Kam AI is not currently the default assistant on the test device and the
+ASSIST intent opens the system chooser instead. Worth stating rather than
+implying, and the overlay wants a look when that setting is restored.

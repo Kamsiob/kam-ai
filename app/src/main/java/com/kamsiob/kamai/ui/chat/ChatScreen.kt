@@ -1880,7 +1880,11 @@ private fun Composer(
                     Icon(
                         if (recording) Icons.Rounded.Stop else Icons.Rounded.Mic,
                         contentDescription = null,
-                        tint = if (recording) colors.tonalText else colors.textSecondary,
+                        // The accent, matching the overlay (#92). Talking instead
+                        // of typing is a headline feature sitting next to a
+                        // fully-saturated send button, and a muted grey beside it
+                        // read as disabled rather than as the alternative it is.
+                        tint = if (recording) colors.tonalText else colors.accent,
                         modifier = Modifier.size(21.dp),
                     )
                 }
