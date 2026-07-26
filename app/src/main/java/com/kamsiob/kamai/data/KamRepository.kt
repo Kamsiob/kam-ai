@@ -190,6 +190,20 @@ class KamRepository(
      */
     val appContext: Context get() = context
 
+    /**
+     * Whether a model download is running right now (#78).
+     *
+     * Used to tell "still downloading, hold on" apart from "there is no model and
+     * nothing is coming", which are the same failure to the engine and two
+     * completely different sentences to a person.
+     */
+    fun hasModelDownloadInFlight(): Boolean =
+        com.kamsiob.kamai.download.Downloads.items.value.any {
+            it.kind == "model" &&
+                it.status != com.kamsiob.kamai.download.Downloads.Status.DONE &&
+                it.status != com.kamsiob.kamai.download.Downloads.Status.FAILED
+        }
+
     fun fileForStt(model: com.kamsiob.kamai.voice.SttModel): File =
         File(voiceDir(), model.fileName)
 

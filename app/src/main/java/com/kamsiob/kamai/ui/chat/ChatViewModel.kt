@@ -604,6 +604,36 @@ class ChatViewModel(
      */
     private var restoredFor: String? = null
 
+    /**
+     * A conversation whose last message was typed before a model was ready, held
+     * so it can be sent the moment one is (#78).
+     *
+     * One at a time, because it is always the newest message in this
+     * conversation: a second attempt while still waiting simply replaces the
+     * first, and the transcript already holds both.
+     */
+    private var pendingSend: String? = null
+
+    /** Whether a model download is running, for the honest version of the wait. */
+    private suspend fun downloadInFlight(): Boolean =
+        modelManager.activeId() == null && repository.hasModelDownloadInFlight()
+
+    init {
+        // Release a held message when a model becomes available. Collected for
+        // the life of this view model, which is the life of the conversation the
+        // message belongs to.
+        viewModelScope.launch {
+            modelManager.status.collect { status ->
+                val waiting = pendingSend ?: return@collect
+                if (status is ModelManager.Status.Loaded || status is ModelManager.Status.Idle) {
+                    pendingSend = null
+                    _notice.value = "The model is ready. Sending what you typed."
+                    respond(waiting)
+                }
+            }
+        }
+    }
+
     /** Writes the context out for [conversationId] while it still holds it (#52). */
     private suspend fun saveConversationState(conversationId: String) {
         modelManager.activeId()?.let { modelId ->
@@ -788,7 +818,22 @@ class ChatViewModel(
             when (val status = modelManager.ensureLoaded()) {
                 is ModelManager.Status.Loaded -> Unit
                 is ModelManager.Status.NoModel -> {
-                    _notice.value = "No model is set up yet. Download one in Settings to start."
+                    // The message stays in the transcript and is sent the moment
+                    // a model is ready (#78). Holding it costs the user nothing
+                    // and loses no intent; refusing would make them retype a
+                    // thought they had already finished having.
+                    //
+                    // The alternative considered was explaining and refusing,
+                    // with the time remaining. It is more precise and worse:
+                    // somebody who has just typed a question does not want an
+                    // estimate, they want the question asked.
+                    pendingSend = conversationId
+                    _notice.value = if (downloadInFlight()) {
+                        "Still downloading the model. This will send as soon as it is ready."
+                    } else {
+                        "No model yet. Download one in Settings and this sends as soon " +
+                            "as it is ready."
+                    }
                     _streaming.value = false
                     return@launch
                 }

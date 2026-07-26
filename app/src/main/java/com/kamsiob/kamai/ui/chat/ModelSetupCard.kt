@@ -57,6 +57,9 @@ fun ModelSetupCard(
 
     Column(
         modifier = modifier
+            // Padding before the width cap, so the card can never touch the
+            // screen edges on a narrow phone.
+            .padding(horizontal = 20.dp)
             .widthIn(max = 380.dp)
             .clip(RoundedCornerShape(KamTheme.dimens.cardRadius))
             .background(colors.surface)

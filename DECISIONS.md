@@ -5836,3 +5836,40 @@ the screen otherwise.
 Device-verified: started a pack download from Discover, saw the indicator on
 Discover and then on Chats after navigating, and watched it clear on completion
 without the layout jumping.
+
+## The chat offers the model it needs (#80), and holds what you typed (#78)
+
+A user who skipped setup reached the chat, typed, and got "No model is set up
+yet. Download one in Settings to start." That is a dead end dressed as a
+sentence: it names the problem, points at another screen, and leaves them to find
+the right one.
+
+The empty state now carries the offer, with the same three facts the onboarding
+slide gives (what it is, what it costs, what it means for this phone) and one
+action that starts it. The secondary path reveals the full tier list and is
+worded as a reasonable thing to want, not as a dismissal. It is hidden while a
+download is already running, since the indicator above already says so.
+
+**The held message.** Typing before a model is ready used to be refused. It is
+now kept and sent the moment one loads, with a notice saying that is what is
+happening. The alternative considered was explaining and refusing with the time
+remaining, which is more precise and worse: somebody who has just typed a
+question does not want an estimate, they want the question asked. Holding costs
+them nothing and loses no intent. One held message per conversation, because it
+is always the newest one, and a second attempt simply replaces the first.
+
+The wait says two different things depending on the truth, because "downloading,
+hold on" and "nothing is coming" are the same failure to the engine and
+completely different sentences to a person.
+
+**A layout bug found by looking.** The card first appeared hard against the left
+edge. `Box(Modifier.weight(1f))` in a Column wraps its content width rather than
+filling, so it was only as wide as the card, sat at the start, and every "centre
+in the empty space" inside it centred within the card's own width. The mode nudge
+is wide enough that nobody had noticed in months. `fillMaxWidth()` fixes it for
+both.
+
+Device-verified from cleared app data: onboarding skipped, new chat shows the
+card centred, "Download it" starts the real download in one tap, the app-wide
+indicator picks it up, and sending before it finishes reports that the message is
+held.

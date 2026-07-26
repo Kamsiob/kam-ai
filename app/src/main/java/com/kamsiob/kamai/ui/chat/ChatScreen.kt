@@ -426,7 +426,13 @@ fun ChatScreen(
             )
         }
 
-        Box(Modifier.weight(1f)) {
+        // fillMaxWidth as well as weight. In a Column a child wraps its content
+        // width by default, so this Box was only as wide as whatever it held, sat
+        // at the start, and every "centre in the empty space" inside it centred
+        // within that width instead of within the screen. The mode nudge is wide
+        // enough that nobody noticed; the setup card is not, and sat visibly off
+        // to the left (#80).
+        Box(Modifier.fillMaxWidth().weight(1f)) {
             if (messages.isEmpty()) {
                 // Per mode, not generic (#29). A grounded Discover discussion is
                 // excluded: it is not one of the four modes and it already carries

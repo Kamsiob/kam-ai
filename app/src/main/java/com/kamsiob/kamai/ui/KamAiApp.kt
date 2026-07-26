@@ -506,6 +506,14 @@ private fun ConversationScreen(
     val streaming by chat.streaming.collectAsStateWithLifecycle()
     val notice by chat.notice.collectAsStateWithLifecycle()
     val activeModel by app.activeModel.collectAsStateWithLifecycle()
+    // The tier the phone's memory actually supports, and its catalog entry.
+    val recommendedModel = remember(app.recommendedTier) {
+        app.tiers.firstOrNull { it.tier == app.recommendedTier }
+    }
+    val chatDownloads by app.downloads.collectAsStateWithLifecycle()
+    val modelDownloading = chatDownloads.any {
+        it.kind == "model" && it.status != com.kamsiob.kamai.download.Downloads.Status.DONE
+    }
     val flagged = remember { mutableStateListOf<String>() }
 
     // Voice typing. Available only when a speech model is installed and active.
@@ -671,6 +679,21 @@ private fun ConversationScreen(
         scoped = scoped,
         onOpenMemory = onOpenMemory,
         onCopied = { app.showToast("Copied") },
+        // No model means the chat cannot answer, so the chat offers to get one
+        // rather than naming the problem and pointing at Settings (#80). Not
+        // shown while a download is already running: the indicator above says so
+        // and offering it twice would be offering it once too often.
+        setup = if (activeModel == null && !modelDownloading) {
+            com.kamsiob.kamai.ui.chat.ModelSetupOffer(
+                modelName = recommendedModel?.displayName,
+                downloadLabel = recommendedModel?.downloadLabel,
+                explanation = com.kamsiob.kamai.model.TierRecommendation.explain(app.totalRamGb),
+                onDownload = { recommendedModel?.let(app::downloadModel) },
+                onSeeOptions = onOpenModel,
+            )
+        } else {
+            null
+        },
         onContinueOpen = chat::continueInOpenChat,
         onMoveToProject = { projectId ->
             chat.conversationId.value?.let { app.assignConversationToProject(it, projectId) }
