@@ -6431,3 +6431,49 @@ to the identical `Icon` and tint, verified by reading rather than on screen,
 because Kam AI is not currently the default assistant on the test device and the
 ASSIST intent opens the system chooser instead. Worth stating rather than
 implying, and the overlay wants a look when that setting is restored.
+
+## Generation continues when the app is backgrounded (#96)
+
+Asking something and switching to another app is not unusual, it is what a
+minute-long answer invites. Android freezes cached processes, so leaving the app
+stalled the decode loop and the user came back to a half-written answer that had
+stopped rather than finished.
+
+`GenerationService` is deliberately the same shape as `DownloadService` rather
+than a second mechanism: same lifecycle, same notification pattern, one thing to
+understand instead of two. It owns no generation logic, starts before the first
+token, and stops inside the teardown block that already runs `NonCancellable`, so
+an answer abandoned by the screen going away still releases it.
+
+**No new permissions**, which was checked against the merged manifest rather than
+assumed. `dataSync` is already declared for downloads, and the audit shows exactly
+the eight permissions expected, `USE_FINGERPRINT` being the biometric library's
+legacy alias.
+
+The notification carries a Stop, so the work is cancellable from outside the app.
+It routes through the same `requestStop` a stop button uses, so the partial answer
+is kept and marked honestly rather than discarded. The progress is indeterminate on
+purpose: a token count is not a percentage of anything knowable, and a bar that
+guesses is worse than one that only says work is happening.
+
+`START_NOT_STICKY`, deliberately. A process killed mid-answer should not have the
+system restart the service into a state where nothing is generating; the
+half-written message is repaired on next load by the existing path instead.
+
+Starting is wrapped in `runCatching`. A foreground service start can throw when
+the app is in a state Android will not allow it from, and a failure there must
+never take down the answer it was meant to protect. Without the notification
+permission the service still runs and the notification simply is not shown, so
+generation continues either way.
+
+Thermal and battery awareness are unchanged, because generation goes through the
+same loop it always did, and that loop already checks the thermal watcher between
+tokens. A foreground service does not make the work free and nothing here pretends
+it does.
+
+Device-verified: a 600-word request, backgrounded twelve seconds in, another app
+used for a minute, then a further wait. The answer ran to 621 tokens over 143
+seconds and was complete and correctly stored on return, with the view at the
+bottom. Not yet verified: screen off, and a process the system reclaims despite
+the service. The mechanism is the same for the first; the second is the
+incomplete-and-retry path that already exists.

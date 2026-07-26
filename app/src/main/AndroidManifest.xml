@@ -157,6 +157,17 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!--
+          Keeps a response being written alive when the user switches away (#96).
+          Same type as the download service, so this adds no permission: Android
+          freezes cached processes, which stalled the decode loop and left the user
+          returning to a half-written answer that had stopped rather than finished.
+        -->
+        <service
+            android:name=".llm.GenerationService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

@@ -13,6 +13,7 @@ import com.kamsiob.kamai.llm.ChatFormat
 import com.kamsiob.kamai.llm.ContinuationJoin
 import com.kamsiob.kamai.llm.ConversationState
 import com.kamsiob.kamai.llm.ConversationTitler
+import com.kamsiob.kamai.llm.GenerationService
 import com.kamsiob.kamai.llm.InferenceEngine
 import com.kamsiob.kamai.llm.ModelManager
 import com.kamsiob.kamai.llm.MemoryExtractor
@@ -1069,6 +1070,12 @@ class ChatViewModel(
             // built and prefilled exactly as it was before any of this existed.
             restorePersistedCache(conversationId)
 
+            // Keeps the process alive while this answer is written, so switching
+            // to another app does not stall the decode loop (#96). Started before
+            // the first token rather than after, because the freeze can happen at
+            // any point once the app is backgrounded.
+            GenerationService.start(repository.appContext)
+
             val prompt = buildPrompt(conversationId, pending = continuePrompt)
             // Continuing appends to the answer that stopped rather than adding a
             // second bubble, so the result reads as the one answer it is.
@@ -1110,6 +1117,11 @@ class ChatViewModel(
                 // unwrapped block throws at its first suspension point and the
                 // message is left incomplete with no reason for ever. See #40.
                 withContext(NonCancellable) {
+                    // Stopped here, inside the block that already runs
+                    // NonCancellable, so an answer abandoned by the screen going
+                    // away still releases the service.
+                    GenerationService.stop(repository.appContext)
+
                     val finalText = PromptBuilder.cleanOutput(builder.toString())
                     val reason = when (val r = stopReason) {
                         is InferenceEngine.StopReason.Overheating -> r.message
