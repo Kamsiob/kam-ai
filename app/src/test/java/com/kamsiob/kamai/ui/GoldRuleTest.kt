@@ -38,6 +38,7 @@ class GoldRuleTest {
         "ChatScreen.kt" to "the Delete menu item, and the bookmark when set",
         "ProjectsScreen.kt" to "the Delete project label",
         "OverlayActivity.kt" to "the bookmark when set",
+        "SupportSignpost.kt" to "the Support this work signpost at the top of Settings",
     )
 
     private fun repoFile(path: String): java.io.File =

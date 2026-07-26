@@ -6477,3 +6477,40 @@ seconds and was complete and correctly stored on return, with the view at the
 bottom. Not yet verified: screen off, and a process the system reclaims despite
 the service. The mechanism is the same for the first; the second is the
 incomplete-and-retry path that already exists.
+
+## The support signpost at the top of Settings (#94)
+
+The support action lived only at the bottom, so finding it meant scrolling the
+whole screen. This is a second, quieter entry above the first group. The full ask
+at the bottom is unchanged: this is a signpost, not the ask, and the difference
+has to be visible or there are simply two asks.
+
+**The treatment is the part that goes wrong, so it is worth writing down.** The
+gold ground is a single flat colour. Depth comes from light on the edges instead: a
+one pixel white highlight along the top inner edge and a barely visible darker line
+along the bottom, drawn as two very short gradient stops pinned to the edges rather
+than one gradient across the surface. That distinction is the whole point. A
+gradient reads as decoration and draws attention to itself; flat colour catching
+light on its edges reads as a solid object, which is quieter and looks considered.
+No glow, no sheen, nothing else. The tile and the button carry the same treatment
+at a smaller scale.
+
+Smaller and quieter as well as different: tighter padding than a standard card, a
+28dp tile against a settings row's larger one, the title one step below a section
+title, and less button height than a primary action elsewhere.
+
+**One correction made by looking at it.** The first version had a full-width gold
+button, which turned the card into a panel and had it competing with the settings
+groups below, which the specification names as the failure condition. The button
+now wraps its content. It is still the only element at full saturation, so it is
+the one thing that draws the eye.
+
+The copy is fixed and not to be rewritten. It opens on what the user gets rather
+than on the product or the maker, names the three things they are not subjected to,
+and frames helping as optional and as preserving something that benefits them. The
+button says "Fund the work": not donate, tip or give, not the title repeated, and
+no coffee reference.
+
+`GoldRuleTest` caught the new file immediately, which is the guard working in the
+direction it was built for. The file is allowlisted with its reason, since the
+support action is one of the four sanctioned uses of gold.

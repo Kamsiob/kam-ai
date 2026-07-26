@@ -116,7 +116,13 @@ fun SettingsScreen(
             .padding(horizontal = screenPad),
     ) {
         Text("Settings", style = KamTheme.type.screenTitle, color = colors.textPrimary)
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(14.dp))
+
+        // A signpost, above the first group, so the support action does not
+        // require scrolling the whole screen to find (#94). The full ask stays at
+        // the bottom, unchanged.
+        SupportSignpost(onSupport = onSupport)
+        Spacer(Modifier.height(20.dp))
 
         SettingsGroup("On this device") {
             SettingsRow(
