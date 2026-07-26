@@ -105,7 +105,10 @@ object Downloads {
      * file is on disk and the finished file is not, this registers the spec and
      * shows the download as paused, so the person sees "Paused at X%" with a
      * Resume button after a restart instead of the progress silently vanishing.
-     * It never auto-resumes: resuming spends data, so it stays the person's call.
+     * It does not resume by itself. The caller decides, because that decision
+     * depends on the network: resuming on cellular spends the person's money and
+     * stays their call, while resuming on wifi undoes an accident nobody chose.
+     * See DownloadGuard.shouldAutoResume and issue #79.
      */
     fun restorePaused(spec: Spec) {
         if (jobs[spec.id]?.isActive == true) return
@@ -117,16 +120,29 @@ object Downloads {
         put(Item(spec.id, spec.displayName, spec.kind, part.length(), spec.sizeBytes, Status.PAUSED))
     }
 
+    /**
+     * Downloads the user paused by hand, as opposed to ones stopped by process
+     * death (#79).
+     *
+     * The two look identical in [Status] and must be treated differently: one is
+     * a decision to respect, the other is an accident to undo.
+     */
+    private val userPaused = mutableSetOf<String>()
+
+    fun wasPausedByUser(id: String): Boolean = id in userPaused
+
     /** Pauses a download, keeping its partial file so it resumes from where it was. */
     fun pause(context: Context, id: String) {
         jobs[id]?.cancel()
         jobs.remove(id)
+        userPaused += id
         item(id)?.let { put(it.copy(status = Status.PAUSED)) }
         maybeStopService(context)
     }
 
     /** Resumes a paused (or failed) download from its partial file. */
     fun resume(context: Context, downloader: Downloader, id: String) {
+        userPaused -= id
         specs[id]?.let { start(context, downloader, it) }
     }
 

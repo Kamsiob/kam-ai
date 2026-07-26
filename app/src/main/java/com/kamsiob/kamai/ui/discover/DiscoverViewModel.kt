@@ -155,6 +155,20 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
     // Packs
 
     fun downloadPack(pack: PackInfo) {
+        // Packs are single-digit megabytes, so the guard will wave almost all of
+        // them through; it is here for the disk and offline cases, which apply
+        // whatever the size (#79).
+        val verdict = com.kamsiob.kamai.download.DownloadGuard.check(
+            sizeBytes = pack.sizeBytes,
+            network = com.kamsiob.kamai.download.Connectivity.state(getApplication()),
+            freeBytes = repository.freeDownloadBytes(),
+            batteryPercent = com.kamsiob.kamai.download.Power.batteryPercent(getApplication()),
+            charging = com.kamsiob.kamai.download.Power.isCharging(getApplication()),
+        )
+        if (verdict is com.kamsiob.kamai.download.DownloadGuard.Verdict.Stop) {
+            _notice.value = verdict.message
+            return
+        }
         com.kamsiob.kamai.download.Downloads.start(
             getApplication(), repository.downloader,
             com.kamsiob.kamai.download.Downloads.Spec(

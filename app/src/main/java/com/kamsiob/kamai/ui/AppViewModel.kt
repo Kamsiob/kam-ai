@@ -329,7 +329,43 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         },
     )
 
+    /**
+     * Starts a model download, after checking the things that cost the user
+     * something they did not agree to spend (#79).
+     *
+     * Disk, connection and battery, in that order, with the reason and the real
+     * numbers when any of them says no. A warning is a question with waiting as
+     * the default, never a dialog that only has one button.
+     */
     fun downloadModel(model: TierModel) {
+        val verdict = com.kamsiob.kamai.download.DownloadGuard.check(
+            sizeBytes = repository.requiredBytesFor(model),
+            network = com.kamsiob.kamai.download.Connectivity.state(getApplication()),
+            freeBytes = repository.freeDownloadBytes(),
+            batteryPercent = com.kamsiob.kamai.download.Power.batteryPercent(getApplication()),
+            charging = com.kamsiob.kamai.download.Power.isCharging(getApplication()),
+        )
+        when (verdict) {
+            is com.kamsiob.kamai.download.DownloadGuard.Verdict.Go -> startModelDownload(model)
+            is com.kamsiob.kamai.download.DownloadGuard.Verdict.Stop -> showToast(verdict.message)
+            is com.kamsiob.kamai.download.DownloadGuard.Verdict.Warn -> requestConfirm(
+                ConfirmRequest(
+                    tier = ConfirmTier.SINGLE,
+                    title = "Before this starts",
+                    body = verdict.message,
+                    confirmLabel = verdict.proceedLabel,
+                    // Nothing is destroyed, so this must not wear the reserved
+                    // gold, and the safe path names itself rather than reading as
+                    // a refusal.
+                    destructive = false,
+                    cancelLabel = "Wait for wifi",
+                    onConfirm = { startModelDownload(model) },
+                ),
+            )
+        }
+    }
+
+    private fun startModelDownload(model: TierModel) {
         // A download brings memory and disk pressure; free an idle resident model
         // first. It never triggers a load or changes the active model.
         viewModelScope.launch { modelManager.onDownloadStarting() }
@@ -346,6 +382,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun restoreInterruptedDownloads() {
         for (model in com.kamsiob.kamai.model.ModelCatalog.all) {
             com.kamsiob.kamai.download.Downloads.restorePaused(modelSpec(model))
+        }
+        watchForResume()
+    }
+
+    /**
+     * Picks an interrupted download back up when the connection allows (#79).
+     *
+     * A download stopped by process death used to sit paused until somebody
+     * noticed it and pressed Resume, which is not a decision anyone made. This
+     * resumes it, but only when the user did not pause it themselves and only on
+     * a connection that costs nothing, so the original reason for never
+     * auto-resuming (cellular data is the person's money) still holds.
+     *
+     * Watches rather than checks once, so somebody who chose to wait for wifi
+     * gets their download back the moment they are on it, without watching for
+     * it themselves.
+     */
+    private fun watchForResume() {
+        viewModelScope.launch {
+            com.kamsiob.kamai.download.Connectivity.observe(getApplication()).collect { network ->
+                com.kamsiob.kamai.download.Downloads.items.value
+                    .filter { it.status == com.kamsiob.kamai.download.Downloads.Status.PAUSED }
+                    .filter {
+                        com.kamsiob.kamai.download.DownloadGuard.shouldAutoResume(
+                            userPaused = com.kamsiob.kamai.download.Downloads.wasPausedByUser(it.id),
+                            network = network,
+                        )
+                    }
+                    .forEach { resumeDownload(it.id) }
+            }
         }
     }
 
@@ -706,7 +772,40 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .map { list -> list.map { it.id } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun downloadStt(model: com.kamsiob.kamai.voice.SttModel) {
+    /**
+     * Guards a download of any kind before it starts (#79).
+     *
+     * The same three questions as a model: does it fit, does it cost money, and
+     * is there enough battery to finish. A voice is hundreds of megabytes and a
+     * pack is single digits, and the guard's own size threshold decides which of
+     * those is worth asking about.
+     */
+    private fun guarded(sizeBytes: Long, start: () -> Unit) {
+        val verdict = com.kamsiob.kamai.download.DownloadGuard.check(
+            sizeBytes = sizeBytes,
+            network = com.kamsiob.kamai.download.Connectivity.state(getApplication()),
+            freeBytes = repository.freeDownloadBytes(),
+            batteryPercent = com.kamsiob.kamai.download.Power.batteryPercent(getApplication()),
+            charging = com.kamsiob.kamai.download.Power.isCharging(getApplication()),
+        )
+        when (verdict) {
+            is com.kamsiob.kamai.download.DownloadGuard.Verdict.Go -> start()
+            is com.kamsiob.kamai.download.DownloadGuard.Verdict.Stop -> showToast(verdict.message)
+            is com.kamsiob.kamai.download.DownloadGuard.Verdict.Warn -> requestConfirm(
+                ConfirmRequest(
+                    tier = ConfirmTier.SINGLE,
+                    title = "Before this starts",
+                    body = verdict.message,
+                    confirmLabel = verdict.proceedLabel,
+                    destructive = false,
+                    cancelLabel = "Wait for wifi",
+                    onConfirm = start,
+                ),
+            )
+        }
+    }
+
+    fun downloadStt(model: com.kamsiob.kamai.voice.SttModel) = guarded(model.downloadBytes) {
         com.kamsiob.kamai.download.Downloads.start(
             getApplication(), repository.downloader,
             com.kamsiob.kamai.download.Downloads.Spec(

@@ -12,6 +12,14 @@
          touches the network when asked should not also be asking to start
          itself at boot. See DECISIONS.md. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+      Read-only, and only ever asked about the current connection: whether there
+      is one, and whether it is metered. A five gigabyte model must never start on
+      cellular without the user knowingly choosing it, and a download interrupted
+      by process death should pick itself back up on wifi rather than sit waiting
+      to be noticed. Issue #79.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Downloads keep running while the app is in the background, through a
          foreground service that shows a progress notification. Added deliberately

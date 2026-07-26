@@ -112,6 +112,21 @@ class KamRepository(
 
     fun modelsDir(): File = downloader.directoryFor("models")
 
+    /**
+     * Free space on the volume downloads land on (#79).
+     *
+     * Checked before a download is offered, not when it fails. The existing
+     * `Downloader.freeSpaceProblem` runs at download time, by which point the
+     * user has already chosen and waited.
+     */
+    fun freeDownloadBytes(): Long = runCatching { modelsDir().usableSpace }.getOrDefault(0L)
+
+    /**
+     * What a model really costs on disk, including any separate vision
+     * projection file, which is a real size and easy to forget (#79).
+     */
+    fun requiredBytesFor(model: com.kamsiob.kamai.model.TierModel): Long = model.downloadBytes
+
     fun fileFor(model: TierModel): File = File(modelsDir(), "${model.id}.gguf")
 
     fun observeArtifacts(): Flow<List<ArtifactEntity>> = db.artifacts().observeAll()

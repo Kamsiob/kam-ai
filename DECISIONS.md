@@ -5939,3 +5939,40 @@ the FAQ to the indicator from #16 instead of describing them as separate things.
 Everything else prominent in the interface is covered: the four modes including
 Workbench, the power button, voice, follow-ups, content packs, model choices,
 backup, and why there is no cloud sync.
+
+## Downloads now check what they are about to spend (#79)
+
+Nothing in the app looked at the network, the disk before offering, or the
+battery. A five gigabyte model would start on cellular without a word, a download
+was offered and then failed on space at the point it tried to write, and a
+download killed by process death sat paused until somebody found it.
+
+`DownloadGuard` is pure and answers one question: go, warn, or stop. The order is
+deliberate and tested. **Disk first**, because no amount of agreeing makes a
+download fit, and the message carries both real numbers and the suggestion of a
+smaller model. **Then the connection**, because it costs money: anything from
+fifty megabytes up on a metered connection asks first, with waiting as the
+default and the proceed action naming itself ("Use mobile data anyway") rather
+than being the obvious button. **Then battery**, which is only ever advice and
+only when unplugged.
+
+Metered is read from `NET_CAPABILITY_NOT_METERED` rather than the transport,
+because a wifi network the user has marked as metered is metered, and a transport
+check would call it free.
+
+Offline is a stop, not a failure: the message says the app still works and this
+will be here when they are back online, because the app genuinely does still work
+without a connection and saying otherwise would be a lie about its own design.
+
+**Auto-resume, with the original objection preserved.** The rule used to be that
+nothing ever resumes itself, on the grounds that resuming spends data and stays
+the user's call. That is right about cellular and wrong about everything else: a
+download killed by process death on home wifi is not a decision anybody made.
+`Downloads` now tracks which pauses were the user's own, and a download resumes
+only when it was not one of theirs and the connection costs nothing. It watches
+the connection rather than checking once, so somebody who chose to wait for wifi
+gets their download back the moment they are on it.
+
+Verified on the phone: a reinstall mid-download killed the app at 1.06 GB and the
+download picked itself back up without any interaction, reaching 1.10 GB thirty
+seconds later.
