@@ -5873,3 +5873,46 @@ Device-verified from cleared app data: onboarding skipped, new chat shows the
 card centred, "Download it" starts the real download in one tap, the app-wide
 indicator picks it up, and sending before it finishes reports that the message is
 held.
+
+## What search actually searched, and what it does now (#87, #88)
+
+The audit found something worse than the question assumed. Search matched a
+conversation title and **the single newest message**, because `ChatsScreen`
+filtered the already-loaded list on `row.title` and `row.snippet`, and `snippet`
+is a subquery for the latest message. A phrase said in the middle of a
+conversation was unfindable, which is the most common thing anyone searches for.
+
+Meanwhile `ConversationDao.search()` was a proper query across titles and every
+message body, `KamRepository.searchConversations()` wrapped it, and **nothing
+called either**. The capability was written and unwired.
+
+Search now runs in the database and reaches conversations, follow-ups (which
+includes saved Discover moments, since they share that table by design) and
+projects by name, instructions and notes. Project instructions matter because
+"the project where I said to always answer in French" is the sort of thing people
+actually look for.
+
+Two smaller decisions in the query. The snippet is the **matching** message
+rather than the latest one, falling back to the latest when only the title
+matched, which is the difference between a result you can judge and a row that
+shows you the end of a conversation and leaves you guessing why it matched.
+Archived conversations are included and keep their flag: excluding them would
+hide exactly the old conversations somebody is hunting for, and including them
+unmarked would be the same surprise the other way round.
+
+Results outside conversations appear as named groups rather than mixed in, which
+is the visible-scope half of the fix. A search that quietly does not look
+somewhere is worse than one that says where it looked.
+
+**And one thing the indicator promised that Storage did not keep (#88).** The
+app-wide download indicator taps through to Storage. With a 5 GB model at ten
+percent, Storage said "0 MB used" and "Nothing downloaded", and offered no pause
+or cancel for the thing the user had just tapped. It now lists running downloads
+with their controls above the finished ones, and counts part-downloaded bytes
+separately rather than reporting zero, which matters most when somebody opens
+Storage precisely because something large is filling it.
+
+Verified on the phone: a reinstall mid-download left the partial intact and the
+indicator reported it paused rather than lost, Storage showed it with Resume and
+Cancel and reported the 499 MB already on disk, and Resume carried on from where
+it stopped rather than starting again.

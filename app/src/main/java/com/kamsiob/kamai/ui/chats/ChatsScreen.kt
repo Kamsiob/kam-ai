@@ -110,6 +110,18 @@ fun ChatsScreen(
     onMoveMany: (List<String>, String?) -> Unit = { _, _ -> },
     onNewChat: (Mode) -> Unit = {},
     onRename: (String, String) -> Unit = { _, _ -> },
+    /**
+     * Reported up so the host can run the real search (#87).
+     *
+     * The screen used to filter the loaded list itself, on a title and the single
+     * newest message, so a phrase from the middle of a conversation was
+     * unfindable and nothing outside conversations was searched at all.
+     */
+    onSearch: (String) -> Unit = {},
+    /** What that search found, or null while nothing has been asked. */
+    searchResults: com.kamsiob.kamai.data.KamRepository.SearchResults? = null,
+    onOpenFollowUps: () -> Unit = {},
+    onOpenProject: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -132,14 +144,15 @@ fun ChatsScreen(
     // same set the row dots read from.
     var modeFilter by remember { mutableStateOf<Set<Mode>>(emptySet()) }
     var showFilterSheet by remember { mutableStateOf(false) }
-    val filtered = remember(conversations, query, modeFilter) {
-        conversations.filter { row ->
-            val matchesQuery = query.isBlank() ||
-                row.title?.contains(query, ignoreCase = true) == true ||
-                row.snippet?.contains(query, ignoreCase = true) == true
-            val matchesMode = modeFilter.isEmpty() ||
+    // With a query, the rows come from the database search, which reads every
+    // message rather than the newest one (#87). Without a query, the ordinary
+    // list, filtered by mode as before.
+    val searching = query.isNotBlank()
+    val base = if (searching) searchResults?.conversations.orEmpty() else conversations
+    val filtered = remember(base, modeFilter) {
+        base.filter { row ->
+            modeFilter.isEmpty() ||
                 com.kamsiob.kamai.ui.components.modesFromCsv(row.modesUsed).any { it in modeFilter }
-            matchesQuery && matchesMode
         }
     }
     val pinned = filtered.filter { it.pinned }
@@ -224,11 +237,23 @@ fun ChatsScreen(
                 ViewSwitcher(view, onViewChange)
             }
             SearchField(
-                query, { query = it },
+                query, { query = it; onSearch(it) },
                 Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
                 filterActive = modeFilter.isNotEmpty(),
                 onFilter = { showFilterSheet = true },
             )
+            // What else the query matched, outside conversations (#87). Shown as
+            // named groups rather than mixed into the list, so the answer to
+            // "where did it look" is visible rather than something the user has
+            // to infer from what came back.
+            if (searching && searchResults != null) {
+                SearchElsewhere(
+                    results = searchResults,
+                    onOpenFollowUps = onOpenFollowUps,
+                    onOpenProject = onOpenProject,
+                )
+            }
+
             // A plain, legible statement of an active filter, with a one-tap clear,
             // so a user never wonders why they are seeing fewer conversations.
             if (modeFilter.isNotEmpty()) {
@@ -1252,4 +1277,72 @@ private fun ArchivedLink(count: Int, onOpen: () -> Unit) {
             .padding(vertical = 14.dp),
         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
     )
+}
+
+/**
+ * The parts of a search result that are not conversations (#87).
+ *
+ * Follow-ups and projects are matched too, and putting them in the conversation
+ * list would make three different things look like one. Named groups say what
+ * was searched, which is the other half of the fix: a search that quietly does
+ * not look somewhere is worse than one that says where it looked.
+ *
+ * Counts rather than full lists. This sits above the conversations, which are
+ * what somebody searching usually wants, and burying those under twenty saved
+ * items would trade one scope problem for a worse one.
+ */
+@Composable
+private fun SearchElsewhere(
+    results: com.kamsiob.kamai.data.KamRepository.SearchResults,
+    onOpenFollowUps: () -> Unit,
+    onOpenProject: (String) -> Unit,
+) {
+    val colors = KamTheme.colors
+    if (results.followUps.isEmpty() && results.projects.isEmpty()) return
+
+    Column(
+        Modifier
+            .padding(horizontal = KamTheme.dimens.screenPadding)
+            .padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (results.followUps.isNotEmpty()) {
+            SearchElsewhereRow(
+                label = if (results.followUps.size == 1) {
+                    "1 match in Follow-ups"
+                } else {
+                    "${results.followUps.size} matches in Follow-ups"
+                },
+                onClick = onOpenFollowUps,
+            )
+        }
+        results.projects.forEach { project ->
+            SearchElsewhereRow(
+                label = "Match in project: ${project.name}",
+                onClick = { onOpenProject(project.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchElsewhereRow(label: String, onClick: () -> Unit) {
+    val colors = KamTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.surfaceSecondary)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            style = KamTheme.type.secondary,
+            color = colors.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
+        Text("Open", style = KamTheme.type.label, color = colors.accent)
+    }
 }

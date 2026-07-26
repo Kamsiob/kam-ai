@@ -423,10 +423,26 @@ fun StorageScreen(
     artifacts: List<ArtifactEntity>,
     onDelete: (String) -> Unit,
     onDeleteMany: (List<String>) -> Unit,
+    /**
+     * Downloads still running, so this screen is not empty while gigabytes are
+     * arriving (#88).
+     *
+     * The app-wide indicator taps through to here, and here said "Nothing
+     * downloaded" and "0 MB used" with a 5 GB model at ten percent and half a
+     * gigabyte already on disk. It also has to be where the pause and cancel
+     * live, since that is what the indicator promises.
+     */
+    downloads: List<com.kamsiob.kamai.download.Downloads.Item> = emptyList(),
+    onPause: (String) -> Unit = {},
+    onResume: (String) -> Unit = {},
+    onCancel: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
     val total = artifacts.sumOf { it.sizeBytes }
+    val active = downloads.filter {
+        it.status != com.kamsiob.kamai.download.Downloads.Status.DONE
+    }
     val selectedIds = remember { mutableStateListOf<String>() }
     var selecting by remember { mutableStateOf(false) }
     fun exit() { selecting = false; selectedIds.clear() }
@@ -464,15 +480,43 @@ fun StorageScreen(
             Text("Storage", style = KamTheme.type.screenTitle, color = colors.textPrimary)
             Spacer(Modifier.height(6.dp))
             Text(
-                "${formatBytes(total)} used by things you have downloaded." +
-                    if (artifacts.size > 1) " Long-press to select several." else "",
+                buildString {
+                    append("${formatBytes(total)} used by things you have downloaded.")
+                    // Partial files are real bytes on a real disk, and this
+                    // screen is most often opened precisely because something
+                    // large is filling it.
+                    val partial = active.sumOf { it.downloadedBytes }
+                    if (partial > 0) {
+                        append(" ${formatBytes(partial)} more is part-downloaded.")
+                    }
+                    if (artifacts.size > 1) append(" Long-press to select several.")
+                },
                 style = KamTheme.type.body,
                 color = colors.textSecondary,
             )
             Spacer(Modifier.height(16.dp))
         }
 
-        if (artifacts.isEmpty()) {
+        // What is arriving, with its controls, above what has already arrived.
+        if (active.isNotEmpty() && !selecting) {
+            active.forEach { item ->
+                Text(
+                    item.displayName,
+                    style = KamTheme.type.cardTitle,
+                    color = colors.textPrimary,
+                )
+                Spacer(Modifier.height(6.dp))
+                com.kamsiob.kamai.ui.components.DownloadControls(
+                    item = item,
+                    onPause = { onPause(item.id) },
+                    onResume = { onResume(item.id) },
+                    onCancel = { onCancel(item.id) },
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+
+        if (artifacts.isEmpty() && active.isEmpty()) {
             EmptyState(
                 title = "Nothing downloaded",
                 body = "Models, voices and content packs show up here once you get them.",

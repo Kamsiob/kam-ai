@@ -89,6 +89,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val tiers: List<TierModel> = ModelCatalog.defaults
     val recommendedTier = TierRecommendation.recommended(totalRamGb)
 
+    /** Everything a search reaches: conversations, follow-ups and projects (#87). */
+    fun search(query: String) = repository.search(query)
+
     val conversations: StateFlow<List<ConversationSummary>> =
         repository.observeConversations()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

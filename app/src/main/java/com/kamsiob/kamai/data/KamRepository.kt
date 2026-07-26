@@ -560,8 +560,39 @@ class KamRepository(
     fun observeConversation(id: String): Flow<ConversationEntity?> =
         db.conversations().observe(id)
 
-    fun searchConversations(query: String): Flow<List<ConversationSummary>> =
-        db.conversations().search(query)
+    /**
+     * Everything a search should reach, in one place (#87).
+     *
+     * Search used to be a client-side filter over the already-loaded conversation
+     * list, matching a title and the single newest message. A phrase said in the
+     * middle of a conversation was unfindable, and follow-ups, projects and saved
+     * Discover moments were not searched at all. The full-text query existed and
+     * nothing called it.
+     *
+     * Combined here rather than in the screen so the scope is one readable thing
+     * and can be widened again without touching the UI.
+     */
+    fun search(query: String): Flow<SearchResults> {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return kotlinx.coroutines.flow.flowOf(SearchResults())
+        return kotlinx.coroutines.flow.combine(
+            db.conversations().search(trimmed),
+            db.followUps().search(trimmed),
+            db.projects().search(trimmed),
+        ) { conversations, followUps, projects ->
+            SearchResults(conversations, followUps, projects)
+        }
+    }
+
+    /** What a search found, by kind, so the screen can say where each came from. */
+    data class SearchResults(
+        val conversations: List<ConversationSummary> = emptyList(),
+        val followUps: List<FollowUpEntity> = emptyList(),
+        val projects: List<ProjectEntity> = emptyList(),
+    ) {
+        val isEmpty: Boolean
+            get() = conversations.isEmpty() && followUps.isEmpty() && projects.isEmpty()
+    }
 
     fun observeMessages(conversationId: String): Flow<List<MessageEntity>> =
         db.messages().observe(conversationId)

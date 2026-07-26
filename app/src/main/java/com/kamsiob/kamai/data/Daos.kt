@@ -74,21 +74,41 @@ interface ConversationDao {
     fun observeArchived(): Flow<List<ConversationSummary>>
 
     /**
-     * Keyword search across titles and message bodies. This is deliberately
-     * plain LIKE matching for now. Semantic search waits on an on-device
-     * embedding model and is listed under Being considered.
+     * Keyword search across titles and every message body, not just the newest
+     * one (#87).
+     *
+     * Plain LIKE matching. Semantic search waits on an on-device embedding model
+     * and is listed under Being considered.
+     *
+     * The snippet is the **matching** message rather than the latest one, which
+     * is the difference between a result you can judge and a row that shows you
+     * the end of a conversation and leaves you to guess why it matched. Titles
+     * that match with no matching message fall back to the latest message, so a
+     * row is never blank.
+     *
+     * Archived conversations are included and carry their flag, so the screen can
+     * say which ones they are. Excluding them would silently hide exactly the
+     * old conversations somebody is most likely to be hunting for, and including
+     * them unmarked would be the same surprise the other way round.
      */
     @Query(
         """
         SELECT c.id, c.title, c.mode, c.modesUsed, c.projectId, c.updatedAt, c.pinned, c.archived,
-               (SELECT m.content FROM messages m
-                 WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
-                 ORDER BY m.createdAt DESC LIMIT 1) AS snippet,
+               COALESCE(
+                 (SELECT m.content FROM messages m
+                   WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
+                     AND m.content LIKE '%' || :query || '%'
+                   ORDER BY m.createdAt DESC LIMIT 1),
+                 (SELECT m.content FROM messages m
+                   WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
+                   ORDER BY m.createdAt DESC LIMIT 1)
+               ) AS snippet,
                (SELECT COUNT(*) FROM messages m WHERE m.conversationId = c.id) AS messageCount
           FROM conversations c
          WHERE (c.title LIKE '%' || :query || '%'
                 OR EXISTS (SELECT 1 FROM messages m
                             WHERE m.conversationId = c.id
+                              AND m.role != 'SYSTEM'
                               AND m.content LIKE '%' || :query || '%'))
          ORDER BY c.pinned DESC, c.updatedAt DESC
         """,
@@ -260,6 +280,26 @@ interface MessageDao {
 @Dao
 interface ProjectDao {
 
+    /**
+     * Projects whose name, instructions or notes match (#87).
+     *
+     * All three, because all three are things the user wrote and would expect to
+     * find again. Searching only names would miss "the project where I said to
+     * always answer in French", which is the sort of thing people actually look
+     * for.
+     */
+    @Query(
+        """
+        SELECT * FROM projects
+         WHERE archived = 0
+           AND (name LIKE '%' || :query || '%'
+                OR instructions LIKE '%' || :query || '%'
+                OR notes LIKE '%' || :query || '%')
+         ORDER BY updatedAt DESC
+        """,
+    )
+    fun search(query: String): Flow<List<ProjectEntity>>
+
     @Query("SELECT * FROM projects")
     suspend fun allForBackup(): List<ProjectEntity>
 
@@ -315,6 +355,23 @@ interface MemoryDao {
 
 @Dao
 interface FollowUpDao {
+
+    /**
+     * Saved items whose text or note matches (#87).
+     *
+     * Covers both chat bookmarks and saved Discover moments, which share this
+     * table by design: one bookmark, one list, distinguished by source. Searching
+     * one and not the other would split a list the app deliberately unified.
+     */
+    @Query(
+        """
+        SELECT * FROM follow_ups
+         WHERE snippet LIKE '%' || :query || '%'
+            OR note LIKE '%' || :query || '%'
+         ORDER BY createdAt DESC
+        """,
+    )
+    fun search(query: String): Flow<List<FollowUpEntity>>
 
     @Query("SELECT * FROM follow_ups")
     suspend fun allForBackup(): List<FollowUpEntity>

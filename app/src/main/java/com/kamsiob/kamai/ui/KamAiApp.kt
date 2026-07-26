@@ -315,7 +315,11 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                 label = "screen",
             ) { pushed ->
                 when (pushed) {
-                    null -> TabContent(app, tab, stack, onGrounded = { groundedTarget = it })
+                    null -> TabContent(
+                        app, tab, stack,
+                        onGrounded = { groundedTarget = it },
+                        onSelectTab = { tab = it },
+                    )
                     is Pushed.Conversation -> ConversationScreen(
                         app, pushed.id, pushed.startMode, pushed.initialText, pushed.vmKey,
                         onExit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) },
@@ -403,9 +407,18 @@ private fun TabContent(
     tab: NavItem,
     stack: androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>,
     onGrounded: (com.kamsiob.kamai.data.KamRepository.GroundedDiscussion) -> Unit,
+    /** Switches tab, for a search result that lives on another one (#87). */
+    onSelectTab: (NavItem) -> Unit,
 ) {
     when (tab) {
         NavItem.CHATS -> {
+            // The search runs in the database and reaches conversations,
+            // follow-ups and projects (#87). Held here rather than in the screen
+            // so the screen stays a screen.
+            var searchQuery by remember { mutableStateOf("") }
+            val searchResults by remember(searchQuery) { app.search(searchQuery) }
+                .collectAsStateWithLifecycle(initialValue = null)
+
             val conversations by app.conversations.collectAsStateWithLifecycle()
             val archived by app.archivedConversations.collectAsStateWithLifecycle()
             val view by app.chatsView.collectAsStateWithLifecycle()
@@ -430,6 +443,10 @@ private fun TabContent(
                     else stack.add(Pushed.Conversation(NEW_CONVERSATION, mode))
                 },
                 onRename = app::renameConversation,
+                onSearch = { searchQuery = it },
+                searchResults = searchResults,
+                onOpenFollowUps = { onSelectTab(NavItem.FOLLOW_UPS) },
+                onOpenProject = { stack.add(Pushed.Project(it)) },
                 onPin = app::setPinned,
                 onArchive = app::archive,
                 onDelete = { id ->
@@ -1190,10 +1207,15 @@ private fun BackupHost(app: AppViewModel) {
 @Composable
 private fun StorageHost(app: AppViewModel) {
     val artifacts by app.artifacts.collectAsStateWithLifecycle()
+    val downloads by app.downloads.collectAsStateWithLifecycle()
     StorageScreen(
         artifacts = artifacts,
         onDelete = app::deleteArtifact,
         onDeleteMany = app::deleteArtifacts,
+        downloads = downloads,
+        onPause = app::pauseDownload,
+        onResume = app::resumeDownload,
+        onCancel = app::cancelDownload,
     )
 }
 
