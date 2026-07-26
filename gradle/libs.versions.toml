@@ -1,7 +1,7 @@
 # Every version here was checked against the live Maven metadata on the day of
 # the build, not copied from a template. Kotlin is pinned to the version AGP
-# compiles with, and the Compose compiler plugin
-# and KSP both have to match it exactly. See DECISIONS.md.
+# compiles with, and the Compose compiler plugin has to match it exactly.
+# See DECISIONS.md.
 #
 # That stopped being literally true at KSP2, which versions independently of
 # Kotlin rather than as <kotlin>-<ksp>. Kotlin 2.4.10 pairs with KSP 2.3.10, which
