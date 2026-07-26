@@ -7,6 +7,12 @@
 # an ignored file sitting locally is fine and the same file staged is not.
 set -euo pipefail
 
+# This script is excluded from its own content searches. The patterns below are
+# literal strings in this file, so without the exclusion the checker reports
+# itself and fails every run. It passed locally and failed in CI purely because
+# it had not been committed yet when it was first run.
+SELF=":!tools/check_secrets.sh"
+
 fail=0
 note() { printf '  %s\n' "$*" >&2; fail=1; }
 
@@ -22,11 +28,17 @@ done < <(git ls-files)
 # 2. Credential-shaped content in tracked files. The patterns are the ones that
 #    are unambiguous: a private key block, a provider token prefix, or a
 #    password assigned a literal rather than read from somewhere.
-if git grep -nIE "BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY" -- . >/dev/null 2>&1; then
+#
+#    The key-block pattern requires the five-dash PEM delimiters rather than just
+#    the words, because prose about this check legitimately names the phrase. The
+#    audit record in DECISIONS.md lists the patterns it searched for and tripped
+#    exactly this, which is a blind-spot-free way to fix it: a real PEM block
+#    always carries the delimiters, and a sentence about one does not.
+if git grep -nIE -- "-----BEGIN ([A-Z ]+ )?PRIVATE KEY-----" -- . "$SELF" >/dev/null 2>&1; then
   note "a private key block is committed"
 fi
 for pat in 'ghp_[A-Za-z0-9]{20,}' 'gho_[A-Za-z0-9]{20,}' 'github_pat_[A-Za-z0-9_]{20,}' 'AKIA[0-9A-Z]{16}'; do
-  if git grep -nIE "$pat" -- . >/dev/null 2>&1; then note "token-shaped string matching $pat"; fi
+  if git grep -nIE "$pat" -- . "$SELF" >/dev/null 2>&1; then note "token-shaped string matching $pat"; fi
 done
 # A password given a literal value, as opposed to getProperty/env lookups.
 if git grep -nIE '(storePassword|keyPassword|passphrase)\s*=\s*"[^"]{3,}"' -- '*.kts' '*.gradle' '*.properties' >/dev/null 2>&1; then
@@ -36,7 +48,7 @@ fi
 # 3. Identifiers that name the publishing account. Not credentials, and not
 #    usable on their own, but they name the target and there is no reason for
 #    them to be public. Removed once already; this stops them returning.
-if git grep -nIE "iam\.gserviceaccount\.com" -- . >/dev/null 2>&1; then
+if git grep -nIE "iam\.gserviceaccount\.com" -- . "$SELF" >/dev/null 2>&1; then
   note "a service account email is committed"
 fi
 
