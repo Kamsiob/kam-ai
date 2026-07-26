@@ -6294,6 +6294,8 @@ Evaluate the result as a stranger would, and fix what fails.
   be wrong.
 - The most recent ten commits and five pull requests each trace to an issue, say
   what was tested and where, and passed integration.
+- The Dependabot queue is empty or every open item has a comment saying why it is
+  still open.
 - The profile orients somebody in under a minute with no decoration doing the
   work.
 
@@ -6349,3 +6351,57 @@ definition held in the context it is being summarized from, so the only real cas
 is a history longer than the budget, which `buildPrompt` already trims. When it
 trims, the sheet says which portion was covered rather than presenting a partial
 reading as a whole one.
+
+## Branch protection, in the order the pieces can actually support (#99)
+
+Enabled now, as a repository ruleset rather than classic branch protection,
+because a ruleset makes the bypass explicit and is the more capable mechanism:
+
+- Force pushes blocked on the default branch.
+- Branch deletion blocked.
+- Administrator bypass kept, set to always. A solo repository occasionally needs
+  a direct push, and a rule that cannot be bypassed eventually costs more than it
+  protects.
+
+Deliberately **not** enabled yet, each with the condition that unlocks it,
+because every one of them would block direct pushes and stop the current workflow
+before the thing it depends on exists:
+
+| Rule | Unlocked by |
+|---|---|
+| Require a pull request | A branch-and-pull-request workflow proven end to end unattended |
+| Require status checks | Continuous integration running and green on every push, which is #99 |
+| Require signed commits | SSH commit signing configured and verifying |
+
+The ordering is the point. Requiring checks before there are checks that pass
+accomplishes nothing except a stuck repository.
+
+## Dependabot, configured rather than left on defaults
+
+Three pull requests arrived within an hour of it being enabled, which is the
+argument for configuring it: the default cadence produces more than one person
+will process, and a queue that accumulates signals an unmaintained repository more
+loudly than no queue at all.
+
+Weekly rather than daily. Grouped by ecosystem, so an AndroidX bump is one
+reviewable pull request rather than five. Open pull requests capped at three,
+matching what will genuinely be reviewed rather than what could theoretically be
+generated. Security updates are untouched by all of that: GitHub raises those
+separately from version updates, and they should arrive the moment they exist.
+
+**How the first three were handled.** AGP 9.3.0 to 9.3.1 and sqlite-jdbc
+3.51.1.0 to 3.53.2.1 were patch and minor bumps of things already in use.
+Kotlin 2.2.10 to 2.4.10 was a two-minor jump and got real scrutiny, because the
+version catalog says Kotlin, the Compose compiler plugin and KSP must match
+exactly, and Dependabot had moved KSP to `2.3.10`, which does not follow the
+`<kotlin>-<ksp>` pattern that comment describes. That looked like a mismatch worth
+checking rather than trusting. KSP2 versions independently now, so it is correct,
+and the comment in the catalog has been corrected to say so.
+
+All three were verified as the **merged combination** rather than individually,
+because that is the state `main` ends up in: compile, unit tests, instrumented
+test compilation, lint at zero errors, and installed and launched on the device.
+Continuous integration is not active yet, so local verification is what stands in
+for it, and that is stated on each pull request rather than implied.
+
+Processing the Dependabot queue is added to the pre-release cold read test.

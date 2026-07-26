@@ -4,7 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    # Three, not five. The cap should match what will genuinely be reviewed, and
+    # an open Dependabot pull request sitting for weeks signals an unmaintained
+    # repository, which is worse than not running it at all.
+    open-pull-requests-limit: 3
     # Grouped, because five separate pull requests for one AndroidX bump is noise
     # and noise is what stops updates being acted on.
     groups:
@@ -12,6 +15,9 @@ updates:
         patterns: ["androidx.*"]
       kotlin:
         patterns: ["org.jetbrains.kotlin*", "com.google.devtools.ksp"]
+    # Security updates are deliberately not grouped or throttled by any of the
+    # above: GitHub raises those separately from version updates, and those are
+    # the ones that should arrive the moment they exist.
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
