@@ -287,24 +287,41 @@ AREA_FROM_LABEL = {
 # out of hindsight.
 SIZE = {
     3: "XL", 13: "L", 38: "L", 51: "L", 55: "M", 71: "M", 72: "M", 73: "S",
-    75: "XL", 78: "M", 93: "S", 95: "L", 99: "XS", 101: "XS",
+    75: "XL", 78: "M", 93: "S", 95: "L", 101: "XS",
+    109: "M", 110: "S", 111: "XS", 112: "M", 113: "M",
 }
 
-# Anything waiting on something outside the work itself.
-BLOCKED = {99}
+# Anything waiting on something outside the work itself. Every one of these
+# names what it is waiting on, on its own issue, which is the whole reason a
+# Blocked column is worth having.
+BLOCKED = {110, 111, 113}
 
 issues = json.loads(subprocess.run(
     ["gh", "issue", "list", "--repo", f"{OWNER}/{REPO}", "--state", "all",
      "--limit", "400", "--json", "number,state,title,labels"],
     capture_output=True, text=True).stdout)
 
-existing_items = gql(
-    """query($id:ID!){node(id:$id){... on ProjectV2{
-         items(first:100){nodes{id content{... on Issue{number}}}}}}}""",
-    id=PID,
-)["node"]["items"]["nodes"]
-on_board = {i["content"]["number"]: i["id"]
-            for i in existing_items if i.get("content", {}).get("number")}
+# Paged, because the board passed a hundred items almost immediately and a
+# single unpaged read silently reports older items as absent. That is survivable
+# only because adding an item already on the board is idempotent, which is luck
+# rather than design.
+on_board = {}
+cursor = None
+while True:
+    page = gql(
+        """query($id:ID!,$c:String){node(id:$id){... on ProjectV2{
+             items(first:100,after:$c){
+               pageInfo{hasNextPage endCursor}
+               nodes{id content{... on Issue{number}}}}}}}""",
+        id=PID, c=cursor,
+    )["node"]["items"]
+    for item in page["nodes"]:
+        number = (item.get("content") or {}).get("number")
+        if number:
+            on_board[number] = item["id"]
+    if not page["pageInfo"]["hasNextPage"]:
+        break
+    cursor = page["pageInfo"]["endCursor"]
 
 say(f"\nBackfilling {len(issues)} issues ({len(on_board)} already present).")
 
@@ -343,8 +360,16 @@ for issue in issues:
         added += 1
 
     closed = issue["state"] == "CLOSED"
+    is_new = number not in on_board
+
+    # Status for an open item is seeded when it first lands and then left alone,
+    # so a re-run does not stamp on a placement made by hand or by an automation.
+    # A closed issue is always Done, because that one is derived from issue state
+    # and cannot go stale.
     if closed:
         status = "Done"
+    elif not is_new:
+        status = None
     elif number in BLOCKED or "blocked" in labels:
         status = "Blocked"
     else:
@@ -356,7 +381,8 @@ for issue in issues:
     area = next((AREA_FROM_LABEL[l] for l in labels if l in AREA_FROM_LABEL), None)
     priority = "Blocks release" if "release-blocker" in labels else ("Normal" if not closed else None)
 
-    set_field(item_id, "Status", status)
+    if status is not None:
+        set_field(item_id, "Status", status)
     set_field(item_id, "Platform", "Android")
     set_field(item_id, "Area", area)
     set_field(item_id, "Priority", priority)
