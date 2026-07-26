@@ -3,26 +3,37 @@ package com.kamsiob.kamai.ui.chat
 /**
  * Whether a streaming response should keep scrolling itself into view.
  *
- * Reported three times and fixed twice without being fixed. The two earlier
- * attempts were both real bugs: an animated scroll that every token cancelled,
- * and a `shouldFollow` that required being at the bottom, which is false exactly
- * when following is needed. Neither was the whole story.
+ * Four attempts now, and the history is worth keeping because each fix was real
+ * and each was wrong about something else.
  *
- * The remaining fault was a latch. Following stopped the moment the user dragged
- * the list at all, and only resumed when the last message's end came back on
- * screen. During a long answer the text keeps growing past the fold, so that
- * never happened: one incidental touch turned following off until the answer
- * finished, and the only way back was the jump-to-latest arrow. The arrow is for
- * returning after deliberately scrolling up. It is not meant to be required.
+ * #35 followed only while at the bottom. #43 found that re-engaged the moment a
+ * growing message drifted the reader back near the bottom. #74 found two more:
+ * an animated scroll that every token cancelled, and a latch that any drag closed
+ * and only the last message's end coming back on screen could reopen, which
+ * during a long answer never happens.
  *
- * So there is no latch now. Following is decided by one question asked fresh
- * every time: how far is the reader from the bottom?
+ * #74's fix then removed the latch entirely and followed on distance from the
+ * bottom, which broke it the other way and is what this file now corrects. Two
+ * holes in that reasoning:
  *
- * That works because growth only ever pushes the reader *away* from the bottom,
- * never towards it. The worry behind the original latch — that a message growing
- * underneath somebody would drift them back into following without their asking —
- * has the direction backwards. Nothing can carry a reader towards the bottom
- * except their own scrolling, which is exactly the intent that should resume it.
+ * - **Sending did not scroll at all.** The follow effect keyed on `streaming`, so
+ *   the first evaluation happened with the reader wherever they were. If they had
+ *   been reading mid-transcript the distance check failed and it never moved.
+ * - **Following stopped once the answer grew more than a third of a viewport past
+ *   the fold**, and whether it recovered depended on every single scroll landing
+ *   exactly at the content end. That is not something to rest a behaviour on.
+ *
+ * So the three rules are now explicit, and each is here rather than spread
+ * through a composable:
+ *
+ * 1. While a response streams and the user has not touched the list, follow.
+ * 2. If they scroll during a response, stop for the rest of that response.
+ * 3. When the user sends, scroll to the bottom unconditionally.
+ *
+ * The latch is back, because rule 2 needs one. What makes it correct this time is
+ * that it reopens on two events rather than one: a new response starting, and the
+ * reader arriving back at the bottom under their own steam. The failure in #74
+ * was a latch with only one way out, not the idea of a latch.
  */
 object ScrollFollow {
 
@@ -31,21 +42,20 @@ object ScrollFollow {
      *
      * Rounding in the layout leaves the last item ending a fraction past the
      * viewport even when it is fully shown, and without a little slack the view
-     * would call itself scrolled-away while sitting still. This one is for
-     * "is the newest text visible", which drives the jump-to-latest arrow.
+     * would call itself scrolled-away while sitting still.
      */
     const val BOTTOM_TOLERANCE_PX: Int = 8
 
     /**
-     * How much of the viewport a reader may be above the bottom and still be
-     * followed.
+     * How much of the viewport a reader may be past the bottom and still count as
+     * having returned to it, for the purpose of resuming.
      *
-     * Generous on purpose. A tight threshold makes following stop the instant a
-     * token pushes a line past the fold, which is the failure this whole file
-     * exists to prevent. A third of a screen is more than any single token and
-     * far less than a deliberate scroll up to re-read something.
+     * Deliberately generous, and deliberately used only for *resuming*. A reader
+     * scrolling back down during a fast stream is chasing a target that keeps
+     * moving, and demanding they land within eight pixels of it would make
+     * resuming feel broken. Nothing about following depends on this.
      */
-    const val FOLLOW_VIEWPORT_FRACTION: Float = 1f / 3f
+    const val RESUME_VIEWPORT_FRACTION: Float = 1f / 4f
 
     /**
      * Whether the newest message's end is on screen.
@@ -54,13 +64,6 @@ object ScrollFollow {
      * visible is wrong while that item is growing: a long answer is taller than
      * the screen, so its index stays the last index no matter how far below the
      * fold its newest text has gone. This asks where the item actually *ends*.
-     *
-     * @param lastVisibleIndex index of the last visible item, or null when the
-     *   list is empty, which counts as being at the bottom so a first message
-     *   follows normally.
-     * @param lastVisibleItemEnd where that item ends, as an offset from the start
-     *   of the viewport.
-     * @param viewportEnd where the viewport ends, in the same coordinates.
      */
     fun isAtBottom(
         lastVisibleIndex: Int?,
@@ -75,15 +78,8 @@ object ScrollFollow {
     }
 
     /**
-     * How far below the viewport the content continues, in pixels.
-     *
-     * Zero when the end of the content is on screen. Only ever measured against
-     * the last item, because a list whose last item is visible has nothing after
-     * it, and one whose last item is not visible is by definition a long way from
-     * the bottom.
-     *
-     * @return the distance, or null when it cannot be told from what is visible,
-     *   which the caller should treat as far away rather than guess.
+     * How far below the viewport the content continues, in pixels, or null when
+     * that cannot be told from what is visible.
      */
     fun distanceFromBottom(
         lastVisibleIndex: Int?,
@@ -97,24 +93,71 @@ object ScrollFollow {
     }
 
     /**
-     * Whether streaming text should scroll itself into view right now.
+     * Whether the reader is close enough to the bottom to count as having come
+     * back, which is what reopens the latch.
      *
-     * The whole decision, in one place, asked fresh on every token rather than
-     * remembered. A reader within [FOLLOW_VIEWPORT_FRACTION] of the bottom is
-     * reading the newest text and wants to keep reading it. A reader further up
-     * has gone somewhere on purpose and is left alone until they come back, at
-     * which point this starts returning true again on its own, with nothing to
-     * reset and no arrow to tap.
-     *
-     * @param distanceFromBottomPx from [distanceFromBottom]; null means the end
-     *   of the content is not even in view, which is not a reader to drag around.
+     * Only ever asked while the latch is closed. It answers "have they returned",
+     * never "should we follow".
      */
-    fun shouldFollow(distanceFromBottomPx: Int?, viewportHeightPx: Int): Boolean {
+    fun hasReturnedToBottom(distanceFromBottomPx: Int?, viewportHeightPx: Int): Boolean {
         val distance = distanceFromBottomPx ?: return false
-        // A viewport of zero means the list has not been measured yet. Following
-        // then would scroll a list that does not know its own size, which is how
-        // a restored scroll position used to get overwritten on open.
         if (viewportHeightPx <= 0) return false
-        return distance <= viewportHeightPx * FOLLOW_VIEWPORT_FRACTION
+        return distance <= viewportHeightPx * RESUME_VIEWPORT_FRACTION
     }
+}
+
+/**
+ * The per-response record of the user having taken over scrolling (#89).
+ *
+ * Rule 2 needs somewhere to remember that they did, because the whole point is
+ * that a single scroll settles the matter for the rest of that response however
+ * fast the tokens arrive. Rules 1 and 3 do not consult it in the same way: rule 1
+ * asks it, and rule 3 ignores it entirely.
+ *
+ * Plain state rather than Compose state. Nothing recomposes when this moves: the
+ * effect that follows the stream reads it when it runs, and the jump-to-latest
+ * control's visibility is driven by `atBottom`, which is already observable.
+ * Keeping it plain is also what lets it be tested on any machine.
+ */
+class FollowLatch {
+
+    var userTookControl: Boolean = false
+        private set
+
+    /** The user scrolled the list themselves. This is the latch closing. */
+    fun userScrolled() {
+        userTookControl = true
+    }
+
+    /**
+     * A new response is starting, so following begins again.
+     *
+     * The other half of what #74 got wrong. A latch that survives into the next
+     * response makes one scroll in one answer disable following for the rest of
+     * the conversation.
+     */
+    fun newResponseStarted() {
+        userTookControl = false
+    }
+
+    /** They came back to the bottom themselves, which is consent to resume. */
+    fun returnedToBottom() {
+        userTookControl = false
+    }
+
+    /** Jump-to-latest was tapped, which is the same consent stated explicitly. */
+    fun jumpTapped() {
+        userTookControl = false
+    }
+
+    /**
+     * Rule 1: follow while streaming unless the user has taken over.
+     *
+     * Deliberately does **not** consult how far from the bottom the reader is.
+     * That was #74's mistake in the other direction: following exists precisely
+     * for the case where the newest text has grown past the bottom of the screen,
+     * so making it conditional on being near the bottom means it stops working at
+     * the exact moment it is needed.
+     */
+    fun shouldFollow(): Boolean = !userTookControl
 }

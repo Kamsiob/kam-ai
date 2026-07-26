@@ -6109,3 +6109,47 @@ no cache to lose at the start of a conversation. Declined for now on the same
 grounds, because switching between conversations would still pay a model load on
 exactly the devices least able to absorb it. Revisit only if measured model load
 times fall far enough that a switch is imperceptible.
+
+## The three rules of following a stream, stated as rules (#89)
+
+Fourth attempt, and this one is a regression of my own making. #74 removed the
+latch and made following depend on the reader's distance from the bottom, and
+broke it the other way: the view never returned to the bottom, and sending did
+not scroll at all.
+
+Two holes in that reasoning, both worth recording because they were reasoning
+errors rather than coding ones.
+
+**Sending did not scroll.** The follow effect keyed on `streaming`, so its first
+evaluation happened with the reader wherever they already were. Somebody reading
+mid-transcript failed the distance check, and the view never moved. Sending is not
+a case for a heuristic at all: the user has just acted.
+
+**Following stopped once the answer grew past a third of a viewport.** I had
+reasoned that following would hold the distance near zero, which is true only if
+every scroll lands exactly at the content end on every token. Resting a behaviour
+on that is how it fails on a fast stream.
+
+So the rules are now explicit, named, and each in one place:
+
+1. While a response streams and the user has not touched the list, follow.
+2. If they scroll during a response, stop for the rest of that response. Resume
+   only when they return to the bottom themselves or tap jump-to-latest.
+3. When the user sends, scroll to the bottom unconditionally.
+
+The latch is back, because rule 2 needs one. What was wrong in #74 was not the
+idea of a latch but a latch with **one** way out. This one reopens on two events:
+a new response starting, and the reader arriving back at the bottom. A latch that
+survives into the next response disables following for the rest of the
+conversation, which was the other half of the original bug.
+
+Returning is judged generously, a quarter of a viewport rather than eight pixels,
+and that threshold is used only for resuming. A reader scrolling back down during
+a fast stream is chasing text that is still arriving, and demanding they land on
+the exact end would make resuming feel broken. Nothing about following consults
+it, which is the distinction #74 lost.
+
+Device-verified on a 490-token answer. Untouched: the view tracks to the end.
+Scrolled up mid-stream: two screenshots sixteen seconds apart are pixel-identical
+while text keeps arriving. Sent while scrolled two screens up: the view is at the
+bottom showing the new answer stream.
