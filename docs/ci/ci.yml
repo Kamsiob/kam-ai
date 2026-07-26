@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Everything that does not need the native toolchain. Fast, and covers the
+  # standing rule that every test source set must compile: the instrumented tests
+  # are not part of the default build, which is how they were once allowed to rot
+  # unnoticed.
+  checks:
+    name: Compile, test, lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile the app
+        run: ./gradlew compileDebugKotlin --no-daemon
+
+      - name: Compile every test source set
+        # Both of them, explicitly. The instrumented set is the one that matters:
+        # it is excluded from the default build and so from any check that only
+        # runs the app's own compilation.
+        run: ./gradlew compileDebugUnitTestKotlin compileDebugAndroidTestKotlin --no-daemon
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Android lint
+        # Zero errors as of the run that introduced this workflow. Warnings are
+        # not gated, because gating fifty of them at once would mean either a
+        # permanently red badge or a blanket suppression, and both are worse than
+        # a warning count that is visible in the log.
+        run: ./gradlew lintDebug --no-daemon
+
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            app/build/reports/tests/**
+            app/build/reports/lint-results-*.html
+            app/build/intermediates/lint_intermediate_text_report/**
+          if-no-files-found: ignore
+
+  # The native build compiles llama.cpp and whisper.cpp from source, which is slow
+  # enough to deserve its own job rather than holding up the checks above. It is
+  # still required: a change that breaks the JNI bridge must not merge.
+  native:
+    name: Native build
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache the native build
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/.cxx
+            app/build/intermediates/cxx
+          key: cxx-${{ runner.os }}-${{ hashFiles('app/src/main/cpp/CMakeLists.txt', 'gradle.properties') }}
+          restore-keys: cxx-${{ runner.os }}-
+
+      - name: Assemble
+        run: ./gradlew assembleDebug --no-daemon

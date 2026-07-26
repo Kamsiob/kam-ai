@@ -1,0 +1,3 @@
+# The same link the app uses under Settings, so there is one support surface and
+# not two that can drift apart. See Links.SUPPORT.
+custom: ["https://buymeacoffee.com/kamsiob"]

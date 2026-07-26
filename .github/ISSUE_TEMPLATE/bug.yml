@@ -1,0 +1,58 @@
+name: Bug report
+description: Something behaves incorrectly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An issue here is a specification rather than a reminder. The fields below
+        are what makes it possible for someone else to confirm the work is
+        finished without asking.
+  - type: textarea
+    id: current
+    attributes:
+      label: What happens now
+      description: The current behaviour, as specifically as you can put it.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen instead
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce it
+      description: Numbered steps. Include anything that has to be true beforehand.
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      description: The bug is not confirmed fixed until it is verified on a real device, so this matters.
+      placeholder: Pixel 10 Pro XL, Android 16
+    validations:
+      required: true
+  - type: textarea
+    id: matters
+    attributes:
+      label: Why it matters, or what it blocks
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: In checkable terms. Someone else should be able to confirm this is done without asking you.
+      placeholder: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true

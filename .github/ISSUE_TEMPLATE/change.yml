@@ -1,0 +1,48 @@
+name: Feature or change
+description: Something to add, remove, or do differently
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An issue here is a specification rather than a reminder. Acceptance
+        criteria are the load-bearing part: without them, closing an issue is a
+        judgement call and nobody can verify the claim later.
+  - type: textarea
+    id: situation
+    attributes:
+      label: The situation now
+      description: What exists today, or what is absent.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: The outcome wanted
+    validations:
+      required: true
+  - type: textarea
+    id: matters
+    attributes:
+      label: Why it matters, or what it blocks
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Relevant design or specification
+      description: Reference the section of DESIGN.md or MASTER_SPEC.md rather than restating it.
+  - type: textarea
+    id: depends
+    attributes:
+      label: Depends on
+      description: Link any issue this needs first, so dependency order is visible rather than remembered.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true

@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # Grouped, because five separate pull requests for one AndroidX bump is noise
+    # and noise is what stops updates being acted on.
+    groups:
+      androidx:
+        patterns: ["androidx.*"]
+      kotlin:
+        patterns: ["org.jetbrains.kotlin*", "com.google.devtools.ksp"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

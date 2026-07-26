@@ -850,7 +850,19 @@ private fun SettingsHost(
 
 @Composable
 private fun LockSettingsHost(app: AppViewModel) {
-    val activity = LocalContext.current as androidx.fragment.app.FragmentActivity
+    // LocalActivity rather than casting LocalContext, which lint is right about:
+    // a Context is not always an Activity and the cast throws rather than failing
+    // gracefully. The FragmentActivity cast on top of it is needed by the
+    // biometric prompt, so it stays, but it is now reached from something that is
+    // actually an activity.
+    val activity = androidx.activity.compose.LocalActivity.current
+        as? androidx.fragment.app.FragmentActivity
+    if (activity == null) {
+        // Nothing to show a biometric prompt against. Saying so beats crashing,
+        // and this is unreachable in the app as it ships.
+        app.showToast("App lock is unavailable here.")
+        return
+    }
     LockSettingsScreen(
         enabled = AppLock.enabled,
         mode = AppLock.mode,

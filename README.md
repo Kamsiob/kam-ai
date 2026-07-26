@@ -1,5 +1,9 @@
 # Kam AI
 
+[![CI](https://github.com/Kamsiob/kam-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Kamsiob/kam-ai/actions/workflows/ci.yml)
+[![Licence: AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue)](LICENSE)
+[![Release](https://img.shields.io/badge/release-none%20yet-lightgrey)](https://github.com/Kamsiob/kam-ai/releases)
+
 **A private thinking and drafting tool that runs entirely on your phone.**
 
 Kam AI downloads an AI model onto your Android phone and runs it there. Your
@@ -116,17 +120,66 @@ generates tokens through the JNI bridge:
 
 ## How it is put together
 
-- Kotlin and Jetpack Compose, single activity, Material 3 with a fully custom
-  theme. No dynamic colour, because the palette carries meaning.
-- llama.cpp compiled for arm64 behind a thin JNI bridge. The generation loop
-  lives in Kotlin so streaming, stopping and thermal backoff sit next to the
-  rest of the app's logic.
-- One SQLite database through Room holds everything, shaped so a backup can be
-  written as a single portable file.
-- `DESIGN.md` is the binding source of truth for how the app looks, moves and
-  speaks. Where code and that document disagree, the document wins.
-- `DECISIONS.md` records every nontrivial call made while building, including
-  the ones that turned out to be wrong.
+The short version: Kotlin and Jetpack Compose, single activity, Material 3 with a
+fully custom theme and no dynamic colour, because the palette carries meaning.
+llama.cpp compiled for arm64 behind a thin JNI bridge, with the generation loop in
+Kotlin so streaming, stopping and thermal backoff sit next to the rest of the
+logic. One SQLite database through Room and SQLCipher holds everything, shaped so
+a backup is a single portable file.
+
+[ARCHITECTURE.md](ARCHITECTURE.md) has the long version: the components and their
+responsibilities, how inference is integrated, how data is stored and protected,
+the threading and lifecycle model, and where the significant constraints come
+from.
+
+## Approach
+
+The app is specified before it is built. [MASTER_SPEC.md](MASTER_SPEC.md)
+describes what it does and [DESIGN.md](DESIGN.md) describes how it looks, moves
+and speaks, down to the copy. Both are kept current with the code rather than
+written once at the start; where the code and those documents disagree, the
+documents are the source of truth and the code is wrong.
+
+Decisions are recorded as they are made. [DECISIONS.md](DECISIONS.md) holds every
+nontrivial architectural and product call along with the reasoning, including the
+ones that turned out to be wrong and the approaches that failed and should not be
+retried. Two feature requests are recorded there as declined, with the arithmetic
+that rules them out, so they do not get re-proposed from scratch.
+
+The [issue tracker](https://github.com/Kamsiob/kam-ai/issues) is the authoritative
+record of state. An issue states the current situation, why it matters, and
+acceptance criteria in checkable terms, so that closing one is verifiable rather
+than a judgement call. Working notes go on the issue as the work happens.
+
+Nothing is marked finished until it has been verified on real hardware. Unit tests
+are necessary and not sufficient: several defects in this codebase compiled,
+passed their tests, and were wrong on the device, and a few of the most useful
+comments in the source record exactly that.
+
+[HANDOFF.md](HANDOFF.md) is maintained so the project can be picked up cold, with
+the measurements taken, the approaches that failed, and an honest state of every
+unfinished thing.
+
+### How this is built
+
+Claude Code writes the implementation. I do the design, the specifications, the
+decisions, and the verification.
+
+That split holds all the way down. I decide what gets built and what gets cut,
+write the specification each piece is built against, record the architectural and
+product decisions along with the reasoning, and confirm everything on real
+hardware before it counts as finished.
+
+The harder part turned out to be directing it. Long unsupervised runs fail in
+specific ways. They stop early believing the work is complete, run out of working
+context mid task, report success for code that was written but never run, and
+occasionally take an action nobody asked for. Most of the process described above
+exists because of one of those. The resume document, the rule that nothing is
+finished until it runs on the device, the decision records, the limits on what the
+agent may touch: each answers something that actually went wrong.
+
+What it has given me is precision about what I am asking for, and an unwillingness
+to accept finished without seeing it work.
 
 ## Licence
 
@@ -134,6 +187,12 @@ App code is AGPL-3.0. See [LICENSE](LICENSE).
 
 Content packs for Discover are built from Wikipedia and carry CC BY-SA 4.0,
 which applies to the pack content only.
+
+## Project
+
+- [Roadmap](https://github.com/Kamsiob/kam-ai/issues?q=is%3Aissue+label%3Aroadmap): what is planned and what is deliberately not
+- [Issues](https://github.com/Kamsiob/kam-ai/issues): the authoritative record of state
+- [Contributing](CONTRIBUTING.md), [Architecture](ARCHITECTURE.md), [Security](SECURITY.md), [Code of conduct](CODE_OF_CONDUCT.md)
 
 ## Links
 
