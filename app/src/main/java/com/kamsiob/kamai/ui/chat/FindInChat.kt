@@ -19,11 +19,11 @@ object FindInChat {
     /**
      * How strongly a match is marked.
      *
-     * Both are the accent at low alpha rather than a surface colour, because a
+     * Both are the accent at low alpha rather than a surface color, because a
      * match has to read on two different backgrounds: an answer sits on `surface`
      * and your own message sits on `tonalFill`. The first attempt used
      * `tonalFill` for every match, which was invisible on exactly the bubbles
-     * that are already that colour.
+     * that are already that color.
      */
     const val MARK_ALPHA: Float = 0.22f
     const val ACTIVE_MARK_ALPHA: Float = 0.45f

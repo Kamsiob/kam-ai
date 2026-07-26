@@ -82,7 +82,7 @@ class Gemma4LoadTest {
 
         val answer = PromptBuilder.cleanOutput(out.toString())
         assertThat(answer).isNotEmpty()
-        // A real answer to this question mentions at least one primary colour.
+        // A real answer to this question mentions at least one primary color.
         // This is the difference between "tokens came out" and "the model
         // actually understood the prompt in the Gemma 4 format".
         val lower = answer.lowercase()

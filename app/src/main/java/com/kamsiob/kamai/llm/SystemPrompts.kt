@@ -290,7 +290,7 @@ object SystemPrompts {
 
     /**
      * The quiet centered note dropped into the transcript when the mode changes,
-     * so the history shows exactly where behaviour changed. Plain voice, no hype.
+     * so the history shows exactly where behavior changed. Plain voice, no hype.
      * One to three sentences per mode. Workbench's wording is deliberately about a
      * linked session, since choosing it from a conversation starts a linked
      * Workbench rather than converting the conversation (see Part 4).
@@ -339,7 +339,7 @@ object SystemPrompts {
      * sentence it cannot follow, which is a good way to get it acting oddly.
      *
      * Notes go after instructions so that when the window is tight it is the
-     * background that falls off the end rather than the behaviour.
+     * background that falls off the end rather than the behavior.
      */
     fun withProject(base: String, projectInstructions: String, projectNotes: String = ""): String {
         var out = base

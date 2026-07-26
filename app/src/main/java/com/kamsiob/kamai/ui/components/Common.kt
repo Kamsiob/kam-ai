@@ -282,7 +282,7 @@ fun SettingsRow(
      */
     monoTail: String? = null,
     icon: ImageVector? = null,
-    /** The tile colour. Chosen for separation from the rows around it. */
+    /** The tile color. Chosen for separation from the rows around it. */
     tile: com.kamsiob.kamai.ui.theme.TileColor = com.kamsiob.kamai.ui.theme.TileColor.Slate,
     trailing: RowTrailing = RowTrailing.Navigate,
     /** Destructive rows carry a brick tile and a brick name. */
@@ -438,7 +438,7 @@ private fun RadioDot(selected: Boolean) {
  * Softly fades a scrolling list at its top and bottom edges.
  *
  * Uses a destination-in blend so the fade is a real mask over whatever is
- * behind, rather than a gradient painted in the background colour, which breaks
+ * behind, rather than a gradient painted in the background color, which breaks
  * the moment the surface underneath is not the background.
  */
 fun Modifier.edgeFade(
@@ -478,7 +478,7 @@ fun Modifier.edgeFade(
  * Its own function rather than more parameters on [edgeFade], because a caller
  * wants one or the other and a four-boolean version reads as a puzzle. The
  * blend-mode reasoning above applies unchanged: this masks whatever is behind
- * rather than painting the background colour over it, so it survives sitting on
+ * rather than painting the background color over it, so it survives sitting on
  * a card as well as on the page. Issue #29.
  */
 fun Modifier.edgeFadeHorizontal(
@@ -551,7 +551,7 @@ fun EmptyState(
     }
 }
 
-/** Small dark pill, bottom centre, one line, confirming an action. */
+/** Small dark pill, bottom center, one line, confirming an action. */
 @Composable
 fun KamToast(
     message: String?,
@@ -593,11 +593,11 @@ fun KamToast(
                 // conversations without being asked each time, so the confirmation
                 // has to carry the way back.
                 if (actionLabel != null && onAction != null) {
-                    // The same light colour as the message rather than the accent.
+                    // The same light color as the message rather than the accent.
                     // This surface is a fixed dark green whatever the theme, and
-                    // the accent is one of sixteen user-chosen colours, none of
+                    // the accent is one of sixteen user-chosen colors, none of
                     // which has been contrast-checked against it. Weight and the
-                    // tap target carry the affordance instead, so colour is not
+                    // tap target carry the affordance instead, so color is not
                     // doing the work alone either way.
                     Text(
                         text = actionLabel,

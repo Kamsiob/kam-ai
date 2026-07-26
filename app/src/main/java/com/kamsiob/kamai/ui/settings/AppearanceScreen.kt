@@ -47,7 +47,7 @@ import com.kamsiob.kamai.ui.theme.ThemeMode
 import com.kamsiob.kamai.ui.theme.expressiveSpec
 
 /**
- * Appearance: theme mode and accent colour. Both apply instantly and glide
+ * Appearance: theme mode and accent color. Both apply instantly and glide
  * through the standard theme crossfade.
  */
 @Composable
@@ -110,7 +110,7 @@ fun AppearanceScreen(
         }
 
         Spacer(Modifier.height(26.dp))
-        Eyebrow("Accent colour")
+        Eyebrow("Accent color")
         Spacer(Modifier.height(4.dp))
         Text(
             "The amber for bookmarks and the support button stays as it is, whichever " +

@@ -483,7 +483,7 @@ private fun FollowUpCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // A quiet kind chip: check (verify) or pursue (an idea worth
                     // returning to). Tap it to change the kind if the guess was
-                    // wrong (Part 5). Neutral surfaces, no colour of its own.
+                    // wrong (Part 5). Neutral surfaces, no color of its own.
                     val pursue = item.kind == com.kamsiob.kamai.data.FollowUpKind.PURSUE
                     Box(
                         modifier = Modifier

@@ -8,7 +8,7 @@ package com.kamsiob.kamai.ui.chat
  *
  * #35 followed only while at the bottom. #43 found that re-engaged the moment a
  * growing message drifted the reader back near the bottom. #74 found two more:
- * an animated scroll that every token cancelled, and a latch that any drag closed
+ * an animated scroll that every token canceled, and a latch that any drag closed
  * and only the last message's end coming back on screen could reopen, which
  * during a long answer never happens.
  *
@@ -21,7 +21,7 @@ package com.kamsiob.kamai.ui.chat
  *   been reading mid-transcript the distance check failed and it never moved.
  * - **Following stopped once the answer grew more than a third of a viewport past
  *   the fold**, and whether it recovered depended on every single scroll landing
- *   exactly at the content end. That is not something to rest a behaviour on.
+ *   exactly at the content end. That is not something to rest a behavior on.
  *
  * So the three rules are now explicit, and each is here rather than spread
  * through a composable:

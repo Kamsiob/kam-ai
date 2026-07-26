@@ -9,7 +9,7 @@ import androidx.compose.runtime.setValue
  * The optional lock on Kam AI itself, separate from the phone's own lock. PART 3.
  * Off by default.
  *
- * Two honestly-labelled strengths, chosen at setup:
+ * Two honestly-labeled strengths, chosen at setup:
  *
  * - [Mode.DEVICE] is backed by the phone's own credential (fingerprint, face, or
  *   the phone PIN or pattern). It is recoverable, because the device credential

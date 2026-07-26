@@ -25,7 +25,7 @@ import java.util.concurrent.Executors
  * Owns the loaded model and turns requests into streams of text.
  *
  * All native work runs on one dedicated thread. llama.cpp holds a single global
- * session, so serialising access is not an optimisation, it is a correctness
+ * session, so serialising access is not an optimization, it is a correctness
  * requirement.
  */
 class InferenceEngine(
@@ -249,7 +249,7 @@ class InferenceEngine(
         // worth showing depends on it.
         if (produced >= maxTokens) reason = StopReason.Finished
         // A user stop is now reported explicitly rather than inferred from the
-        // coroutine being cancelled. requestStop only raises the native abort
+        // coroutine being canceled. requestStop only raises the native abort
         // flag, which makes nativeNextToken return null and looks exactly like a
         // model that finished, so without this a stopped answer was recorded as
         // a complete one. Cancellation still counts, for the case where the whole

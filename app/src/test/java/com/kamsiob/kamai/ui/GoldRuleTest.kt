@@ -12,7 +12,7 @@ import org.junit.Test
  * in a conversation, a failed download, two lock-screen errors, and an
  * over-length character counter. None of those is one of the four, and each one
  * arrived on its own, in a different file, from somebody reaching for "the
- * colour that means pay attention".
+ * color that means pay attention".
  *
  * The rule is about meaning, so no test can check it properly. What this checks
  * is the thing that actually went wrong: gold spreading into files nobody
@@ -49,7 +49,7 @@ class GoldRuleTest {
         val gold = Regex("flagAmber|goldText|amberFill")
         val users = repoFile("app/src/main/java/com/kamsiob/kamai").walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
-            // The theme defines the colours; naturally it names them.
+            // The theme defines the colors; naturally it names them.
             .filterNot { it.parentFile.name == "theme" }
             .filter { gold.containsMatchIn(it.readText()) }
             .map { it.name }
@@ -62,7 +62,7 @@ class GoldRuleTest {
     fun theRecordingButtonsAreNotGold() {
         // Three of them, in the chat composer, the Workbench, and the overlay.
         // They were written at different times and all three reached for the same
-        // wrong colour, so they are pinned together: whatever a listening state
+        // wrong color, so they are pinned together: whatever a listening state
         // looks like, the three must agree.
         // The overlay names its flag `surface` rather than `recording`, hence the
         // per-file expression instead of one string for all three.

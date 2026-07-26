@@ -50,7 +50,7 @@ object Biometric {
                 }
 
                 override fun onAuthenticationError(code: Int, message: CharSequence) {
-                    // User cancelled or a hard error. Either way, stay locked.
+                    // User canceled or a hard error. Either way, stay locked.
                     onError(message.toString())
                 }
             },

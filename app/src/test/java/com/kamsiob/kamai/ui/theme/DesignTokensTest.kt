@@ -6,7 +6,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
- * DESIGN.md is the binding source of truth for colour. This test pins every
+ * DESIGN.md is the binding source of truth for color. This test pins every
  * value in section 3 so a stray edit to the palette fails the build rather than
  * quietly shipping.
  */
@@ -28,7 +28,7 @@ class DesignTokensTest {
             assertThat(textTertiary.hex()).isEqualTo("#95A093")
             assertThat(accent.hex()).isEqualTo("#2E7A52")
             assertThat(onAccent.hex()).isEqualTo("#F2FBF4")
-            // The reserved colour is gold since the four-mode update, moved away
+            // The reserved color is gold since the four-mode update, moved away
             // from the old amber so it never reads as Workbench's mustard. The
             // bright gold is too light to read as a glyph on ivory, so text and
             // icons use the deeper goldText. DESIGN.md section 3.

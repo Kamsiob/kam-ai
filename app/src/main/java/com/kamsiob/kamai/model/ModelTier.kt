@@ -99,7 +99,7 @@ fun formatBytes(bytes: Long): String {
  * Taken literally, that is not a rounding curiosity, it is a real bug: every
  * tier boundary sits exactly on a marketed size, so a genuine 16 GB flagship
  * reports 15, fails the 16 GB gate, has Best Available locked, and gets
- * recommended the smallest model in the catalogue. Snapping up to the nearest
+ * recommended the smallest model in the catalog. Snapping up to the nearest
  * size a phone is actually sold with is what makes the tier gates mean what
  * they say.
  *
@@ -162,6 +162,6 @@ object TierRecommendation {
             "but need more room. ${tier.displayName} fits comfortably here."
     }
 
-    /** The amber note on a locked tier card. Colour is never the only carrier. */
+    /** The amber note on a locked tier card. Color is never the only carrier. */
     fun lockedNote(tier: Tier): String = "Needs ${tier.minimumRamGb} GB"
 }

@@ -390,7 +390,7 @@ private fun SlideExtras(onContinue: () -> Unit) {
         title = OnboardingCopy.slideExtras.title,
         body = {
             // Tighter than the modes slide, because there are six of these and
-            // they are places to find rather than behaviours to understand.
+            // they are places to find rather than behaviors to understand.
             OnboardingCopy.slideExtrasItems.forEachIndexed { i, (name, description) ->
                 Staggered(2 + i) {
                     Column {
@@ -618,7 +618,7 @@ private fun TierCard(
                     append(model.tier.displayName)
                     append(", ").append(model.downloadLabel)
                     if (recommended) append(", recommended")
-                    // Colour is never the only carrier of meaning: the locked
+                    // Color is never the only carrier of meaning: the locked
                     // reason is spoken as well as shown.
                     if (locked) append(", locked, ").append(TierRecommendation.lockedNote(model.tier))
                 }

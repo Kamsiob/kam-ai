@@ -12,7 +12,7 @@ body:
     id: current
     attributes:
       label: What happens now
-      description: The current behaviour, as specifically as you can put it.
+      description: The current behavior, as specifically as you can put it.
     validations:
       required: true
   - type: textarea

@@ -141,7 +141,7 @@ class MarketedRamTest {
     @Test
     fun theFlagshipCaseEndToEnd() {
         // The bug: a 16 GB phone reporting 15 had Best Available locked and was
-        // recommended the smallest model in the catalogue.
+        // recommended the smallest model in the catalog.
         val ram = marketedRamGb(15_948_992L * 1024)
         assertThat(TierRecommendation.isLocked(Tier.BEST, ram)).isFalse()
         assertThat(TierRecommendation.recommended(ram)).isEqualTo(Tier.BALANCED)

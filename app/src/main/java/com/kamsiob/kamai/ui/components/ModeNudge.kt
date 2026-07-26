@@ -39,7 +39,7 @@ import com.kamsiob.kamai.ui.theme.ModeColors
  *
  * A screen-owned nudge rather than a message: nothing here is ever mistaken for
  * something the model said, which is why it is drawn on the page rather than in
- * a bubble. Three parts, all in the mode's own colour: a faint wash, a
+ * a bubble. Three parts, all in the mode's own color: a faint wash, a
  * hand-drawn double-stroke sketch, and one line of type in the voice that mode
  * speaks in.
  *
@@ -67,9 +67,9 @@ fun ModeNudge(mode: Mode, modifier: Modifier = Modifier) {
             //
             // Radial has no edge to notice: strongest behind the sketch, gone
             // well before the sides. The stops are deliberately close together
-            // near the centre and long at the tail, since a linear falloff still
+            // near the center and long at the tail, since a linear falloff still
             // reads as a disc. Alpha is set per theme because the same value
-            // that is barely visible on the dark background is a grey smudge on
+            // that is barely visible on the dark background is a gray smudge on
             // the light one.
             .background(
                 Brush.radialGradient(
@@ -167,7 +167,7 @@ private fun nudgeStyle(mode: Mode): TextStyle = when (mode) {
     else -> KamTheme.type.nudge
 }
 
-// The sketches. Drawn rather than shipped as assets so they take the mode colour
+// The sketches. Drawn rather than shipped as assets so they take the mode color
 // directly and cost nothing in the APK.
 //
 // "Double stroke" is the hand-drawn part: every shape is drawn twice, the second

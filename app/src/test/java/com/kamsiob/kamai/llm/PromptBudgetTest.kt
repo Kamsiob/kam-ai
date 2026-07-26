@@ -106,7 +106,7 @@ class PromptBudgetTest {
     @Test
     fun everyModeHasDistinctInstructions() {
         // A quick sanity check that the four modes really differ, so a mode switch
-        // changes behaviour rather than only a label.
+        // changes behavior rather than only a label.
         val prompts = Mode.entries.map { SystemPrompts.forMode(it) }
         assertEquals(prompts.size, prompts.distinct().size)
     }

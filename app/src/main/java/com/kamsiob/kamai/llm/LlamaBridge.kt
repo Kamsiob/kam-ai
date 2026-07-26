@@ -6,7 +6,7 @@ package com.kamsiob.kamai.llm
  * Every method here maps one to one onto a function in `kamai_llama.cpp`. The
  * generation loop deliberately lives above this class rather than inside the
  * native layer, so that streaming, stopping, and thermal backoff are all
- * decided in Kotlin alongside the rest of the app's behaviour.
+ * decided in Kotlin alongside the rest of the app's behavior.
  *
  * This object is not thread safe by itself. The native side holds a mutex so
  * calls cannot corrupt each other, but callers should still funnel work through

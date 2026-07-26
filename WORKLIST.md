@@ -25,7 +25,7 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       (notes TEXT NOT NULL DEFAULT ''), injected as background rather than orders, screen rebuilt as
       one LazyColumn with a shared field component and a single Save. Device-verified over real data.
       Original scope: Remove the bottom-nav "New" button to make room for Projects
-      (owner). Nav order: Projects, Chats, Follow-ups, Discover (no Today; cancelled, see below).
+      (owner). Nav order: Projects, Chats, Follow-ups, Discover (no Today; canceled, see below).
       Build Projects (named container, persistent instructions + notes re-injected
       each turn, assign/reassign conversations like Claude, move semantics not retroactive, delete
       asks about conversations, cap instruction length). ISOLATION (owner): project instructions are
@@ -48,8 +48,8 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
 - [~] 5. Global: nothing processes silently; anything slow is cancellable. DONE: chat thinking
       indicator now appears the instant a message is sent, through model load and prefill (was
       keyed on the empty answer bubble that only exists after load); streaming flips synchronously
-      on send; testable `showThinkingIndicator` + unit test. DONE ALSO: quiz shows a spinner while generating and is cancelled on dismiss/leaving Discover
-      (job cancelled + engine stopped) so it never surfaces unexpectedly. REMAINING: full app-wide
+      on send; testable `showThinkingIndicator` + unit test. DONE ALSO: quiz shows a spinner while generating and is canceled on dismiss/leaving Discover
+      (job canceled + engine stopped) so it never surfaces unexpectedly. REMAINING: full app-wide
       audit of every slow op for immediate feedback + a real cancel path (transcription, TTS, pack
       install, export/import, search). DONE 25 July, issue closed: transcription now aborts through
       whisper's abort_callback and the mic reads "Tap to stop"; pack install already had percentage,
@@ -113,7 +113,7 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       MigrationV7ToV8SqlTest, MemoryNoteTest. Device-verified end to end. Earlier work: DONE: retrieval is now relevance (keyword+recency, prefix-matched) within a
       context-fraction budget, not recency-only; injected near the front; auto-extraction runs as a
       batch over recent turns every few user messages (not every message), given existing facts to
-      avoid repeats; dedup on a normalised form; parser strips leaked chat-template tokens (fixed junk
+      avoid repeats; dedup on a normalized form; parser strips leaked chat-template tokens (fixed junk
       "NONE</start_of_turn>" memories). Transparency/control already exist (Memory screen: see/edit/
       delete/bulk/all, auto-vs-manual). Tests: MemoryRetrievalTest. Device-verified end to end
       (remembered allergy -> later chat answered "Shellfish"). REMAINING (refs #16): full contradiction
@@ -176,7 +176,7 @@ Status: [ ] todo · [~] in progress · [x] done & verified on device · [defer] 
       with the app's actual capabilities. Then the APK on GitHub and the AAB on the computer are the
       very last steps (only when the owner says ready).
 
-## Cancelled
+## Canceled
 
 - [x] Today tab, CANCELLED (Four-Mode Update Part 9, issue #37). Every other part of the app works
       on material the user brings; Today would have delivered content to the user, duplicating

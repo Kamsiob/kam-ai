@@ -147,7 +147,7 @@ fun SegmentedModeControl(
                 }
                 .shadow(3.dp, CircleShape)
                 .clip(CircleShape)
-                // Its own colour, not `surface`. On dark, surface and
+                // Its own color, not `surface`. On dark, surface and
                 // surfaceSecondary are five points apart and the thumb all but
                 // vanished; light mode is unchanged (#69).
                 .background(colors.controlThumb),

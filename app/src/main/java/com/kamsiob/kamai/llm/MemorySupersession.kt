@@ -83,7 +83,7 @@ object MemorySupersession {
      *
      * [existing] is the stored text of each memory, and the strings returned are
      * drawn from it verbatim, so the caller can match them back without
-     * re-normalising.
+     * re-normalizing.
      */
     fun verdict(fact: String, existing: List<String>): Verdict {
         val normalised = MemoryExtractor.normalise(fact)

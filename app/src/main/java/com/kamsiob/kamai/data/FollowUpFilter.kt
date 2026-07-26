@@ -4,7 +4,7 @@ package com.kamsiob.kamai.data
  * The two filters over the Follow-ups list: where an item came from, and which
  * kind it is. Issue #33.
  *
- * Pure and separate from the screen because the interesting behaviour is not the
+ * Pure and separate from the screen because the interesting behavior is not the
  * filtering itself but what happens when a filter stops matching anything. An
  * item's kind can be changed by the user while a kind filter is active, and
  * completing or deleting the last item from a source can empty a source filter.

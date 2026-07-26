@@ -105,7 +105,7 @@ class ChatViewModel(
      * Whether this conversation has a position worth restoring at all.
      *
      * Needed because index 0 offset 0 is both "the user was reading the very top"
-     * and "nothing has been recorded", and those want opposite behaviour: the
+     * and "nothing has been recorded", and those want opposite behavior: the
      * first should be restored, the second should open at the newest message like
      * it always has.
      */
@@ -325,7 +325,7 @@ class ChatViewModel(
         // and never got a title (an interrupted generation, an older entry point)
         // is titled now, through the shared path. titleIfNeeded no-ops when a
         // title already exists, so this only generates when something is missing.
-        // It is cancelled the moment a real turn starts, so it never runs on the
+        // It is canceled the moment a real turn starts, so it never runs on the
         // engine at the same time as a reply.
         titlingJob?.cancel()
         titlingJob = viewModelScope.launch {
@@ -552,9 +552,9 @@ class ChatViewModel(
     /**
      * Stops the answer in progress and keeps what was written.
      *
-     * Deliberately does not cancel the job. Cancelling it was issue #40: the
+     * Deliberately does not cancel the job. Canceling it was issue #40: the
      * `finally` in [respond] that records the stop reason and finishes the
-     * message then ran inside an already-cancelled coroutine and threw at its
+     * message then ran inside an already-canceled coroutine and threw at its
      * first suspension point, so the message stayed incomplete with no reason,
      * lost its whole action row, and was relabelled "Kam AI was closed while
      * this was being written." on the next launch, which was not true.
@@ -786,7 +786,7 @@ class ChatViewModel(
     }
 
     /**
-     * Keeps a summary in Follow-ups, labelled as generated.
+     * Keeps a summary in Follow-ups, labeled as generated.
      *
      * Marked plainly rather than filed as something either party said, because a
      * summary read back in a week is exactly the thing that would otherwise be
@@ -1010,7 +1010,7 @@ class ChatViewModel(
             // finishing the message, clearing `_streaming`, titling, remembering.
             // Letting the two overlap would allow the old teardown to clear the
             // streaming flag for this new answer and to put a second pass on the
-            // engine at the same time. Cancelling the collector also trips
+            // engine at the same time. Canceling the collector also trips
             // `awaitClose`, which aborts the native decode, so this does not wait
             // for a long answer to finish on its own.
             //
@@ -1113,7 +1113,7 @@ class ChatViewModel(
             } finally {
                 // NonCancellable because this block is what makes a stopped or
                 // abandoned answer honest, and every call in it suspends. If the
-                // scope is cancelled, by the screen going away mid-answer, an
+                // scope is canceled, by the screen going away mid-answer, an
                 // unwrapped block throws at its first suspension point and the
                 // message is left incomplete with no reason for ever. See #40.
                 withContext(NonCancellable) {

@@ -165,7 +165,7 @@ class KamRepository(
     /** Clears the active-model reference entirely, for the no-model state. */
     suspend fun clearActiveModel() = db.artifacts().clearActive(ArtifactKind.LLM)
 
-    /** Every installed LLM as a catalogue model, for the manager's fallbacks. */
+    /** Every installed LLM as a catalog model, for the manager's fallbacks. */
     suspend fun installedModels(): List<TierModel> =
         installedModelIds().mapNotNull { ModelCatalog.byId(it) }
 
@@ -991,7 +991,7 @@ class KamRepository(
     ): Remembered {
         // Never store the same fact twice; the memory screen has to stay
         // readable, and duplicates eat the context budget for no gain. Compare on
-        // a normalised form so trivial punctuation or spacing differences still
+        // a normalized form so trivial punctuation or spacing differences still
         // count as the same fact.
         val target = com.kamsiob.kamai.llm.MemoryExtractor.normalise(text)
         if (target.isBlank()) return Remembered.NOTHING

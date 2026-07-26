@@ -22,7 +22,7 @@ import com.kamsiob.kamai.ui.theme.KamTheme
 import com.kamsiob.kamai.ui.theme.ModeColors
 
 /**
- * Shared UI for the four modes: the identity icon and the small colour dot. The
+ * Shared UI for the four modes: the identity icon and the small color dot. The
  * icons are simple line glyphs, deliberately not the overused lightbulb (for
  * Brainstorm) or wrench (for Workbench), and no sparkles anywhere. See DESIGN.md,
  * Four-Mode Update Part 2.
@@ -41,7 +41,7 @@ fun modeIcon(mode: Mode): ImageVector = when (mode) {
 }
 
 /** The tiny mode-identity dot used on chat rows, the segmented control, and the
- *  mode picker. Colour is never the only carrier of meaning: it always sits with
+ *  mode picker. Color is never the only carrier of meaning: it always sits with
  *  a name or icon and carries a text label for accessibility at the call site. */
 @Composable
 fun ModeDot(mode: Mode, modifier: Modifier = Modifier, size: Dp = 6.dp) {
@@ -65,7 +65,7 @@ fun modesFromCsv(csv: String): List<Mode> =
  * The row of tiny mode dots for a chat list row: one per mode the conversation
  * used, in first-use order. Genuinely small and quiet, closer to metadata than
  * decoration. The mode names go into the row's accessibility label at the call
- * site, since dots convey nothing to a screen reader. Explicitly not a coloured
+ * site, since dots convey nothing to a screen reader. Explicitly not a colored
  * left bar, border, or background tint, which were rejected.
  */
 @Composable

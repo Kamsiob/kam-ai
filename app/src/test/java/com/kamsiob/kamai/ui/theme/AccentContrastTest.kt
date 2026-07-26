@@ -7,7 +7,7 @@ import org.junit.Test
 
 /**
  * Every accent has to clear the same contrast bar in BOTH themes, or it does not
- * ship. This is the mechanical version of the promise: no colour that only looks
+ * ship. This is the mechanical version of the promise: no color that only looks
  * right in one theme.
  *
  * The thresholds are WCAG: on-accent text on the filled accent at 4.5:1 for

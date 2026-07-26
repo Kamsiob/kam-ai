@@ -124,7 +124,7 @@ fun IconAction(
 /**
  * The bottom navigation destinations, in display order.
  *
- * Settings is not one of them, and there is no Today tab (cancelled, see
+ * Settings is not one of them, and there is no Today tab (canceled, see
  * DECISIONS.md and Not planned).
  *
  * Chats first because it is the home root: it is where an empty back stack falls
@@ -234,7 +234,7 @@ private fun NavCell(
             //
             // There used to be an amber dot on Follow-ups whenever anything was
             // open. It was reported as visually disruptive, and it is: a
-            // permanent coloured mark in the navigation reads as an alert, and
+            // permanent colored mark in the navigation reads as an alert, and
             // nothing on that screen is urgent. Follow-ups is a place you go when
             // you choose to, not a queue nagging to be emptied, and a count that
             // never reaches zero for most people is a worse nag than none.

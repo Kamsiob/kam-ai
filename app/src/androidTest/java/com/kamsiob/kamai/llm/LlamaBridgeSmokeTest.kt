@@ -14,7 +14,7 @@ import java.io.File
  * Phase 0 native smoke test.
  *
  * Proves the whole native path end to end on a real device: libkamai.so loads,
- * llama.cpp initialises, a GGUF file opens, a prompt tokenizes and decodes, and
+ * llama.cpp initializes, a GGUF file opens, a prompt tokenizes and decodes, and
  * the model produces tokens that come back across JNI as text.
  *
  * The model is a 1.2 MB story model. It is far too small to say anything

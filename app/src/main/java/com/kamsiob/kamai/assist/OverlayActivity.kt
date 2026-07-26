@@ -173,7 +173,7 @@ private fun OverlayPanel(
             val granted = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
                 PackageManager.PERMISSION_GRANTED
             // Asked plainly rather than silently falling back to the keyboard,
-            // which is what the old behaviour amounted to.
+            // which is what the old behavior amounted to.
             if (granted) vm.startRecording() else micPermission.launch(Manifest.permission.RECORD_AUDIO)
         } else {
             runCatching { focusRequester.requestFocus() }
@@ -303,7 +303,7 @@ private fun OverlayPanel(
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // The mark breathes while an answer is being written, its
-                // status-indicator behaviour from DESIGN.md section 2.
+                // status-indicator behavior from DESIGN.md section 2.
                 com.kamsiob.kamai.ui.components.KamMark(size = 22.dp, breathing = streaming)
                 Spacer(Modifier.width(8.dp))
                 Text("Kam AI", style = KamTheme.type.sectionTitle, color = colors.textPrimary)
@@ -464,7 +464,7 @@ private fun OverlayPanel(
                         onValueChange = { field = it; vm.setQuestion(it) },
                         // Locked while an answer is being written, so nothing is
                         // typed into a state the assistant is not ready for. The
-                        // Ask button becomes Stop so the run can still be cancelled.
+                        // Ask button becomes Stop so the run can still be canceled.
                         enabled = !recording && !transcribing && !streaming,
                         textStyle = KamTheme.type.body.copy(color = colors.textPrimary),
                         cursorBrush = SolidColor(colors.accent),
@@ -496,7 +496,7 @@ private fun OverlayPanel(
                                 contentDescription = null,
                                 // The accent, not textSecondary (#92). This is an
                                 // available action sitting next to the send button,
-                                // and a muted grey on the light background read as
+                                // and a muted gray on the light background read as
                                 // disabled. A control that looks unavailable while
                                 // working is worse than one that genuinely is.
                                 tint = if (recording) colors.tonalText else colors.accent,

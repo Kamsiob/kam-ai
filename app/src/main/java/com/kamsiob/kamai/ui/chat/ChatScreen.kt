@@ -141,7 +141,7 @@ private suspend fun androidx.compose.foundation.lazy.LazyListState.followToEnd(
      * Animate the scroll, or jump straight there.
      *
      * **Following a stream must not animate.** The effect that follows the
-     * stream is keyed on the answer's length, so it is cancelled and restarted
+     * stream is keyed on the answer's length, so it is canceled and restarted
      * on every token. `animateScrollToItem` is a suspending animation, so each
      * token killed the animation the previous token started and began a new one
      * from wherever it had got to, which on a fast stream is nowhere. Short
@@ -359,7 +359,7 @@ fun ChatScreen(
 
     // Rule 1: follow while streaming unless the user has taken over. One
     // coroutine for the whole response, not one per token, so no scroll is ever
-    // cancelled mid-flight by the next token arriving.
+    // canceled mid-flight by the next token arriving.
     val latestMessages by androidx.compose.runtime.rememberUpdatedState(messages)
     LaunchedEffect(streaming, scrollRestored) {
         if (!streaming || !scrollRestored) return@LaunchedEffect
@@ -466,7 +466,7 @@ fun ChatScreen(
             )
         }
 
-        // A one-line, mode-coloured banner appears at the top when the user just
+        // A one-line, mode-colored banner appears at the top when the user just
         // switched mode this session, as a reminder of what the mode does. It is
         // not shown when simply opening an existing conversation.
         if (switchedTo == mode && !grounded) {
@@ -499,7 +499,7 @@ fun ChatScreen(
 
         // fillMaxWidth as well as weight. In a Column a child wraps its content
         // width by default, so this Box was only as wide as whatever it held, sat
-        // at the start, and every "centre in the empty space" inside it centred
+        // at the start, and every "center in the empty space" inside it centerd
         // within that width instead of within the screen. The mode nudge is wide
         // enough that nobody noticed; the setup card is not, and sat visibly off
         // to the left (#80).
@@ -516,7 +516,7 @@ fun ChatScreen(
                         modifier = Modifier.align(Alignment.Center),
                     )
                 } else {
-                    // Centred in the empty space rather than pinned to the top,
+                    // Centerd in the empty space rather than pinned to the top,
                     // so an empty chat reads as a page waiting for something
                     // rather than a header with nothing under it.
                     if (setup != null) {
@@ -728,7 +728,7 @@ fun ChatScreen(
 /**
  * The persistent mode indicator at the bottom of a conversation, adjacent to the
  * input so it is within thumb reach. Shows the current mode (dot plus name in its
- * colour) and the active model, and opens the mode picker when tapped. Tapping the
+ * color) and the active model, and opens the mode picker when tapped. Tapping the
  * model name opens model settings (Part 11B).
  */
 @Composable
@@ -788,7 +788,7 @@ private fun ModeBar(
     }
 }
 
-/** The one-line, mode-coloured switch banner. Tonal fill in the mode's colour,
+/** The one-line, mode-colored switch banner. Tonal fill in the mode's color,
  *  the mode glyph, and the mode's one-sentence description. */
 @Composable
 private fun ModeBanner(mode: Mode) {
@@ -801,7 +801,7 @@ private fun ModeBanner(mode: Mode) {
             .background(modeColor.copy(alpha = if (colors.isDark) 0.18f else 0.12f))
             .padding(horizontal = 14.dp, vertical = 8.dp)
             // Switching mode changes how every following answer behaves, and the
-            // only thing that said so was a coloured strip appearing. A screen
+            // only thing that said so was a colored strip appearing. A screen
             // reader user got no signal at all unless they went looking for it.
             // Polite rather than assertive: it should follow whatever the user
             // is being told, not interrupt it.
@@ -825,7 +825,7 @@ private fun ModeBanner(mode: Mode) {
 
 /**
  * The deliberate mode picker: a small sheet listing the four modes, each with its
- * colour dot, name, and a short line describing what it does, the current one
+ * color dot, name, and a short line describing what it does, the current one
  * marked. Choosing applies and dismisses; dismissing changes nothing. Tapping the
  * indicator opens this rather than switching immediately, since a switch changes
  * how the assistant behaves for the rest of the conversation.
@@ -901,7 +901,7 @@ private fun whenEmptyBody(mode: Mode) = when (mode) {
 /**
  * The open conversation's title and its actions. The title is always visible so
  * the user knows which chat they are in; the overflow holds Rename, Archive, and
- * Delete, matching the chat list's behaviour and confirmation tiers. A manual
+ * Delete, matching the chat list's behavior and confirmation tiers. A manual
  * rename here stops auto-titling, the same rule as the list.
  */
 @Composable
@@ -1192,7 +1192,7 @@ private fun MessageRow(
                         // the framework does not expose.
                         androidx.compose.foundation.text.selection.SelectionContainer {
                             // Assistant text is Markdown, rendered in the app's own
-                            // type scale and colours (item 14).
+                            // type scale and colors (item 14).
                             com.kamsiob.kamai.ui.components.MarkdownText(
                                 text = shown,
                                 color = colors.textPrimary,
@@ -1528,7 +1528,7 @@ private fun ActionRow(
 /**
  * The quiet centered note that records a mode switch in the transcript. Not a
  * bubble from either side: it is a plain system line, so the history shows exactly
- * where behaviour changed. Uses the design system, never the reserved amber.
+ * where behavior changed. Uses the design system, never the reserved amber.
  */
 @Composable
 private fun ModeSwitchNote(text: String) {
@@ -1815,7 +1815,7 @@ private fun Composer(
         // recording, so the row stays uncluttered when it matters, and hidden
         // outright when the answering model cannot read documents (#22).
         //
-        // Hidden rather than disabled. A greyed paperclip raises the question
+        // Hidden rather than disabled. A grayed paperclip raises the question
         // "why not?" and answers it nowhere; the model card in Settings is where
         // what a model can do belongs, and it says so there in full.
         if (!streaming && !recording && !transcribing && canAttachDocuments) {
@@ -1882,7 +1882,7 @@ private fun Composer(
                         contentDescription = null,
                         // The accent, matching the overlay (#92). Talking instead
                         // of typing is a headline feature sitting next to a
-                        // fully-saturated send button, and a muted grey beside it
+                        // fully-saturated send button, and a muted gray beside it
                         // read as disabled rather than as the alternative it is.
                         tint = if (recording) colors.tonalText else colors.accent,
                         modifier = Modifier.size(21.dp),

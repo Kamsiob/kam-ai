@@ -57,9 +57,9 @@ import com.kamsiob.kamai.ui.theme.KamTheme
  *   interest that the edge highlight was failing to, costs no height at all, and
  *   is not a gradient.
  * - **A hairline border.** A defined edge reads as a considered object; a fill
- *   that stops reads as a coloured rectangle.
+ *   that stops reads as a colored rectangle.
  *
- * The gold ground stays a single flat colour. The rule that a gradient reads as
+ * The gold ground stays a single flat color. The rule that a gradient reads as
  * decoration and draws attention to itself still holds, and is why the motif is
  * a cropped shape rather than a sheen.
  *
@@ -75,7 +75,7 @@ fun SupportSignpost(onSupport: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            // Flat, and soft enough to read as a warm tint rather than a coloured
+            // Flat, and soft enough to read as a warm tint rather than a colored
             // block. amberFill is the palette's soft gold, already reserved.
             .background(colors.amberFill)
             // Drawn over the fill and under the content, so the motif is tinted
@@ -101,7 +101,7 @@ fun SupportSignpost(onSupport: () -> Unit, modifier: Modifier = Modifier) {
                     // obviously continuing past the crop looks deliberate, where
                     // one that fits looks like a sticker. The bottom right is
                     // left alone because that is where the action sits, and the
-                    // centred version smudged it.
+                    // centerd version smudged it.
                     .align(Alignment.TopEnd)
                     .offset(x = 24.dp, y = (-46).dp)
                     .rotate(-16f)

@@ -20,7 +20,7 @@ import com.kamsiob.kamai.ui.theme.KamTheme
 
 /**
  * The download row for one model, voice, or pack: a progress bar and the controls
- * that match its state, so a download can be paused, resumed, or cancelled, and a
+ * that match its state, so a download can be paused, resumed, or canceled, and a
  * failure retried. Used by every download screen so they behave identically.
  */
 @Composable

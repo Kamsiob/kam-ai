@@ -191,7 +191,7 @@ class PublicCopyTest {
         // a word, and renaming the property would be churn with no reader.
         val allowedIdentifiers = Regex("quantisation")
         // WrapUp.REQUESTS matches what the *user* types, not what the app writes.
-        // A British user asking to "summarise what we have" is asking to wrap up,
+        // A British user asking to "summarize what we have" is asking to wrap up,
         // and dropping the spelling the app does not use would only fail to
         // understand them. The rule is about the app's own voice.
         val allowedInputPatterns = Regex("summarise what")
@@ -233,6 +233,40 @@ class PublicCopyTest {
      */
     private fun repoFile(path: String): java.io.File =
         java.io.File("../$path").takeIf { it.exists() } ?: java.io.File(path)
+
+    @Test
+    fun theRepositoryDocumentsSpellThingsTheSameWayTheAppDoes() {
+        // The app's own copy has been guarded above for a while. The documents
+        // were not, and drifted: README, DECISIONS and the rest picked up
+        // "artefact", "licence", "colour", "behaviour" and a scattering of -ise
+        // endings while the app itself wrote -ize. Somebody reading the
+        // repository sees both, and the inconsistency is more noticeable than
+        // either choice would have been on its own.
+        //
+        // American, because that is what the app already writes and what its
+        // strings are tested for. The point is one spelling, not this spelling.
+        // Anchored on the endings rather than the stems, because a bare stem is
+        // wrong here: "optimis" also matches "optimistic", which is spelled that
+        // way in both and was the first thing this test flagged.
+        val ise = "(organis|recognis|summaris|customis|prioritis|normalis|" +
+            "optimis|apologis|emphasis|categoris|standardis|specialis|" +
+            "minimis|maximis|analys)(e|ed|es|ing|ation|ations)"
+        val british = Regex(
+            "\\b(artefact|behaviour|colour|licence|catalogue|favourite|" +
+                "defence|whilst|amongst|$ise)",
+        )
+        // Files whose spelling is not ours to choose.
+        val notOurs = setOf("CODE_OF_CONDUCT.md", "LICENSE")
+
+        val offenders = mutableListOf<String>()
+        repoFile(".").listFiles().orEmpty()
+            .filter { it.isFile && it.extension == "md" && it.name !in notOurs }
+            .forEach { file ->
+                british.findAll(file.readText().lowercase())
+                    .forEach { offenders += "${file.name}: ${it.value}" }
+            }
+        assertThat(offenders).isEmpty()
+    }
 
     @Test
     fun thePositioningLineSaysWhatTheModesAreFor() {

@@ -5,13 +5,13 @@ import androidx.compose.ui.graphics.Color
 // PART 8. The accent the user can choose, sixteen in all: eight brighter and
 // eight earthier. Green is the default and the one DESIGN.md fixes.
 //
-// Every colour here was designed and verified by a contrast script before it
+// Every color here was designed and verified by a contrast script before it
 // was allowed into this file (tools/... , recorded in DECISIONS.md). Each has a
 // separately tuned light-theme and dark-theme shade, and an on-accent text
-// colour, and every one clears the same bar in BOTH themes:
+// color, and every one clears the same bar in BOTH themes:
 //   on-accent text on the filled accent  >= 4.5:1
 //   the accent against the theme background >= 3:1
-// A colour that only looked right in one theme was retuned until it worked in
+// A color that only looked right in one theme was retuned until it worked in
 // both, or it did not ship. None had to be dropped.
 //
 // The accent drives exactly what the green drove. It never touches the reserved

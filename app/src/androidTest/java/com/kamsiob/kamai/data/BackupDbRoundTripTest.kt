@@ -93,7 +93,7 @@ class BackupDbRoundTripTest {
         repo.addMessage(convId, Role.USER, "the message that must survive")
 
         // A snapshot big enough that the restore is still running when it is
-        // cancelled, and unrelated to what is already here, so a completed
+        // canceled, and unrelated to what is already here, so a completed
         // restore would be obvious.
         val incoming = repo.exportSnapshot().let { snap ->
             snap.copy(

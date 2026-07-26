@@ -253,7 +253,7 @@ object SyncWire {
      * Whether this build may apply a payload written by [peerVersion].
      *
      * **A newer payload is refused whole, rather than applied partially.** The
-     * tempting alternative is to take the fields you recognise and skip the rest,
+     * tempting alternative is to take the fields you recognize and skip the rest,
      * which quietly destroys the others: the old build reads a row, ignores the
      * field it does not know, writes the row back with a fresh stamp, and that
      * write now wins everywhere. The data is gone, no error was raised, and the

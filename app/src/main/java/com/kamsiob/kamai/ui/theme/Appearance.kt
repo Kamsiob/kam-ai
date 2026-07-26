@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 /**
- * How the app looks: theme mode and accent colour.
+ * How the app looks: theme mode and accent color.
  *
  * These live in a small SharedPreferences file rather than in the encrypted
  * database, and read synchronously at process start, so the very first frame is

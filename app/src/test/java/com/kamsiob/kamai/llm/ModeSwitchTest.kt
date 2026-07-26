@@ -7,7 +7,7 @@ import org.junit.Test
 
 /**
  * Guards item 12: each mode applies its own system instructions, a switch carries
- * the existing conversation forward while changing behaviour, and the inline note
+ * the existing conversation forward while changing behavior, and the inline note
  * copy matches the mode being entered.
  */
 class ModeSwitchTest {

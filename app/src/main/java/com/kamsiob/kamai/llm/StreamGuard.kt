@@ -14,7 +14,7 @@ package com.kamsiob.kamai.llm
  * releases it once it plainly cannot. In the ordinary case, where nothing looks
  * like a marker, it holds nothing back and streaming is unchanged.
  *
- * It is deliberately pure and knows nothing about the engine, so its behaviour
+ * It is deliberately pure and knows nothing about the engine, so its behavior
  * is unit tested on any machine.
  */
 class StreamGuard(private val markers: List<String> = PromptBuilder.controlMarkers()) {

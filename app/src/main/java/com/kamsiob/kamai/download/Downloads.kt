@@ -13,7 +13,7 @@ import java.io.File
 
 /**
  * The one place that runs downloads, so several can run at once, each can be
- * paused or cancelled, and they keep going while the app is in the background.
+ * paused or canceled, and they keep going while the app is in the background.
  *
  * Staying alive in the background is the job of [DownloadService]: while any
  * download is active this manager keeps that foreground service running, which
@@ -22,7 +22,7 @@ import java.io.File
  * stops.
  *
  * A download that is paused keeps its partial file and resumes from it; a
- * cancelled one deletes the partial file. Registration of the finished artifact
+ * canceled one deletes the partial file. Registration of the finished artifact
  * is a per-download callback, so this manager stays unaware of models, voices,
  * and packs.
  */

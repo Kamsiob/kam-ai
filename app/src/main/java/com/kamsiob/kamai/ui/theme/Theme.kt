@@ -58,9 +58,9 @@ object KamTheme {
  * Maps Kam AI's own roles onto a Material scheme so stock Material components
  * land in the right place without being restyled one at a time.
  *
- * Dynamic colour is deliberately not used. The app has one green accent and a
+ * Dynamic color is deliberately not used. The app has one green accent and a
  * reserved amber, and letting the wallpaper repaint it would break the amber
- * discipline that the whole colour system rests on.
+ * discipline that the whole color system rests on.
  */
 private fun KamColors.toMaterialScheme() = if (isDark) {
     darkColorScheme(
@@ -101,7 +101,7 @@ private fun KamColors.toMaterialScheme() = if (isDark) {
 }
 
 /**
- * Every surface colour crossfades together over the slow duration when the
+ * Every surface color crossfades together over the slow duration when the
  * theme changes. DESIGN.md: nothing snaps.
  */
 @Composable
@@ -148,7 +148,7 @@ fun KamTheme(
         ThemeMode.DARK -> true
     }
     // Both the theme flip and an accent change crossfade through the same
-    // animated colours, so switching accent glides rather than snapping.
+    // animated colors, so switching accent glides rather than snapping.
     val target = if (darkTheme) darkKamColors(accent) else lightKamColors(accent)
     val colors = target.animated(reducedMotion)
 

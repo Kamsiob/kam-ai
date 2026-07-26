@@ -29,7 +29,7 @@ import com.kamsiob.kamai.ui.theme.KamTheme
  * Shared by Chats and Projects. It lived inside `ChatsScreen` as a private
  * composable, which is why Projects had no view control at all: the thing to
  * reuse was not reachable (#50). The enum is still called `ChatsView` because
- * renaming it touches a lot for no behaviour, but it now means "how a list of
+ * renaming it touches a lot for no behavior, but it now means "how a list of
  * things is drawn" on both screens.
  */
 @Composable

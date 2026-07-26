@@ -1,7 +1,7 @@
 # Kam AI
 
 [![CI](https://github.com/Kamsiob/kam-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Kamsiob/kam-ai/actions/workflows/ci.yml)
-[![Licence: AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Release](https://img.shields.io/badge/release-none%20yet-lightgrey)](https://github.com/Kamsiob/kam-ai/releases)
 
 **An AI that runs on your phone instead of somebody else's computer.**
@@ -22,7 +22,7 @@ arguing with an idea until you know whether it holds up.
 
 **It is not a private ChatGPT, and saying it was would be dishonest.** A model
 small enough to live on a phone knows less than the enormous ones running in data
-centres. It gets facts wrong sometimes, it cannot make pictures, and it is weaker
+centers. It gets facts wrong sometimes, it cannot make pictures, and it is weaker
 at long, polished documents. The app is built around admitting that rather than
 hiding it. When something is worth double checking, you get a bookmark to come
 back to instead of a confident guess.
@@ -200,7 +200,7 @@ transport, no server and no network code. Those pieces are free to add before
 there is data in the wild and impossible to add correctly afterwards.
 
 **Interface.** Kotlin and Jetpack Compose, one activity, Material 3 with a fully
-custom theme and no dynamic colour, because the palette carries meaning that a
+custom theme and no dynamic color, because the palette carries meaning that a
 wallpaper should not be allowed to reassign.
 
 **Voice.** whisper.cpp for speech to text and sherpa-onnx for speech back, both on
@@ -263,7 +263,7 @@ agent may touch: each answers something that actually went wrong.
 What it has given me is precision about what I am asking for, and an unwillingness
 to accept finished without seeing it work.
 
-## Licence
+## License
 
 App code is AGPL-3.0. See [LICENSE](LICENSE).
 

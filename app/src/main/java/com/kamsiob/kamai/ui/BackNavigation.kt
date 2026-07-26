@@ -24,7 +24,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * centrally, because a central handler would need to know about every piece of
  * transient state in the app and would be wrong the moment a new one appeared.
  * The dispatcher already resolves innermost-first, which is exactly the
- * behaviour wanted, so the ordering falls out of where each handler is declared
+ * behavior wanted, so the ordering falls out of where each handler is declared
  * rather than being maintained by hand.
  */
 

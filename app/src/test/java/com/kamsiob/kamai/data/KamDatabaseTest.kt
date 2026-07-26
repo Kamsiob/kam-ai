@@ -103,7 +103,7 @@ class KamDatabaseTest {
         seedConversation(id = "c2", title = "Something else")
         seedMessage("c2", "m1", Role.USER, "what about a lighthouse", now)
 
-        // SQLite's LIKE is case insensitive for ASCII, which is the behaviour a
+        // SQLite's LIKE is case insensitive for ASCII, which is the behavior a
         // person expects from a search box, so capitalisation must not matter.
         assertThat(db.conversations().search("Lighthouse").first().map { it.id })
             .containsExactly("c1", "c2")

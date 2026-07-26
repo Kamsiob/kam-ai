@@ -63,7 +63,7 @@ object WrapUp {
         "wrap up", "wrap this up", "wrap it up",
         "let's stop", "lets stop", "let's finish", "lets finish",
         "that's enough", "thats enough", "enough for now",
-        "sum up", "sum this up", "summarise what", "summarize what",
+        "sum up", "sum this up", "summarize what", "summarise what",
         "pull it together", "pull this together",
         "what have we got", "where have we got to",
         "i'm done", "im done", "we're done", "were done",

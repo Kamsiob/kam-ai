@@ -85,7 +85,7 @@ object MemoryExtractor {
             .toList()
     }
 
-    /** A normalised form for near-duplicate detection: lowercase, alphanumerics
+    /** A normalized form for near-duplicate detection: lowercase, alphanumerics
      *  and single spaces only, so "Likes tea." and "likes  tea" collapse. */
     fun normalise(text: String): String =
         text.lowercase().replace(Regex("[^a-z0-9 ]"), " ").replace(Regex("\\s+"), " ").trim()

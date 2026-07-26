@@ -3,7 +3,7 @@ package com.kamsiob.kamai.ui.theme
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
-// DESIGN.md section 3. These values are the source of truth for colour in the
+// DESIGN.md section 3. These values are the source of truth for color in the
 // app. One user-chosen accent. The reserved gold (a brighter, more saturated
 // former amber, moved further from Workbench's mustard) appears in exactly three
 // places: saved items and the bookmark, locked model tiers, and the Support this
@@ -44,7 +44,7 @@ private val DarkSurfaceSecondary  = Color(0xFF131A15)
  * It used to be [DarkSurface], #182019, sitting on #131A15. Five points apart on
  * each channel is nothing: the indicator that tells you which mode you are in
  * was very nearly invisible on dark, while the same pair in light mode is pure
- * white on a warm grey and reads instantly. This is a deliberate step lighter,
+ * white on a warm gray and reads instantly. This is a deliberate step lighter,
  * chosen to give dark mode a contrast a person can actually see.
  */
 private val DarkControlThumb      = Color(0xFF2A352C)
@@ -67,8 +67,8 @@ val MarkCoreMid       = Color(0xFF4FBF85)
 val MarkCoreEdge      = Color(0xFF1F6B44)
 
 /**
- * Kam AI's colour roles. Material 3's own scheme does not have somewhere honest
- * to put a tertiary text colour or a reserved amber, so the app carries its own
+ * Kam AI's color roles. Material 3's own scheme does not have somewhere honest
+ * to put a tertiary text color or a reserved amber, so the app carries its own
  * set and maps a Material scheme alongside it for the stock components.
  */
 @Immutable
@@ -80,10 +80,10 @@ val MarkCoreEdge      = Color(0xFF1F6B44)
  * is too strong.
  *
  * Their purpose is scanning: somebody should find the row they want by shape and
- * colour without reading the whole list, which is why adjacent rows get visibly
- * different tiles. Colours are assigned for separation rather than meaning, with
+ * color without reading the whole list, which is why adjacent rows get visibly
+ * different tiles. Colors are assigned for separation rather than meaning, with
  * one exception: [Brick] always means destructive, so that is identifiable by
- * colour as well as by wording. Never by colour alone, though; the glyph and the
+ * color as well as by wording. Never by color alone, though; the glyph and the
  * row name always carry the meaning.
  */
 enum class TileColor(private val light: Color, private val dark: Color) {
@@ -137,7 +137,7 @@ fun lightKamColors(accent: Accent) = KamColors(
     background = LightBackground,
     surface = LightSurface,
     surfaceSecondary = LightSurfaceSecondary,
-    // Unchanged: white on warm grey is what light mode already does well.
+    // Unchanged: white on warm gray is what light mode already does well.
     controlThumb = LightSurface,
     tonalFill = accent.lightTonalFill,
     tonalText = accent.lightTonalText,
@@ -182,10 +182,10 @@ val DarkKamColors = darkKamColors(Accents.default)
  * four are instantly distinguishable, harmonise with the ivory and pine grounds,
  * and stay clear of the reserved gold. Discover, which is a source rather than one
  * of the four modes, gets its own identity here too so its conversations are
- * legible in the chat list (Part 11B). Mode colour is an identity signal only: it
+ * legible in the chat list (Part 11B). Mode color is an identity signal only: it
  * is never used for general UI state (buttons, links, selection, focus), which
  * stays on the app accent. Every use is paired with the mode name or an icon, so
- * colour is never the only carrier of meaning.
+ * color is never the only carrier of meaning.
  */
 object ModeColors {
     // General

@@ -32,7 +32,7 @@ import com.kamsiob.kamai.ui.theme.KamTheme
  * part of the conversation it describes, get summarized by the next summary, and
  * read a week later as something one of the two of you said. This is a sheet: it
  * can be read, copied, shared, kept or dismissed, and if it is kept it is
- * labelled as generated rather than filed as a quote.
+ * labeled as generated rather than filed as a quote.
  *
  * Every state it can be in says what is happening, and the working state carries
  * its own cancel, because a summary of a long conversation is several passes and

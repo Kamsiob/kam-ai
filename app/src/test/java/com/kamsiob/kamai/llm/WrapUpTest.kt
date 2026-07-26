@@ -45,7 +45,7 @@ class WrapUpTest {
 }
 
 /**
- * Recognising a typed request to finish (#58).
+ * Recognizing a typed request to finish (#58).
  *
  * The Wrap-up control was built because the instruction lost against a long
  * history. Typing the same words went down the ordinary path and hit exactly the

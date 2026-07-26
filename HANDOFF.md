@@ -58,7 +58,7 @@ Fixed and verified on the device:
 - **The mode picker's Workbench promise.** It advertised "Opens a linked Workbench" and
   opened whichever unlinked session was most recent. Now opens empty and pairs with the
   chat once the first run produces something. Two of my own defects on the way: a null
-  `_linkTo` read by `init` (Kotlin initialises in declaration order) and a race where the
+  `_linkTo` read by `init` (Kotlin initializes in declaration order) and a race where the
   restore resumed after the screen had claimed the Workbench.
 - **The Workbench note that had never been shown.** `modeSwitchNotice(Mode.BENCH)` had copy
   and a doc comment and was unreachable, because the picker routes Workbench to navigation
@@ -168,7 +168,7 @@ together in 595f6d9: the sliding-window KV cache discarding cells the prefix-reu
 assumed were present (`swa_full`), an ignored `llama_memory_seq_rm` failure leaving the
 cache and `cached_tokens` disagreeing, and the stop-marker check looking at one streamed
 piece at a time so a marker typed across several tokens was never matched (`StreamGuard`,
-7 unit tests). Verified with deliberately adversarial prompts, asking for a labelled
+7 unit tests). Verified with deliberately adversarial prompts, asking for a labeled
 two-speaker dialogue and then a continuation of it, in a long existing conversation on
 E4B: no template syntax in either answer, no desync, and the context stayed coherent
 across the reuse path. Detail on the issue.
@@ -370,7 +370,7 @@ Everything here has cost someone an hour at least once.
   KSP must match exactly), no standalone Kotlin Android plugin (hard error under AGP 9),
   `android.disallowKotlinSourceSets=false` (required by KSP under AGP 9), CMake 3.31.6
   (CMake 4 breaks the vendored trees), NDK 28.2.13676358, `compileSdk` 37 ahead of
-  `targetSdk` 36 (AndroidX requires it; targeting 37 would opt into untested behaviour).
+  `targetSdk` 36 (AndroidX requires it; targeting 37 would opt into untested behavior).
 - **llama.cpp b10058 and whisper.cpp are vendored but not committed**, fetched by
   `tools/fetch_llama.sh` and `tools/fetch_whisper.sh`. `git describe` inside those trees
   returns this app's commit, which is confusing the first time.
@@ -389,12 +389,12 @@ never watched on the device), **partial**, **not started**, **blocked**.
 
 | # | Item | State |
 |---|---|---|
-| #49 | Chat template tokens leak into responses in longer conversations | **closed, verified on the phone** with adversarial labelled-dialogue prompts |
+| #49 | Chat template tokens leak into responses in longer conversations | **closed, verified on the phone** with adversarial labeled-dialogue prompts |
 | #40 | Stopping a response loses its reason, hides the action row, then gets mislabelled | **closed, verified on the phone**, including across a relaunch |
 | #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | **closed, verified on the phone** against the real exported files |
 | #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | **closed, verified on the phone.** Guarded by PublicCopyTest |
 | #45 | Overlay shows a memory warning and then works anyway | **closed.** The check was right; the notice was never cleared. **Not device-verified**, see the issue |
-| #61 | The overlay recording button uses the reserved gold | not started. Do with #47; DESIGN specifies no listening treatment, so the colour is the owner's call |
+| #61 | The overlay recording button uses the reserved gold | not started. Do with #47; DESIGN specifies no listening treatment, so the color is the owner's call |
 | #59 | Template tokens leaked before the #49 fix are still stored and still displayed | not started. Sanitise on read; do not rewrite user rows |
 | #46 | Assistant voice-first setting has no effect | **closed, verified on the phone.** It now opens already listening |
 
@@ -413,7 +413,7 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | # | Item | State |
 |---|---|---|
 | #24 | Version 4 to 5 migration | **closed and fully verified.** SQL by MigrationSqlTest on the JVM, Room and SQLCipher by the three androidTest classes run on the phone, 11 tests passing |
-| #25 | Brainstorm behaviour on the device | **closed.** All four hard rules verified across four conversations; two shaping deviations moved to #58 |
+| #25 | Brainstorm behavior on the device | **closed.** All four hard rules verified across four conversations; two shaping deviations moved to #58 |
 | #28 | First-time per-mode explainers (needs a "seen once" key that does not exist anywhere yet), per-mode Q&A entries, export markers (#41) | partial |
 | #29 | Per-mode empty-state nudges | **closed, verified on the phone** in all four modes. Fraunces Italic bundled and subset to 5.8 KB; sketches are Compose paths rather than assets; `edgeFadeHorizontal` landed with it |
 | #31 | Auto-archive: Off / 3 / 7 / 30 days, pinned exempt, count before confirming, undo | **built, 13 tests.** Settings verified on the phone; **the pass itself has never fired there**, since nothing on that device is old enough to match. Issue left open until it is watched working |
@@ -434,21 +434,21 @@ never watched on the device), **partial**, **not started**, **blocked**.
 | #52 | Stage 2: KV state persistence across sessions, flat time to first token at turns 1, 5, 20, invalidation cases, cross-conversation prefix reuse, titling cost | not started. **Privacy constraint: state files must not be plaintext** |
 | #53 | Flash attention set deliberately, q8_0 KV cache, tested at real context lengths | not started |
 | #54 | Speculative decoding with the Gemma drafter, server-style context setup; draftless n-gram mode | not started, un-deferred by round 3 |
-| #55 | Q4_0 repacking versus Q4_K_M versus Q5_K_M per tier | not started, measure before proposing any catalogue change |
+| #55 | Q4_0 repacking versus Q4_K_M versus Q5_K_M per tier | not started, measure before proposing any catalog change |
 | #56 | Physical batch sweep, warmup at launch, mmap versus locked pages | not started |
 
 ### Mode method work, round 3
 
 | # | Item | State |
 |---|---|---|
-| #57 | Logic Partner: analyse before attacking, find the crux, challenge well | **implemented, left open.** Budget conflict resolved (1000 to 1080, paid for and justified in the test). Two of six claim types tested; **the values-stop does not land on E4B** |
+| #57 | Logic Partner: analyze before attacking, find the crux, challenge well | **implemented, left open.** Budget conflict resolved (1000 to 1080, paid for and justified in the test). Two of six claim types tested; **the values-stop does not land on E4B** |
 | #58 | Brainstorm: ground the method in facilitation practice | **partly done.** One-question-per-turn inside a method fixed and verified. **Converge-on-request does not land**; two prompt attempts failed, try an app-side action instead |
 
 ### Older worklist items still open (issues #1 to #22)
 
 - **#2 Projects.** Remaining: multi-select bulk move from the chat list, add-existing from
   inside a project, optional project notes field. **Its title still mentions Today, which
-  is cancelled; fix the title and body.**
+  is canceled; fix the title and body.**
 - **#3 Inference speed.** Superseded on measurement by #38 and round 3; keep only for
   per-tier tok/s across E4B and 12B.
 - **#5 Nothing processes silently.** Remaining: the app-wide audit. #40 is an instance of
@@ -467,11 +467,11 @@ never watched on the device), **partial**, **not started**, **blocked**.
 
 - ~~Jump-to-latest in its **visible** state~~ **seen working 24 July 2026**: after a reply
   arrived in a long conversation the list did not yank, the control appeared, and tapping
-  it moved to the latest message. The non-yanking behaviour was seen at the same time. What
+  it moved to the latest message. The non-yanking behavior was seen at the same time. What
   is still unverified is scroll **restoration** when reopening a conversation, and #43
   changes the rule for streaming anyway.
 - Eleven of twelve mode-switch pairs (#39). Only General to Logic has been exercised.
-- The Brainstorm prompt's actual behaviour (#25).
+- The Brainstorm prompt's actual behavior (#25).
 - Follow-up kind auto-assignment from a Brainstorm conversation (#33).
 - Whether the trimmed Logic and Brainstorm prompts still behave the same. Tokens came out;
   nobody watched the model use them.
@@ -524,7 +524,7 @@ Consult before trying anything in these areas.
   (5.12) and must not be "restored".
 - *Bright gold `#EFA913` for text or glyphs on light.* 1.84 contrast. Fills and dots only.
 - *Heavy black shadows in dark mode.* They read as dirty translucent boxes.
-- *Coloured bars, borders, tints, or text tags for mode identity on chat rows.* All made a
+- *Colored bars, borders, tints, or text tags for mode identity on chat rows.* All made a
   quiet list loud. The small dots are the answer.
 - *Lightbulb, wrench, or sparkle icons.* Banned by the owner.
 - *Kotlin 2.3.10, CMake 4.x, the standalone Kotlin Android plugin.* All hard failures.
@@ -605,7 +605,7 @@ tokenizer by roughly 15%), guarded by `PromptBudgetTest`:
 | OVERLAY | small | not trimmed | 600 |
 | DISCOVER | ~683 est. | not trimmed | 750 |
 
-Colour contrast, measured: `#8A5F0D` 5.12 on ivory and 5.64 on white; `#EFA913` 1.84 on
+Color contrast, measured: `#8A5F0D` 5.12 on ivory and 5.64 on white; `#EFA913` 1.84 on
 ivory; `#FFD166` 12.82 on pine. All four mode hues clear 3:1 in both themes, Workbench
 light tightest at 3.07. Smallest pairwise RGB separation among the modes and gold is 65.
 
@@ -632,9 +632,9 @@ Each of these looks wrong from outside and is not.
   "improve" it by making it generate ideas.
 - **Its prompt is a numbered checklist, not prose,** because a small model follows an
   ordered checklist far more reliably.
-- **The mode picker does not switch on the spot.** Switching changes behaviour mid
+- **The mode picker does not switch on the spot.** Switching changes behavior mid
   conversation and should be deliberate.
-- **Mode colours are identity only,** never UI state. A mode colour on a button is a bug.
+- **Mode colors are identity only,** never UI state. A mode color on a button is a bug.
 - **Discover is a source, not a mode.** In the chat-list filter, not in the picker.
 - **The segmented control is both the new-chat action and the mode selector,** and it sits
   above the bottom navigation for one-handed reach. The in-conversation mode control is at
@@ -652,9 +652,9 @@ Each of these looks wrong from outside and is not.
   it silently answers from the wrong history. See #49.
 - **No destructive migration fallback, ever.** Users hold conversations that exist nowhere
   else.
-- **The Today tab is cancelled outright, not deferred.** Its spec was deleted and it is on
+- **The Today tab is canceled outright, not deferred.** Its spec was deleted and it is on
   the Not planned list. Do not resurrect it because an older document mentions it.
-- **Gemma 4 across every tier:** one family, one licence, one prompt format. No Qwen.
+- **Gemma 4 across every tier:** one family, one license, one prompt format. No Qwen.
 - **Assistant overlay visuals must work in both themes,** as one design or two variants.
 
 ---
@@ -678,7 +678,7 @@ a debug reinstall, and the Play Console account actions.
    a stop-marker check that only ever saw one streamed piece at a time. Fixed and verified.
    The "what else has it silently corrupted" half stands: any answer given in a long
    conversation before 595f6d9 may have been generated against a holed cache.
-2. Did the prompt trim cost behavioural quality in Logic and Brainstorm? Tokens came out;
+2. Did the prompt trim cost behavioral quality in Logic and Brainstorm? Tokens came out;
    the tests only guard size.
 3. ~~How much does the auto-titling pass actually cost?~~ **Answered, and it is bad.**
    About 28 seconds per turn, because it overwrites the KV cache and forces the next turn
@@ -735,7 +735,7 @@ is correct while work is happening, not that it appears active while it is not.
 ### The standard issues are held to
 
 An issue is a specification, not a reminder. Every one states what the current
-behaviour or situation is, why it matters or what it blocks, and acceptance
+behavior or situation is, why it matters or what it blocks, and acceptance
 criteria in checkable terms. The acceptance criteria are the load bearing part:
 without them, closing an issue is a judgement call and nobody can verify the
 claim afterwards.

@@ -9,12 +9,12 @@ anything that could not be done without the owner. Newest phase at the bottom.
 
 The Play service account JSON key was sitting in the project folder at the start
 of the run (`kamsiob-503213-159c76e1da43.json`). It was moved, before git was
-initialised, to:
+initialized, to:
 
     ~/.kamsiob-secrets/play-service-account.json   (mode 600, directory mode 700)
 
 It is outside the repository and is also covered by `.gitignore` patterns as a
-second line of defence. Nothing references it by content, only by path. The
+second line of defense. Nothing references it by content, only by path. The
 release keystore will be generated into the same directory in Phase 8.
 
 `.gitignore` was written as the first file in the repository, before any source
@@ -64,7 +64,7 @@ directory instead:
 Matched to the other kamsiob repositories (`dig`, `logbook`, `bearings`):
 description is one line naming what it is and who it is for, followed by the
 local-first and no-telemetry statement; topics are lowercase kebab case and
-include the licence tag; README leads with the name, a bold one line positioning
+include the license tag; README leads with the name, a bold one line positioning
 statement, a plain paragraph, then screenshots, then what it is and is not.
 
 ### Build system surprises worth recording
@@ -85,7 +85,7 @@ regardless. That line should come out once KSP supports built-in Kotlin.
 be compiled against anything older. `targetSdk` stays at 36, which is what Play
 requires. Compiling against a newer platform than you target is supported and is
 the lower risk option, since targeting 37 would opt the app into Android 17
-runtime behaviour changes that nothing here has been tested against yet.
+runtime behavior changes that nothing here has been tested against yet.
 
 ### The mark
 
@@ -160,11 +160,11 @@ the background constantly. Falling back to Gemma 3 4B for the top tier was also
 rejected, because then Balanced and Best Available would ship the same model and
 the tier would be a lie.
 
-Licences now differ across tiers, which is worth being straight about. Gemma is
+Licenses now differ across tiers, which is worth being straight about. Gemma is
 under the Gemma Terms of Use: redistribution and commercial use are permitted,
 but conditions including a use policy travel with the model. Qwen3 is Apache-2.0
 outright. Nothing is bundled into the app. Every model is downloaded by the user
-from its official repository, which both licences allow plainly. Both appear on
+from its official repository, which both licenses allow plainly. Both appear on
 the Licenses screen.
 
 ### Two prompt formats
@@ -250,7 +250,7 @@ mockup, so the store graphics cannot drift from the app.
 Two rendering bugs were found by looking at the output rather than trusting the
 arithmetic, which is the second time in this build that has paid off. Pillow
 grows an arc's stroke inward from its bounding box rather than centring it on
-the radius, so the rounded end caps had to move to the stroke centreline instead
+the radius, so the rounded end caps had to move to the stroke centerline instead
 of the nominal radius, where they had been bulging outside the ring. And drawing
 the core as stacked ellipses produced a soft halo past the core radius, which
 reads as a glow; DESIGN.md permits no glow beyond the mark's breathing shadow
@@ -342,35 +342,35 @@ range finally covers the whole envelope. The lineup is now Gemma 4 only:
 - Best Available, 16 GB: Gemma 4 12B, 7.1 GB at Q4_K_M.
 
 There is no Qwen anywhere any more. Gemma 4's range fills the 7 to 8 billion
-band that once forced Qwen at the top, so the app is one family, one licence
+band that once forced Qwen at the top, so the app is one family, one license
 (Apache 2.0, no asterisk on any tier), and one prompt format. Sizes and SHA-256
 hashes were read from the API, not documentation. E2B was downloaded onto the
 Pixel, hash-verified to the exact byte, and an instrumented test loaded it
-through the bridge and confirmed it answers "name three primary colours" with a
-real primary colour, which is the difference between tokens coming out and the
+through the bridge and confirmed it answers "name three primary colors" with a
+real primary color, which is the difference between tokens coming out and the
 model actually understanding the Gemma 4 prompt format.
 
 The prompt format stays the Gemma `<start_of_turn>` layout, which Gemma 4 shares
 with 2 and 3. The ChatFormat enum keeps the per-model design so a future family
 still drops in cleanly.
 
-An Advanced model list (PART 2) is seeded in the catalogue (a higher-quality E4B
+An Advanced model list (PART 2) is seeded in the catalog (a higher-quality E4B
 quantisation, verified) and will be surfaced in Settings alongside the rest of
 PART 2 (multiple installed models, switching, safe deletion of the active one).
 
-### Sixteen accent colours, verified in both themes (PART 8)
+### Sixteen accent colors, verified in both themes (PART 8)
 
-The accent is now user-chosen from sixteen colours, eight bright and eight
-earthy, green the default. Every colour was designed and checked by a contrast
+The accent is now user-chosen from sixteen colors, eight bright and eight
+earthy, green the default. Every color was designed and checked by a contrast
 script before it was allowed into the code, and each has a separately tuned
-light-theme and dark-theme shade plus its own on-accent text colour. Every one
+light-theme and dark-theme shade plus its own on-accent text color. Every one
 clears the same bar in BOTH themes: on-accent text at 4.5:1, and the accent
-against the background at 3:1. None had to be dropped; the first search maximised
+against the background at 3:1. None had to be dropped; the first search maximized
 contrast and made them all dark and samey, so it was retuned to prefer vividness
-subject to passing, which is why bright colours are saturated and earthy ones
+subject to passing, which is why bright colors are saturated and earthy ones
 muted while all still pass. The default green keeps the exact DESIGN.md section 3
 values, tonal shades included. AccentContrastTest pins all of this so a future
-tweak that breaks a colour in one theme fails the build.
+tweak that breaks a color in one theme fails the build.
 
 Theme mode is System, Light, or Dark, and both theme and accent live in a small
 SharedPreferences file read synchronously before the first frame, so there is no
@@ -420,7 +420,7 @@ all. Off means one swipe-and-tap deletes it, for people who clear chats often an
 do not want the friction. It applies only to single chat deletion; a bulk delete
 of several chats is always tier two.
 
-Three instrumented tests pin the behaviour: tier one confirms in one tap, tier
+Three instrumented tests pin the behavior: tier one confirms in one tap, tier
 two needs the second step, and the largest wipe does nothing until the word is
 typed.
 
@@ -492,7 +492,7 @@ every entry point, and the forgot-code wipe-and-restart flow.
 ## Combined update, part 3b: the optional app lock (PART 3)
 
 An optional lock on Kam AI itself, separate from the phone's lock, off by
-default. Two honestly-labelled strengths, and the tradeoff is spelled out at the
+default. Two honestly-labeled strengths, and the tradeoff is spelled out at the
 moment of choosing rather than buried.
 
 - Device mode is backed by the phone's own credential through the system
@@ -500,7 +500,7 @@ moment of choosing rather than buried.
   recoverable, because the device credential always works, and it is the simpler
   choice. It is a gate on the app on top of the always-on at-rest encryption. It
   is honestly the slightly weaker option against someone who already knows the
-  phone code, and it is labelled as such.
+  phone code, and it is labeled as such.
 
 - Passphrase mode is a separate passphrase known only for Kam AI, and it is
   genuinely stronger because it gates the database key itself, not just the UI.
@@ -955,7 +955,7 @@ SttEngine on the Pixel and asserts the words come back. It passed: the 11-second
 clip transcribed correctly in about 6 seconds, returning "ask not what your
 country can do for you". This proves the isolated whisper library actually works,
 which the symbol-isolation and build steps alone could not. The model's sha256
-(60ed5bc3...) was confirmed against the catalogue when downloading it for the
+(60ed5bc3...) was confirmed against the catalog when downloading it for the
 test, so the size and hash shipped to users are correct. The test skips itself
 when no model is present, so it is safe on any device; the large model file it can
 use is gitignored and never committed.
@@ -1401,8 +1401,8 @@ collapsed by default behind a "N more" toggle so it takes less room.
 Verified on device: started the Basic model download (progress, Pause, Cancel),
 paused it ("Paused at 3%", Resume), resumed it, started a voice download alongside
 it (the notification read "Downloading 2 items", both partial files grew),
-cancelled the voice one (its partial file was deleted, the model download
-continued, the notification went back to one item), then cancelled the model one
+canceled the voice one (its partial file was deleted, the model download
+continued, the notification went back to one item), then canceled the model one
 (its partial file deleted, the foreground service stopped since nothing was
 active). Balanced stayed installed and working throughout.
 
@@ -1472,21 +1472,21 @@ The CLI token carried `gist`, `read:org`, `repo`, which is not enough for
 ProjectsV2 or for pushing a workflow file. The owner granted `project`,
 `read:project` and `workflow`, and both were completed immediately afterwards.
 Kept here rather than deleted, because the shape of the failure is worth
-recognising next time: every ProjectsV2 read returned `INSUFFICIENT_SCOPES`
+recognizing next time: every ProjectsV2 read returned `INSUFFICIENT_SCOPES`
 before returning any data, so it was not possible even to determine whether a
 board existed.
 
 ### Custom issue types are not available on a user account
 
 The later addendum asked for issue types as a first class field.
-`GET /users/Kamsiob/issue-types` returns 404: issue types are an organisation
+`GET /users/Kamsiob/issue-types` returns 404: issue types are an organization
 feature, and `Kamsiob` is a user account. No token scope changes this.
 
-The options are to move the repository into an organisation, or to accept the
+The options are to move the repository into an organization, or to accept the
 label taxonomy as the equivalent, which is what is in place. Recorded so the gap
 is a known decision rather than an unexplained omission.
 
-### The copyright status of machine written code under a copyleft licence
+### The copyright status of machine written code under a copyleft license
 
 Raised, not resolved, and deliberately left for the owner to look into
 independently.
@@ -1495,9 +1495,9 @@ The implementation here is written by a coding agent. There is an unsettled lega
 question about the copyright status of machine written code and how that interacts
 with AGPL-3.0, which this repository carries. Copyleft works by exercising
 copyright over the work; if the status of the code's authorship is unclear then so
-is the mechanism the licence relies on.
+is the mechanism the license relies on.
 
-No legal language has been added anywhere, the licence has not been altered, and
+No legal language has been added anywhere, the license has not been altered, and
 nothing in the repository takes a position on it. This is recorded so that it is a
 known open question rather than something nobody thought about, and it is the
 owner's to pursue.
@@ -1505,7 +1505,7 @@ owner's to pursue.
 ### Nothing else is blocked
 
 The Pixel initially reported as `unauthorized` over ADB, which would have
-blocked every on-device step. It authorised itself once the ADB daemon
+blocked every on-device step. It authorized itself once the ADB daemon
 restarted, and the phone (Pixel 10 Pro XL, Android 17, 16 GB) has been running
 builds and tests throughout. No action needed.
 
@@ -1622,7 +1622,7 @@ build. `defaultConfig` sets `-DCMAKE_BUILD_TYPE=Release` and `-O3` for all varia
 actual ggml-cpu compile commands (verified in the debug variant's compile_commands.json) carry
 `-march=armv8.2-a+dotprod+i8mm+fp16`, so the ARM int8 dot-product and matrix kernels are enabled,
 weight repacking (GGML_CPU_REPACK) is on, mmap is on, flash-attn is AUTO, and n_batch is 512.
-The debug APK already runs optimised native code, so debug-vs-release is not the cause here.
+The debug APK already runs optimized native code, so debug-vs-release is not the cause here.
 
 The real lever was thread count. The old default was `(cores - 2).coerceIn(2, 6)` = 6 threads.
 Decode is memory-bandwidth bound, and on a big.LITTLE SoC spilling onto the slow efficiency cores
@@ -1698,14 +1698,14 @@ empty, and during load the last message is the user's own turn. Fixed so it show
 under way and no answer text exists yet (user turn, empty placeholder, or a brand-new empty chat),
 and `_streaming` now flips synchronously in send() before any DB write or model load. Extracted a
 pure `showThinkingIndicator` predicate with a unit test. Device-verified: dots appear the instant a
-message is sent. The broader item-5 audit (quiz preparing state, leaving-screen behaviour, and a
+message is sent. The broader item-5 audit (quiz preparing state, leaving-screen behavior, and a
 cancel path on every slow operation) remains, tracked in WORKLIST.md.
 
 Item 6 (read aloud could not be stopped): TTS was fire-and-forget with no state, so the play
 control never became a stop. Added `speakingMessageId` state and `toggleSpeak(messageId, text)`:
 tapping the speaking response stops it, starting another stops the current first (one voice at a
 time), and sending a new message stops any read. The action-row control shows a Stop icon in the
-accent colour while that response is speaking and reverts to Play when done or stopped.
+accent color while that response is speaking and reverts to Play when done or stopped.
 Device-verified play -> stop -> play. Call/audio-focus interruption is a noted refinement (the raw
 AudioTrack path does not yet request audio focus).
 
@@ -1719,7 +1719,7 @@ Two causes, both fixed. Rendering: assistant text was drawn as a single plain Te
 the model emitted collapsed into a block with stray symbols. Added a small dependency-free renderer
 (ui/components/Markdown.kt) that parses the subset a chat model actually produces (headings, bold,
 italic, inline code, fenced code blocks, bullet and numbered lists, block quotes, a rule, paragraph
-breaks) and renders each block in the app's own type scale and colours: code in the mono face on the
+breaks) and renders each block in the app's own type scale and colors: code in the mono face on the
 secondary surface with horizontal scroll, lists with hanging indents, quotes with a left bar. It is
 deliberately tolerant of half-finished Markdown so a response renders correctly as it streams (an
 unclosed ** or ``` shows as plain text rather than breaking). No web-view, no third-party library, so
@@ -1764,12 +1764,12 @@ placeholder. Manual renames still win (titleIsManual), and an auto title refresh
 Efficiency (owner's "when it runs" instruction): titling never loads a multi-gigabyte model on its own.
 When the model is already resident it writes a model-quality title; when it is not (e.g. titling on
 open right after launch) it uses the instant excerpt fallback, and a model title can still replace it
-at the refresh milestone. title-on-open is cancelled the instant a real reply starts, so a title pass
+at the refresh milestone. title-on-open is canceled the instant a real reply starts, so a title pass
 and a reply never share the single-threaded engine. Verified on device: an interrupted "tell me about
 paris" conversation, previously blank, is titled "tell me about paris" on open; fresh chats get model
 titles like "Eiffel Tower height measurement". Tests: ConversationTitlerTest.
 
-### Item 12: Logic Partner (visual distinction, inline switch notice, verified behaviour)
+### Item 12: Logic Partner (visual distinction, inline switch notice, verified behavior)
 
 The mode switch already changed the system prompt for the next turn (buildPrompt uses
 SystemPrompts.forMode of the current mode), but it was invisible and not persisted. Added:
@@ -1854,7 +1854,7 @@ Done:
   embeddings land. Pure and unit-tested.
 - Extraction as a cheaper batch: Auto runs over the last few turns only every AUTO_MEMORY_EVERY user
   messages, not after every one, and is given the already-stored facts so it does not re-suggest them.
-- Dedup on a normalised form (case/punctuation/spacing) instead of exact text; the auto-reply parser
+- Dedup on a normalized form (case/punctuation/spacing) instead of exact text; the auto-reply parser
   strips chat-template tokens ("NONE</start_of_turn>", "<end_of_turn>") that had been stored as junk.
 - Transparency/control already present in the Memory screen (see all in full, auto vs manual, edit,
   delete, multi-select, delete all, mode switch).
@@ -1954,7 +1954,7 @@ document wherever they disagree, and the documents are then corrected to match.
 ### A discrepancy found during reconciliation, logged as an issue
 
 The bookmark on a chat response fills amber when set (the reserved amber rule for saved items), but
-the save bookmark on a Discover card fills with the accent colour instead. With saving unified, both
+the save bookmark on a Discover card fills with the accent color instead. With saving unified, both
 are the same save-to-Follow-ups action and should look the same. This is a real inconsistency, left
 in the code and tracked as a GitHub issue rather than fixed under this documentation-only task.
 
@@ -1967,7 +1967,7 @@ What remained was quiet visual character on the overlay sheet and confirming it 
 Added, all from theme tokens so a single implementation works in both light and dark (the owner's
 requirement): a small grabber handle matching the app's other bottom sheets; the "on device" mono tag
 next to the name that DESIGN.md section 7 always called for and the overlay was missing; the mark
-breathing while an answer streams, its status-indicator behaviour from section 2; a faint black scrim
+breathing while an answer streams, its status-indicator behavior from section 2; a faint black scrim
 (0.32 alpha, theme-neutral, dims whatever is behind in either theme) so the panel reads as lifted; and
 a slide-up arrival on the expressive spring, the "sheet arriving" signature moment from section 6, that
 collapses to instant under reduced motion.
@@ -2022,13 +2022,13 @@ notices UI, #29 nudges, #30 dots/filter, #31 auto-archive, #32 Workbench linking
 UI, #34 keyboard, #35 nav/failure, #36 onboarding/copy, #37 Today cancellation, #38 performance, #39
 usability gaps).
 
-### Mode colours, reserved gold, and mode icons (issue #26)
+### Mode colors, reserved gold, and mode icons (issue #26)
 
 The four mode identity hues are in ModeColors (light/dark each): General 2E7A52/6FD19E, Logic
 2F5D8C/7FB3E0, Brainstorm 9A3B33/E2705F (a deep maroon red, held red not pink by saturation),
 Workbench B0851C/C9A44E (deep mustard). Discover, a source not a mode, gets its own identity
-6A4A9C/B79CE6 (Part 11B). Mode colour is identity only, never general UI state, and always paired with
-the name or icon so colour is never the sole carrier of meaning.
+6A4A9C/B79CE6 (Part 11B). Mode color is identity only, never general UI state, and always paired with
+the name or icon so color is never the sole carrier of meaning.
 
 The reserved amber moved to a brighter, more saturated gold so it never reads as Workbench's mustard:
 gold is luminous, mustard is deep and dull. Light EFA913 for fills/icons/dots/support, deeper gold for
@@ -2043,9 +2043,9 @@ contrast with ivory (1.84), which is fine for the support button fill (dark text
 small identity dots, but would be faint as a glyph; gold icons and text on light therefore use the
 deeper goldText, and the token switch was applied across the app (bookmark tints, destructive labels,
 counts, warnings). Dark theme gold FFD166 clears comfortably (12.82 on pine). The four mode hues each
-clear 3:1 as UI colour on their ground in both themes (Workbench light is 3.07, the tightest). Pairwise
+clear 3:1 as UI color on their ground in both themes (Workbench light is 3.07, the tightest). Pairwise
 RGB separation between the four modes and the gold is comfortable (smallest 65, General vs Logic).
-Colourblind safety rests on never using colour alone: every mode colour appears with its name or icon.
+Colorblind safety rests on never using color alone: every mode color appears with its name or icon.
 
 Mode icons are simple line glyphs, deliberately not the overused lightbulb (Brainstorm) or wrench
 (Workbench), and no sparkles: General a speech bubble, Logic a balance scale, Brainstorm a hub with
@@ -2063,13 +2063,13 @@ It is draggable as well as tappable: the thumb follows the finger, resists past 
 to the nearest segment on release; releasing back on the start segment selects nothing. Haptics are a
 light tick (TextHandleMove) as the thumb crosses each detent during a drag and a heavier thump
 (LongPress) on snap or tap, both routed through LocalHapticFeedback so the system haptic setting is
-respected. Verified on device: the four segments render with their mode colours and dots, the thumb
+respected. Verified on device: the four segments render with their mode colors and dots, the thumb
 rests on General, and tapping a segment opens a new conversation in that mode (confirmed the mode is
 seeded into the ChatViewModel and createConversation/forMode use it, so Brainstorm's prompt applies).
 The in-conversation mode indicator/picker and per-mode empty-state nudges are separate (issues #28, #29);
 the old top mode pill is stale until #28 replaces it. Shared component so Projects can reuse it (#39).
 
-### Today tab cancelled (Four-Mode Update Part 9, issue #37)
+### Today tab canceled (Four-Mode Update Part 9, issue #37)
 
 Every other part of Kam AI works on material the user brings; Today would have delivered content to the
 user. It duplicated the learning role Discover already fills, at a far higher cost in ongoing
@@ -2101,7 +2101,7 @@ issue #38's verification work; the source-level audit is recorded here.
 Each chat row shows tiny mode dots (about 5dp, 2.5dp apart) near the timestamp, one per mode the
 conversation used, in first-use order, read from the conversation's modesUsed. Genuinely small and
 quiet, closer to metadata than decoration. Shown in all three list views (comfortable/compact via the
-shared row, and grid). The explicitly-rejected patterns (a coloured left bar or spine, a coloured
+shared row, and grid). The explicitly-rejected patterns (a colored left bar or spine, a colored
 border, a background tint, or named text tags) are not used. Mode names go into each row's
 accessibility label since dots convey nothing to a screen reader.
 
@@ -2112,7 +2112,7 @@ never wonders why they see fewer conversations. Filter and search combine: a que
 filtered set. Filtering matches any mode a conversation used, consistent with the dots. Discover is
 offered as a filter option (it is a source, not one of the four modes) per Part 11B. The sheet is built
 so more filter types could be added later without restructuring. Verified on device: dots render per
-mode (green General, blue Logic seen on the real data), the sheet shows all five colour-coded options,
+mode (green General, blue Logic seen on the real data), the sheet shows all five color-coded options,
 selecting Logic shows only Logic conversations with the funnel active and the Showing line, and Clear
 restores all.
 
@@ -2120,15 +2120,15 @@ restores all.
 
 The stale top Chat/Logic flip pill is gone. The interactive mode control now lives at the bottom next to
 the input, reachable one-handed (the reason the mode chips moved to the bottom in the first place): a
-persistent mode indicator showing the current mode (dot plus name in its colour) and the active model,
+persistent mode indicator showing the current mode (dot plus name in its color) and the active model,
 which opens a deliberate picker when tapped rather than switching on the spot. The picker is a small
 sheet listing the four modes with dot, name, and a one-line description, the current one marked;
 choosing applies and dismisses, dismissing changes nothing. Workbench in the picker states plainly that
 it opens a linked session (Part 4) and for now opens the Workbench surface; the seeding/linking is #32.
 Tapping the model name opens model settings (Part 11B).
 
-Switching keeps context and inserts the quiet centred system notice at the switch point (the existing
-Role.SYSTEM mechanism, with the four-mode copy). A one-line, mode-coloured banner also appears near the
+Switching keeps context and inserts the quiet centerd system notice at the switch point (the existing
+Role.SYSTEM mechanism, with the four-mode copy). A one-line, mode-colored banner also appears near the
 top as a switch reminder, carrying the mode glyph and the mode's one sentence; it is shown only on an
 actual switch this session, not when reopening an existing conversation, matching the spec. Verified on
 device: opening a General conversation shows General with no banner; the picker lists all four modes
@@ -2207,9 +2207,9 @@ and decode tok/s per request as the ongoing regression signal; PromptBudgetTest 
 ### Conversation navigation: jump-to-latest and non-yanking scroll (issue #35, Part 7/11B)
 
 The message list now tracks whether the user is at the bottom (derivedStateOf over the lazy list's
-layout info). Two behaviours follow. First, streaming text follows down only when the user is already at
+layout info). Two behaviors follow. First, streaming text follows down only when the user is already at
 the bottom: if they have scrolled up to read earlier messages, a new or growing response no longer yanks
-them to the newest one. Second, a small jump-to-latest control appears, bottom-centre above the input,
+them to the newest one. Second, a small jump-to-latest control appears, bottom-center above the input,
 only while scrolled up, arriving and leaving on the standard spring; tapping it scrolls to the newest
 message. It covers neither the messages nor the input, and carries a screen-reader label. Remaining in
 #35: per-conversation scroll-position restoration, and the honest incomplete-generation state with
@@ -2225,7 +2225,7 @@ were never written into a specification.
 
 - Assistant overlay visuals must work in both light and dark mode. Either one design that works in
   both, or two variants of the same type. A single-theme design is not acceptable.
-- The Today tab is cancelled outright, not deferred. Do not resurrect it because an older document
+- The Today tab is canceled outright, not deferred. Do not resurrect it because an older document
   mentions it.
 - Treat the inference delay as a defect, not as tuning. This framing is what found the bug: it
   forced measuring time to first token and tokens per second separately, and checking the two named
@@ -2250,7 +2250,7 @@ Three real failures sat in that noise for most of a session:
 
 - `DesignTokensTest` still pinned the pre-four-mode amber (`#C98A22` light, `#E4B05A` dark). That
   test exists precisely to fail the build when the palette is edited, and it did exactly its job
-  when the reserved colour moved to gold. Nobody read the failure, because the run was assumed to be
+  when the reserved color moved to gold. Nobody read the failure, because the run was assumed to be
   the Robolectric problem. Now pinned to the gold values, with the `goldText` token it never covered.
 - `FormattingGuidanceTest` asserted the phrase "Match the format to the content", which the issue #38
   prompt trim reworded to "match the length to the question". The guidance is still present in every
@@ -2269,8 +2269,8 @@ If that prints nothing the run is genuinely clean. The suite now stands at 148 r
 one of them the ClassReader mismatch.
 
 A second lesson, about process: closing an issue after verifying it on the device is not sufficient
-when a test encodes the same contract. Issue #26 was closed correctly (the colours are right in the
-app) while the test that guards those colours stayed red. Run the suite before closing.
+when a test encodes the same contract. Issue #26 was closed correctly (the colors are right in the
+app) while the test that guards those colors stayed red. Run the suite before closing.
 
 ### Three defects found by reading the code, not by using the app
 
@@ -2280,7 +2280,7 @@ found by continuing to build features.
 - **#40. Stopping a response loses its stop reason and hides the message actions.**
   `ChatViewModel.stop()` calls `engine.requestStop()` and then immediately `generation?.cancel()`.
   The `finally` block in `respond()` is not wrapped in `NonCancellable`, so its suspending writes
-  throw at the first suspension point inside an already-cancelled coroutine. The message stays
+  throw at the first suspension point inside an already-canceled coroutine. The message stays
   `incomplete = true` with a null reason, which makes ChatScreen hide the whole action row, so a
   stopped answer has no copy, no share, no regenerate, and no "You stopped this one." line. If zero
   tokens were produced it renders as nothing at all. On the next launch the recovery pass relabels it
@@ -2343,7 +2343,7 @@ Eleven of the twelve ordered mode-switch pairs have never been exercised on the 
 to Logic has. The pairs are General to Logic, Brainstorm, Workbench; Logic to General, Brainstorm,
 Workbench; Brainstorm to General, Logic, Workbench; and Workbench to General, Logic, Brainstorm.
 Each needs context carried forward, the right notice inserted, the banner correct, the bottom
-indicator updated, and the model's behaviour actually changing. Tracked under #39.
+indicator updated, and the model's behavior actually changing. Tracked under #39.
 
 Alongside it: the version 4 to version 5 database migration has never been verified on a real
 upgrade from a pre-migration database. The app running with existing conversations intact is strong
@@ -2392,7 +2392,7 @@ opened when it is about to be worked on.
 
 HANDOFF.md is structured to serve that: state of play, next step, and the remaining work
 inventory at the top, and the historical record of rejected approaches, measurements, and
-older decisions in clearly labelled later sections that can be consulted rather than read.
+older decisions in clearly labeled later sections that can be consulted rather than read.
 It is pruned as it goes rather than allowed to grow without bound.
 
 ## One copy only, restated after it was breached
@@ -2412,7 +2412,7 @@ possible has been removed rather than left lying about.
 ## Where migrations get tested
 
 The owner's direction, which is now the standing policy: **schema migration is database
-behaviour and is not device specific, so it is verified on an emulator, never against the
+behavior and is not device specific, so it is verified on an emulator, never against the
 phone.** The phone holds conversations that exist nowhere else. A destructive in-place
 test against the real installation is not to be run at all without first pulling its data
 off the device as a safety copy and asking the owner first.
@@ -2552,7 +2552,7 @@ FollowUpStateTest, KamDatabaseTest, ModelManagementTest and PackDealTest.
 The owner delivered a third task document from hands-on use of the app: eight bugs, a
 large researched performance list, and rebuilds of the Logic Partner and Brainstorm
 methods. It is explicitly additional work. Nothing already planned or in progress is
-cancelled by it. It is decomposed into issues **#43 through #58** and folded into the
+canceled by it. It is decomposed into issues **#43 through #58** and folded into the
 remaining-work inventory in HANDOFF.md rather than replacing it.
 
 ### How it reconciles with work already recorded
@@ -2582,7 +2582,7 @@ remaining-work inventory in HANDOFF.md rather than replacing it.
   concrete, testable difference from what was assumed, which is the bar for retrying
   something previously rejected.
 - **#57 (Logic Partner) and #58 (Brainstorm) sit on top of #25**, which already owns the
-  on-device behavioural testing that has never been done. #58 adds the research grounding
+  on-device behavioral testing that has never been done. #58 adds the research grounding
   that testing will be measured against; #25 stays the record of the verification itself.
 
 ### Order changed, and why
@@ -2607,8 +2607,8 @@ work is staged as the document specifies and sits after the small correctness fi
    with other apps cached in the background, which is the state a real phone is in.
 3. **Qwen.** The round 3 research notes in passing that Qwen has no sliding-window
    complication. Gemma 4 across every tier was a deliberate decision: one family, one
-   licence, one prompt format. It is not being reopened on the strength of an aside.
-4. **Changing a tier's quantisation** means new catalogue entries with fresh sizes and
+   license, one prompt format. It is not being reopened on the strength of an aside.
+4. **Changing a tier's quantisation** means new catalog entries with fresh sizes and
    hashes and users re-downloading gigabytes, so Q4_0 versus Q4_K_M versus Q5_K_M is
    measured before anything is proposed.
 5. **Logic Partner's prompt budget.** It sits at about 940 estimated tokens against a
@@ -2625,10 +2625,10 @@ The fix landed in 595f6d9 but the bug only ever appeared in long conversations, 
 a fresh chat behave would have proved nothing. The verification used an existing long
 conversation on Gemma 4 E4B at ctx 6144, and prompts chosen to be adversarial rather than
 representative: first "write a short imagined dialogue between Jefferson and Lincoln about
-federal power, with each speaker clearly labelled", then "continue that exact dialogue for
-four more exchanges, keeping the same speaker labels". **Asking a model for labelled
+federal power, with each speaker clearly labeled", then "continue that exact dialogue for
+four more exchanges, keeping the same speaker labels". **Asking a model for labeled
 speaker turns is as close as you can get to inviting it to type its own turn delimiters**,
-which is the behaviour `StreamGuard` exists to catch.
+which is the behavior `StreamGuard` exists to catch.
 
 Both answers came back as clean `Jefferson:` / `Lincoln:` prose, ended on complete
 sentences, and were not truncated. Zero occurrences of `start_of_turn`, `end_of_turn` or
@@ -2754,7 +2754,7 @@ so it will not catch those; extend it when they are cleaned up.
 
 `stop()` called `engine.requestStop()` and then `generation?.cancel()`. The `finally` in
 `respond()` that records the stop reason and finishes the message was not wrapped in
-`NonCancellable`, so it ran inside an already-cancelled coroutine and threw at its first
+`NonCancellable`, so it ran inside an already-canceled coroutine and threw at its first
 suspension point. The message stayed `incomplete = true` with `stoppedReason = null`, which
 cost the honest "You stopped this one." line, hid the entire action row including
 regenerate, rendered as nothing at all when no tokens had been produced, and got relabelled
@@ -2779,13 +2779,13 @@ the whole screen goes away mid-answer. That determination moved above the `guard
 call, because whether the held tail is worth showing depends on the reason.
 
 With that, `stop()` no longer cancels anything. The abort ends the decode within a token,
-the flow completes normally, and the `finally` runs without a cancelled coroutine at all.
+the flow completes normally, and the `finally` runs without a canceled coroutine at all.
 `_streaming` is left for that block to clear, so the stop button disappears when the answer
 has actually stopped rather than when it was asked to.
 
 The `finally` is wrapped in `withContext(NonCancellable)` anyway. Not for the stop path,
 which no longer cancels, but for the case the wrapper is genuinely for: the scope being
-cancelled because the screen went away mid-answer. Without it that message is left
+canceled because the screen went away mid-answer. Without it that message is left
 incomplete with no reason for ever.
 
 ### The race underneath
@@ -2798,7 +2798,7 @@ reply. **The old bug was hiding this**, because the teardown always threw before
 any of it.
 
 The previous job is now awaited with `cancelAndJoin()` inside the new coroutine, with
-`_streaming` set true again afterwards. Cancelling the collector trips `awaitClose`, which
+`_streaming` set true again afterwards. Canceling the collector trips `awaitClose`, which
 aborts the native decode, so this does not wait for a long answer to finish on its own.
 
 ### Testing
@@ -2817,14 +2817,14 @@ still reads "You stopped this one." rather than the closed-while-writing label.
 ## Issue #41: an export that puts words in the assistant's mouth
 
 `Share.kt` branched on two roles when the data has three. Both render paths asked only
-whether `role == Role.USER` and labelled everything else "Kam AI", so a `SYSTEM` entry, a
+whether `role == Role.USER` and labeled everything else "Kam AI", so a `SYSTEM` entry, a
 mode-change notice or the Discover continue-in-open-chat note, was exported as though the
 assistant had said it:
 
     Kam AI: Logic Partner is on. Kam AI will argue the other side...
 
 Every other consumer already filtered SYSTEM correctly (`ChatFormat`, `ConversationTitler`,
-`ChatViewModel`'s turn assembly) and `ChatScreen` draws it as a distinct centred note, so
+`ChatViewModel`'s turn assembly) and `ChatScreen` draws it as a distinct centerd note, so
 Share was the only place that got it wrong.
 
 **Not dropped, rendered.** The four-mode update requires an export to show where the mode
@@ -2907,7 +2907,7 @@ Voice first now means **listening**, not merely available, which is the stronger
 options the issue allowed and the one that makes the setting meaningfully different from off.
 Stopping is the same button turning into Stop, and the field is right there to type into
 instead. When the microphone permission is missing it is requested plainly, rather than
-silently falling back to the keyboard, which is what the old behaviour amounted to.
+silently falling back to the keyboard, which is what the old behavior amounted to.
 
 Verified on the phone end to end, with the setting turned on for the test and put back
 afterwards: long-pressing power opened the panel already listening with "Listening..." in the
@@ -2922,7 +2922,7 @@ labels, and "must never appear anywhere else". A recording control is none of th
 
 This predates #46, but it was close to invisible while voice-first did nothing, and it is now
 the first thing a voice-first user sees. **Not fixed here on purpose**: DESIGN specifies no
-treatment for a listening state, and picking one is the owner's call rather than a colour to
+treatment for a listening state, and picking one is the owner's call rather than a color to
 choose in passing. Filed separately, and it belongs with the overlay rework in #47.
 
 ## Issue #47: the overlay handle, and the crash it uncovered
@@ -2992,7 +2992,7 @@ handle with nothing asked opens the app with zero crashes in `logcat -b crash`.
 ### Verified end to end
 
 Asked the overlay a question, dragged the handle up: the app opened in that exact
-conversation with the question and answer intact, already titled "Primary colours pigment
+conversation with the question and answer intact, already titled "Primary colors pigment
 light", and it sat at the top of Chats exactly once, with no duplicate on returning. Dragging
 down dismissed the panel. Tapping expanded it.
 
@@ -3023,8 +3023,8 @@ afterwards is silent when it finds nothing, which is the ordinary case once the 
 has run.
 
 **The toast gained an action**, since undo needs one and it had none. It uses the same fixed
-light colour as the message rather than the accent: that surface is a fixed dark green
-whatever the theme, and the accent is one of sixteen user-chosen colours, none contrast
+light color as the message rather than the accent: that surface is a fixed dark green
+whatever the theme, and the accent is one of sixteen user-chosen colors, none contrast
 checked against it. Weight and the tap target carry the affordance. The dismiss delay goes
 from 2.2 to 6 seconds when an action is present, because 2.2 is fine for an acknowledgement
 nobody needs to act on and far too short to read, decide, and reach the control.
@@ -3079,12 +3079,12 @@ And `fontTools` is not on this machine by default; `pip install --user fonttools
 ### The nudges
 
 Screen-owned rather than messages, so nothing here can be mistaken for something the model
-said. Three parts in the mode's own colour: a faint vertical wash fading to nothing before
+said. Three parts in the mode's own color: a faint vertical wash fading to nothing before
 the composer, a hand-drawn double-stroke sketch, and one line in the voice that mode speaks
 in. Copy is taken verbatim from DESIGN.md section 7.
 
 The sketches are **drawn as Compose paths rather than shipped as assets**, so they take the
-mode colour directly and cost nothing in the APK. "Double stroke" is the hand-drawn part:
+mode color directly and cost nothing in the APK. "Double stroke" is the hand-drawn part:
 every shape is drawn twice, the under-stroke offset down and right and lighter, the way a pen
 goes round a line again. The offset is deliberately not symmetric, since a uniform one reads
 as a printing error rather than as a hand. The scales' beam is tipped slightly off level so it
@@ -3106,7 +3106,7 @@ explanation of the same screen.
 `Modifier.edgeFadeHorizontal`, a sibling of the existing vertical `edgeFade` rather than more
 booleans on it, because a caller wants one or the other and a four-boolean version reads as a
 puzzle. Same destination-in blend, so it masks whatever is behind rather than painting the
-background colour over it, and therefore survives sitting on a card as well as on the page.
+background color over it, and therefore survives sitting on a card as well as on the page.
 Applied to both Workbench chip rows, which is what the issue asked for.
 
 ### Verified on the phone
@@ -3418,7 +3418,7 @@ than merely absent.
 
 ## Issue #25: Brainstorm watched on the device
 
-HANDOFF said to budget a full session for this: the prompt was written and its behaviour had
+HANDOFF said to budget a full session for this: the prompt was written and its behavior had
 never been watched. It has now been, across four separate conversations on Gemma 4 E4B, and
 **all four hard rules hold**.
 
@@ -3517,7 +3517,7 @@ than speculative improvements.
 
 **Landed, and verified with the identical input that produced the defect.** Given only a bare
 topic, Brainstorm used to emit all six STARBURSTING dimensions in one message, which is close
-to the listing behaviour the mode exists not to do. The cause was in the method description
+to the listing behavior the mode exists not to do. The cause was in the method description
 itself: "questions across who/what/when/where/why/how" reads as a set to produce, and it
 overrode the general one-question rule. The method now says one of those per turn and never the
 whole set, and the general rule says explicitly that it holds inside a method as well as
@@ -3559,7 +3559,7 @@ not leave a blank row in Chats and a dangling link behind.
 ### Two defects found while building it, both mine
 
 **A crash on opening Workbench at all.** `_linkTo` was declared below the `init` block that
-reads it, and Kotlin initialises properties in declaration order, so it was still null when
+reads it, and Kotlin initializes properties in declaration order, so it was still null when
 init ran. Straight `NullPointerException` at `WorkbenchViewModel.<init>`. Caught by opening the
 screen once.
 
@@ -3600,7 +3600,7 @@ nothing.
 
 The new note said "reorganised" while the Workbench's own chips say "Summarize" and "Reorganize".
 Every other user-visible string in the app uses -ize, so the note was the outlier and was changed
-to match. Two model instructions saying "summarise" were changed too: nothing shows them to the
+to match. Two model instructions saying "summarize" were changed too: nothing shows them to the
 user, but they bias what the model writes back to somebody reading -ize copy everywhere else.
 `PublicCopyTest` now covers the banners and the notices, which live in a different file from the
 rest of the copy it guards and had drifted alone.
@@ -3758,7 +3758,7 @@ stated before it happens rather than after.
 just happened was visual only:
 
 - **The mode banner.** Switching mode changes how every following answer behaves, and the only
-  thing saying so was a coloured strip appearing near the top. A screen reader user got no signal
+  thing saying so was a colored strip appearing near the top. A screen reader user got no signal
   at all unless they went hunting for it.
 - **Every toast.** The toast is the app's entire answer to "did that work?", so copy
   confirmations, undo offers, and failure notices all passed silently.
@@ -3845,7 +3845,7 @@ document was wrong.
 An answer on this phone takes the better part of a minute. Disabling input for that long stops
 somebody typing the thought they had while reading, for no benefit anybody can name. Sending is
 already what waits: Stop replaces send until the response finishes, and the typed text is still
-sitting there when it does, which I checked. So the behaviour is coherent, and the rule in DESIGN
+sitting there when it does, which I checked. So the behavior is coherent, and the rule in DESIGN
 was the mistake.
 
 DESIGN now describes what the app does and why. The call site says the same thing, because
@@ -3948,7 +3948,7 @@ box.
 
 It now reads "Listening, 6 sec. Tap stop when done." Polled four times a second rather than
 pushed, since the recorder counts samples on its own thread and this only has to be right to the
-second. Verified on the phone; the recording was cancelled rather than transcribed.
+second. Verified on the phone; the recording was canceled rather than transcribed.
 
 ### Still needs the owner
 
@@ -3986,7 +3986,7 @@ The live regions added for #39 were committed with the honest caveat that the pr
 nothing had been heard. Closing as much of that gap as can be closed from here.
 
 **What was tried and abandoned.** `uiautomator dump` fails on this app with "could not get idle
-state", twice, which is the known behaviour of uiautomator against a Compose app rather than
+state", twice, which is the known behavior of uiautomator against a Compose app rather than
 anything wrong here. Recorded so the next person does not spend the same ten minutes on it. The
 app's own infinite animations were checked while looking into it and are all properly gated: the
 brand mark breathes only while `breathing` is passed, the typing dots exist only while the
@@ -4022,7 +4022,7 @@ a mode wrote nothing, because `setMode` only writes its note when the conversati
 something to mark, and a brand-new chat has nothing. Since the Chats segmented control is the
 main way anybody starts a conversation, the common path was the silent one: a first Brainstorm
 chat simply began asking questions, with nothing anywhere saying that Brainstorm refuses to hand
-over ideas on purpose. That behaviour is surprising enough to read as the app being unhelpful.
+over ideas on purpose. That behavior is surprising enough to read as the app being unhelpful.
 
 The mode's own note is now written at the top of the first conversation started in that mode, once
 per mode, ever. Not once per conversation, because the tenth Brainstorm chat does not need the
@@ -4106,7 +4106,7 @@ can I help you." and the bubble matches, with the stored row untouched.
 
 DESIGN section 2 reserves gold for saved items, locked model tiers, the Support this work button,
 and destructive-action labels, and says it "must never appear anywhere else". The issue listed
-three violations and left the replacement colours to the owner, on the grounds that DESIGN
+three violations and left the replacement colors to the owner, on the grounds that DESIGN
 specifies no treatment for a listening state, a notice, or a failure.
 
 Taking that decision rather than leaving it, because the rule being broken is not ambiguous even
@@ -4120,7 +4120,7 @@ Sweeping every use rather than only the three listed turned up **four more**:
 - Two **lock screen errors** and a **lock settings error**.
 - The custom-instructions **character counter** when it goes over the limit.
 
-Ten sites in all, and the pattern is the same every time: somebody wanted "the colour that means
+Ten sites in all, and the pattern is the same every time: somebody wanted "the color that means
 pay attention" and gold was the only one in the palette that looked like it.
 
 ### What replaced it
@@ -4129,7 +4129,7 @@ pay attention" and gold was the only one in the palette that looked like it.
 first choice and wrong. The accent is the send button sitting a thumb away, and two identical
 green circles side by side is how somebody taps send when they meant stop. Tonal is the app's own
 "active, but not the primary action" weight, already used by chips and user bubbles. All three
-recording buttons now match, which they did not before in any colour.
+recording buttons now match, which they did not before in any color.
 
 **Notices: tonal fill and tonal text.** DESIGN already describes the grounded Discover banner as
 "tonal fill, book icon, no amber", so the app had a precedent for a quiet informational bar and
@@ -4137,11 +4137,11 @@ the notice bar was simply not following it.
 
 **Failures and errors: full-strength text.** A failed download, a wrong PIN, an over-length
 counter. These read at `textPrimary` against the `textSecondary` of everything around them, so
-they stand out by weight rather than by borrowing a reserved colour.
+they stand out by weight rather than by borrowing a reserved color.
 
 ### The guard
 
-`GoldRuleTest` pins the set of files allowed to name a gold colour at all, each with the reason it
+`GoldRuleTest` pins the set of files allowed to name a gold color at all, each with the reason it
 qualifies. The rule is about meaning, so no test can really check it; what this checks is what
 actually went wrong, which is gold spreading into files nobody was thinking about. A new file
 using it fails the test, and the fix is either not to, or to add it and say in the commit which of
@@ -4201,7 +4201,7 @@ so the thing to reuse was not reachable from anywhere else.
 
 Moved to `ui/components/ViewSwitcher.kt` and shared. The enum is still `AppViewModel.ChatsView`,
 which now reads slightly wrong on Projects; renaming it touches a lot of call sites for no
-behaviour change, so it keeps the name and gains a doc comment saying it means "how a list of
+behavior change, so it keeps the name and gains a doc comment saying it means "how a list of
 things is drawn" on both screens. Worth revisiting if a third screen ever wants it.
 
 **Its own setting**, `projects.view`, not the one Chats uses. The two screens hold different
@@ -4339,7 +4339,7 @@ data gone, the replacement partly written, and the backup file no help because t
 mid-import.
 
 Interrupting it was easy. The caller ran in `rememberCoroutineScope()`, which belongs to the
-composition, so **backing out of the Backup and restore screen cancelled the restore in flight**.
+composition, so **backing out of the Backup and restore screen canceled the restore in flight**.
 
 Two changes. `importSnapshot` now runs inside `db.withTransaction`, so it lands completely or the
 database is untouched. And the export and import calls run under `NonCancellable`, so leaving the
@@ -4350,7 +4350,7 @@ and asserts the outcome is either fully restored or fully intact, and never an e
 
 ### And the silence item 5 actually asked about
 
-Neither export nor restore said anything while running. `busy` existed and only greyed out the
+Neither export nor restore said anything while running. `busy` existed and only grayed out the
 export button; the restore button stayed enabled and nothing appeared on screen. On a large
 backup that is a long silence after a tap. There is now a spinner and "Working. Keep this screen
 open until it finishes.", and both actions are disabled while it runs.
@@ -4372,11 +4372,11 @@ microphone button stays tappable while transcribing and the placeholder reads "T
 into text. Tap to stop."
 
 `nativeRequestStop` deliberately does not take the bridge mutex. Transcription holds it for its
-whole run, so waiting for it would mean waiting for the thing being cancelled. The flag is atomic
+whole run, so waiting for it would mean waiting for the thing being canceled. The flag is atomic
 for exactly that reason. It is cleared when a transcription starts rather than when one is
-cancelled, so a stop arriving between two runs cannot kill the next one before it begins.
+canceled, so a stop arriving between two runs cannot kill the next one before it begins.
 
-`Result.Cancelled` is a separate case from `Result.Error` because an abort also comes back as
+`Result.Canceled` is a separate case from `Result.Error` because an abort also comes back as
 empty text, and telling somebody who just tapped stop that their audio "did not come through
 clearly" is a lie about their microphone. A cancel says nothing at all: they watched it stop.
 
@@ -4444,7 +4444,7 @@ chats and scrolls, and it is absent when everything is already assigned.
 
 ## Item 22: a speed figure with something real behind it
 
-The model picker gave a name, a size, a licence and capability chips, and said nothing about what
+The model picker gave a name, a size, a license and capability chips, and said nothing about what
 any of it would feel like. Item 22 asks for a measured speed rating with real numbers.
 
 **Not a table shipped with the app.** Phones differ by more than the models do. The Basic tier
@@ -4462,7 +4462,7 @@ The judgements:
 - **Two samples before it says anything.** One run could be a cold start or a moment of
   throttling. A model nobody has run says nothing at all, which is the honest state.
 - **A rolling mean capped at twenty samples**, so one throttled run cannot dominate and a phone
-  whose behaviour changes over months still reflects how it behaves now.
+  whose behavior changes over months still reflects how it behaves now.
 - **Words, not tokens.** Nobody outside this codebase thinks in tokens. An English token averages
   about three quarters of a word, which is an approximation, and is why the line says "about".
 - **A damaged stored value is ignored and overwritten**, not shown and not fatal.
@@ -4512,7 +4512,7 @@ background**, effectively invisible.
 
 The app draws edge to edge, so the system icons sit on the app's own background, and nothing was
 telling the system which way to draw them. There is no default that can be right here, because the
-app decides its own background colour.
+app decides its own background color.
 
 `KamTheme` now sets `isAppearanceLightStatusBars` and `isAppearanceLightNavigationBars` from the
 same `darkTheme` value it uses to pick the palette, in a `SideEffect` so it follows every theme
@@ -4601,7 +4601,7 @@ twelfth. `ConfirmRequest` now carries `destructive`, defaulting to true so nothi
 and the quiz prompt sets it false.
 
 **`GoldRuleTest` did not catch this, and could not.** It pins which *files* may name a gold
-colour, and `Confirm.kt` is legitimately on that list for destructive labels. A wrong use inside an
+color, and `Confirm.kt` is legitimately on that list for destructive labels. A wrong use inside an
 allowed file is invisible to it. That limitation is written in the test's own doc comment, and this
 is the case that proves it: the guard catches gold spreading to new places, not gold being misused
 where it already belongs.
@@ -4630,7 +4630,7 @@ Settings, Backup and restore, a passphrase, Export backup. The system save sheet
 sensible default name, `kam-ai-backup-2026-07-25.kambackup`, and saving wrote a 131,520 byte
 encrypted file.
 
-Also visible: "Choose a backup file" is greyed until a restore passphrase is typed, which is the
+Also visible: "Choose a backup file" is grayed until a restore passphrase is typed, which is the
 change from the item 5 work. Before it, the button was always live and picking a file with no
 passphrase simply failed later.
 
@@ -4701,7 +4701,7 @@ Themes, energy, unresolved, one next step. No method named, no question at the e
 at another mode, which is the kind of thing the four modes exist for.
 
 Typing "wrap it up" still goes through the ordinary path and can still misfire. That is the
-model's behaviour and this does not claim to fix it; it gives the user a control that works every
+model's behavior and this does not claim to fix it; it gives the user a control that works every
 time instead of a phrasing that works sometimes.
 
 ## The two export formats, read as files
@@ -4744,7 +4744,7 @@ the Markdown file keeps everything.
 The file is also named from the conversation title rather than the first thing anybody said, which
 is the #41 fix still holding.
 
-## A second British spelling, and a guard that generalises
+## A second British spelling, and a guard that generalizes
 
 The "Kam AI can be wrong" screen said the model gets things wrong, "especially dates, names,
 numbers, and anything it would need to have **memorised** exactly".
@@ -4780,7 +4780,7 @@ Attached a 360,000 character document to a fresh chat and asked about it:
 > section, or paste that part in.
 
 Honest about what happened, names the limit in words rather than tokens, and offers two ways
-forward instead of leaving the user stuck. It also appears in the tonal notice colour now rather
+forward instead of leaving the user stuck. It also appears in the tonal notice color now rather
 than the reserved gold, which is the #61 work showing up in a place I had not deliberately
 revisited.
 
@@ -4813,7 +4813,7 @@ instruction reached the model and the model reached the user.
 
 Tapped "Continue in open chat" from the grounded discussion. It does everything item 21 claims:
 the scope banner goes, the mode indicator becomes General, the history carries forward, and a
-centred note appears:
+centerd note appears:
 
 > Opened up to an open chat. Kam AI is no longer confined to the passage and will answer from what
 > it knows, where a small model can misremember, so check anything that matters.
@@ -4929,22 +4929,22 @@ which would have reintroduced the surprise #39 was about, just in the new-chat c
 
 Four changes to `ModeNudge`, all requested:
 
-- **Centred** in the empty space instead of pinned under the header, so a new chat reads as a page
+- **Centerd** in the empty space instead of pinned under the header, so a new chat reads as a page
   waiting for something rather than a header with nothing under it.
 - **Softened**, sketch and line both, so it is the quietest thing on screen.
-- **A line about the mode**, small, italic and grey, under the existing one. The line above carries
+- **A line about the mode**, small, italic and gray, under the existing one. The line above carries
   the mode's voice; this one says what to actually do, which is what somebody meeting a mode for
   the first time in front of an empty box needs.
 - **The glow is radial now.** It was a vertical gradient that started solid at the top and faded
   down, which was right while the nudge sat under the header and became a hard horizontal line
   across the screen the moment it moved to the middle. Radial has no edge to notice.
 
-Two details worth keeping: the stops are bunched near the centre and long at the tail, because a
+Two details worth keeping: the stops are bunched near the center and long at the tail, because a
 linear falloff still reads as a disc; and the padding is deliberately generous so the gradient
 reaches nothing well before the box is clipped, since a glow that is still faintly lit at the
 boundary puts the hard edge straight back.
 
-Alpha is per theme. The value that is barely visible on the dark background is a grey smudge on
+Alpha is per theme. The value that is barely visible on the dark background is a gray smudge on
 the light one.
 
 ## Owner feedback: the Workbench screen was squished and uninviting
@@ -4953,7 +4953,7 @@ Reported directly. The screen ran title, description, input box, a lone Speak pi
 instruction field and the result together with small gaps and no labels, so nothing said which part
 was the text and which part was the instruction.
 
-- **Two sections, labelled.** "Your text" and "What to do with it". The screen now reads as two
+- **Two sections, labeled.** "Your text" and "What to do with it". The screen now reads as two
   steps rather than one dense stack of controls.
 - **The input is taller**, 140dp minimum rather than 96, with more padding inside it. It is the
   thing the screen is for, and it was the same size as a search box.
@@ -5051,7 +5051,7 @@ The three density views added for #50 are gone from this screen with it. Densiti
 list of similar things; a shelf of folders is not that, and offering three ways to look at four
 folders was a control in search of a problem. Chats keeps them.
 
-**The amber dot on Follow-ups is gone.** A permanent coloured mark in the navigation reads as an
+**The amber dot on Follow-ups is gone.** A permanent colored mark in the navigation reads as an
 alert, and nothing on that screen is urgent. Follow-ups is somewhere you go when you choose to, not
 a queue nagging to be emptied, and a count that never reaches zero for most people is a worse nag
 than no count at all. The number still reaches a screen reader through the item's own label, so
@@ -5077,7 +5077,7 @@ them: hold the power button, talk instead of typing, attach a document, Discover
 Follow-ups. Each gets one line saying what it is for rather than what it is called. The closing
 line covers memory and where to read or delete it.
 
-Tighter type than the modes slide on purpose: those are four behaviours to understand before
+Tighter type than the modes slide on purpose: those are four behaviors to understand before
 choosing between them, these are six places to know exist.
 
 The slide sits after the modes and before picking a model, so the last thing before a download is
@@ -5088,8 +5088,8 @@ what the app can do rather than a list of file sizes.
 Reported again: a longer reply does not scroll down with the text. Two separate causes, both real,
 and the second is the one that mattered.
 
-**The animation was cancelling itself.** `followToEnd` used `animateScrollToItem`, and the effect
-that follows the stream is keyed on the answer's length, so it is cancelled and restarted on every
+**The animation was canceling itself.** `followToEnd` used `animateScrollToItem`, and the effect
+that follows the stream is keyed on the answer's length, so it is canceled and restarted on every
 token. Each token killed the animation the previous token started and began a new one from wherever
 it had reached, which on a fast stream is nowhere. Following the stream now jumps rather than
 animates. A jump per token is not jarring, because the text has only grown by a word: it reads as
@@ -5126,7 +5126,7 @@ memory saving for no measurable speed cost, on a phone where memory is the bindi
 
 Flash attention is a prerequisite for quantised KV in llama.cpp, so the two go in together. The
 fallback to AUTO and f16 is not decoration: if a future model or build cannot do flash attention,
-the app degrades to exactly today's behaviour rather than failing to open a context at all.
+the app degrades to exactly today's behavior rather than failing to open a context at all.
 
 ## Issue #51: link and codegen flags
 
@@ -5138,7 +5138,7 @@ The shipped libraries are **3.03 MB** (`libkamai.so`) and **0.92 MB** (`libkamwh
 inside the APK. The 45 MB figure sitting in the build directory is the unstripped object and was
 never what anybody downloads, which is worth writing down because it is alarming and meaningless.
 
-**The page-size flag is not an optimisation and matters most.** Android 15 devices can boot with 16
+**The page-size flag is not an optimization and matters most.** Android 15 devices can boot with 16
 KB pages, and a library linked for 4 KB will not load on them at all. Verified with `llvm-readelf`:
 every LOAD segment now aligns to `0x4000`. It costs a little padding and buys the app still running
 on hardware that is already shipping.
@@ -5422,7 +5422,7 @@ Two fields, and the difference lives in how they are given to the model.
 Instructions keep their framing ("follow them unless they conflict with anything
 above"). Notes get their own block, framed as facts: "treat it as context you
 already know, not as instructions". Notes come second, so when the window is
-tight it is the background that falls off the end rather than the behaviour.
+tight it is the background that falls off the end rather than the behavior.
 
 `MIGRATION_6_7` adds one column, `notes TEXT NOT NULL DEFAULT ''`. NOT NULL
 rather than nullable because "no notes" and "empty notes" are the same thing and
@@ -5566,7 +5566,7 @@ It now reads the same declaration the card does. `canAttachDocuments` comes from
 `activeModel.supports(Capability.DOCUMENTS)`, defaulting to false when nothing is
 installed, and the paperclip is hidden when it is false.
 
-Hidden rather than disabled. A greyed paperclip raises "why not?" and answers it
+Hidden rather than disabled. A grayed paperclip raises "why not?" and answers it
 nowhere. The model card is where what a model can do belongs, and it says so
 there in full, including the "No documents" state and its explanation.
 
@@ -5642,14 +5642,14 @@ apart, and the method list is picked from "silently".
 convergence instruction loses against a long history; typing "let's wrap up" went
 down the ordinary path and hit the same failure the control was built to fix, and
 typing is what most people will do since the control is in a menu.
-`WrapUp.isRequest` recognises the phrasings and routes them to exactly the same
+`WrapUp.isRequest` recognizes the phrasings and routes them to exactly the same
 mechanism. Matched on phrases rather than keywords, because "summary" alone fires
 on "give me a summary of what hub and spoke means", which is a question inside the
 session. Long messages are excluded: somebody mid-flow who happens to use the
 words is brainstorming, not asking to finish.
 
 `PublicCopyTest`'s British-spelling guard needed scoping for this. `REQUESTS`
-contains "summarise what", which the app never writes but a British user types.
+contains "summarize what", which the app never writes but a British user types.
 The rule is about the app's own voice, and refusing to understand a spelling is
 not the same as not using it.
 
@@ -5671,7 +5671,7 @@ it suspends judgment and asks for the ideas "even the ones you think are stupid"
 which is the useful half, but it frames the exercise as an unload and still opens
 by reading their mood back to them. Rules 1 and 8 are adjacent and the
 discrimination between them under emotional language is beyond this model size
-with prompt wording alone. The behaviour is now acceptable — judgment suspended,
+with prompt wording alone. The behavior is now acceptable — judgment suspended,
 nothing handed over — and the gap is real.
 
 ## The conversation cache survives closing the app (#52)
@@ -5701,7 +5701,7 @@ about sixty milliseconds.
 **Saved per turn, before anything else touches the context.** The first design
 saved when the chat screen went away, and it never once ran: the screen's
 teardown and the view model being cleared are the same moment, so the coroutine
-was cancelled before it wrote anything, silently. Worse, saving late saves the
+was canceled before it wrote anything, silently. Worse, saving late saves the
 wrong thing — titling and auto-extraction each run their own prompt through the
 same single sequence, so a state taken after them held **268 tokens of titling
 instruction where the conversation was 1700 tokens long**. It is written the
@@ -5756,7 +5756,7 @@ cramped against the navigation bar under it. It is one constant, `BASE_HEIGHT`,
 because the sliding thumb is positioned against the same number.
 
 **Mode control thumb in dark mode (#69).** The moving pill was `colors.surface`
-on `colors.surfaceSecondary`. In light that is pure white on a warm grey and
+on `colors.surfaceSecondary`. In light that is pure white on a warm gray and
 reads instantly. In dark it was #182019 on #131A15 — five points apart on each
 channel — so the indicator telling you which mode you are in was very nearly
 invisible. The palette gains `controlThumb`: unchanged white in light, and
@@ -5776,14 +5776,14 @@ Reported three times. The two earlier fixes were both real and both incomplete,
 which is worth recording because the pattern was mine: each time I found *a*
 bug, fixed it, and stopped looking.
 
-Round one removed an animated scroll that every token cancelled. Round two
+Round one removed an animated scroll that every token canceled. Round two
 removed an `atBottom` requirement from `shouldFollow`, which was false exactly
 when following was needed. Both true, neither sufficient.
 
 The rest of it, found by reading the wiring instead of guessing:
 
 **The follow effect was destroyed and rebuilt on every token.** It was a
-`LaunchedEffect` keyed on the answer's length, so each token cancelled the
+`LaunchedEffect` keyed on the answer's length, so each token canceled the
 previous scroll mid-flight and started another. Now it is one coroutine per
 response, keyed on `streaming`, watching the length through `snapshotFlow` and
 `conflate`. A burst of tokens produces one scroll to where the text now ends,
@@ -5900,13 +5900,13 @@ completely different sentences to a person.
 
 **A layout bug found by looking.** The card first appeared hard against the left
 edge. `Box(Modifier.weight(1f))` in a Column wraps its content width rather than
-filling, so it was only as wide as the card, sat at the start, and every "centre
-in the empty space" inside it centred within the card's own width. The mode nudge
+filling, so it was only as wide as the card, sat at the start, and every "center
+in the empty space" inside it centerd within the card's own width. The mode nudge
 is wide enough that nobody had noticed in months. `fillMaxWidth()` fixes it for
 both.
 
 Device-verified from cleared app data: onboarding skipped, new chat shows the
-card centred, "Download it" starts the real download in one tap, the app-wide
+card centerd, "Download it" starts the real download in one tap, the app-wide
 indicator picks it up, and sending before it finishes reports that the message is
 held.
 
@@ -6086,10 +6086,10 @@ is wasteful.
 The mechanism proposed is not implementable in this stack. Compute per token is
 fixed by the model's architecture, so there is no dial that dedicates more
 processing to a harder question. Routing parts of one prompt to different
-specialised models and stitching the results is not something llama.cpp supports
+specialized models and stitching the results is not something llama.cpp supports
 here, and a dedicated numerical module of the kind described does not exist.
 Worth noting that the assistant appended its own caveat suggesting the idea be
-verified, which was the right instinct and is the honest-limits behaviour working
+verified, which was the right instinct and is the honest-limits behavior working
 as designed.
 
 The one established version of the idea is model cascading: simple requests to a
@@ -6128,7 +6128,7 @@ Detection is unreliable. Length or keywords will be wrong often, and using a
 model to classify the request first adds exactly the latency the idea was meant
 to remove.
 
-Silent quality variance is the wrong behaviour for this app. A user getting a
+Silent quality variance is the wrong behavior for this app. A user getting a
 noticeably worse answer with no indication why contradicts the transparency
 everything else here is built on.
 
@@ -6163,7 +6163,7 @@ a case for a heuristic at all: the user has just acted.
 
 **Following stopped once the answer grew past a third of a viewport.** I had
 reasoned that following would hold the distance near zero, which is true only if
-every scroll lands exactly at the content end on every token. Resting a behaviour
+every scroll lands exactly at the content end on every token. Resting a behavior
 on that is how it fails on a fast stream.
 
 So the rules are now explicit, named, and each in one place:
@@ -6278,11 +6278,11 @@ and a badge everyone has learned to ignore is worse than none.
 releases, and the honest answer is that there are none: `git tag` returns nothing,
 and the only GitHub release is `discover-packs-v1`, which is a content-pack asset
 rather than an app version. No release history was invented. v1.0.0 will be the
-first, and the issue-to-milestone-to-notes-to-artefact chain starts there.
+first, and the issue-to-milestone-to-notes-to-artifact chain starts there.
 
 **Deliberately not added:** no wiki, no code owners file, no review requirements
 one person cannot satisfy, no story points or sprints, no automated changelog
-generator, no badge collection beyond build, licence and release. The test for
+generator, no badge collection beyond build, license and release. The test for
 anything later is whether it will be kept current and whether it answers a
 question somebody actually has.
 
@@ -6296,7 +6296,7 @@ Every commit asks whether it made anything on the front page wrong, and fixes it
 in the same commit. The repository description, topics, About section and website
 field describe what the app currently is. The README still answers, for someone
 with no context: what this is and who for, what it looks like, what it can and
-cannot do, how to install, how to build, and the licence.
+cannot do, how to install, how to build, and the license.
 
 **The capability and limitation lists are the part most likely to become a lie**,
 because features get added and limitations removed while nobody revisits the
@@ -6305,7 +6305,7 @@ limits are a stated value, and a README overstating the software undermines the
 thing it is overstating.
 
 Screenshots are recaptured in the same pass as any material change to a screen's
-layout, controls, colours or copy. From the running app on the device, never a
+layout, controls, colors or copy. From the running app on the device, never a
 mockup, in both themes, keeping the same set of screens so the story stays
 coherent rather than accumulating whatever was captured most recently. The full
 set is recaptured before any release regardless of what changed, because small
@@ -6456,7 +6456,7 @@ secondary affordance, and it should look like the alternative to send that it is
 was checked. The attach paperclip and the overlay bookmark stay `textSecondary`,
 and that is correct: they are genuinely secondary actions on a bordered surface,
 and neither sits next to a saturated control that makes it look switched off.
-Nothing else is greyed while functional. The attach control is hidden outright
+Nothing else is grayed while functional. The attach control is hidden outright
 when the model cannot read documents (#22) rather than shown disabled, and the
 find bar's next and previous arrows dim only when there are genuinely no matches,
 with "No matches" written beside them, so the reason is on screen rather than
@@ -6522,11 +6522,11 @@ at the bottom is unchanged: this is a signpost, not the ask, and the difference
 has to be visible or there are simply two asks.
 
 **The treatment is the part that goes wrong, so it is worth writing down.** The
-gold ground is a single flat colour. Depth comes from light on the edges instead: a
+gold ground is a single flat color. Depth comes from light on the edges instead: a
 one pixel white highlight along the top inner edge and a barely visible darker line
 along the bottom, drawn as two very short gradient stops pinned to the edges rather
 than one gradient across the surface. That distinction is the whole point. A
-gradient reads as decoration and draws attention to itself; flat colour catching
+gradient reads as decoration and draws attention to itself; flat color catching
 light on its edges reads as a solid object, which is quieter and looks considered.
 No glow, no sheen, nothing else. The tile and the button carry the same treatment
 at a smaller scale.
@@ -6657,7 +6657,7 @@ by hand, since nothing can infer them.
 
 ### Labels and types
 
-Custom issue types are an organisation feature and this is a user account, so the
+Custom issue types are an organization feature and this is a user account, so the
 label taxonomy carries the kind of work instead: `bug`, `enhancement`,
 `documentation`, plus `blocked`, `record`, `release-blocker`, `good first issue`,
 `help wanted`, and thirteen `area:` labels matching the Area field values. The
@@ -6683,10 +6683,10 @@ time boxing has no meaning for one person working continuously, and an iteration
 field that does not reflect a real cadence is the clearest possible example of
 process being performed rather than run. Size and Actual already carry the
 throughput information iterations would be reached for. No story points. No
-delivery metrics of the kind used to assess engineering organisations, since they
+delivery metrics of the kind used to assess engineering organizations, since they
 measure properties of teams. No automated changelog generators; release notes are
 derived from the issues in the closed milestone. No supply chain levelling beyond
-artefact provenance. No badge collections beyond the few carrying real
+artifact provenance. No badge collections beyond the few carrying real
 information.
 
 The test for anything considered later is whether it will be kept current and

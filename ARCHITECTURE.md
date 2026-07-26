@@ -92,7 +92,7 @@ everything after them is subordinate.
 cap is allowed and has to be argued for in the test file itself, which is why the
 comments there read like a record.
 
-Modes are data, not subclasses. Adding one means adding an enum value, a colour, and
+Modes are data, not subclasses. Adding one means adding an enum value, a color, and
 a prompt.
 
 ## Threading and lifecycle

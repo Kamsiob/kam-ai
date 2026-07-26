@@ -51,7 +51,7 @@ import com.kamsiob.kamai.ui.theme.KamTheme
  *   easy tap.
  *
  * Destructive confirmations use the app's normal destructive styling, the amber
- * label on a plain surface. The reserved amber is the flag/lock/support colour;
+ * label on a plain surface. The reserved amber is the flag/lock/support color;
  * here it marks the one dangerous button, which is its legitimate destructive
  * use, and nothing else in the dialog borrows it.
  */

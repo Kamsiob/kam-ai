@@ -165,7 +165,7 @@ class ChatFormatTest {
     @Test
     fun `every tier ships Gemma 4, which covers the whole range`() {
         // Gemma 4's size range fills the band that once forced Qwen at the top,
-        // so the app is one family, one licence, one prompt format.
+        // so the app is one family, one license, one prompt format.
         assertThat(ModelCatalog.forTier(Tier.BASIC).format).isEqualTo(ChatFormat.GEMMA)
         assertThat(ModelCatalog.forTier(Tier.BALANCED).format).isEqualTo(ChatFormat.GEMMA)
         assertThat(ModelCatalog.forTier(Tier.BEST).format).isEqualTo(ChatFormat.GEMMA)

@@ -24,7 +24,7 @@ conversation rather than a diff.
 
 Implementation here is written by a coding agent working from those specifications.
 That is why they are treated as authoritative and why they are expected to stay
-current with the code rather than being written once. If you change behaviour,
+current with the code rather than being written once. If you change behavior,
 change the document that describes it in the same pull request.
 
 ## Setting up
@@ -70,7 +70,7 @@ alone. Dependabot's own `Bump ...` subjects are also left as they are.
 yours too, or say so in the pull request if you cannot.
 
 **Branches.** Name them for the issue they address. One logical change per
-branch. Anything that changes behaviour goes through a pull request; typos and
+branch. Anything that changes behavior goes through a pull request; typos and
 documentation touch-ups may go straight to `main`.
 
 **Comments.** Explain the reasoning, not the mechanics. A comment saying what a
@@ -93,7 +93,7 @@ direction.
 
 ## Testing expectations
 
-- A behaviour change comes with a test that would have failed before it.
+- A behavior change comes with a test that would have failed before it.
 - Prefer pure functions that can be tested without a device. Most of the
   interesting logic here (scroll following, memory supersession, download guards,
   prompt budgets) is pure precisely so it can be.

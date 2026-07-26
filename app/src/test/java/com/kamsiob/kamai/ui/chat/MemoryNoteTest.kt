@@ -9,7 +9,7 @@ import org.junit.Test
  * The Memory screen answers "what does this app know about me". It cannot answer
  * "did that change this answer", which is the question somebody has when a reply
  * knows something they never said in this conversation. This line answers it,
- * and being a claim about the app's own behaviour it has to be worded exactly.
+ * and being a claim about the app's own behavior it has to be worded exactly.
  */
 class MemoryNoteTest {
 

@@ -197,7 +197,7 @@ private fun ModelCard(
                     append(", ").append(model.downloadLabel)
                     if (active) append(", in use")
                     if (recommended) append(", recommended")
-                    // Colour never carries meaning alone.
+                    // Color never carries meaning alone.
                     if (locked) append(", locked, ").append(TierRecommendation.lockedNote(model.tier))
                 }
             },
@@ -311,7 +311,7 @@ private fun ModelCard(
 /**
  * The capability chips for a model (item 22): Text, Documents, Images. Supported
  * ones are solid, unsupported are muted, and tapping any chip explains what it
- * means in plain words. Labels carry the meaning, never colour alone, and every
+ * means in plain words. Labels carry the meaning, never color alone, and every
  * chip has a screen-reader description.
  */
 @Composable

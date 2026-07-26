@@ -112,13 +112,13 @@ class WorkbenchViewModel(
      * pair it with.
      *
      * Declared here rather than beside the function that sets it, because `init`
-     * reads it: Kotlin initialises properties in declaration order, so a later
+     * reads it: Kotlin initializes properties in declaration order, so a later
      * declaration is still null when the init block runs and the app crashed on
      * opening Workbench at all.
      */
     /**
      * True once the screen has asked for a blank Workbench. Declared up here with
-     * `_linkTo` for the same reason: `init` reads it, and Kotlin initialises
+     * `_linkTo` for the same reason: `init` reads it, and Kotlin initializes
      * properties in declaration order.
      */
     @Volatile

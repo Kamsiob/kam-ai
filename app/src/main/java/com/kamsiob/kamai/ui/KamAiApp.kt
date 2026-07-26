@@ -1191,7 +1191,7 @@ private fun BackupHost(app: AppViewModel) {
         if (uri == null) return@rememberLauncherForActivityResult
         busy = true
         scope.launch {
-            // Export only reads, so a cancelled one loses nothing but the
+            // Export only reads, so a canceled one loses nothing but the
             // half-written file. Kept uncancellable anyway so the file the user
             // just named is either complete or not created by us at all.
             val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {

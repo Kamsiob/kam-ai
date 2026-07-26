@@ -204,7 +204,7 @@ fun SettingsScreen(
                     onCheckedChange = onAssistantDefaultVoice,
                 )
             }
-            SettingsRow(title = "Appearance", subtitle = "Theme and accent colour", onClick = onAppearance)
+            SettingsRow(title = "Appearance", subtitle = "Theme and accent color", onClick = onAppearance)
             SettingsRow(title = "What Kam AI is for", onClick = onReplayOnboarding)
             SettingsRow(title = "Questions and answers", onClick = onQuestions)
             SettingsRow(title = "Kam AI can be wrong", subtitle = "What to double-check", onClick = onSafety)
@@ -604,7 +604,7 @@ fun StorageScreen(
 /**
  * Memory: exactly what is remembered, with a delete on every entry.
  *
- * Transparency is the whole point of this screen. Nothing is summarised or
+ * Transparency is the whole point of this screen. Nothing is summarized or
  * hidden behind a count.
  */
 @Composable
@@ -911,7 +911,7 @@ fun LicensesScreen(
                 Spacer(Modifier.height(14.dp))
                 Text(
                     "Content packs are built from Wikipedia and stay under CC BY-SA 4.0. " +
-                        "That licence covers the pack content, not the app.",
+                        "That license covers the pack content, not the app.",
                     style = KamTheme.type.secondary,
                     color = colors.textTertiary,
                 )
