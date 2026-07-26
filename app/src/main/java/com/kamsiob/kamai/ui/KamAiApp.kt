@@ -546,6 +546,9 @@ private fun ConversationScreen(
     val conversationProjectId by chat.projectId.collectAsStateWithLifecycle()
     val grounded by chat.grounded.collectAsStateWithLifecycle()
     val summaryState by chat.summary.collectAsStateWithLifecycle()
+    val sessionNumber by app.sessionNumber.collectAsStateWithLifecycle()
+    val reminderDismissed by app.reminderDismissed.collectAsStateWithLifecycle()
+    val reminderShownThisSession by app.reminderShown.collectAsStateWithLifecycle()
     val linkedSessionId by chat.linkedSessionId.collectAsStateWithLifecycle()
     val allProjects by app.projects.collectAsStateWithLifecycle()
 
@@ -698,6 +701,17 @@ private fun ConversationScreen(
         onOpenMemory = onOpenMemory,
         onCopied = { app.showToast("Copied") },
         onSummarize = chat::summarize,
+        // At most once a session, only in the first few, and never again once
+        // dismissed (#84). Counted here because this is where a session is a
+        // session; the chat screen only knows about one conversation.
+        showCheckReminder = com.kamsiob.kamai.ui.chat.CheckReminder.shouldShow(
+            dismissedForever = reminderDismissed,
+            sessionNumber = sessionNumber,
+            answersThisSession = messages.count { it.role == com.kamsiob.kamai.data.Role.ASSISTANT && !it.incomplete },
+            alreadyShownThisSession = reminderShownThisSession,
+        ),
+        onCheckReminderShown = app::noteCheckReminderShown,
+        onDismissCheckReminder = app::dismissCheckReminder,
         summary = summaryState,
         onCancelSummary = chat::cancelSummary,
         onDismissSummary = chat::dismissSummary,

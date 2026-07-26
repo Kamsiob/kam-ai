@@ -40,6 +40,12 @@ class KamRepository(
         const val WEB_SEARCH_ENDPOINT = "search.endpoint"
         const val CONFIRM_CHAT_DELETE = "confirm.chat.delete"
         const val MEMORY_MODE = "memory.mode"
+
+        /** How many times the app has been opened, for the bookmark note (#84). */
+        const val SESSION_COUNT = "reminder.sessions"
+
+        /** Set once the user dismisses the bookmark note, which settles it. */
+        const val REMINDER_DISMISSED = "reminder.dismissed"
         const val WORKBENCH_INPUT = "workbench.input"
         const val WORKBENCH_OUTPUT = "workbench.output"
         const val SYSTEM_INSTRUCTIONS = "system.instructions"

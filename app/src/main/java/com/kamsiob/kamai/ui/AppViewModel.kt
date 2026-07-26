@@ -92,6 +92,39 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Everything a search reaches: conversations, follow-ups and projects (#87). */
     fun search(query: String) = repository.search(query)
 
+    /**
+     * Which session this is, counted from first launch, and whether the bookmark
+     * note has been turned off for good (#84).
+     *
+     * Counted once per process rather than per screen, which is what "session"
+     * has to mean for a reminder that appears at most once in one.
+     */
+    private val _sessionNumber = MutableStateFlow(1)
+    val sessionNumber: StateFlow<Int> = _sessionNumber.asStateFlow()
+
+    private val _reminderDismissed = MutableStateFlow(false)
+    val reminderDismissed: StateFlow<Boolean> = _reminderDismissed.asStateFlow()
+
+    /**
+     * Set the first time the note is actually put on screen this session.
+     *
+     * Held here rather than in the chat because a session spans conversations,
+     * and the rule is one note per session, not one per conversation.
+     */
+    private val _reminderShown = MutableStateFlow(false)
+    val reminderShown: StateFlow<Boolean> = _reminderShown.asStateFlow()
+
+    fun noteCheckReminderShown() {
+        _reminderShown.value = true
+    }
+
+    fun dismissCheckReminder() {
+        _reminderDismissed.value = true
+        viewModelScope.launch {
+            repository.putSetting(KamRepository.Keys.REMINDER_DISMISSED, "true")
+        }
+    }
+
     val conversations: StateFlow<List<ConversationSummary>> =
         repository.observeConversations()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -155,6 +188,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             repository.repairIncompleteMessages()
 
             _onboardingDone.value = repository.isOnboardingDone()
+            _reminderDismissed.value =
+                repository.setting(KamRepository.Keys.REMINDER_DISMISSED) == "true"
+            val sessions =
+                (repository.setting(KamRepository.Keys.SESSION_COUNT)?.toIntOrNull() ?: 0) + 1
+            _sessionNumber.value = sessions
+            repository.putSetting(KamRepository.Keys.SESSION_COUNT, sessions.toString())
             _measuredSpeeds.value = com.kamsiob.kamai.model.ModelCatalog.all
                 .associate { m -> m.id to repository.setting(KamRepository.Keys.measuredSpeed(m.id)) }
             _projectsView.value = runCatching {

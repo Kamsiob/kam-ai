@@ -464,6 +464,16 @@ private fun SlideFour(
     val recommended = TierRecommendation.recommended(totalRamGb)
     var chosen by remember(recommended) { mutableStateOf(recommended) }
 
+    // One recommendation, with the full list a tap away (#76).
+    //
+    // This slide used to open with every tier as a card and ask the user to
+    // choose, which is a menu handed to somebody at the moment they know least
+    // about the thing being chosen. The recommendation is already computed from
+    // real memory; leading with it and keeping the list for anybody who wants to
+    // reason about it themselves turns three decisions into none.
+    var showingAll by remember { mutableStateOf(false) }
+    val recommendedModel = tiers.firstOrNull { it.tier == recommended }
+
     SlideScaffold(
         eyebrow = OnboardingCopy.slide4.eyebrow,
         title = OnboardingCopy.slide4.title,
@@ -476,18 +486,41 @@ private fun SlideFour(
                 )
             }
             Spacer(Modifier.height(20.dp))
-            tiers.forEachIndexed { i, model ->
-                Staggered(3 + i) {
+
+            if (showingAll || recommendedModel == null) {
+                tiers.forEachIndexed { i, model ->
+                    Staggered(3 + i) {
+                        TierCard(
+                            model = model,
+                            locked = TierRecommendation.isLocked(model.tier, totalRamGb),
+                            recommended = model.tier == recommended,
+                            selected = model.tier == chosen,
+                            onSelect = { chosen = model.tier },
+                        )
+                    }
+                    Spacer(Modifier.height(11.dp))
+                }
+            } else {
+                Staggered(3) {
                     TierCard(
-                        model = model,
-                        locked = TierRecommendation.isLocked(model.tier, totalRamGb),
-                        recommended = model.tier == recommended,
-                        selected = model.tier == chosen,
-                        onSelect = { chosen = model.tier },
+                        model = recommendedModel,
+                        locked = false,
+                        recommended = true,
+                        selected = true,
+                        onSelect = { chosen = recommended },
                     )
                 }
                 Spacer(Modifier.height(11.dp))
+                Staggered(4) {
+                    // Not a dismissal and not styled as one. Wanting to weigh the
+                    // sizes yourself is sensible.
+                    TextActionButton(
+                        "See the other options",
+                        onClick = { showingAll = true },
+                    )
+                }
             }
+
             Spacer(Modifier.height(8.dp))
             Staggered(7) {
                 Text(

@@ -6010,3 +6010,32 @@ for ordinary matches, which is invisible on a user's own message because that
 bubble is already `tonalFill`. Both marks are now the accent at low alpha, which
 reads on `surface` and on `tonalFill` alike, and the two alphas live in one place
 so the two renderers cannot drift apart.
+
+## One recommendation, and one quiet note about bookmarking (#76, #84)
+
+**The model choice (#76).** The onboarding setup slide opened with every tier as
+a card and asked the user to choose, which is a menu handed to somebody at the
+moment they know least about what is being chosen. The recommendation was already
+computed from real memory and was only used to add a badge. It now leads: one
+card, and "See the other options" for anybody who wants to weigh the sizes
+themselves, which is a sensible thing to want and is not styled as a dismissal.
+
+**The bookmark note (#84).** The honest-limits framing lives in onboarding, read
+once and forgotten, so nothing connected a doubtful answer to the bookmark at the
+moment it mattered.
+
+The whole design here is the restraint, and the trigger is where that lives, so
+it is a tested function rather than a condition buried in a composable. Only in
+the first five sessions, because after that somebody either knows or has decided
+they do not want it. Never twice in one session: one is a note, two is a
+campaign. Not on the first answer of a session, because arriving instantly reads
+as boilerplate attached to the product rather than to the answer. Dismissed once
+is dismissed for good.
+
+Deliberately **not** tied to whether the answer looks doubtful. Judging its own
+confidence is what a small model is worst at, and a note that appeared only on
+answers the app thought were shaky would be making a claim about all the others.
+
+The wording is a note and not a disclaimer: "Anything here worth checking? The
+bookmark saves it to Follow-ups." leaves the judgement with the reader. A test
+pins that it never apologizes, never warns, and carries no exclamation mark.

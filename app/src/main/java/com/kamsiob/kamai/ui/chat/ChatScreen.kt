@@ -205,6 +205,15 @@ fun ChatScreen(
     onCopied: () -> Unit = {},
     /** Runs a summary of this conversation, on request only (#86). */
     onSummarize: () -> Unit = {},
+    /**
+     * Whether to show the one quiet note about bookmarking (#84), and how to turn
+     * it off for good. Decided by the caller, which is the only place that knows
+     * how many sessions there have been.
+     */
+    showCheckReminder: Boolean = false,
+    /** Called once when the note is first put on screen, so a session counts it. */
+    onCheckReminderShown: () -> Unit = {},
+    onDismissCheckReminder: () -> Unit = {},
     /** The summary's state, driving the sheet. */
     summary: ChatViewModel.SummaryState = ChatViewModel.SummaryState.Idle,
     onCancelSummary: () -> Unit = {},
@@ -587,6 +596,17 @@ fun ChatScreen(
                                     highlight = if (finding) findQuery else "",
                                     highlightActive = index == activeMessageIndex,
                                 )
+                                // One quiet note, under the newest finished
+                                // answer, at most once a session and only in the
+                                // first few (#84).
+                                if (showCheckReminder &&
+                                    message.role == Role.ASSISTANT &&
+                                    !message.incomplete &&
+                                    message.id == messages.lastOrNull()?.id
+                                ) {
+                                    LaunchedEffect(Unit) { onCheckReminderShown() }
+                                    CheckReminderNote(onDismiss = onDismissCheckReminder)
+                                }
                             }
                         }
                     }
@@ -2142,6 +2162,42 @@ private fun FindBar(
             description = "Close find",
             onClick = onClose,
             tint = colors.textSecondary,
+        )
+    }
+}
+
+/**
+ * The bookmark note (#84).
+ *
+ * A note, not a disclaimer. It sits where the action it describes sits, under an
+ * answer, in the quietest text on the screen, and it carries its own way out
+ * because anything that appears uninvited has to be dismissible by the person it
+ * appeared in front of.
+ */
+@Composable
+private fun CheckReminderNote(onDismiss: () -> Unit) {
+    val colors = KamTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            CheckReminder.TEXT,
+            style = KamTheme.type.secondary,
+            color = colors.textTertiary,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "Got it",
+            style = KamTheme.type.label,
+            color = colors.textSecondary,
+            modifier = Modifier
+                .clip(CircleShape)
+                .clickable(onClick = onDismiss)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
         )
     }
 }
