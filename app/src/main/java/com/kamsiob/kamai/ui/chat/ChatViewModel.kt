@@ -853,7 +853,11 @@ class ChatViewModel(
         viewModelScope.launch {
             if (modelManager.activeId() == null) return@launch
             if (modelManager.ensureLoaded() !is ModelManager.Status.Loaded) return@launch
-            engine.warmUp(SystemPrompts.forMode(mode))
+            // The templated opening, not the bare system text. Warming the raw
+            // prompt was measured to buy nothing, because the real prompt starts
+            // with the format's turn opener and the token streams diverged there.
+            val format = repository.activeModel()?.format ?: ChatFormat.GEMMA
+            engine.warmUp(format.warmPrefix(SystemPrompts.forMode(mode)))
         }
     }
 

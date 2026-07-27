@@ -192,7 +192,19 @@ data class DownloadSummary(
             val fraction = if (current.totalBytes > 0) current.fraction else null
             val detail = when {
                 fraction == null -> "starting"
-                else -> "${(fraction * 100).toInt()}%  ${remaining(current)}"
+                else -> buildString {
+                    append("${(fraction * 100).toInt()}%  ${remaining(current)}")
+                    // How long, when that can be said honestly.
+                    //
+                    // "1.1 GB left" tells somebody nothing they can act on: it is
+                    // two minutes on one connection and forty on another. A phone
+                    // on a 2.4 GHz link behind a tunnel measured about 1 MB/s
+                    // against the same network giving a desktop 26, and the app
+                    // cannot fix that. What it can do is stop the wait being a
+                    // mystery, so somebody can decide to go and do something else
+                    // rather than watch a bar and conclude the app is broken.
+                    eta(current)?.let { append("  ").append(it) }
+                }
             }
 
             return DownloadSummary(
@@ -201,6 +213,39 @@ data class DownloadSummary(
                 fraction = fraction,
                 spoken = spoken(title, fraction, current),
             )
+        }
+
+        /**
+         * Roughly how long is left, or null when saying would be a guess.
+         *
+         * Deliberately coarse and deliberately hedged with "about". A precise
+         * figure on a wireless link is false precision, and a countdown that
+         * jumps around is worse than no countdown: it reads as the app not
+         * knowing what it is doing.
+         *
+         * Null until enough has been transferred to have an average worth
+         * quoting, since the first seconds of a download are the least
+         * representative part of it.
+         */
+        private fun eta(item: Downloads.Item): String? {
+            // The recent window first, because it describes the connection as it
+            // is now. The attempt average is the fallback for the first seconds,
+            // before a window has enough in it to be worth quoting.
+            val bytesPerMs = item.recentBytesPerMs ?: run {
+                val elapsedMs = item.elapsedMs ?: return null
+                val done = item.bytesThisAttempt
+                if (elapsedMs < 5_000 || done < 4L * 1024 * 1024) return null
+                done.toDouble() / elapsedMs
+            }
+            if (bytesPerMs <= 0.0) return null
+            val bytesLeft = (item.totalBytes - item.downloadedBytes).coerceAtLeast(0)
+            val leftMs = (bytesLeft / bytesPerMs).toLong()
+            val minutes = leftMs / 60_000
+            return when {
+                minutes < 1 -> "under a minute left"
+                minutes < 60 -> "about $minutes min left"
+                else -> "over an hour left"
+            }
         }
 
         /** How much is left, in the same units the rest of the app uses. */

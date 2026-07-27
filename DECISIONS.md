@@ -7069,3 +7069,110 @@ Leaving onboarding with the system back gesture exits the app, and relaunching
 restarts onboarding from the first slide rather than resuming. Most annoying at
 the model slide, which is exactly where somebody is most likely to step away.
 Filed as #117, not release blocking.
+
+
+## Why the model download is slow, measured rather than guessed
+
+The complaint was fair: a 200 Mbps line and the app downloading at about 1 MB/s.
+The investigation is worth recording because the obvious answers were all wrong.
+
+### The numbers
+
+| What | Throughput |
+|---|---|
+| Desktop, same wifi, one connection, cold CDN | 4.9 MB/s |
+| Desktop, same wifi, one connection, warm | **26.5 MB/s** |
+| Desktop, eight parallel range requests | 23.9 MB/s |
+| The app, on the phone | 1.0 to 1.6 MB/s |
+
+### What it is not
+
+**Not the number of connections.** Eight parallel range requests were *slower*
+than one warm connection, so the parallel chunked downloader that seemed like the
+obvious fix would have bought nothing. Worth the twenty minutes it took to measure
+before building it.
+
+**Not the write path.** The download wrote to an unbuffered `FileOutputStream`,
+which looked like an obvious culprit. Wrapping it in a 2 MB `BufferedOutputStream`
+and quadrupling the read chunk measured 1.03 MB/s against 1.55 before, which is
+within the noise of a contended link and certainly not an improvement. The change
+was reverted rather than kept on the strength of it sounding right.
+
+**Not HuggingFace, and not the VPN by itself.** The desktop reaches full line rate
+through the same network.
+
+### What it is
+
+The phone's own link, read out of `dumpsys wifi`:
+
+- **802.11n on 2412 MHz**, the 2.4 GHz band, while the router also runs a 5 GHz
+  radio the phone is not associated with.
+- Link speed 115 Mbps, maximum supported 144, **calculated Rx 96 Mbps**.
+- RSSI -57 dBm.
+- All traffic through a Tailscale tunnel on `tun0` with **MTU 1280** rather than
+  1500, so every packet carries more overhead and the encapsulation happens in
+  userspace on the phone.
+
+An 11n 2.4 GHz link at that signal realistically delivers a fraction of its
+calculated rate, and the tunnel takes more off the top. The observed 1 to 1.5 MB/s
+is low but it is the same order of magnitude as the link, not seventeen times off
+it. The 200 Mbps figure from a speed test cannot travel over this association.
+
+**What the app can do about it: nothing.** It cannot choose the band, and it should
+not try to. What it can do is stop the wait being a mystery, which is the next
+entry.
+
+
+## Cold time to first token: 30 seconds to under one
+
+### The measurement that set the direction
+
+Prefill was 99.5 percent of the wait: 31438 ms of a 31588 ms total, decoding about
+1100 tokens at 37 tokens per second. Nothing was broken. Batching was already
+correct, feeding `llama_decode` in `n_batch` chunks, and 37 tokens per second of
+prefill against 3 of decode is the ordinary ratio for this CPU.
+
+So there was no bug to fix and no trick to find. The prompt is large, the phone is
+slow, and the only thing wrong was *when* the work happened.
+
+### The fix, and the two ways it silently did nothing first
+
+Almost every one of those tokens is the mode's instruction block, which never
+varies and is known the moment the chat screen opens. So it is decoded then,
+while the user is still reading, and their first message prefills only itself.
+
+Written three times, wrong twice, and both times the only symptom was a number
+that failed to move:
+
+1. **Warmed the bare system prompt.** Gemma has no system role and folds the
+   instructions into the first user turn, so the real prompt began with a turn
+   opener the warm-up never emitted. Common prefix: zero.
+2. **Added the turn opener, still nothing.** `build` also emits a leading
+   `<bos>`. One token, at position zero, and the entire cache was unusable.
+
+The second one is the instructive failure. The cache genuinely held 739 tokens,
+confirmed by logging `nativeContextUsed` before ingest, and the next ingest still
+decoded 788. Everything looked correct except the timing, and the timing is the
+only thing that said otherwise. Both mistakes are now caught on the JVM in
+milliseconds by `WarmPrefixTest`, which asserts the warm prefix is a literal
+prefix of what `build` produces, for every format and every mode.
+
+A prefix that is not a prefix is not a small bug. It is exactly twice the work.
+
+### The numbers, on a Pixel 10 Pro XL, minified release build
+
+| | TTFT | Prefill |
+|---|---|---|
+| Gemma 4 E4B, no warm-up | 29000 to 38000 ms | 1042 to 1165 tok |
+| Gemma 4 E2B, warm-up not actually reused | 10384 ms | 788 tok |
+| **Gemma 4 E2B, warm-up working** | **979 ms** | **51 tok** |
+
+Ten times faster on the same model, and the first token now arrives in under a
+second. Part of the improvement between the first row and the rest is the smaller
+model, which was a separate decision; the last row against the middle one is the
+warm-up alone, on identical builds and the same model.
+
+The warm-up itself costs 11 seconds of decoding, paid while the screen is being
+read rather than while somebody waits at an empty composer. It runs off the main
+path, ignores its own failures, and holds no lock the send path needs, so a
+partial warm-up is still a partial win.

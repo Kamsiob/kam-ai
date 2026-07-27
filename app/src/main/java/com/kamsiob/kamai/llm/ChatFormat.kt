@@ -64,6 +64,20 @@ enum class ChatFormat {
             append("<start_of_turn>model\n")
         }
 
+        /**
+         * Gemma has no system role, so the instructions are folded into the first
+         * user turn. That makes the warmable prefix the turn opener plus the
+         * system text, and everything after it is the user's own message.
+         */
+        override fun warmPrefix(systemPrompt: String): String =
+            // BOS included, because build() emits it and the prefix has to be
+            // byte for byte what the real prompt starts with. Leaving it out made
+            // the very first token differ, so the common prefix was zero and the
+            // warm up decoded 739 tokens that were then decoded again. It cost
+            // nothing to get wrong and nothing to detect except measuring, which
+            // is the only reason it was found: the timing did not move.
+            BOS + "<start_of_turn>user\n" + systemPrompt + "\n\n"
+
         override val stopMarkers = listOf("<end_of_turn>", "<start_of_turn>", "<eos>")
     },
 
@@ -96,6 +110,10 @@ enum class ChatFormat {
             append("<|im_start|>assistant\n").append(EMPTY_THINKING)
         }
 
+        /** Qwen has a real system role, so the whole block is the prefix. */
+        override fun warmPrefix(systemPrompt: String): String =
+            "<|im_start|>system\n" + systemPrompt + "<|im_end|>\n"
+
         override val stopMarkers = listOf("<|im_end|>", "<|im_start|>", "<|endoftext|>")
     },
     ;
@@ -105,6 +123,20 @@ enum class ChatFormat {
         history: List<PromptBuilder.Turn>,
         pendingUserMessage: String? = null,
     ): String
+
+    /**
+     * The leading run of text every prompt in this format begins with, given a
+     * system prompt, so it can be decoded before the user types (#38).
+     *
+     * This has to be the real templated opening rather than the system prompt on
+     * its own, and the difference is not academic. The first version of the warm
+     * up ingested the bare system text, and measuring showed it bought nothing at
+     * all: the next prompt still prefilled 792 tokens of 792, because the token
+     * streams diverged at the very first token where the template opener should
+     * have been. A prefix that is not actually a prefix is just wasted work done
+     * twice.
+     */
+    abstract fun warmPrefix(systemPrompt: String): String
 
     abstract val stopMarkers: List<String>
 

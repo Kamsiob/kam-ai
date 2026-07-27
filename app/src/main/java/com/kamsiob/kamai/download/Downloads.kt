@@ -39,7 +39,50 @@ object Downloads {
         val totalBytes: Long,
         val status: Status,
         val message: String? = null,
+        /**
+         * When this download last started or resumed, so how long is left can be
+         * estimated from what has actually been achieved rather than from a
+         * guess about the connection.
+         *
+         * Reset on resume rather than carried from the original start, because
+         * an average that includes an hour spent paused describes nothing.
+         */
+        val startedAtMs: Long? = null,
+        /** Bytes already on disk when this attempt began, excluded from the rate. */
+        val resumedFromBytes: Long = 0,
+        /**
+         * The start of the current measuring window, and the byte count then.
+         *
+         * The estimate used the whole attempt at first, and on a resumed download
+         * that was badly wrong: connection setup and a slow first few seconds
+         * dragged the average down for minutes afterwards. Observed saying "about
+         * 59 min left" when the transfer was actually running at a rate that would
+         * finish in under ten, which is worse than saying nothing, because
+         * somebody reads it and walks away.
+         *
+         * A window of the last several seconds tracks what the connection is
+         * doing now, which is the only thing that predicts what it will do next.
+         */
+        val windowStartMs: Long? = null,
+        val windowStartBytes: Long = 0,
     ) {
+        /** Milliseconds this attempt has been running, or null before it has. */
+        val elapsedMs: Long?
+            get() = startedAtMs?.let { (System.currentTimeMillis() - it).coerceAtLeast(0) }
+
+        /** Bytes this attempt has fetched, which is what the rate is measured on. */
+        val bytesThisAttempt: Long get() = (downloadedBytes - resumedFromBytes).coerceAtLeast(0)
+
+        /** Bytes per millisecond over the recent window, or null if not measurable. */
+        val recentBytesPerMs: Double?
+            get() {
+                val since = windowStartMs ?: return null
+                val ms = System.currentTimeMillis() - since
+                val bytes = downloadedBytes - windowStartBytes
+                if (ms < 3_000 || bytes <= 0) return null
+                return bytes.toDouble() / ms
+            }
+
         val fraction: Float
             get() = if (totalBytes > 0) (downloadedBytes.toFloat() / totalBytes).coerceIn(0f, 1f) else 0f
     }
@@ -76,14 +119,41 @@ object Downloads {
         if (jobs[spec.id]?.isActive == true) return
         specs[spec.id] = spec
         val app = context.applicationContext
-        put(Item(spec.id, spec.displayName, spec.kind, existingBytes(spec), spec.sizeBytes, Status.RUNNING))
+        // Stamped here rather than at first byte, so the estimate includes the
+        // connection setup the user is also waiting through.
+        val already = existingBytes(spec)
+        put(
+            Item(
+                spec.id, spec.displayName, spec.kind, already, spec.sizeBytes, Status.RUNNING,
+                startedAtMs = System.currentTimeMillis(),
+                resumedFromBytes = already,
+                windowStartMs = System.currentTimeMillis(),
+                windowStartBytes = already,
+            ),
+        )
         DownloadService.ensureRunning(app)
 
         jobs[spec.id] = scope.launch {
             downloader.download(spec.url, spec.destination, spec.sizeBytes, spec.sha256).collect { p ->
                 when (p) {
-                    is Downloader.Progress.Running ->
-                        put(item(spec).copy(downloadedBytes = p.bytesDownloaded, totalBytes = p.totalBytes, status = Status.RUNNING))
+                    is Downloader.Progress.Running -> {
+                        val prev = item(spec)
+                        // Roll the window forward once it is old enough to have
+                        // said what it had to say, so the rate stays recent
+                        // rather than becoming another lifetime average.
+                        val now = System.currentTimeMillis()
+                        val rollAfterMs = 10_000L
+                        val roll = prev.windowStartMs == null || now - prev.windowStartMs >= rollAfterMs
+                        put(
+                            prev.copy(
+                                downloadedBytes = p.bytesDownloaded,
+                                totalBytes = p.totalBytes,
+                                status = Status.RUNNING,
+                                windowStartMs = if (roll) now else prev.windowStartMs,
+                                windowStartBytes = if (roll) prev.downloadedBytes else prev.windowStartBytes,
+                            ),
+                        )
+                    }
                     Downloader.Progress.Verifying ->
                         put(item(spec).copy(status = Status.VERIFYING))
                     is Downloader.Progress.Done -> {
