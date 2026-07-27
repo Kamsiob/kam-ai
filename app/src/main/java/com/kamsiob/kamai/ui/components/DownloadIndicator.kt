@@ -228,6 +228,11 @@ data class DownloadSummary(
          * representative part of it.
          */
         private fun eta(item: Downloads.Item): String? {
+            // Only a download that is actually moving has a time left. Anything
+            // else is quoting a rate measured before it stopped: observed as
+            // "Gemma 4 E4B, paused   78%  1.1 GB left  over an hour left", which
+            // promises a wait for a transfer that is not running at all.
+            if (item.status != Downloads.Status.RUNNING) return null
             // The recent window first, because it describes the connection as it
             // is now. The attempt average is the fallback for the first seconds,
             // before a window has enough in it to be worth quoting.

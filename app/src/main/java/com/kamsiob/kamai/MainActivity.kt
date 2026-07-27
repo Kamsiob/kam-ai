@@ -67,5 +67,8 @@ class MainActivity : FragmentActivity() {
         super.onStart()
         AppLock.onForegrounded(SystemClock.elapsedRealtime())
         Models.manager(this).onForegrounded()
+        // A download the system paused while we were away can start again now,
+        // and this is the only moment that reliably notices (see #121).
+        com.kamsiob.kamai.download.Downloads.onAppForegrounded()
     }
 }

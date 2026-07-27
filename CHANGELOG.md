@@ -27,6 +27,11 @@ discuss. An assistant overlay on the power button.
 Keystore. An encrypted backup and restore file for moving between phones. A data
 model that is already sync ready, though no sync exists and none is planned.
 
+**Fixed before release.** Android limits how long an app may download in the
+background each day. Reaching that limit used to kill the app mid-download, which
+hit slow connections hardest, the exact case background downloading exists for.
+The download now pauses cleanly, says so, and picks itself back up.
+
 ### Known limits, stated rather than discovered
 
 The model is small enough to fit on a phone, so it knows less than the large ones

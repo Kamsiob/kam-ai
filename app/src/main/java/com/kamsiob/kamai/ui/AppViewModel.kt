@@ -441,17 +441,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun watchForResume() {
         viewModelScope.launch {
             com.kamsiob.kamai.download.Connectivity.observe(getApplication()).collect { network ->
-                com.kamsiob.kamai.download.Downloads.items.value
-                    .filter { it.status == com.kamsiob.kamai.download.Downloads.Status.PAUSED }
-                    .filter {
-                        com.kamsiob.kamai.download.DownloadGuard.shouldAutoResume(
-                            userPaused = com.kamsiob.kamai.download.Downloads.wasPausedByUser(it.id),
-                            network = network,
-                        )
-                    }
-                    .forEach { resumeDownload(it.id) }
+                resumeWhatShouldResume(network)
             }
         }
+        // Connectivity alone is not enough. When Android pauses a download by
+        // withdrawing the foreground service (#121) the process survives, so no
+        // network event ever arrives and the download sits looking stalled.
+        // Returning to the app is the second moment worth re-checking.
+        viewModelScope.launch {
+            com.kamsiob.kamai.download.Downloads.foregrounded.collect {
+                resumeWhatShouldResume(
+                    com.kamsiob.kamai.download.Connectivity.state(getApplication()),
+                )
+            }
+        }
+    }
+
+    private fun resumeWhatShouldResume(network: com.kamsiob.kamai.download.Connectivity.State) {
+        com.kamsiob.kamai.download.Downloads.items.value
+            .filter { it.status == com.kamsiob.kamai.download.Downloads.Status.PAUSED }
+            .filter {
+                com.kamsiob.kamai.download.DownloadGuard.shouldAutoResume(
+                    userPaused = com.kamsiob.kamai.download.Downloads.wasPausedByUser(it.id),
+                    network = network,
+                )
+            }
+            .forEach { resumeDownload(it.id) }
     }
 
     fun pauseDownload(id: String) = com.kamsiob.kamai.download.Downloads.pause(getApplication(), id)

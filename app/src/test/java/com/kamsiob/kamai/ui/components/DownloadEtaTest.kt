@@ -34,6 +34,27 @@ class DownloadEtaTest {
     )
 
     @Test
+    fun `a paused download is not given a time remaining`() {
+        // Seen on the device as "Gemma 4 E4B, paused   78%  1.1 GB left  over an
+        // hour left" after Android withdrew the foreground service (#121). The
+        // rate was real when it was measured, but the transfer had stopped, so
+        // the estimate was a promise about something that was not happening.
+        val paused = item(
+            downloaded = 1_400L * MB,
+            startedAtMs = System.currentTimeMillis() - 600_000,
+        ).copy(
+            status = Downloads.Status.PAUSED,
+            windowStartMs = System.currentTimeMillis() - 60_000,
+            windowStartBytes = 1_000L * MB,
+        )
+        val summary = DownloadSummary.active(listOf(paused))!!
+        assertThat(summary.detail).contains("GB left")
+        assertThat(summary.detail).doesNotContain("min left")
+        assertThat(summary.detail).doesNotContain("under a minute")
+        assertThat(summary.detail).doesNotContain("over an hour")
+    }
+
+    @Test
     fun `the rate is measured on this attempt, not on bytes already there`() {
         // A resumed download has bytes on disk it did not fetch this time. Counting
         // them would report a rate far higher than reality and an estimate far

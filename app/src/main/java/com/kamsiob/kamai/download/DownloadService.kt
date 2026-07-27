@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -55,21 +56,66 @@ class DownloadService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
+    /**
+     * Android gives a `dataSync` foreground service a limited amount of running
+     * time per day. When it runs out the system calls this, and a service that
+     * does not stop promptly is not warned again: the process is killed with
+     * ForegroundServiceDidNotStopInTimeException. That crash is what led here,
+     * and it lands on exactly the wrong people, the ones downloading five
+     * gigabytes over a slow connection who need the background download most.
+     *
+     * So stop cleanly, keep the partial files, and say so plainly. The pause is
+     * recorded as the system's rather than the user's, so it resumes by itself.
+     */
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        Downloads.pauseAllForSystemLimit(applicationContext)
+        notifyWith(
+            PAUSED_NOTIF_ID,
+            NotificationCompat.Builder(this, CHANNEL)
+                .setContentTitle("Download paused")
+                .setContentText("Android limits how long apps can download in the background. Open Kam AI to pick it up from where it stopped.")
+                .setSmallIcon(android.R.drawable.stat_sys_download)
+                .setOngoing(false)
+                .setAutoCancel(true)
+                .setSilent(true)
+                .setContentIntent(openAppIntent())
+                .build(),
+        )
+        stopSelf()
+    }
+
     override fun onDestroy() {
         watcher?.cancel()
         super.onDestroy()
     }
 
+    /**
+     * The other half of the timeout problem. Once the daily `dataSync` budget is
+     * spent, the system refuses to let the service go foreground at all and
+     * throws instead, so resuming a download after a timeout would trade one
+     * crash for another. Refusing is a legitimate answer here, not an error:
+     * the download itself lives in [Downloads] and keeps running while the app
+     * is open. All that is lost is the promise to continue in the background,
+     * which the system has already withdrawn.
+     */
     private fun startForegroundWith(n: Notification) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            startForeground(NOTIF_ID, n)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIF_ID, n)
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("DownloadService", "Cannot go foreground, downloading without it", e)
+            stopSelf()
         }
     }
 
-    private fun notify(n: Notification) {
-        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(NOTIF_ID, n)
+    private fun notify(n: Notification) = notifyWith(NOTIF_ID, n)
+
+    private fun notifyWith(id: Int, n: Notification) {
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(id, n)
     }
 
     private fun buildNotification(title: String, percent: Int, indeterminate: Boolean): Notification =
@@ -97,6 +143,10 @@ class DownloadService : Service() {
         private const val CHANNEL = "downloads"
         private const val NOTIF_ID = 42
 
+        // A separate id on purpose. Stopping the service tears down the ongoing
+        // notification NOTIF_ID owns, which would take the explanation with it.
+        private const val PAUSED_NOTIF_ID = 43
+
         fun ensureChannel(context: Context) {
             val mgr = context.getSystemService(NotificationManager::class.java)
             if (mgr.getNotificationChannel(CHANNEL) == null) {
@@ -111,10 +161,17 @@ class DownloadService : Service() {
 
         fun ensureRunning(context: Context) {
             val intent = Intent(context, DownloadService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                // Starting is refused outright in some states, such as after the
+                // daily foreground budget is gone. A download that cannot be
+                // backgrounded is still a download worth running.
+                android.util.Log.w("DownloadService", "Could not start the download service", e)
             }
         }
 

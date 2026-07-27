@@ -5,7 +5,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -106,6 +109,25 @@ object Downloads {
 
     private val _items = MutableStateFlow<List<Item>>(emptyList())
     val items: StateFlow<List<Item>> = _items.asStateFlow()
+
+    /**
+     * Fires when the app comes back to the front, as a prompt to reconsider
+     * anything paused.
+     *
+     * Auto-resume used to hang entirely off connectivity changes, which covers a
+     * download interrupted by process death but not one the system paused while
+     * the process kept running: no network event ever arrives, so it sits there
+     * looking stalled. Coming back to the app is the other moment worth
+     * re-checking, and it is also the moment resuming is most likely to be
+     * allowed, since the foreground restrictions that caused the pause do not
+     * apply to an app the user is looking at.
+     */
+    private val _foregrounded = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val foregrounded: SharedFlow<Unit> = _foregrounded.asSharedFlow()
+
+    fun onAppForegrounded() {
+        _foregrounded.tryEmit(Unit)
+    }
 
     val activeCount: Int get() = _items.value.count { it.status == Status.RUNNING || it.status == Status.VERIFYING }
 
@@ -208,6 +230,33 @@ object Downloads {
         userPaused += id
         item(id)?.let { put(it.copy(status = Status.PAUSED)) }
         maybeStopService(context)
+    }
+
+    /**
+     * Stops every running download because Android took the foreground service
+     * away, keeping partial files so they resume from where they stopped.
+     *
+     * Deliberately does not touch [userPaused]. Android allows a `dataSync`
+     * foreground service roughly six hours of running time per day, then calls
+     * `onTimeout` and kills the process if the service does not stop. That is the
+     * same shape of event as process death in #79: something the user did not
+     * choose and would want undone, so it must auto-resume rather than sit there
+     * waiting to be tapped. Recording it as a user pause would strand a
+     * half-finished five gigabyte model behind a button nobody knows to press.
+     *
+     * Found by a real crash rather than by reading the documentation: a day of
+     * repeated model downloads exhausted the budget and the app was killed
+     * mid-download with ForegroundServiceDidNotStopInTimeException.
+     */
+    fun pauseAllForSystemLimit(context: Context) {
+        _items.value
+            .filter { it.status == Status.RUNNING || it.status == Status.VERIFYING }
+            .forEach { active ->
+                jobs[active.id]?.cancel()
+                jobs.remove(active.id)
+                put(active.copy(status = Status.PAUSED))
+            }
+        DownloadService.stop(context)
     }
 
     /** Resumes a paused (or failed) download from its partial file. */

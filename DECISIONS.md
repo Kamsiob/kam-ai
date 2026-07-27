@@ -7176,3 +7176,61 @@ The warm-up itself costs 11 seconds of decoding, paid while the screen is being
 read rather than while somebody waits at an empty composer. It runs off the main
 path, ignores its own failures, and holds no lock the send path needs, so a
 partial warm-up is still a partial win.
+
+## The background download had a time limit nobody had read
+
+Android allows a `dataSync` foreground service a limited amount of running time
+per day. When it runs out the system calls `Service.onTimeout`, and a service
+that does not stop promptly does not get a second warning: the process is killed
+with `ForegroundServiceDidNotStopInTimeException`.
+
+`DownloadService` did not override `onTimeout`, so being killed was the only
+outcome available to it. This was found by being killed, at 65% of a 5.0 GB
+model, and not by reading the documentation first.
+
+### Why it was worth stopping everything for
+
+The failure selects for the people least able to absorb it. A fast connection
+finishes a model long before any daily budget matters. A slow connection is the
+entire reason downloading in the background was promised, and it is the case that
+got a crash instead. Recovery was silent too: the partial file survives, so the
+next launch showed a stalled download and no account of what had happened.
+
+### The second failure hiding behind the first
+
+Once the budget is gone the system also refuses to let the service go foreground
+and throws when it tries. So resuming after a timeout traded one crash for
+another. Both paths now treat a refusal as an answer rather than an error. A
+download that cannot be backgrounded is still a download worth running, and it
+keeps going while the app is open, which is all the system still permits.
+
+### Pausing is not the same as being paused
+
+The pause is recorded as the system's rather than the user's, reusing the
+distinction built for #79. The two look identical in `Status` and must not be
+treated alike: one is a decision to respect, the other an accident to undo. Had a
+system pause been recorded as the user's, a half-finished five gigabyte download
+would sit behind a Resume button that nobody knows to press.
+
+That exposed a real gap in auto-resume, which hung entirely off connectivity
+changes. That covers a download interrupted by process death, because the process
+restarts and the network state is emitted on collection. It does not cover one
+the system paused while the process kept running: no network event ever arrives.
+Returning to the app is now the second trigger, and it is also the moment
+resuming is most likely to be permitted.
+
+### Verified by forcing it rather than waiting a day
+
+```
+adb shell device_config put activity_manager data_sync_fgs_timeout_duration 30000
+```
+
+With the app backgrounded, the system logged `FGS (dataSync) timed out` followed
+by `Stop FGS timeout`, which is the service stopping in time. No crash, the
+process survived, the download showed as paused, and returning to the app resumed
+it from 78% without a tap. The override was deleted afterwards.
+
+A last detail the same screenshot gave away: the paused row still read "over an
+hour left", quoting a rate measured before the transfer stopped. An estimate is a
+claim about something still happening, so it is now withheld unless the download
+is actually running.
