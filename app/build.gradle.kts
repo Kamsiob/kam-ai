@@ -44,8 +44,12 @@ android {
         applicationId = "com.kamsiob.kamai"
         minSdk = 31
         targetSdk = 36
+        // 1.0.0, and version code 1. First public release, and the store has
+        // never seen a bundle for this package, so nothing has to be climbed past.
+        // Semantic versioning makes this 1.0.0 rather than 0.x: the app is
+        // complete for the scope it claims, and 0.x would tell people it is not.
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

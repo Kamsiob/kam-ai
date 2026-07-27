@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:tools="http://schemas.android.com/tools" xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- The only permission in the app. It is needed to download a model, a
          voice, or a content pack, and for opt-in web search. Nothing is sent
@@ -11,7 +11,16 @@
          FOREGROUND_SERVICE to the merged manifest. An app that promises it only
          touches the network when asked should not also be asking to start
          itself at boot. See DECISIONS.md. -->
-    <uses-permission android:name="android.permission.INTERNET" />
+        <!-- androidx.biometric declares USE_FINGERPRINT for API levels below 28. This
+         app's minSdk is 31, so the permission can never be used and only appears
+         on the store listing as something to explain. Removed rather than left
+         to be asked about. USE_BIOMETRIC, which is the one that does the work,
+         stays. -->
+    <uses-permission
+        android:name="android.permission.USE_FINGERPRINT"
+        tools:node="remove" />
+
+<uses-permission android:name="android.permission.INTERNET" />
     <!--
       Read-only, and only ever asked about the current connection: whether there
       is one, and whether it is metered. A five gigabyte model must never start on

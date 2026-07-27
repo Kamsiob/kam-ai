@@ -6958,3 +6958,56 @@ correctly refused and said what to do. Our own process was holding 128 MB, so th
 is not a leak. It does mean the Balanced tier can be unavailable on a device that
 nominally supports it, which is a real product observation rather than a defect,
 and it is tracked rather than filed as a bug.
+
+
+## Version 1.0.0, and the signed bundle
+
+**1.0.0, version code 1.** Semantic versioning makes a first public release 1.0.0
+rather than 0.x, because the app is complete for the scope it claims and 0.x would
+tell people it is not. Version code 1 is safe because the store has never accepted
+a bundle for this package: the tracks exist and every one is empty, checked
+through the API rather than assumed.
+
+### What the artifact was checked for, rather than trusted about
+
+`jarsigner -verify` reports **jar verified**, signed by CN=Kamsiob, O=B7
+Collective, 4096-bit RSA with SHA384withRSA. That is the upload key. The store
+holds the app signing key under Play App Signing, so this one can be reset if it
+is ever lost, which is the whole reason the arrangement exists.
+
+Package `com.kamsiob.kamai`, version name 1.0.0 present in the manifest, no
+debuggable flag, minification and shrinking as tested. Native libraries present
+for arm64-v8a and no other architecture, which is the intended set: `libkamai`
+for llama.cpp, `libkamwhisper`, `libonnxruntime` for the voice runtime,
+`libsqlcipher`, and the DataStore counter.
+
+No credential is embedded. The bundle was searched for the secrets directory
+name, a private key block, the signing password key, the service account address
+and the keystore filename. All zero.
+
+### The permission list, which needed correcting
+
+Two things looked wrong and only one was.
+
+**USE_FINGERPRINT was real and is gone.** `androidx.biometric` declares it for API
+levels below 28. This app's minSdk is 31, so it could never be used and would only
+have appeared on the store listing as something to explain. Removed with
+`tools:node="remove"`. USE_BIOMETRIC, which does the work, stays.
+
+**DUMP was a false alarm, and worth recording as one.** A crude string search
+through the bundle found `android.permission.DUMP` and it looked like a
+system-level permission had been pulled in transitively. It had not. The string is
+an `android:permission` attribute *protecting* `ProfileInstallReceiver`, so only
+the shell can trigger baseline profile installation. That is standard hardening
+and the opposite of a problem. The same crude search also mistook the quick
+settings tile and voice interaction service protections for requests.
+
+The lesson is narrow and useful: a permission a component is protected *by* reads
+identically to a permission an app asks *for* when you are grepping strings. Read
+the packaged manifest, not the bytes.
+
+**What ships:** ACCESS_NETWORK_STATE for the metered and offline checks,
+FOREGROUND_SERVICE and FOREGROUND_SERVICE_DATA_SYNC for downloads and generation,
+INTERNET for model and pack downloads, POST_NOTIFICATIONS for their progress,
+RECORD_AUDIO for voice, and USE_BIOMETRIC for the app lock. Seven, each traceable
+to a feature.
