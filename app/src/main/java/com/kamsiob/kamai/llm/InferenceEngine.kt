@@ -261,6 +261,22 @@ class InferenceEngine(
             guard.flush().takeIf { it.isNotEmpty() }?.let { trySend(Chunk(it)) }
         }
 
+        // An answer with nothing in it is never shown as one.
+        //
+        // Seen on the device: Logic Partner was given a sound argument and the
+        // model emitted end-of-generation immediately, decoding zero tokens. The
+        // transcript rendered an empty bubble, which is the worst way to fail,
+        // because it looks like the app broke rather than like the model having
+        // nothing to say, and there is no way to tell those apart from the outside.
+        //
+        // The model doing this is a separate matter and is tracked as its own
+        // issue. Whatever it does, an empty bubble is the app's fault, and saying
+        // plainly that nothing came back is both true and something a person can
+        // act on.
+        if (produced == 0 && reason == StopReason.Finished) {
+            trySend(Chunk("No answer came back. Try sending that again."))
+        }
+
         // Measured performance for this generation. Read with:
         //   adb logcat -s KamPerf
         // Prefill is prompt ingestion (tokens/s over the whole prompt); decode is

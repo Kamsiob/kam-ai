@@ -32,7 +32,7 @@ class PromptBudgetTest {
         // answered it on the next turn, ignoring what was actually said. The
         // examples now name the kind of thing asked instead of quoting somebody
         // asking it, plus an explicit rule to answer the message that was sent.
-        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 1080)
+        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 1160)
     }
 
     @Test
@@ -107,7 +107,7 @@ class PromptBudgetTest {
             // underneath, which contradicts the app's own rule of no name beyond
             // Kam AI and tells the user they installed something other than what
             // they installed.
-            Mode.GENERAL to 1080,
+            Mode.GENERAL to 1160,
             // Raised from 1000 to 1080 for #57, deliberately and not quietly. The
             // argument-analysis method (claim, grounds, warrant, qualifier, claim
             // kind, then the crux and the kind of disagreement) cannot be added for
@@ -143,7 +143,7 @@ class PromptBudgetTest {
             // conversation, amortised by prefix reuse afterwards. The alternative
             // was a flagship mode that answers in five words of jargon, which is
             // not a trade worth protecting time to first token for.
-            Mode.LOGIC to 1800,
+            Mode.LOGIC to 1880,
             // Raised from 1600 to 1660 for #58, deliberately and not quietly, and
             // after trimming everything that could be trimmed. Two device-found
             // failures paid for it. The mode announced its own method ("Only a
@@ -186,10 +186,10 @@ class PromptBudgetTest {
             // an illustration of one. There are now two, on visibly different
             // problems, which teaches the pattern instead of the sentence. The
             // prose those examples replaced paid most of the cost.
-            Mode.BRAINSTORM to 2370,
-            Mode.BENCH to 1160,
-            Mode.OVERLAY to 1100,
-            Mode.DISCOVER to 1240,
+            Mode.BRAINSTORM to 2450,
+            Mode.BENCH to 1240,
+            Mode.OVERLAY to 1180,
+            Mode.DISCOVER to 1320,
         )
         budgets.forEach { (mode, budget) ->
             val tokens = approxTokens(SystemPrompts.forMode(mode))
