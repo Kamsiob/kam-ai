@@ -105,7 +105,36 @@ class PromptBudgetTest {
             // estimated tokens at the start of a session, not sixty per turn. The
             // same trade recorded for LOGIC above, and the budget exists to
             // protect time to first token, which prefix reuse protects far more.
-            Mode.BRAINSTORM to 1820,
+            // Raised from 1820 to 1890 for the second instance of the bug behind
+            // #114, found on the device right after fixing the first.
+            //
+            // Brainstorm opened with "Only a topic or problem, no idea yet, or one
+            // vague idea. I'll use STARBURSTING." That is not merely the mode
+            // naming its method, which #58 already fixed once; it is selection
+            // rule 2 read out verbatim, condition and label together. The prompt
+            // forbade capitalised labels while printing eleven of them, and quoted
+            // the bad output as a warning, so the model had the sentence in front
+            // of it twice.
+            //
+            // Every method label is now lowercase prose, so there is no capitalised
+            // token left to announce, and the quoted bad line is replaced by a
+            // worked example of a good opening. A prompt cannot forbid a shape it
+            // demonstrates.
+            //
+            // Then raised again, to 1930, because one example was not enough and
+            // the device said so. With a single opening in the prompt, Brainstorm
+            // reproduced it word for word on an unrelated problem: asked about a
+            // channel making repetitive videos, it still asked what the person
+            // explains to others more than once. Correct in shape, useless in
+            // substance, and a direct breach of the rule that questions come out of
+            // the user's own material.
+            //
+            // Brainstorm openings are generically shaped in a way Logic Partner's
+            // arguments are not, so a lone example becomes the opening rather than
+            // an illustration of one. There are now two, on visibly different
+            // problems, which teaches the pattern instead of the sentence. The
+            // prose those examples replaced paid most of the cost.
+            Mode.BRAINSTORM to 1930,
             Mode.BENCH to 740,
             Mode.OVERLAY to 680,
             Mode.DISCOVER to 820,
