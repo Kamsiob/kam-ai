@@ -56,15 +56,28 @@ require_app() {
 # temperature, and the browser opened over the app in the middle of the battery.
 "$adb" shell am force-stop com.brave.browser >/dev/null 2>&1 || true
 
+# Bring the app up rather than assuming somebody left it there. `am start` is
+# used instead of `monkey`, which reported success and left the launcher on
+# screen more than once.
+"$adb" shell am start -n com.kamsiob.kamai/.MainActivity >/dev/null 2>&1 || true
+sleep 6
+
 i=0
 for text in "${inputs[@]}"; do
   i=$((i+1))
   # Back out to the chat list first. The mode chips only sit at this coordinate
   # there; inside a conversation the same point is reply text, and tapping it can
   # follow a link straight out of the app. Removing this line once cost a run.
-  require_app
+  #
+  # From the list itself, though, the same Back leaves the app entirely, which is
+  # how the first iteration used to abort. So relaunch when that happens rather
+  # than assume which screen we were on.
   "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
   sleep 2
+  if ! "$adb" shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus | grep -q com.kamsiob.kamai; then
+    "$adb" shell am start -n com.kamsiob.kamai/.MainActivity >/dev/null 2>&1 || true
+    sleep 5
+  fi
   require_app
   "$adb" shell input tap "$mode_x" 2122   # a fresh conversation in this mode
   sleep 8

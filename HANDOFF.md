@@ -24,6 +24,36 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### Session of 27 July: the background download had a daily limit (#121, closed)
+
+Worth knowing before touching downloads. Android allows a `dataSync` foreground
+service a limited amount of running time per day, calls `Service.onTimeout` when
+it runs out, and kills the process if the service does not stop. `DownloadService`
+never overrode it, so the app was killed at 65% of a 5.0 GB model.
+
+It was found by being killed rather than by reading anything, and it fails for
+exactly the people background downloading exists for: a fast connection finishes
+long before any budget matters.
+
+Now handled, and verified on the phone by forcing the budget short with
+`adb shell device_config put activity_manager data_sync_fgs_timeout_duration
+30000` rather than waiting a day. Delete the override afterwards; it is a system
+setting and it affects every app on the phone.
+
+Two things that fell out of it and are worth remembering as patterns:
+
+- **Auto-resume only listened to connectivity.** That covers a download killed
+  with the process, because the network state is emitted when collection starts
+  after a restart. It does not cover one paused while the process lives, since no
+  network event ever arrives. Returning to the app is now a second trigger.
+- **A paused download was still quoting a time remaining**, using a rate measured
+  before it stopped. Any estimate is a claim that something is still happening.
+
+`tools/mode_battery.sh` also grew a guard in this session, after it typed ten test
+inputs into the owner's browser because a Back press had left the app. It now
+refuses to type unless Kam AI holds focus, and it no longer hides failures behind
+`|| true`, which had let it report ten captures when it took none.
+
 ### Read this first: a data-loss hazard that was armed, and is now disarmed
 
 **Two** instrumentation tests destroyed real user data when run the standard way, and both passed

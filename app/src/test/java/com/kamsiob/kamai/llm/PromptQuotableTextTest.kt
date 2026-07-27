@@ -68,9 +68,22 @@ class PromptQuotableTextTest {
 
         val found = mutableListOf<String>()
         bodies.forEach { m ->
-            Regex("\"([^\"\n]{10,})\"").findAll(m.groupValues[2]).forEach {
-                found += it.groupValues[1]
-            }
+            // Newlines are allowed inside the quotes on purpose. This used to be
+            // [^"\n], which cannot match a quoted sentence that wraps across two
+            // source lines, and that is precisely how the worst instance got in:
+            // a paragraph warning against supplying a quotable identity sentence,
+            // which quoted the sentence, wrapped, and so was invisible here. The
+            // model copied it and answered "I am Kam AI." to a bereavement
+            // message (#119).
+            // Every quoted span is paired first and filtered by length after,
+            // rather than requiring a length inside the pattern. With a minimum
+            // in the pattern, a short quote like "fix" cannot match, so the
+            // engine pairs its closing quote with the next opening one and
+            // reports a span of the prose in between as though it were quoted.
+            Regex("\"([^\"]*)\"").findAll(m.groupValues[2])
+                .map { it.groupValues[1].replace(Regex("\\s+"), " ").trim() }
+                .filter { it.length >= 10 }
+                .forEach { found += it }
         }
 
         val unexpected = found.filterNot { it in allowed.keys }
