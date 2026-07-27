@@ -765,3 +765,36 @@ Views, charts and the built in automations have no creation mutation in the
 ProjectsV2 API. They are configured in the interface, and `tools/board.py` prints
 the instructions rather than pretending to have done it. Everything else about
 the board is scripted in that file, which is idempotent and safe to re-run.
+
+
+## SECTION 10: WAITING ON THE OWNER, IN ORDER
+
+Everything here needs a person. Nothing in it can be done from a terminal, and
+each was confirmed impossible rather than assumed.
+
+1. **The Play Console items with no API.** Category, privacy policy URL, the data
+   safety form, the content rating questionnaire, the ads declaration, and target
+   audience. All of them are written out ready to transcribe in
+   `docs/play-console-checklist.md`, in the order the Console asks for them, with
+   the reasoning for each answer so it can be defended if queried. Confirmed by
+   introspecting the Android Publisher API: `AppDetails` carries only contact
+   fields, `Listing` only text, and there is no data safety, privacy or category
+   resource at all.
+
+2. **Register the commit signing key.** SSH signing is configured and working
+   locally, and every commit since is signed. The public key is not on the account
+   yet, so those commits display as Unverified. One command, in DECISIONS.md under
+   "Commit signing". GitHub evaluates signatures when it displays a commit, so
+   every commit signed so far becomes Verified the moment the key lands.
+
+3. **Back up the keystore.** `~/.kamsiob-secrets/` holds `kam-ai-upload.jks` and
+   the properties file beside it. It is outside the repository by design and
+   cannot be regenerated. Play App Signing means a lost upload key can be reset,
+   which is the safety net, but the backup costs nothing.
+
+4. **Decide on the remaining screenshot.** See the note in `docs/screenshots`
+   below.
+
+5. **The copyright question.** Raised in DECISIONS.md under BLOCKED, unresolved
+   deliberately: the copyright status of machine written code and how it interacts
+   with AGPL-3.0. No legal language was added and the licence was not touched.
