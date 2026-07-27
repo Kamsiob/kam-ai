@@ -17,7 +17,7 @@ phone in airplane mode and it still works.
 ## What it is good at, and what it is not
 
 It is at its best when you give it something to work with: tidying a messy draft,
-reorganising notes you dumped in a hurry, answering everyday questions, and
+reorganizing notes you dumped in a hurry, answering everyday questions, and
 arguing with an idea until you know whether it holds up.
 
 **It is not a private ChatGPT, and saying it was would be dishonest.** A model
@@ -44,7 +44,7 @@ switch at any point without losing what was said.
 | **General** | Ordinary questions and back and forth. Start here. |
 | **Logic Partner** | Takes the opposite side and tests your reasoning. It admits when you are right, and it does not cave just because you pushed back. |
 | **Brainstorm** | Refuses to hand you ideas. It asks one question at a time and pulls your own out of you instead. |
-| **Workbench** | Paste something in and get it rewritten, tightened or reorganised. Sessions are saved, and each one can be linked to a chat about the result. |
+| **Workbench** | Paste something in and get it rewritten, tightened or reorganized. Sessions are saved, and each one can be linked to a chat about the result. |
 
 Discover is not a mode, it is somewhere to read. Offline packs of short articles:
 pull one out, read it, then talk about it.

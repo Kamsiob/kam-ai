@@ -1617,7 +1617,7 @@ Measured on the connected Pixel (Tensor G5, cores: 2 @ 2.25 GHz little, 5 @ 3.05
 tokens/second a user actually feels. Instrumented via a `KamPerf` logcat line per generation
 (`adb logcat -s KamPerf`); prefill and decode timed in InferenceEngine.generate.
 
-First checked the build variant, as instructed: the native inference is NOT an unoptimised debug
+First checked the build variant, as instructed: the native inference is NOT an unoptimized debug
 build. `defaultConfig` sets `-DCMAKE_BUILD_TYPE=Release` and `-O3` for all variants, and the
 actual ggml-cpu compile commands (verified in the debug variant's compile_commands.json) carry
 `-march=armv8.2-a+dotprod+i8mm+fp16`, so the ARM int8 dot-product and matrix kernels are enabled,
@@ -3598,7 +3598,7 @@ nothing.
 
 ### Spelling
 
-The new note said "reorganised" while the Workbench's own chips say "Summarize" and "Reorganize".
+The new note said "reorganized" while the Workbench's own chips say "Summarize" and "Reorganize".
 Every other user-visible string in the app uses -ize, so the note was the outlier and was changed
 to match. Two model instructions saying "summarize" were changed too: nothing shows them to the
 user, but they bias what the model writes back to somebody reading -ize copy everywhere else.
@@ -4749,7 +4749,7 @@ is the #41 fix still holding.
 The "Kam AI can be wrong" screen said the model gets things wrong, "especially dates, names,
 numbers, and anything it would need to have **memorised** exactly".
 
-That is the second of these. The first was "reorganised" in the Workbench note, sitting beside
+That is the second of these. The first was "reorganized" in the Workbench note, sitting beside
 chips reading "Summarize" and "Reorganize". Both were found by reading a screen, which is a poor
 way to catch spelling, and the guard added for the first one only covered the mode banners and
 notices, so it could never have caught this.

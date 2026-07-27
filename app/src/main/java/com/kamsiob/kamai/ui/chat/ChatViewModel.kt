@@ -821,7 +821,48 @@ class ChatViewModel(
     private suspend fun downloadInFlight(): Boolean =
         modelManager.activeId() == null && repository.hasModelDownloadInFlight()
 
+    /**
+     * Whether this view model has already warmed the cache, so it happens once
+     * rather than on every mode observation.
+     */
+    private var warmedFor: Mode? = null
+
+    /**
+     * Decodes the current mode's instruction block before the user sends anything
+     * (#38).
+     *
+     * Cold time to first token was about thirty seconds, and measurement showed
+     * prefill was 99.5 percent of it: 31438 ms of a 31588 ms wait, for roughly
+     * 1100 tokens at 37 tokens per second. There was no defect to fix. Batching
+     * was already correct, and that prefill to decode ratio is ordinary for this
+     * CPU. The prompt is large and the phone is slow.
+     *
+     * So the wait is moved rather than removed. Nearly all of those tokens are the
+     * mode's system prompt, which never varies and is known the moment the screen
+     * opens, so it is decoded while the user is still reading. Their first message
+     * then prefills only itself.
+     *
+     * The mode prompt alone, deliberately, without the user's own instructions,
+     * project text or memory. Those vary per conversation, and warming a prefix
+     * that turns out not to match would waste the time it was trying to save.
+     * Prefix diffing keeps whatever is genuinely common.
+     */
+    private fun warmCacheFor(mode: Mode) {
+        if (warmedFor == mode) return
+        warmedFor = mode
+        viewModelScope.launch {
+            if (modelManager.activeId() == null) return@launch
+            if (modelManager.ensureLoaded() !is ModelManager.Status.Loaded) return@launch
+            engine.warmUp(SystemPrompts.forMode(mode))
+        }
+    }
+
     init {
+        // Warm on open, and again whenever the mode changes, since each mode has
+        // its own instruction block and switching is the other moment a full
+        // prefill would otherwise be paid for.
+        viewModelScope.launch { _mode.collect { warmCacheFor(it) } }
+
         // Release a held message when a model becomes available. Collected for
         // the life of this view model, which is the life of the conversation the
         // message belongs to.

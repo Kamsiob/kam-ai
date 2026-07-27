@@ -374,7 +374,7 @@ Everything here has cost someone an hour at least once.
 - **llama.cpp b10058 and whisper.cpp are vendored but not committed**, fetched by
   `tools/fetch_llama.sh` and `tools/fetch_whisper.sh`. `git describe` inside those trees
   returns this app's commit, which is confusing the first time.
-- **The debug APK's native code is not an unoptimised build.** Release, `-O3`,
+- **The debug APK's native code is not an unoptimized build.** Release, `-O3`,
   `-march=armv8.2-a+dotprod+i8mm+fp16`, repacking on, mmap on, flash-attn AUTO, batch 512.
   Debug versus release is not a performance variable. Do not chase it.
 
@@ -797,4 +797,4 @@ each was confirmed impossible rather than assumed.
 
 5. **The copyright question.** Raised in DECISIONS.md under BLOCKED, unresolved
    deliberately: the copyright status of machine written code and how it interacts
-   with AGPL-3.0. No legal language was added and the licence was not touched.
+   with AGPL-3.0. No legal language was added and the license was not touched.

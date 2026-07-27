@@ -329,6 +329,46 @@ class InferenceEngine(
      * to. Plaintext: encrypting it is [ConversationState]'s job, and doing it
      * here would put a cipher in the middle of the inference engine.
      */
+    /**
+     * Prefills a mode's fixed instruction block into the KV cache, so the user
+     * does not pay for it on their first message (#38).
+     *
+     * **Why this is the whole fix for cold start.** Time to first token was about
+     * thirty seconds on a cold app, and measuring it showed prefill accounted for
+     * 99.5 percent of that: 31438 ms of a 31588 ms wait, decoding roughly 1100
+     * tokens at 37 tokens per second. Nothing was broken. Batching was working,
+     * and 37 tokens per second of prefill against 3 of decode is the ordinary
+     * ratio for this CPU. The prompt is simply large and the phone is simply slow,
+     * so there was no bug to fix and no clever trick to find.
+     *
+     * What there was, was a wait happening at the worst possible moment. Almost
+     * every one of those tokens is the mode's system prompt, which is identical on
+     * every first message and known long before the user types. So it is decoded
+     * while they are still reading the screen, and their first message then only
+     * has to prefill itself.
+     *
+     * Deliberately fire and forget. It runs off the main path, ignores its own
+     * failures, and holds no locks the send path needs: a warm-up that delayed a
+     * real message would have traded the problem for a worse one. If it has not
+     * finished when the user sends, the prefix diffing in nativeIngest reuses
+     * whatever part of it landed, so a partial warm-up is still a partial win.
+     */
+    suspend fun warmUp(systemPrompt: String): Unit = withContext(nativeDispatcher) {
+        runCatching {
+            if (!LlamaBridge.nativeIsLoaded()) return@runCatching
+            val ensured = LlamaBridge.nativeEnsureContext()
+            if (ensured.isNotEmpty()) return@runCatching
+            val started = System.nanoTime()
+            val tokens = LlamaBridge.nativeIngest(systemPrompt, addSpecial = false)
+            val ms = (System.nanoTime() - started) / 1_000_000.0
+            android.util.Log.i(
+                "KamPerf",
+                "warmup=${tokens}tok/${"%.0f".format(ms)}ms",
+            )
+        }
+        Unit
+    }
+
     suspend fun saveState(): ByteArray? = withContext(nativeDispatcher) {
         if (LlamaBridge.isLibraryLoaded && LlamaBridge.nativeIsLoaded()) {
             LlamaBridge.nativeSaveState()
