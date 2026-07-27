@@ -7011,3 +7011,61 @@ FOREGROUND_SERVICE and FOREGROUND_SERVICE_DATA_SYNC for downloads and generation
 INTERNET for model and pack downloads, POST_NOTIFICATIONS for their progress,
 RECORD_AUDIO for voice, and USE_BIOMETRIC for the app lock. Seven, each traceable
 to a feature.
+
+
+## First run, tested on a genuinely fresh install
+
+The device was wiped with `pm clear` after the backup round trip was proven
+lossless, so everything below was seen on an install with no data, no model and no
+history, against the minified release build.
+
+### What the wipe made obvious
+
+**The download wall.** Setup recommended by memory, so a 16 GB phone was offered
+the 5 GB model, and the slide had no forward control at all while it downloaded.
+Not a disabled button: none, replaced by the progress bar, with the only exit a
+corner link reading "Skip for now". Measured at about two percent a minute, that
+is roughly fifty minutes of a new user's first experience being a progress bar and
+a link that sounds like giving up.
+
+Both are fixed. Setup offers the smallest tier regardless of memory, and the
+bigger models are a row in Settings for later. There is a button that says the
+download continues if you leave.
+
+### Verified working, on this install
+
+- The download runs in the background. Backgrounded for ninety seconds it went
+  from 58 to 61 percent with four service records alive.
+- **Pause and resume.** The indicator reads "Gemma 4 E2B, paused", the screen says
+  "Paused at 22%", and resuming continues from there rather than restarting.
+- **Process death mid-download.** Force-stopped at 22 percent, relaunched, and it
+  picked itself up at 23 percent with the indicator intact.
+- **The held message.** A message typed before the model exists is kept, shown in
+  the transcript, and the composer says "Still downloading the model. This will
+  send as soon as it is ready."
+- **The download indicator follows everywhere.** Chats, Projects, Follow-ups,
+  Discover and Settings all carried "Gemma 4 E2B, 16%, 2.6 GB left".
+- **Every empty state explains itself and offers a way out.** Projects has "No
+  projects yet" and a New project action, Follow-ups explains what it holds and
+  how things get there, Discover has "Nothing to read yet" and a Get packs button.
+
+### Two things checked that turned out to be correct
+
+Worth recording, because both looked like defects at a glance and filing either
+would have been wrong.
+
+**Settings showed "Storage 0 MB" while 646 MB had downloaded.** That is the
+installed total, and it is accurate: nothing is installed until the download
+finishes and its hash is checked. The Storage screen says the rest plainly, "0 MB
+used by things you have downloaded. 646 MB more is part-downloaded", with Pause
+and Cancel beside it. The fix from #88 is holding.
+
+**A held message appeared to vanish.** The notice explaining it was below the
+fold of the region being inspected. It is there and it is clear.
+
+### One thing found and filed rather than fixed
+
+Leaving onboarding with the system back gesture exits the app, and relaunching
+restarts onboarding from the first slide rather than resuming. Most annoying at
+the model slide, which is exactly where somebody is most likely to step away.
+Filed as #117, not release blocking.
