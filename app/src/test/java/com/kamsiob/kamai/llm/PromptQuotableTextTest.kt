@@ -40,6 +40,14 @@ class PromptQuotableTextTest {
                 "statement made the model invent a question and answer it.",
         "The install failed again, third time today." to
             "The input half of the respond-to-substance example, same fix.",
+        "fix" to
+            "The input half of the too-vague example. Safe to copy verbatim by " +
+                "design: its answer is a clarifying question, which is the right " +
+                "reply to any message too short to act on.",
+        "Fix what? Tell me what is broken and I will start there." to
+            "The answer half of the same example, and the reason this one is safe " +
+                "where the others needed care. If the model emits it word for word " +
+                "at an ambiguous message, the output is still correct.",
         "we should skip automated tests to ship faster" to
             "The topic of Logic Partner's worked argument. Fixes #114.",
     )
