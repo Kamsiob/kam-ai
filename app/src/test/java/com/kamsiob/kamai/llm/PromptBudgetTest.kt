@@ -22,10 +22,17 @@ class PromptBudgetTest {
     @Test
     fun generalPromptStaysTight() {
         val tokens = approxTokens(SystemPrompts.forMode(Mode.GENERAL))
-        // Measured ~450 after the #38 trim and ~689 after #91 added four worked
-        // formatting examples in place of a described rule. Fail if it drifts past
-        // 700, which is the deliberate ceiling recorded in the budget map below.
-        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 700)
+        // Measured ~450 after the #38 trim, ~689 after #91 added four worked
+        // formatting examples in place of a described rule, and ~770 after the
+        // examples stopped quoting user questions.
+        //
+        // That last change cost about eighty tokens and was not optional. The
+        // quoted questions were generatable: given a user message that was not a
+        // question, the model produced a fresh question in the same style and
+        // answered it on the next turn, ignoring what was actually said. The
+        // examples now name the kind of thing asked instead of quoting somebody
+        // asking it, plus an explicit rule to answer the message that was sent.
+        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 880)
     }
 
     @Test
@@ -55,7 +62,32 @@ class PromptBudgetTest {
         // most visible quality problem in the app, which no amount of token
         // discipline elsewhere makes up for.
         val budgets = mapOf(
-            Mode.GENERAL to 700,
+            // Every budget below rose once more, in one step, when the four
+            // formatting examples in the shared hard rules stopped quoting user
+            // questions. The cost is the same for every mode because it lands in
+            // HARD_RULES, which is the same reasoning recorded for #91 above.
+            //
+            // The change was not optional. On the device, given a user message
+            // that was not a question, the model produced a fresh question in the
+            // style of the quoted examples and then answered that invented
+            // question on the following turn, ignoring what the user had actually
+            // said. "Remember that I always work in metric units" was answered
+            // with "What's the best way to clean a microwave?", and the turn after
+            // that explained how to clean a microwave. The phrase that triggered
+            // it is the one the Memory screen tells people to type.
+            //
+            // Removing the quoted questions alone made it worse, which is worth
+            // recording. The model then emitted the example *answer* verbatim:
+            // the same input came back as "It was finished in 1889, for the Paris
+            // World's Fair." Concrete example text is copyable whichever half you
+            // remove, because the real gap was that a statement gives the model
+            // nothing to answer and it reaches for the nearest concrete text.
+            //
+            // So there are now worked examples for the non-question case too, and
+            // that is what fixed it. A rule saying "acknowledge a statement" lost
+            // to a concrete example every time; a concrete example of
+            // acknowledging beat it.
+            Mode.GENERAL to 880,
             // Raised from 1000 to 1080 for #57, deliberately and not quietly. The
             // argument-analysis method (claim, grounds, warrant, qualifier, claim
             // kind, then the crux and the kind of disagreement) cannot be added for
@@ -91,7 +123,7 @@ class PromptBudgetTest {
             // conversation, amortised by prefix reuse afterwards. The alternative
             // was a flagship mode that answers in five words of jargon, which is
             // not a trade worth protecting time to first token for.
-            Mode.LOGIC to 1340,
+            Mode.LOGIC to 1600,
             // Raised from 1600 to 1660 for #58, deliberately and not quietly, and
             // after trimming everything that could be trimmed. Two device-found
             // failures paid for it. The mode announced its own method ("Only a
@@ -134,10 +166,10 @@ class PromptBudgetTest {
             // an illustration of one. There are now two, on visibly different
             // problems, which teaches the pattern instead of the sentence. The
             // prose those examples replaced paid most of the cost.
-            Mode.BRAINSTORM to 1930,
-            Mode.BENCH to 740,
-            Mode.OVERLAY to 680,
-            Mode.DISCOVER to 820,
+            Mode.BRAINSTORM to 2160,
+            Mode.BENCH to 960,
+            Mode.OVERLAY to 900,
+            Mode.DISCOVER to 1040,
         )
         budgets.forEach { (mode, budget) ->
             val tokens = approxTokens(SystemPrompts.forMode(mode))

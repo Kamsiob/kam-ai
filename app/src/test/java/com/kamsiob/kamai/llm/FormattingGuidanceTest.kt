@@ -16,7 +16,7 @@ class FormattingGuidanceTest {
     // rule with four worked examples, because a described shape is exactly what
     // the model was failing to follow. The guard is on the guidance being present
     // in every mode, not on any one sentence, so the markers move with it.
-    private val marker = "match the shape of the answer to the question"
+    private val marker = "match the shape of the answer to what was asked"
 
     // The anti-over-formatting half matters as much as the rest: swinging from
     // walls of text to bullets everywhere would be a worse outcome than the
@@ -67,20 +67,25 @@ class FormattingExamplesTest {
 
     @Test
     fun `a one-line question is shown answered in one line, with no structure`() {
-        assertThat(prompt).contains("When was the Eiffel Tower built?")
+        // The answer shape is what #91 needed the model to see. The example used
+        // to quote a question as well, and that quoted question was found on the
+        // device to be generatable: given a user message that was not a question,
+        // the model produced a new question in the same style and then answered it
+        // on the following turn. The shape is kept; the quoted user turn is not.
+        assertThat(prompt).contains("A plain fact:")
         assertThat(prompt).contains("It was finished in 1889")
     }
 
     @Test
     fun `steps are shown as a numbered list`() {
-        assertThat(prompt).contains("How do I reset it?")
+        assertThat(prompt).contains("Steps in a required order:")
         assertThat(prompt).contains("1. Hold the side button")
     }
 
     @Test
     fun `options are shown as bullets, not numbers`() {
         // A model will otherwise number unordered things and imply a sequence.
-        assertThat(prompt).contains("What are my options for storage?")
+        assertThat(prompt).contains("Alternatives with no order:")
         assertThat(prompt).contains("- An external drive")
     }
 

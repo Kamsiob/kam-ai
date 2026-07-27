@@ -1181,7 +1181,9 @@ private fun BackupHost(app: AppViewModel) {
     val manager = remember {
         com.kamsiob.kamai.data.BackupManager(
             app.repository, BuildConfig.VERSION_NAME,
-            com.kamsiob.kamai.data.BackupCodec.FORMAT_VERSION,
+            // The database schema version, not the backup format version. Those
+            // are different numbers that happened to both be 3.
+            com.kamsiob.kamai.data.KamDatabase.VERSION,
         )
     }
 

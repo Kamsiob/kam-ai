@@ -48,7 +48,7 @@ class Converters {
         SettingEntity::class,
         TombstoneEntity::class,
     ],
-    version = 9,
+    version = KamDatabase.VERSION,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -66,6 +66,18 @@ abstract class KamDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "kam-ai.db"
+
+        /**
+         * The Room schema version, in one place.
+         *
+         * It is here rather than only in the @Database annotation because the
+         * backup file records it, and it was recording the wrong thing: the
+         * export passed BackupCodec.FORMAT_VERSION, so every backup claimed
+         * schema 3 while holding schema 9 data. Nothing reads that field on
+         * import today, which is the only reason it did no harm, and a future
+         * importer keying on it would have made exactly the wrong decision.
+         */
+        const val VERSION = 9
 
         /** Adds the manual-title flag. A real migration, never a destructive
          *  fallback: losing conversations to a schema bump is unacceptable. */
