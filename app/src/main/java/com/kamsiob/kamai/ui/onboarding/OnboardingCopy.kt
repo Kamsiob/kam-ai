@@ -120,6 +120,18 @@ object OnboardingCopy {
         button = "Download",
     )
 
+    /**
+     * Why setup offers the smallest model rather than the best one that fits.
+     *
+     * Says the size in the same breath as the reason, because the number is the
+     * thing the user is actually deciding about, and points at Settings so the
+     * bigger models read as available later rather than withheld.
+     */
+    const val SLIDE4_SMALLEST_FIRST =
+        "This one is the quickest to download, so you can start using it sooner. " +
+            "It runs entirely on your phone. Bigger models give better answers and " +
+            "take longer to download, and they are in Settings whenever you want one."
+
     const val SLIDE4_CLOSING =
         "A read-aloud voice can be picked later in Settings, male or female."
 

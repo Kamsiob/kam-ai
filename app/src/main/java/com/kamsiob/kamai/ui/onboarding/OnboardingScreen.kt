@@ -473,7 +473,23 @@ private fun SlideFour(
     onContinue: () -> Unit,
 ) {
     val colors = KamTheme.colors
-    val recommended = TierRecommendation.recommended(totalRamGb)
+
+    // First run offers the smallest model, not the biggest one that fits.
+    //
+    // It used to recommend by memory, so a 16 GB phone was offered the 5 GB
+    // Balanced model. Measured on a fresh install over home wifi that is about
+    // fifty minutes of downloading before the app does anything, and the honest
+    // assessment of that is that people delete the app rather than wait. A better
+    // model nobody waits for is worth less than a smaller one they are talking to
+    // in twenty minutes.
+    //
+    // So setup takes the smallest tier regardless of how much memory the phone
+    // has, and the bigger ones are a row in Settings for anybody who wants one
+    // later, by which point they know what they would be waiting for and why.
+    // Memory still decides what is *allowed*: a phone that cannot hold a tier
+    // still cannot pick it, which is what TierRecommendation guards.
+    val smallest = tiers.minByOrNull { it.downloadBytes }?.tier
+    val recommended = smallest ?: TierRecommendation.recommended(totalRamGb)
     var chosen by remember(recommended) { mutableStateOf(recommended) }
 
     // One recommendation, with the full list a tap away (#76).
@@ -492,7 +508,7 @@ private fun SlideFour(
         body = {
             Staggered(2) {
                 Text(
-                    TierRecommendation.explain(totalRamGb),
+                    OnboardingCopy.SLIDE4_SMALLEST_FIRST,
                     style = KamTheme.type.bodyLarge,
                     color = colors.textSecondary,
                 )
@@ -581,10 +597,35 @@ private fun DownloadBar(progress: Float, onContinue: () -> Unit) {
         if (progress >= 1f) {
             PrimaryButton("Continue", onClick = onContinue, modifier = Modifier.fillMaxWidth())
         } else {
-            Text(
-                "${(progress * 100).toInt()}% downloaded",
-                style = KamTheme.type.mono,
-                color = colors.textSecondary,
+            // A way forward while it downloads (#78).
+            //
+            // This screen used to show the percentage and nothing else: no button
+            // at all, not a disabled one. Measured on a fresh install, the
+            // Balanced model downloads at about two percent a minute on home
+            // wifi, so a new user's first experience of the app was a progress bar
+            // and roughly fifty minutes of it, with the only exit a link in the
+            // corner reading "Skip for now", which sounds like giving up on the
+            // thing they are waiting for.
+            //
+            // Nothing about the app needs them to wait there. The download runs in
+            // a foreground service, the indicator from #81 follows them onto every
+            // screen, and a message typed before the model is ready is held and
+            // sent when it arrives. So they can go and look around, which is a far
+            // better first ten minutes than watching a bar fill.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${(progress * 100).toInt()}% downloaded",
+                    style = KamTheme.type.mono,
+                    color = colors.textSecondary,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            SecondaryButton(
+                // Says what happens to the download, because the fear this answers
+                // is that leaving cancels it.
+                "Look around while it downloads",
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
