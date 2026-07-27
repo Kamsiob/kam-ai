@@ -276,7 +276,10 @@ class PublicCopyTest {
     @Test
     fun theStoreListingNamesAllFourModesAndNotTheOldOnes() {
         val listing = repoFile("tools/play/listing.json").readText()
-        listOf("General:", "Logic Partner:", "Brainstorm:", "Workbench:").forEach {
+        // Named, not formatted a particular way. The old listing used a bulleted
+        // "General:" form and the current one is prose; what matters is that all
+        // four are present and no old mode name is.
+        listOf("General", "Logic Partner", "Brainstorm", "Workbench").forEach {
             assertThat(listing).contains(it)
         }
         // The old three-mode wording, and the pre-unification saving word.

@@ -68,7 +68,30 @@ class PromptBudgetTest {
             // after that, against a thousand saved on every ongoing turn. The budget
             // exists to protect time to first token, and that trade improves it by
             // a wide margin. See DECISIONS.md, "Issue #57".
-            Mode.LOGIC to 1260,
+            // Raised from 1260 to 1340, deliberately, after a device failure that
+            // made the mode useless. Asked to argue against "we should skip
+            // automated tests to ship faster", Logic Partner replied with exactly
+            // five words: "I disagree with the warrant."
+            //
+            // That string was in the prompt. It sat there as a negative example,
+            // in quotes, under an instruction never to do it: `"I disagree with the
+            // warrant" is a label, not an objection`. The model copied it. A small
+            // model treats a quoted phrase as a template no matter what the
+            // sentence around it says, which is the same finding as #91 in reverse:
+            // worked examples beat described rules, so a bad worked example beats
+            // the rule forbidding it. The jargon leaked for the same reason, since
+            // warrant, grounds and qualifier were all in the text the model reads.
+            //
+            // The rewrite removes every quotable bad line, bans the jargon words in
+            // output explicitly, states three ordered moves, and shows one worked
+            // example of a good reply instead. That example is most of the eighty
+            // tokens. Everything trimmable was trimmed first: 1548 down to 1328.
+            //
+            // The cost is about two seconds of prefill on the first turn of a Logic
+            // conversation, amortised by prefix reuse afterwards. The alternative
+            // was a flagship mode that answers in five words of jargon, which is
+            // not a trade worth protecting time to first token for.
+            Mode.LOGIC to 1340,
             // Raised from 1600 to 1660 for #58, deliberately and not quietly, and
             // after trimming everything that could be trimmed. Two device-found
             // failures paid for it. The mode announced its own method ("Only a
