@@ -877,6 +877,17 @@ class KamRepository(
         momentId: String? = null,
         kind: FollowUpKind = FollowUpKind.CHECK,
     ): String {
+        // One follow-up per message. The bookmark is the app's single save
+        // action, and Follow-ups is meant to be the one place saved things live,
+        // so the same reply saved twice is that list disagreeing with itself.
+        //
+        // This mattered because the icon forgot its state on reopening a
+        // conversation (#128), so the honest response to a grey bookmark on an
+        // already-saved reply was to tap it, and tapping it made a duplicate.
+        // The display is fixed too; this makes the data right regardless.
+        if (messageId != null) {
+            db.followUps().existingFor(messageId)?.let { return it.id }
+        }
         val id = UUID.randomUUID().toString()
         db.followUps().upsert(
             FollowUpEntity(

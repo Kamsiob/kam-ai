@@ -549,7 +549,15 @@ private fun ConversationScreen(
     val modelDownloading = chatDownloads.any {
         it.kind == "model" && it.status != com.kamsiob.kamai.download.Downloads.Status.DONE
     }
-    val flagged = remember { mutableStateListOf<String>() }
+    // Derived from what is stored rather than remembered locally, so it cannot
+    // disagree with it. This was a `mutableStateListOf` that started empty on
+    // every composition, so reopening a conversation showed every saved reply as
+    // unsaved, and tapping the grey bookmark made a duplicate (#128).
+    val openUps by app.openFollowUps.collectAsStateWithLifecycle()
+    val doneUps by app.completedFollowUps.collectAsStateWithLifecycle()
+    val flagged = remember(openUps, doneUps) {
+        (openUps + doneUps).mapNotNull { it.messageId }.toSet()
+    }
 
     // Voice typing. Available only when a speech model is installed and active.
     val recording by chat.recording.collectAsStateWithLifecycle()
@@ -653,7 +661,7 @@ private fun ConversationScreen(
         canAttachDocuments = activeModel?.supports(
             com.kamsiob.kamai.model.Capability.DOCUMENTS,
         ) ?: false,
-        flaggedMessageIds = flagged.toSet(),
+        flaggedMessageIds = flagged,
         // Play is hidden until a reading voice exists, rather than shown doing nothing.
         ttsAvailable = ttsVoice != null,
         onModeChange = chat::setMode,
@@ -675,7 +683,8 @@ private fun ConversationScreen(
         onStop = chat::stop,
         speakingMessageId = speakingId,
         onFlag = { message ->
-            flagged.add(message.id)
+            // No local bookkeeping: the follow-up list is the state, and it
+            // updates through the flows above once this lands.
             app.flag(message.content, mode, chat.conversationId.value, message.id)
         },
         onOpenWorkbenchSession = linkedSessionId?.let { session ->

@@ -357,6 +357,17 @@ interface MemoryDao {
 interface FollowUpDao {
 
     /**
+     * The follow-up already saved for this message, if there is one.
+     *
+     * Exists so saving the same reply twice returns the first one rather than
+     * making a second (#128). Follow-ups is described as the one destination for
+     * everything saved, and two rows for one reply is that list disagreeing with
+     * itself.
+     */
+    @Query("SELECT * FROM follow_ups WHERE messageId = :messageId LIMIT 1")
+    suspend fun existingFor(messageId: String): FollowUpEntity?
+
+    /**
      * Saved items whose text or note matches (#87).
      *
      * Covers both chat bookmarks and saved Discover moments, which share this

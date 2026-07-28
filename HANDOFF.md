@@ -667,7 +667,7 @@ cases is narrower than its title.
 **Waiting on the repository owner.**
 
 - **#113** screenshots, which need a release build.
-- **#112** build provenance on release artefacts.
+- **#112** build provenance on release artifacts.
 - **#111** signed commits, which need the signing key registered.
 - **#110** requiring a pull request, which needs repository settings.
 - **#13** the Discover pack change is written and measured; rebuilding and
@@ -695,7 +695,7 @@ are supposed to mean the same thing here.
   says to reopen rather than re-diagnose if the warning is ever seen again.
 
 Both said so plainly in their closing comments rather than claiming verification
-they did not have, which is the behaviour to keep. Neither is a case of something
+they did not have, which is the behavior to keep. Neither is a case of something
 being marked done quietly.
 
 ### What "genuinely empty" means here
