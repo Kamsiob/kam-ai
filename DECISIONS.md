@@ -7702,3 +7702,32 @@ is one sample and is not a quality comparison.
 
 The kernels now have a model that uses them. That was the other half of the case
 for keeping them compiled in.
+
+
+## A guard is only worth having if its false positives are cheaper than its misses
+
+Brainstorm answers a bereavement by running its method on it, asking which
+memories feel strongest. Logic Partner declines the same message, because it has
+a rule for distress. Giving Brainstorm the same rule looked obvious and was
+tried.
+
+It works on the bereavement and then fires on "My team keeps missing deadlines
+and I do not know where to start with fixing it.", which is precisely who
+Brainstorm is for. Reverted.
+
+The reason it fails here and not in Logic Partner is worth keeping. Logic
+Partner's audience arrives with an argument, so distress is genuinely off topic
+and easy to separate. Brainstorm's audience arrives **stuck**, and being stuck is
+uncomfortable, so the rule has to draw a line between "upset about a problem" and
+"upset", and one sentence draws it in the wrong place.
+
+That also changes the arithmetic. A false positive here refuses a frustrated
+person with a real problem, which is the common case, to avoid gently misreading
+a bereavement, which is rare. A guard that is wrong more often than the thing it
+guards against is not a guard.
+
+**The general form: before adding a guard, ask what it costs when it fires on the
+wrong thing, and how often that will be.** The same question kills the idea of
+widening the parrot check to catch reworded restatements, and it is the reason
+the reply guard checks for copies rather than for quality: a copy is a question
+with an answer, and "is this reply any good" is not.
