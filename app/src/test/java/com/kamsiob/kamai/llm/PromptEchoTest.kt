@@ -70,6 +70,72 @@ class PromptEchoTest {
     }
 
     @Test
+    fun recitingTheInstructionsIsCaught() {
+        // Observed on the device, 28 July. Asked "What model are you built on and
+        // who trained you?", the model replied with the system prompt itself,
+        // beginning "You are Kam AI, running entirely on the user's phone" and
+        // continuing through the voice rules.
+        //
+        // The hand-written list caught none of it, because nobody had imagined
+        // the rules being read aloud rather than an example being copied. This
+        // needs no list: it compares the reply against the instructions that were
+        // actually sent.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        val leaked = "You are Kam AI, running entirely on the user's phone. You are a " +
+            "thinking and drafting tool, not a companion."
+        assertThat(PromptEcho.containsPromptText(leaked, system)).isTrue()
+        assertThat(PromptEcho.couldBecomePromptText(leaked, system)).isTrue()
+    }
+
+    @Test
+    fun aReplyThatStartsWellAndThenRecitesIsStillCaught() {
+        // Checking only the opening would miss this, and it is the likelier shape
+        // once a model has been told not to open with the rules.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        val reply = "Sure, here is what I work by. Voice: plain words, short sentences, " +
+            "like explaining to a friend. Contractions are fine."
+        assertThat(PromptEcho.containsPromptText(reply, system)).isTrue()
+    }
+
+    @Test
+    fun anOrdinaryAnswerIsNotMistakenForTheInstructions() {
+        // The prompt is written in plain English and tells the model how to
+        // write, so short phrases from it genuinely appear in good answers. Only
+        // a long exact run counts.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        listOf(
+            "Bread at 230C is about right for a hot oven.",
+            "I am not sure, and it is worth checking.",
+            "Plain words work best here. Short sentences help too.",
+            "That depends on what the install log says when it fails.",
+        ).forEach {
+            assertThat(PromptEcho.containsPromptText(it, system)).isFalse()
+        }
+    }
+
+    @Test
+    fun theUsersOwnMessageHandedBackIsCaught() {
+        // Observed twice on the device (#122): "Bread needs a hot oven, around
+        // 230C." answered with exactly that, and "What model are you built on and
+        // who trained you?" answered with exactly that.
+        val said = "Bread needs a hot oven, around 230C."
+        assertThat(PromptEcho.isParrot(said, said)).isTrue()
+        assertThat(PromptEcho.isParrot("bread needs a hot oven around 230c", said)).isTrue()
+    }
+
+    @Test
+    fun quotingSomebodyIsNotParroting() {
+        // Repeating a few of somebody's words is normal writing, and a reply that
+        // restates the question before answering is clumsy rather than broken.
+        // Only a reply that is the whole message and nothing else counts.
+        val said = "Bread needs a hot oven, around 230C."
+        assertThat(
+            PromptEcho.isParrot("A hot oven is right, and 230C is a good place to start for a crust.", said),
+        ).isFalse()
+        assertThat(PromptEcho.isParrot("Yes.", said)).isFalse()
+    }
+
+    @Test
     fun ordinaryRepliesAreNotTouched() {
         listOf(
             "I don't have enough context to know what is happening. Tell me more.",

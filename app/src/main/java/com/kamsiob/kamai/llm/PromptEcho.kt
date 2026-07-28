@@ -125,4 +125,76 @@ object PromptEcho {
             (answer.startsWith(n) || n.startsWith(answer)) && !line.isAnsweringItsOwnExample(userMessage)
         }
     }
+
+    /**
+     * How much contiguous prompt text has to appear in a reply before it counts
+     * as the prompt rather than a coincidence.
+     *
+     * Long on purpose. Short phrases from a prompt written in plain English do
+     * turn up in ordinary answers, because the prompt tells the model how to
+     * write and the model writes that way. Forty-eight characters of an exact
+     * run is not a house style, it is a copy.
+     */
+    private const val PROMPT_RUN = 48
+
+    /**
+     * True when [reply] contains a long verbatim run of [systemPrompt].
+     *
+     * The list above defends specific lines somebody thought of in advance, and
+     * that turned out to be far too narrow. Asked "What model are you built on
+     * and who trained you?", the model answered with the system prompt itself,
+     * starting "You are Kam AI, running entirely on the user's phone" and
+     * continuing through the voice rules. None of that was in the list, because
+     * nobody had imagined the rules being read aloud rather than an example
+     * being copied.
+     *
+     * This needs no list. It compares the reply against the instructions that
+     * were actually sent, so any part of them coming back is caught, including
+     * the parts added tomorrow.
+     */
+    fun containsPromptText(reply: String, systemPrompt: String): Boolean {
+        val haystack = normalize(systemPrompt)
+        val n = normalize(reply)
+        if (haystack.isEmpty() || n.length < MIN_CHARS) return false
+        if (n.length <= PROMPT_RUN) return haystack.contains(n)
+        // Step through rather than checking only the opening: a reply that starts
+        // in its own words and then recites is still reciting.
+        var i = 0
+        while (i + PROMPT_RUN <= n.length) {
+            if (haystack.contains(n.substring(i, i + PROMPT_RUN))) return true
+            i += PROMPT_RUN / 2
+        }
+        return false
+    }
+
+    /** The streaming form, so a recital is cut off rather than shown in full. */
+    fun couldBecomePromptText(partial: String, systemPrompt: String): Boolean {
+        val n = normalize(partial)
+        if (n.length < PROMPT_RUN) return false
+        return normalize(systemPrompt).contains(n.substring(0, PROMPT_RUN))
+    }
+
+    /**
+     * True when the reply is really the user's own message handed back (#122).
+     *
+     * A third shape of the same underlying behavior. The model reproduces its
+     * prompt, and the user's message is the most recent part of that prompt, so
+     * it reproduces that too: "Bread needs a hot oven, around 230C." answered
+     * with "Bread needs a hot oven, around 230C."
+     *
+     * Deliberately strict. Quoting a few of somebody's words back is normal and
+     * often good writing, so this fires only when the reply is essentially the
+     * whole message and nothing else. A reply that repeats the question and then
+     * answers it is clumsy, not broken, and is left alone.
+     */
+    fun isParrot(reply: String, userMessage: String?): Boolean {
+        val said = normalize(userMessage.orEmpty())
+        val n = normalize(reply)
+        if (said.length < MIN_CHARS || n.length < MIN_CHARS) return false
+        if (n == said) return true
+        // One wholly inside the other, and almost all of it: catches a copy that
+        // dropped the final full stop or added a leading word.
+        val (shorter, longer) = if (n.length <= said.length) n to said else said to n
+        return longer.contains(shorter) && shorter.length.toDouble() / longer.length >= 0.9
+    }
 }

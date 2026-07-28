@@ -1153,6 +1153,11 @@ class ChatViewModel(
             val lastUser = repository.messages(conversationId)
                 .lastOrNull { it.role == Role.USER }?.content.orEmpty()
 
+            // The instructions actually in force, so a reply that recites them is
+            // caught without anyone having to have listed the line in advance.
+            // Asked what model it ran on, the model answered with this text.
+            val systemText = SystemPrompts.forMode(_mode.value)
+
             suspend fun streamOnce() {
                 engine.generate(prompt, _mode.value, onStop = { stopReason = it })
                     .collect { chunk ->
@@ -1172,7 +1177,12 @@ class ChatViewModel(
                         // is abandoned before it finishes streaming. Waiting for
                         // the whole answer would mean buffering every reply, which
                         // would give back the time to first token #38 won.
-                        if (guardEcho && PromptEcho.couldBecomeEcho(builder.toString(), lastUser)) {
+                        if (guardEcho &&
+                            (
+                                PromptEcho.couldBecomeEcho(builder.toString(), lastUser) ||
+                                    PromptEcho.couldBecomePromptText(builder.toString(), systemText)
+                                )
+                        ) {
                             throw EchoDetected()
                         }
                         repository.updateMessage(
@@ -1195,7 +1205,13 @@ class ChatViewModel(
                 while (true) {
                     try {
                         streamOnce()
-                        if (guardEcho && !retried && PromptEcho.isEcho(builder.toString(), lastUser)) {
+                        if (guardEcho && !retried &&
+                            (
+                                PromptEcho.isEcho(builder.toString(), lastUser) ||
+                                    PromptEcho.containsPromptText(builder.toString(), systemText) ||
+                                    PromptEcho.isParrot(builder.toString(), lastUser)
+                                )
+                        ) {
                             throw EchoDetected()
                         }
                         break
