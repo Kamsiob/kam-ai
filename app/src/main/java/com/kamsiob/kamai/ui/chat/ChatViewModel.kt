@@ -1205,7 +1205,12 @@ class ChatViewModel(
                 while (true) {
                     try {
                         streamOnce()
-                        if (guardEcho && !retried &&
+                        // Deliberately not gated on `retried`. It used to be, and
+                        // that meant a second bad attempt was never checked and
+                        // was shown as-is: the retry existed but its result was
+                        // accepted unconditionally. The catch below is what knows
+                        // the difference, falling back once one retry is spent.
+                        if (guardEcho &&
                             (
                                 PromptEcho.isEcho(builder.toString(), lastUser) ||
                                     PromptEcho.containsPromptText(builder.toString(), systemText) ||

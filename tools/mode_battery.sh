@@ -83,6 +83,12 @@ for text in "${inputs[@]}"; do
     sleep 5
   fi
   require_app
+  # Land on Chats first. Starting the app resumes whatever tab was last open, and
+  # the mode chips only exist on Chats, so on Discover or Projects this tap hit
+  # whatever happened to be at that coordinate and the run captured the wrong
+  # screen without failing.
+  "$adb" shell input tap 143 2270
+  sleep 2
   "$adb" shell input tap "$mode_x" 2122   # a fresh conversation in this mode
   sleep 8
   require_app
