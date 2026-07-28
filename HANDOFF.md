@@ -24,6 +24,36 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### Session of 28 July: the regurgitation question is answered
+
+**It is largely the model.** The same ten inputs were run through both tiers on
+the device. Basic answered "I am Kam AI." to three of them, one being a
+bereavement message. Balanced answered that message properly and produced the
+identity line nowhere in the run. Five rounds of prompt work had failed to fix it
+on Basic; the larger model needed none.
+
+So prompt iteration on this stopped, and the first-run tier is now the smallest
+tier that answers acceptably rather than simply the smallest, expressed as
+`TierRecommendation.QUALITY_FLOOR`. Full reasoning in DECISIONS.md.
+
+**The guard was wrong three times before it was right**, which is worth reading
+before extending it:
+
+1. It defended a hand-written list of example answers, and discarded a *correct*
+   reply, because the right answer to the example's own question is also the
+   example's answer. It now judges against what the user actually said.
+2. Abandoning a stream reported itself as a user stop, so the transcript said
+   "You stopped this one." beside a reply the user had nothing to do with.
+3. The list missed the worst case entirely. Asked "What model are you built on
+   and who trained you?", the model replied with the system prompt itself. A list
+   of lines somebody thought of in advance is the wrong shape: the guard now
+   compares replies against the instructions actually sent, so anything added
+   later is covered without being listed.
+
+A third shape is #122, still open in the model: the user's own message handed
+back as the reply. The guard catches and regenerates it, so it is survivable, but
+the model still does it.
+
 ### Session of 27 July, second part: the regurgitation work
 
 Read DECISIONS.md, "Demonstration regurgitation", before touching any prompt.
