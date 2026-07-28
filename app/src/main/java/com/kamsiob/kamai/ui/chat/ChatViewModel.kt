@@ -21,6 +21,7 @@ import com.kamsiob.kamai.llm.MemoryExtractor
 import com.kamsiob.kamai.llm.MemoryMode
 import com.kamsiob.kamai.llm.PromptBuilder
 import com.kamsiob.kamai.llm.PromptEcho
+import com.kamsiob.kamai.llm.RestatementRetry
 import com.kamsiob.kamai.llm.Summarizer
 import com.kamsiob.kamai.llm.SystemPrompts
 import com.kamsiob.kamai.llm.WrapUp
@@ -1185,8 +1186,8 @@ class ChatViewModel(
             val systemText = SystemPrompts.forMode(_mode.value) +
                 com.kamsiob.kamai.llm.ChatFormat.SYSTEM_BOUNDARY
 
-            suspend fun streamOnce() {
-                engine.generate(prompt, _mode.value, onStop = { stopReason = it })
+            suspend fun streamOnce(usePrompt: String = prompt) {
+                engine.generate(usePrompt, _mode.value, onStop = { stopReason = it })
                     .collect { chunk ->
                         if (needsJoinSpace) {
                             // The first chunk after a continuation is the one
@@ -1230,7 +1231,22 @@ class ChatViewModel(
                 var retried = false
                 while (true) {
                     try {
-                        streamOnce()
+                        // The second attempt is told what to do rather than
+                        // simply drawn again. On the input this defect is named
+                        // for the model restates on most draws, so re-rolling the
+                        // same prompt is a slow way to the same fallback, and
+                        // that fallback asks somebody to rephrase a sentence that
+                        // was perfectly clear.
+                        //
+                        // The nudge rides in the pending instruction, after the
+                        // cached instruction block, so it costs nothing in prefix
+                        // reuse.
+                        val attempt = if (!retried) prompt else {
+                            RestatementRetry.instruction(lastUser)
+                                ?.let { buildPrompt(conversationId, pending = it) }
+                                ?: prompt
+                        }
+                        streamOnce(attempt)
                         // Deliberately not gated on `retried`. It used to be, and
                         // that meant a second bad attempt was never checked and
                         // was shown as-is: the retry existed but its result was
