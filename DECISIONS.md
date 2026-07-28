@@ -7367,3 +7367,63 @@ says how long is left, and the app is usable while it happens.
 
 The copy stopped leading on speed, since it is no longer the reason for the
 choice.
+
+## Prefill speed: what was measured, and what the measurements refused
+
+Cold time to first token on the device, `gemma-4-e4b-it-q4km`, context 6144:
+
+| | |
+|---|---|
+| Model load, mmap | 4.3 to 5.4 s |
+| Warm-up, the instruction block | 863 tokens in about 28 s |
+| First user message after that | TTFT 2891 ms, prefill 88 tokens |
+
+The headline for #38 holds: a first message gets its first token in under three
+seconds where it used to take thirty to forty-five. But the warm-up is doing the
+work, and it takes 28 seconds, so that number is true for somebody who spends
+half a minute reading the screen before typing. Somebody who types immediately
+waits for the warm-up anyway, because the engine serializes on one sequence.
+
+**The warm-up moves the wait earlier, it does not remove it.** Total work is
+unchanged: 863 tokens of instruction have to be decoded either way. What changed
+is that it now happens while a person is reading rather than while they are
+watching an empty composer, which is worth having and is not the same as being
+fast.
+
+The honest conclusion is that prefill at about 30 tok/s is the real constraint,
+and that is #3 rather than #38.
+
+### Batch threads, measured rather than assumed
+
+Warm-up is a clean benchmark: the same 863 tokens every time, no sampling, no
+decode.
+
+| batch threads | tok/s |
+|---|---|
+| 4 | 21.2 |
+| 5 | 22.7 |
+| **6, the current default** | **29.5 to 30.8** |
+| 8 | 24.4 |
+
+Six wins clearly and was reproduced three times, including twice at the end of
+the run with the big cores at 79 C, so the ordering is not thermal drift. The
+existing default comes from `performanceCoreCount()` and lands on six here, so
+nothing changes. The value of this is that it is now measured rather than
+inherited.
+
+### Shrinking the prompt was refused by earlier evidence
+
+The obvious next lever was the prompt itself: 863 tokens is most of the cold
+wait, and the format section is the largest quotable block in it, so cutting it
+would have paid twice, in seconds and in regurgitation risk.
+
+It was tried, and reverted, because `FormattingGuidanceTest` records why the
+examples exist: #91 replaced a described formatting rule with four worked
+examples **because a described shape was exactly what the model failed to
+follow**. Removing them to save four seconds would have re-broken a fix that was
+itself made from evidence.
+
+This is the same shape as #116, where the acknowledgement example is both the fix
+for one defect and the cause of another. Worth stating as a general rule: before
+deleting anything from a prompt to make it smaller, find out which defect put it
+there. The tests are where that is written down.
