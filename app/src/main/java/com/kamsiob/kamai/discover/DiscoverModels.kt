@@ -1,6 +1,12 @@
 package com.kamsiob.kamai.discover
 
-/** One moment: a cleaned Wikipedia introduction, read where it stands. */
+/**
+ * One moment: a cleaned Wikipedia article, read where it stands.
+ *
+ * [preview] is the introduction and is what a card and the reader show.
+ * [passage] is the article, and is what a grounded discussion draws on, which is
+ * why the two are separate fields rather than one (#13).
+ */
 data class Moment(
     val packId: String,
     val id: String,
