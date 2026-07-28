@@ -30,6 +30,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Bookmarks
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.KeyboardVoice
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material.icons.rounded.QuestionAnswer
+import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.WarningAmber
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -129,26 +146,36 @@ fun SettingsScreen(
                 title = "Model",
                 subtitle = activeModel?.displayName ?: "Nothing downloaded yet",
                 monoTail = activeModel?.downloadLabel,
+                icon = Icons.Rounded.Memory,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Pine,
                 onClick = onModel,
             )
             SettingsRow(
                 title = "Memory",
                 subtitle = "What Kam AI remembers about you",
+                icon = Icons.Rounded.Bookmarks,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Terracotta,
                 onClick = onMemory,
             )
             SettingsRow(
                 title = "Custom instructions",
                 subtitle = "Standing instructions for every chat",
+                icon = Icons.AutoMirrored.Rounded.List,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Slate,
                 onClick = onCustomInstructions,
             )
             SettingsRow(
                 title = "Voice",
                 subtitle = if (voiceInstalled) "Voice typing is set up" else "Talk instead of typing",
+                icon = Icons.Rounded.Mic,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Ochre,
                 onClick = onVoice,
             )
             SettingsRow(
                 title = "Storage",
                 monoTail = formatBytes(storageBytes),
+                icon = Icons.Rounded.Folder,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Teal,
                 onClick = onStorage,
                 showDivider = false,
             )
@@ -158,30 +185,48 @@ fun SettingsScreen(
 
         SettingsGroup("Data and connections") {
             if (webSearchAvailable) {
-                SettingsRow(title = "Web search", subtitle = "Off", onClick = onWebSearch)
+                SettingsRow(
+                    title = "Web search",
+                    subtitle = "Off",
+                    icon = Icons.Rounded.Search,
+                    tile = com.kamsiob.kamai.ui.theme.TileColor.Slate,
+                    onClick = onWebSearch,
+                )
             }
             if (backupAvailable) {
-                SettingsRow(title = "Backup and restore", onClick = onBackup)
+                SettingsRow(
+                    title = "Backup and restore",
+                    icon = Icons.Rounded.Save,
+                    tile = com.kamsiob.kamai.ui.theme.TileColor.Olive,
+                    onClick = onBackup,
+                )
             }
             SettingsRow(
                 title = "App lock",
                 subtitle = if (appLockEnabled) "On" else "Off",
+                icon = Icons.Rounded.Lock,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Umber,
                 onClick = onAppLock,
             )
             SettingsRow(
                 title = "Archive old chats",
                 subtitle = autoArchive.days?.let { "After $it days" } ?: "Off",
+                icon = Icons.Rounded.Inventory2,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Sage,
                 onClick = onAutoArchive,
             )
             SettingsToggleRow(
                 title = "Confirm before deleting a chat",
                 subtitle = "Off means a single tap deletes it",
+                icon = Icons.Rounded.HelpOutline,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Teal,
                 checked = confirmChatDelete,
                 onCheckedChange = onConfirmChatDelete,
             )
             SettingsRow(
                 title = "Delete everything",
                 subtitle = "Chats, memory, projects, follow-ups",
+                icon = Icons.Rounded.DeleteOutline,
                 destructive = true,
                 onClick = onDeleteEverything,
                 showDivider = false,
@@ -194,21 +239,53 @@ fun SettingsScreen(
             SettingsRow(
                 title = "Open with the power button",
                 subtitle = if (isDefaultAssistant) "Set up. Long-press power to ask." else "Make Kam AI your assistant app",
+                icon = Icons.Rounded.PowerSettingsNew,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Pine,
                 onClick = onAssistant,
             )
             if (isDefaultAssistant) {
                 SettingsToggleRow(
                     title = "Power button opens ready for voice",
                     subtitle = "Off means the keyboard, with voice one tap away",
+                    icon = Icons.Rounded.KeyboardVoice,
+                    tile = com.kamsiob.kamai.ui.theme.TileColor.Ochre,
                     checked = assistantDefaultVoice,
                     onCheckedChange = onAssistantDefaultVoice,
                 )
             }
-            SettingsRow(title = "Appearance", subtitle = "Theme and accent color", onClick = onAppearance)
-            SettingsRow(title = "What Kam AI is for", onClick = onReplayOnboarding)
-            SettingsRow(title = "Questions and answers", onClick = onQuestions)
-            SettingsRow(title = "Kam AI can be wrong", subtitle = "What to double-check", onClick = onSafety)
-            SettingsRow(title = "About", onClick = onAbout, showDivider = false)
+            SettingsRow(
+                title = "Appearance",
+                subtitle = "Theme and accent color",
+                icon = Icons.Rounded.Palette,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Terracotta,
+                onClick = onAppearance,
+            )
+            SettingsRow(
+                title = "What Kam AI is for",
+                icon = Icons.Rounded.Explore,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Slate,
+                onClick = onReplayOnboarding,
+            )
+            SettingsRow(
+                title = "Questions and answers",
+                icon = Icons.Rounded.QuestionAnswer,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Olive,
+                onClick = onQuestions,
+            )
+            SettingsRow(
+                title = "Kam AI can be wrong",
+                subtitle = "What to double-check",
+                icon = Icons.Rounded.WarningAmber,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Umber,
+                onClick = onSafety,
+            )
+            SettingsRow(
+                title = "About",
+                icon = Icons.Rounded.Info,
+                tile = com.kamsiob.kamai.ui.theme.TileColor.Sage,
+                onClick = onAbout,
+                showDivider = false,
+            )
         }
 
         // Nothing follows the last group. The support ask used to be repeated
@@ -744,7 +821,7 @@ fun MemoryScreen(
                                     .border(if (isSel) 0.dp else 2.dp, colors.border, CircleShape),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                if (isSel) Icon(androidx.compose.material.icons.Icons.Rounded.Check, null, tint = colors.onAccent, modifier = Modifier.size(14.dp))
+                                if (isSel) Icon(Icons.Rounded.Check, null, tint = colors.onAccent, modifier = Modifier.size(14.dp))
                             }
                             Spacer(Modifier.width(12.dp))
                         }

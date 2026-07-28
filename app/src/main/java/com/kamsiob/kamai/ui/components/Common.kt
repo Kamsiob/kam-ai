@@ -261,8 +261,15 @@ sealed interface RowTrailing {
     data object None : RowTrailing
 }
 
-/** The fixed width of that slot, the same on every row in the application. */
-private val TRAILING_SLOT = 40.dp
+/**
+ * The fixed width of that slot, the same on every row in the application.
+ *
+ * Sized to the widest thing it can hold, which is the switch at 52dp rather than
+ * the chevron at 20. At 40dp a toggle row was clipped on both sides. Nothing used
+ * one yet, so it had never been seen, and sizing this to the narrowest control
+ * would have made the first toggle row look broken instead.
+ */
+private val TRAILING_SLOT = 52.dp
 
 /** The icon column's width, which the dividers start after. */
 private val ICON_COLUMN = 30.dp + 14.dp
@@ -624,40 +631,22 @@ fun SettingsToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    icon: ImageVector? = null,
+    tile: com.kamsiob.kamai.ui.theme.TileColor = com.kamsiob.kamai.ui.theme.TileColor.Slate,
     showDivider: Boolean = true,
 ) {
-    val colors = KamTheme.colors
-    Column {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .clickable { onCheckedChange(!checked) }
-                .defaultMinSize(minHeight = KamTheme.dimens.minTouchTarget)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = KamTheme.type.bodyEmphasis, color = colors.textPrimary)
-                if (subtitle != null) {
-                    Spacer(Modifier.height(2.dp))
-                    Text(subtitle, style = KamTheme.type.secondary, color = colors.textSecondary)
-                }
-            }
-            Spacer(Modifier.width(12.dp))
-            androidx.compose.material3.Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                colors = androidx.compose.material3.SwitchDefaults.colors(
-                    checkedThumbColor = colors.onAccent,
-                    checkedTrackColor = colors.accent,
-                    uncheckedThumbColor = colors.textTertiary,
-                    uncheckedTrackColor = colors.surfaceSecondary,
-                    uncheckedBorderColor = colors.border,
-                ),
-            )
-        }
-        if (showDivider) {
-            HorizontalDivider(color = colors.border, thickness = 1.dp, modifier = Modifier.padding(start = 16.dp))
-        }
-    }
+    // Delegates rather than duplicating. This was a parallel implementation of a
+    // row, and it had drifted: no icon slot, padding of 16 against 14, and a
+    // divider starting at the card edge instead of the text column. Three ways
+    // for a toggle row to look subtly unlike every row above it (#95).
+    SettingsRow(
+        title = title,
+        modifier = modifier,
+        subtitle = subtitle,
+        icon = icon,
+        tile = tile,
+        trailing = RowTrailing.Toggle(checked, onCheckedChange),
+        showDivider = showDivider,
+        onClick = { onCheckedChange(!checked) },
+    )
 }
