@@ -347,8 +347,34 @@ object SystemPrompts {
     }
 
     /** Appends the passage a Discover conversation is confined to. */
-    fun grounded(passage: String): String =
-        "$DISCOVER_GROUNDED\n\nThe passage:\n\n$passage"
+    /**
+     * How much passage a grounded discussion may carry.
+     *
+     * A pack is data the app does not control, and this prompt injects the
+     * passage whole. The builder caps passages at 1,400 words, and relying on
+     * that means a pack built by anything else, or by an older or newer version
+     * of the builder, can produce a prompt too large to run at all. The smallest
+     * tier has a 4,096-token context and these instructions take about 1,100 of
+     * it.
+     *
+     * Generous enough that the cap never fires on a pack built correctly, so this
+     * is a backstop and not a second opinion about how long a passage should be.
+     */
+    private const val PASSAGE_MAX_CHARS = 12_000
+
+    fun grounded(passage: String): String {
+        val text = if (passage.length <= PASSAGE_MAX_CHARS) {
+            passage
+        } else {
+            // Cut at a sentence end so a passage never stops mid-clause, and say
+            // nothing about it in the prompt: the model should discuss what it
+            // was given, not explain that it was given less than existed.
+            val cut = passage.take(PASSAGE_MAX_CHARS)
+            val end = maxOf(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "))
+            if (end > PASSAGE_MAX_CHARS / 2) cut.substring(0, end + 1) else cut
+        }
+        return "$DISCOVER_GROUNDED\n\nThe passage:\n\n$text"
+    }
 
     /** The quiet centered note dropped in when a grounded discussion is opened up
      *  into a normal chat, so the transcript shows where the scope was lifted. */
