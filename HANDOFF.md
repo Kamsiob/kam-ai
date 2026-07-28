@@ -640,104 +640,49 @@ Everything here has cost someone an hour at least once.
 
 ## SECTION 3: REMAINING WORK, ITEM BY ITEM
 
-Status vocabulary: **verified** (done, seen working on the phone), **unverified** (written,
-never watched on the device), **partial**, **not started**, **blocked**.
+**Audited against the tracker on 28 July, because this section had become
+fiction.** It listed #28, #35, #39, #48, #50, #51, #52, #53, #54, #55, #56, #59,
+#61 and #62 as "not started" or "partial". Every one of them is closed. An
+inventory that says there is work where there is none is worse than no inventory:
+it sends the next session chasing things that are finished.
 
-### Correctness defects, all not started
+**The authoritative list is the open issues.** `gh issue list` is the record; this
+section is a reading of it and nothing more. If the two disagree, the tracker is
+right.
 
-| # | Item | State |
-|---|---|---|
-| #49 | Chat template tokens leak into responses in longer conversations | **closed, verified on the phone** with adversarial labeled-dialogue prompts |
-| #40 | Stopping a response loses its reason, hides the action row, then gets mislabelled | **closed, verified on the phone**, including across a relaunch |
-| #41 | Exports attribute mode-change notices to the assistant; shared threads lose their title; export filename can come from a SYSTEM notice | **closed, verified on the phone** against the real exported files |
-| #42 | Onboarding slide 3 and the "What are the modes?" Q&A describe three modes and a dead switcher | **closed, verified on the phone.** Guarded by PublicCopyTest |
-| #45 | Overlay shows a memory warning and then works anyway | **closed.** The check was right; the notice was never cleared. **Not device-verified**, see the issue |
-| #61 | The overlay recording button uses the reserved gold | not started. Do with #47; DESIGN specifies no listening treatment, so the color is the owner's call |
-| #59 | Template tokens leaked before the #49 fix are still stored and still displayed | not started. Sanitise on read; do not rewrite user rows |
-| #46 | Assistant voice-first setting has no effect | **closed, verified on the phone.** It now opens already listening |
+### Open, 28 July
 
-### Daily-use friction from live testing, all not started
+**Model quality, all narrowed by measurement rather than by opinion.** See the
+section above for what each one actually turned out to be, which in all three
+cases is narrower than its title.
 
-| # | Item | State |
-|---|---|---|
-| #43 | Scrolling is fought during a long streaming response; needs a per-response latch | **closed, verified on the phone.** Per-response latch plus an offset-based atBottom, in ui/chat/ScrollFollow.kt, 13 tests |
-| #44 | A new conversation is not at the top of Chats, and the list does not return to the top | **closed, verified on the phone** in list and grid. Ordering was already right; the lists were restoring their old scroll offset |
-| #47 | The overlay drag handle is decorative; make it expand into the full app | **closed, verified on the phone.** Also fixed a long-standing crash on closing the overlay from a cold process |
-| #48 | Archived conversations unreachable in grid view; audit all three views against each other | not started |
-| #50 | Projects screen has no view options | not started |
+- **#122** a statement that carries its own answer sometimes gets restated. About
+  one time in three, on one input.
+- **#124** Logic Partner misreads a sound argument's premise to have something to
+  object to. The shape lever does not reach it.
+- **#126** half fixed: no heading above a short answer, preamble still present.
 
-### Four Mode Update, remaining
+**Waiting on the repository owner.**
 
-| # | Item | State |
-|---|---|---|
-| #24 | Version 4 to 5 migration | **closed and fully verified.** SQL by MigrationSqlTest on the JVM, Room and SQLCipher by the three androidTest classes run on the phone, 11 tests passing |
-| #25 | Brainstorm behavior on the device | **closed.** All four hard rules verified across four conversations; two shaping deviations moved to #58 |
-| #28 | First-time per-mode explainers (needs a "seen once" key that does not exist anywhere yet), per-mode Q&A entries, export markers (#41) | partial |
-| #29 | Per-mode empty-state nudges | **closed, verified on the phone** in all four modes. Fraunces Italic bundled and subset to 5.8 KB; sketches are Compose paths rather than assets; `edgeFadeHorizontal` landed with it |
-| #31 | Auto-archive: Off / 3 / 7 / 30 days, pinned exempt, count before confirming, undo | **built, 13 tests.** Settings verified on the phone; **the pass itself has never fired there**, since nothing on that device is old enough to match. Issue left open until it is watched working |
-| #32 | Workbench linking, both directions | **closed, verified on the phone.** Sessions are BENCH conversations; MIGRATION_5_6 shipped and verified on real data |
-| #33 | Filter follow-ups by kind alongside source | **closed, verified on the phone.** The Brainstorm-defaults-to-pursue path is verified and now covered by tests |
-| #34 | Keyboard and reachability audit | **closed.** Portrait was already correct; the mode control clipped at large font and is fixed. Landscape plus keyboard split out as #62 |
-| #62 | Landscape plus keyboard leaves the conversation with zero height | not started. Filed with what was tried; use a measured BoxWithConstraints height rather than the IME insets |
-| #35 | Per-conversation scroll restoration; honest incomplete state with retry, continue, discard | partial. Jump-to-latest and non-yanking scroll are now **seen working on the phone** (#43). The failure-state half is **unblocked**: #40 is closed and the stop reason is now recorded honestly. Scroll restoration on reopening is still not done |
-| #36 | Onboarding and public copy for four modes | **closed.** README, store listing, About and the positioning line; guarded by PublicCopyTest reading both files off disk |
-| #38 | Titling KV pollution **fixed and measured**, Bench/Overlay/Discover prompt trims, runtime network monitor | partial. **Warm turn is now 36 tok / 1.4s**, from 1068 tok / 30.8s. Remaining: titling on its own KV sequence (native), which lets the title-quality trade be reverted |
-| #39 | Usability gaps and end-to-end workflows, **including eleven of the twelve mode-switch pairs never exercised** | not started |
+- **#113** screenshots, which need a release build.
+- **#112** build provenance on release artefacts.
+- **#111** signed commits, which need the signing key registered.
+- **#110** requiring a pull request, which needs repository settings.
+- **#13** the Discover pack change is written and measured; rebuilding and
+  publishing the packs is a GitHub release.
 
-### Performance, round 3
+**Process, not blocked.**
 
-| # | Item | State |
-|---|---|---|
-| #51 | Stage 1: KleidiAI microkernels, confirm repacking and dotprod actually engage at runtime, core affinity, cheap link flags, re-baseline per tier | not started |
-| #52 | Stage 2: KV state persistence across sessions, flat time to first token at turns 1, 5, 20, invalidation cases, cross-conversation prefix reuse, titling cost | not started. **Privacy constraint: state files must not be plaintext** |
-| #53 | Flash attention set deliberately, q8_0 KV cache, tested at real context lengths | not started |
-| #54 | Speculative decoding with the Gemma drafter, server-style context setup; draftless n-gram mode | not started, un-deferred by round 3 |
-| #55 | Q4_0 repacking versus Q4_K_M versus Q5_K_M per tier | not started, measure before proposing any catalog change |
-| #56 | Physical batch sweep, warmup at launch, mmap versus locked pages | not started |
+- **#109** adopt the branch and pull request workflow. Everything to date is
+  direct to `main`, including this session.
 
-### Mode method work, round 3
+### What "genuinely empty" means here
 
-| # | Item | State |
-|---|---|---|
-| #57 | Logic Partner: analyze before attacking, find the crux, challenge well | **implemented, left open.** Budget conflict resolved (1000 to 1080, paid for and justified in the test). Two of six claim types tested; **the values-stop does not land on E4B** |
-| #58 | Brainstorm: ground the method in facilitation practice | **partly done.** One-question-per-turn inside a method fixed and verified. **Converge-on-request does not land**; two prompt attempts failed, try an app-side action instead |
+Nothing above is a correctness defect. The three model-quality issues are each a
+rate rather than a failure: the app answers correctly most of the time on each,
+and the remaining share is measured and written down. Everything else needs
+something only the owner can do.
 
-### Older worklist items still open (issues #1 to #22)
-
-- **#2 Projects.** Remaining: multi-select bulk move from the chat list, add-existing from
-  inside a project, optional project notes field. **Its title still mentions Today, which
-  is canceled; fix the title and body.**
-- **#3 Inference speed.** Superseded on measurement by #38 and round 3; keep only for
-  per-tier tok/s across E4B and 12B.
-- **#5 Nothing processes silently.** Remaining: the app-wide audit. #40 is an instance of
-  exactly this failure found after the fact.
-- **#11** scoped slide-up surface for Discover discussion. Not built.
-- **#13** Discover packs carrying full articles. Needs the pipeline and release change.
-- **#16** memory contradiction supersession, and a "memory influenced this" indicator.
-- **#21** broader audit for other invisible walls.
-- **#22** measured speed and quality ratings, input-bar gating, three-state controls,
-  attachment filtering, honest model switching with existing attachments.
-- Not yet an issue: **conversation view models are Activity-scoped and not cleared on
-  back-pop**, so each opened chat leaks a lightweight ChatViewModel for the session.
-  Correctness is fine. Worth opening an issue so it stops living in a markdown note.
-
-### Written but never verified on the device
-
-- ~~Jump-to-latest in its **visible** state~~ **seen working 24 July 2026**: after a reply
-  arrived in a long conversation the list did not yank, the control appeared, and tapping
-  it moved to the latest message. The non-yanking behavior was seen at the same time. What
-  is still unverified is scroll **restoration** when reopening a conversation, and #43
-  changes the rule for streaming anyway.
-- Eleven of twelve mode-switch pairs (#39). Only General to Logic has been exercised.
-- The Brainstorm prompt's actual behavior (#25).
-- Follow-up kind auto-assignment from a Brainstorm conversation (#33).
-- Whether the trimmed Logic and Brainstorm prompts still behave the same. Tokens came out;
-  nobody watched the model use them.
-- The prefill thread-count change in isolation.
-- Whether the mode reaches the model when a conversation is opened from search, from a
-  follow-up, from a project, or from the share-sheet intake.
-
----
 
 ## SECTION 4: RECOMMENDED ORDER, AND WHY
 
