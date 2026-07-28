@@ -47,6 +47,38 @@ class RestatementTest {
     }
 
     @Test
+    fun aRestatementInCorrectedSpellingIsInvisibleToThisCheck() {
+        // On the device, "u r wrong abt this an i no it" came back as "You're
+        // wrong about this and I know it." That is a pure restatement and this
+        // check does not see it, which is worth a test of its own because the
+        // reason generalizes.
+        //
+        // Overlap is measured between spellings. Once function words are dropped
+        // the message contributes u, r, wrong, abt, no and the reply contributes
+        // youre, wrong, about, know. They share "wrong": one word in four, against
+        // a threshold of 0.65. Every other pair is the same word spelled two ways,
+        // and the stemmer handles word endings, not spelling.
+        //
+        // So a word-overlap check is blindest exactly where the model has tidied
+        // somebody's spelling, because tidying it is what stops the words being
+        // the same words. Closing it means matching "no" to "know" and "abt" to
+        // "about" by sound or edit distance, and "no" and "know" are genuinely
+        // different words. This guard's false positives cost more than its misses
+        // (DECISIONS.md), so this stays open and written down.
+        //
+        // Recorded because it was briefly claimed as a fix. This reply improved
+        // between two battery runs, which looked like the new check working, and
+        // this test is what showed it could not have been: one sample per input
+        // cannot tell a guard from the sampler choosing differently.
+        assertThat(
+            PromptEcho.isRestatement(
+                "You're wrong about this and I know it.",
+                "u r wrong abt this an i no it",
+            ),
+        ).isFalse()
+    }
+
+    @Test
     fun therepliesThatSaidSomethingNewSurvive() {
         listOf(
             "It needs a high temperature to set the crust properly.",

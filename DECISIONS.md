@@ -7773,23 +7773,36 @@ kind of question that gets settled by whoever is most confident, so it was
 settled by running the same ten inputs before and after and putting the replies
 side by side.
 
-Two inputs changed for the better and nothing changed for the worse.
+One input changed for the better and nothing changed for the worse.
 
 | input | before | after |
 |---|---|---|
 | Bread needs a hot oven, around 230C. | It needs a hot oven, around 230C. | the fallback, asking them to say it again |
-| u r wrong abt this an i no it | You're wrong about this and I know it. | I need more information to know what you mean. |
 
-The second is the one that carries weight. It is a verbatim hand-back that the
-previous guard did not catch, on an input the new check was not built from, so it
-is evidence the check generalizes rather than evidence it was fitted to its own
-test case. The first is a real improvement of a modest kind: the fallback is not
-an answer, but it asks for something, which the restatement did not.
+That is an improvement of a modest kind: the fallback is not an answer, but it
+asks for something, which the restatement did not.
 
-Four other replies differ in wording between the runs. Those are not attributed
-to the guard. One sample per input cannot separate a guard effect from the
-sampler picking a different continuation, and the honest reading is that only the
-two rows above are explained by the change.
+**A second row was claimed here and withdrawn, which is the more useful part of
+this entry.** "u r wrong abt this an i no it" came back as "You're wrong about
+this and I know it." in the first run and as a real question in the second, and
+that was written up as evidence the new check generalizes beyond the case it was
+built from. It is not. Pinning it as a test showed the check returns false on that
+pair: once function words go, the message contributes u, r, wrong, abt, no and the
+reply contributes youre, wrong, about, know, so they share one word in four
+against a threshold of 0.65. The guard cannot have caught it. The reply differed
+because the sampler chose differently.
+
+The general lesson is worth more than the row: **one sample per input cannot
+distinguish a guard from the sampler, and a before-and-after table invites you to
+read every difference as an effect of the change.** Four other replies also differ
+between the runs and none of them are attributed to anything either. The only
+reason this one was caught is that it was written down as a test instead of a
+sentence, and the test disagreed.
+
+It also leaves a real limit on the record: a word-overlap check is blindest
+exactly where the model has tidied somebody's spelling, because tidying it is what
+stops the words being the same words. Closing that means matching "no" to "know",
+and this guard's false positives cost more than its misses.
 
 **What it costs.** Measured on the reporting input for #122, the model produced a
 restatement on 18 of 21 drafts. So on that input a user now sees the fallback most
