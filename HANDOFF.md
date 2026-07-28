@@ -250,7 +250,9 @@ keyboard is actually up, which was sending whole runs into the launcher.
     adb shell settings put system accelerometer_rotation 0
     adb shell settings put system user_rotation 0
 
-Restore `accelerometer_rotation` to 1 when finished; it was 1 before.
+Restore `accelerometer_rotation` to 1 when finished. It was restored at the end
+of the 28 July session, so the phone is on auto-rotate now and a scripted run
+needs to lock it again first.
 
 ### Session of 27 July: the background download had a daily limit (#121, closed)
 
