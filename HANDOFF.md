@@ -678,7 +678,14 @@ right.
 
 ### Open, 28 July
 
-**Model quality: one left.**
+**Start here: #130.** Brainstorm falls back with "That came out wrong" on "My
+team keeps missing deadlines and I do not know where to start with fixing it.",
+twice in a row, on a prompt that produced the correct reply earlier the same
+night. The fallback comes only from the reply guard, but no `KamEcho` line was
+logged, so either the log had rotated or something else writes it. Capture
+logcat before sending, not after.
+
+**Model quality: one left besides that.**
 
 - **#122** a statement that carries its own answer sometimes gets restated. One
   good reply in three or four on that input, across seven runs. Other statements
