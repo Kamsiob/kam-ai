@@ -7234,3 +7234,60 @@ A last detail the same screenshot gave away: the paused row still read "over an
 hour left", quoting a rate measured before the transfer stopped. An estimate is a
 claim about something still happening, so it is now withheld unless the download
 is actually running.
+
+## Demonstration regurgitation, and why the prompt fixes kept failing
+
+Five times a reply turned out to be text from the prompt. Each fix was a prompt
+change, each looked right, and each was followed by the same failure in a new
+shape. The pattern is worth stating because the instinct it defeats is a strong
+one.
+
+- The identity rule named no answer, so the model supplied its own and named the
+  model underneath. Fixed by giving it a sentence to use.
+- That sentence was then produced for an insult, for a sound argument, and for
+  somebody saying their father had died. Fixed by removing it and explaining why.
+- The explanation quoted the sentence in order to warn against it. The model
+  copied it out of the warning and answered the bereavement message with it
+  again.
+
+Every fix added text, and the problem grew with the text. This is documented
+behaviour rather than something peculiar to this app: small on-device models
+reproduce the outputs of fixed few-shot demonstrations regardless of input, and
+examples measurably pull attention away from the instructions they sit beside.
+That is the mechanism by which our rules kept losing to our examples.
+
+### The rule now applied to every example
+
+**An example may stay only if emitting it verbatim at the wrong moment would
+still be harmless.**
+
+Exactly one example in the prompt passes. "fix" answered by "Fix what? Tell me
+what is broken and I will start there." is correct wherever it lands, because
+any message too short to act on deserves that reply. The metric acknowledgement
+fails: emitted at "Bread needs a hot oven, around 230C." it produced "I will
+keep to metric.", which is what happened on 27 July.
+
+### A guard instead of another prompt edit
+
+Regurgitation will happen at some rate whatever the prompt says, so the goal
+changed from preventing it to making it survivable. PromptEcho holds the answer
+text that exists verbatim in a prompt. A reply matching one is abandoned a few
+words in, before it finishes streaming, and generated again; sampling is seeded
+randomly, so the second attempt is a different draw rather than the same tokens.
+If that also comes back a copy, the reply is written in code.
+
+Detection is early rather than after completion on purpose. Buffering whole
+replies to check them would hand back the time to first token that #38 spent the
+entire performance budget winning.
+
+### A self-contradiction, found by reading the prompt rather than the output
+
+Logic Partner told the model that every reply does three things in order, ending
+in an objection, and then told it never to manufacture an objection when a point
+is sound. For a sound argument those cannot both be satisfied, and one way to
+resolve that is to emit nothing, which is exactly what #120 reports.
+
+The three-part shape is now conditional and the sound case has its own shape,
+stated as a complete reply rather than as an exception to a rule it cannot meet.
+Worth generalising: when a mode answers badly, read what is actually being sent
+before blaming the model.

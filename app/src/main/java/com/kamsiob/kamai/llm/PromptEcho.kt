@@ -38,6 +38,12 @@ object PromptEcho {
         "An external drive, cheapest per gigabyte.",
         "A bigger internal card, faster but dearer.",
         "Cloud, which needs a connection.",
+        // Logic Partner's worked argument. Three paragraphs of finished reply
+        // sitting in the prompt, which is the largest quotable block in any mode
+        // and the one #114 was already caused by once.
+        "The case is real: early on you change direction faster than tests keep up",
+        "That assumes tests cost more time than bugs do",
+        "So how would you know you had crossed that line?",
     )
 
     /**
