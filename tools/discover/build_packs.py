@@ -163,6 +163,35 @@ def cache_path(title):
     return os.path.join(CACHE, safe + ".json")
 
 
+def fetch_body(title):
+    """
+    The whole article as plain text, for grounding a discussion (#13).
+
+    Separate from the intro, and one request per article rather than twenty,
+    because the API only batches extracts when they are intros. That makes a
+    build slower and is the price of a pack that can hold a conversation past the
+    first question: the grounded discussion is confined to the passage in the
+    pack, so an intro-sized passage runs out after one exchange and the model
+    either repeats itself or declines, with nothing telling the reader why.
+    """
+    cp = cache_path(title) + ".body"
+    if os.path.exists(cp):
+        with open(cp) as f:
+            return json.load(f).get("body", "")
+    data = api_get({
+        "action": "query", "prop": "extracts", "explaintext": "1",
+        "exlimit": "1", "redirects": "1", "titles": title,
+    })
+    pages = data.get("query", {}).get("pages", {})
+    body = ""
+    for pg in pages.values():
+        body = pg.get("extract", "") or ""
+    with open(cp, "w") as f:
+        json.dump({"title": title, "body": body}, f)
+    time.sleep(0.15)
+    return body
+
+
 def fetch_intro_batch(titles):
     """Batched plain-text intros. Returns {title: extract}. Uses cache."""
     result = {}
@@ -196,6 +225,42 @@ def fetch_intro_batch(titles):
                 json.dump({"title": t, "extract": extract}, f)
         time.sleep(0.15)
     return result
+
+
+# How much article a passage may carry.
+#
+# The grounded prompt injects the passage whole and nothing truncates it, so this
+# is the only place the size is decided. The smallest tier runs a 4096-token
+# context and the grounded instructions are about 1,100 tokens of it, which
+# leaves room for a passage and a conversation about it, not a passage alone.
+#
+# 1,400 words is roughly 1,800 tokens. Against the intros this replaces, which
+# ran from 57 words to 530, that is three to twenty-five times more material for
+# a discussion to draw on, which is what #13 is about, while still leaving most
+# of the window for the discussion itself.
+PASSAGE_MAX_WORDS = 1400
+
+
+def passage_of(body, intro):
+    """
+    The part of the article a discussion can be held against.
+
+    Taken from the start rather than sampled, because a Wikipedia article opens
+    with its summary and its most general sections, which is what a reader who
+    has just been dealt this moment will ask about. Cut at a paragraph boundary
+    so a passage never ends mid-sentence.
+    """
+    if not body:
+        return intro
+    words = body.split()
+    if len(words) <= PASSAGE_MAX_WORDS:
+        return body
+    cut = " ".join(words[:PASSAGE_MAX_WORDS])
+    end = cut.rfind("\n\n")
+    if end > len(cut) // 2:
+        return cut[:end].rstrip()
+    last = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "))
+    return cut[:last + 1] if last > 0 else cut
 
 
 def preview_of(passage, lo=120, hi=200):
@@ -239,16 +304,20 @@ def build_pack(pack, exclude, target, min_words, limit):
 
     rows = []
     for title in candidates:
-        passage = clean(intros.get(title, ""))
-        if len(passage.split()) < min_words:
+        intro = clean(intros.get(title, ""))
+        # The preview and the filters read the intro, which is what a card shows
+        # and what decides whether an article is worth including at all. The
+        # passage is the whole article, which is what a discussion draws on.
+        passage = passage_of(clean(fetch_body(title)), intro)
+        if len(intro.split()) < min_words:
             continue
-        if "may refer to" in passage[:80].lower():
+        if "may refer to" in intro[:80].lower():
             continue
         rows.append({
             "id": re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-"),
             "title": title,
             "topic": pack["name"],
-            "preview": preview_of(passage),
+            "preview": preview_of(intro),
             "passage": passage,
             "source_title": title,
             "source_url": "https://en.wikipedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_")),
