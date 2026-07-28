@@ -122,8 +122,13 @@ object ConversationTitler {
                     .collect { builder.append(it.text) }
             }
             val generated = clean(builder.toString())
-            // A blank or generic answer is worse than the excerpt fallback.
-            if (isUsable(generated)) generated else fallback(history)
+            // A blank, generic, or invented answer is worse than the excerpt
+            // fallback, which is always at least true (#125).
+            if (isUsable(generated) && titleIsAbout(generated, history)) {
+                generated
+            } else {
+                fallback(history)
+            }
         } else {
             fallback(history)
         }
@@ -144,6 +149,66 @@ object ConversationTitler {
         if (t.length < 2) return false
         if (t.lowercase() in GENERIC) return false
         return true
+    }
+
+    /**
+     * Words too common to say what a conversation is about. Kept short and dull
+     * on purpose: this list exists to stop "the" counting as a subject, not to
+     * judge writing.
+     */
+    private val COMMON = setOf(
+        "about", "after", "again", "also", "another", "any", "anything", "because",
+        "been", "being", "between", "both", "could", "does", "doing", "done",
+        "down", "each", "even", "ever", "every", "from", "gets", "give", "going",
+        "have", "here", "into", "just", "know", "like", "make", "many", "more",
+        "most", "much", "need", "never", "next", "only", "other", "over", "part",
+        "really", "same", "should", "some", "such", "sure", "take", "than", "that",
+        "their", "them", "then", "there", "these", "they", "thing", "things",
+        "think", "this", "those", "time", "very", "want", "well", "were", "what",
+        "when", "where", "which", "while", "will", "with", "without", "would",
+        "your", "yours",
+    )
+
+    private fun subjectWords(text: String): Set<String> =
+        text.lowercase()
+            .split(Regex("[^a-z0-9]+"))
+            .filter { it.length >= 4 && it !in COMMON }
+            .toSet()
+
+    /**
+     * True when the title is about the conversation it names (#125).
+     *
+     * A conversation about the Roman empire, potato storage, a broken printer and
+     * a dentist appointment was titled "Capital of Australia City Name". Nothing
+     * in it mentioned Australia, a capital, or a city.
+     *
+     * The cause was asking for a title at all: titling reads the first exchange,
+     * that exchange was "?" answered by a clarifying question, and a model given
+     * nothing to name will name something. `isUsable` cannot catch it, because
+     * the invention is neither blank nor generic; it is simply about a different
+     * conversation.
+     *
+     * So the title is checked against the thing it claims to describe. Sharing
+     * one substantial word is a low bar, and it is exactly the bar an invented
+     * title fails. A wrong title is worse than a dull one: the excerpt fallback
+     * is always at least true, and this was confidently false.
+     */
+    fun titleIsAbout(title: String, history: List<MessageEntity>): Boolean {
+        val fromTitle = subjectWords(title)
+        // A title made only of common words says nothing about anything, which is
+        // what a model produces when it has nothing to name.
+        if (fromTitle.isEmpty()) return false
+        val fromConversation = history.flatMap { subjectWords(it.content) }.toSet()
+        // Nothing substantial anywhere in the conversation means there is nothing
+        // to check against, and refusing every title then would be wrong.
+        if (fromConversation.isEmpty()) return true
+        // Most of the title has to be about this conversation, not one word of it.
+        // "Capital of Australia City Name" shares exactly one word with a
+        // conversation about the Roman empire, and it is "city", from
+        // "city-state" in a sentence about something else entirely. One
+        // coincidence is not aboutness.
+        val shared = fromTitle.count { it in fromConversation }
+        return shared * 2 >= fromTitle.size
     }
 
     /** A specific title from the first user message, e.g. "How tall is the Eiffel Tower". */
