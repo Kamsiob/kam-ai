@@ -7463,3 +7463,57 @@ two sides: it has to be measured against the defect it might fix *and* against
 the defect the deleted text was preventing. A change that fixes one and
 reintroduces the other is not an improvement, and only running both tells you
 which happened.
+
+## The first turn is not like the others, and that explains a family of defects
+
+Several defects this week only ever appeared on the first turn of a conversation:
+the instructions recited back when the model was asked what it runs on, the
+user's own message handed back as the reply, and a sound argument answered with a
+request for the argument. Each was investigated separately, and each looked like
+a different problem.
+
+They share a cause, and it is in the chat template rather than in the prompt.
+
+Gemma has no system role. Its template folds the instructions into the **first
+user turn**, so a first turn looks like this:
+
+```
+<start_of_turn>user
+[about 1,650 tokens of instructions]
+
+[the user's actual message]<end_of_turn>
+<start_of_turn>model
+```
+
+and every later turn looks like this:
+
+```
+<start_of_turn>user
+[the user's actual message]<end_of_turn>
+<start_of_turn>model
+```
+
+On the first turn the message is the last line of a wall of instructions, marked
+off by two newlines. On every turn after it, the message stands alone in a turn
+of its own. A model continuing the wall rather than answering the line at the end
+of it produces exactly the three defects above, which is why they clustered where
+they did.
+
+`SYSTEM_BOUNDARY` now marks the join in words: "Those are your instructions. What
+follows is the message to answer."
+
+Measured on the device, Logic Partner, first turn of a fresh conversation, with
+"Backups are worth doing because hardware fails without warning." Before, that
+input as a first turn produced the message handed back twice and then the
+fallback, and on another run "What is the argument you want me to test." After,
+it put the case and named the assumption it rests on, which is the mode doing its
+job on a first turn for the first time.
+
+Phrased as an instruction rather than as a marker on purpose: if it is ever
+emitted it reads as a stray sentence rather than as scaffolding, and it cannot be
+mistaken for a control token by anything that scans for those.
+
+**The general lesson is about where to look.** Five rounds of prompt editing went
+into these symptoms. None of them could have worked, because the prompt was not
+where the difference was. What separated a good turn from a bad one was not what
+the instructions said but where they sat relative to the question.
