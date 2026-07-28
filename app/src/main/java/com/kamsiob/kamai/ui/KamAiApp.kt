@@ -438,7 +438,10 @@ private fun TabContent(
             val archived by app.archivedConversations.collectAsStateWithLifecycle()
             val view by app.chatsView.collectAsStateWithLifecycle()
             val chatsProjects by app.projects.collectAsStateWithLifecycle()
+            val modeHintPending by app.modeHintPending.collectAsStateWithLifecycle()
             ChatsScreen(
+                showModeHint = modeHintPending,
+                onDismissModeHint = app::dismissModeHint,
                 conversations = conversations,
                 archivedCount = archived.size,
                 onOpenArchived = { stack.add(Pushed.Archived) },

@@ -27,6 +27,9 @@ class KamRepository(
     object Keys {
         const val ONBOARDING_DONE = "onboarding.done"
         const val ONBOARDING_SLIDE = "onboarding.slide"
+
+        /** Whether the one-time explanation of the mode control has been seen (#93). */
+        const val MODE_HINT_SEEN = "modebar.hint.seen"
         const val CHATS_VIEW = "chats.view"
 
         /** Projects keeps its own density, since the two screens hold different
@@ -107,6 +110,17 @@ class KamRepository(
      * storage, and it is the furthest slide to have to walk back to.
      */
     suspend fun onboardingSlide(): Int = setting(Keys.ONBOARDING_SLIDE)?.toIntOrNull() ?: 0
+
+    /**
+     * The mode control is how a new chat starts, and it reads as a filter. The
+     * explanation for that is shown once, ever, rather than living permanently at
+     * the bottom of the screen: the confusion is about learning a control, and a
+     * label sitting there for years to teach something learned in one tap is a
+     * poor trade (#93).
+     */
+    suspend fun modeHintSeen(): Boolean = setting(Keys.MODE_HINT_SEEN) == "true"
+
+    suspend fun markModeHintSeen() = putSetting(Keys.MODE_HINT_SEEN, "true")
 
     suspend fun setOnboardingSlide(index: Int) =
         putSetting(Keys.ONBOARDING_SLIDE, index.toString())

@@ -63,6 +63,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
@@ -122,6 +123,9 @@ fun ChatsScreen(
     searchResults: com.kamsiob.kamai.data.KamRepository.SearchResults? = null,
     onOpenFollowUps: () -> Unit = {},
     onOpenProject: (String) -> Unit = {},
+    /** The one-time explanation of the mode control, shown once ever (#93). */
+    showModeHint: Boolean = false,
+    onDismissModeHint: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -194,7 +198,12 @@ fun ChatsScreen(
         if (!selected.contains(id)) selected.add(id)
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    // Boxed so the explanation can dim the screen without dimming the control it
+    // is explaining. The control is drawn a second time inside the overlay,
+    // above the scrim, and the one in the column is hidden with alpha rather
+    // than removed, so the layout does not move when the card appears (#93).
+    androidx.compose.foundation.layout.Box(modifier = modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
         if (selecting) {
             SelectionBar(
                 count = selected.size,
@@ -419,9 +428,40 @@ fun ChatsScreen(
                 onSelect = { onNewChat(it) },
                 modifier = Modifier
                     .padding(horizontal = KamTheme.dimens.screenPadding)
+                    .padding(top = 6.dp, bottom = 6.dp)
+                    .then(if (showModeHint) Modifier.alpha(0f) else Modifier),
+            )
+        }
+    }
+
+    if (showModeHint && !selecting) {
+        com.kamsiob.kamai.ui.components.ModeBarHintScrim(onDismiss = onDismissModeHint)
+        Column(
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            com.kamsiob.kamai.ui.components.ModeBarHintEntrance(visible = true) {
+                com.kamsiob.kamai.ui.components.ModeBarHintCard(
+                    onDismiss = onDismissModeHint,
+                    modifier = Modifier
+                        .padding(horizontal = KamTheme.dimens.screenPadding)
+                        .padding(bottom = 10.dp),
+                )
+            }
+            // The lit copy, in the same place the hidden one occupies, so the
+            // explanation points at something the user can still see and tap.
+            com.kamsiob.kamai.ui.components.SegmentedModeControl(
+                onSelect = {
+                    // Dismissed by using it, which is the clearest possible sign
+                    // the explanation was understood.
+                    onDismissModeHint()
+                    onNewChat(it)
+                },
+                modifier = Modifier
+                    .padding(horizontal = KamTheme.dimens.screenPadding)
                     .padding(top = 6.dp, bottom = 6.dp),
             )
         }
+    }
     }
 
     renaming?.let { RenameDialog(it, onRename) { renaming = null } }

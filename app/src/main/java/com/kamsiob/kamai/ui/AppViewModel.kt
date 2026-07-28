@@ -56,6 +56,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _onboardingDone = MutableStateFlow(false)
     val onboardingDone: StateFlow<Boolean> = _onboardingDone.asStateFlow()
 
+    /**
+     * Whether the one-time explanation of the mode control is still owed (#93).
+     *
+     * Starts false rather than true so it cannot flash on screen for the many
+     * users who have already seen it, in the moment before the stored answer is
+     * read. Being shown late is recoverable; being shown again is not.
+     */
+    private val _modeHintPending = MutableStateFlow(false)
+    val modeHintPending: StateFlow<Boolean> = _modeHintPending.asStateFlow()
+
+    fun dismissModeHint() {
+        if (!_modeHintPending.value) return
+        _modeHintPending.value = false
+        viewModelScope.launch { repository.markModeHintSeen() }
+    }
+
     /** Where onboarding resumes, read before the first frame so it is never 0 by default (#117). */
     private val _onboardingSlide = MutableStateFlow(0)
     val onboardingSlide: StateFlow<Int> = _onboardingSlide.asStateFlow()
@@ -193,6 +209,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
             _onboardingDone.value = repository.isOnboardingDone()
             _onboardingSlide.value = repository.onboardingSlide()
+            _modeHintPending.value = !repository.modeHintSeen()
             _reminderDismissed.value =
                 repository.setting(KamRepository.Keys.REMINDER_DISMISSED) == "true"
             val sessions =
