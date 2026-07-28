@@ -2,7 +2,7 @@
 //
 // This is deliberately small: it loads a whisper model, transcribes a buffer of
 // 16 kHz mono float PCM, and frees. The recording, resampling, and any streaming
-// live in Kotlin, alongside the rest of the app's behaviour, exactly as the
+// live in Kotlin, alongside the rest of the app's behavior, exactly as the
 // llama.cpp bridge keeps its generation loop above the native layer.
 //
 // It is built into its own shared library (libkamwhisper.so) with its own copy

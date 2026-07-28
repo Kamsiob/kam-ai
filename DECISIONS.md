@@ -7251,7 +7251,7 @@ one.
   again.
 
 Every fix added text, and the problem grew with the text. This is documented
-behaviour rather than something peculiar to this app: small on-device models
+behavior rather than something peculiar to this app: small on-device models
 reproduce the outputs of fixed few-shot demonstrations regardless of input, and
 examples measurably pull attention away from the instructions they sit beside.
 That is the mechanism by which our rules kept losing to our examples.

@@ -129,7 +129,7 @@ bool build_context_locked() {
     //
     // Kept only if it wins, per the rule on #51, and it is measured below in
     // DECISIONS. The fallback is not decoration: if a future model or build
-    // cannot do flash attention, AUTO with f16 is exactly today's behaviour, so
+    // cannot do flash attention, AUTO with f16 is exactly today's behavior, so
     // the app degrades to something known rather than failing to open a context.
     cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED;
     cparams.type_k = GGML_TYPE_Q8_0;

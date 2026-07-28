@@ -51,9 +51,9 @@ class PromptEchoTest {
     fun theCopiesSeenOnTheDeviceAreCaught() {
         // "Bread needs a hot oven, around 230C." answered with the metric
         // example's answer, on 27 July.
-        assertThat(PromptEcho.isEcho("Noted, I will keep to metric.")).isTrue()
+        assertThat(PromptEcho.isEcho("Noted, I will keep to metric.", "why")).isTrue()
         // Shortened and repunctuated, which is how they actually arrive.
-        assertThat(PromptEcho.isEcho("noted i will keep to metric")).isTrue()
+        assertThat(PromptEcho.isEcho("noted i will keep to metric", "why")).isTrue()
         // Copied and then continued, which is still a copy.
         assertThat(
             PromptEcho.isEcho("It was finished in 1889, for the Paris World's Fair. Anything else?"),
@@ -93,8 +93,20 @@ class PromptEchoTest {
     fun aCopyIsSpottedBeforeItFinishes() {
         // Early detection is what makes this affordable. Buffering whole replies
         // to check them would give back the time to first token that #38 won.
-        assertThat(PromptEcho.couldBecomeEcho("Noted, I will keep")).isTrue()
-        assertThat(PromptEcho.couldBecomeEcho("It was finished in 1889")).isTrue()
+        //
+        // "Before it finishes" rather than "immediately": the threshold is 24
+        // normalized characters, raised from 12 after a short opening that merely
+        // began like an example got a good reply thrown away. A few words later
+        // is the price of not discarding correct answers, and worth paying.
+        assertThat(PromptEcho.couldBecomeEcho("Noted, I will keep to metric", "why")).isTrue()
+        assertThat(PromptEcho.couldBecomeEcho("It was finished in 1889, for")).isTrue()
+    }
+
+    @Test
+    fun tooLittleTextIsNotEnoughToActOn() {
+        // The other side of the threshold, stated so that lowering it has to
+        // change this test and think about why.
+        assertThat(PromptEcho.couldBecomeEcho("Noted, I will keep", "why")).isFalse()
     }
 
     @Test

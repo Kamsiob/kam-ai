@@ -1146,6 +1146,13 @@ class ChatViewModel(
             // in front of them to fix a smaller problem.
             val guardEcho = continueFrom == null
 
+            // What the user actually said, so an example answer landing on the
+            // message it belongs to is left alone. Without this the guard threw
+            // away a correct reply to "Remember that I always work in metric
+            // units.", which is the one message that answer is right for.
+            val lastUser = repository.messages(conversationId)
+                .lastOrNull { it.role == Role.USER }?.content.orEmpty()
+
             suspend fun streamOnce() {
                 engine.generate(prompt, _mode.value, onStop = { stopReason = it })
                     .collect { chunk ->
@@ -1165,7 +1172,7 @@ class ChatViewModel(
                         // is abandoned before it finishes streaming. Waiting for
                         // the whole answer would mean buffering every reply, which
                         // would give back the time to first token #38 won.
-                        if (guardEcho && PromptEcho.couldBecomeEcho(builder.toString())) {
+                        if (guardEcho && PromptEcho.couldBecomeEcho(builder.toString(), lastUser)) {
                             throw EchoDetected()
                         }
                         repository.updateMessage(
@@ -1188,7 +1195,7 @@ class ChatViewModel(
                 while (true) {
                     try {
                         streamOnce()
-                        if (guardEcho && !retried && PromptEcho.isEcho(builder.toString())) {
+                        if (guardEcho && !retried && PromptEcho.isEcho(builder.toString(), lastUser)) {
                             throw EchoDetected()
                         }
                         break
@@ -1197,6 +1204,11 @@ class ChatViewModel(
                             "KamEcho",
                             "reply matched prompt text, retried=$retried",
                         )
+                        // Abandoning the stream trips the same path a user stop
+                        // does, and the transcript then said "You stopped this
+                        // one." with Continue and Retry beside a reply the user
+                        // had nothing to do with. Nobody stopped anything.
+                        stopReason = InferenceEngine.StopReason.Finished
                         builder.setLength(0)
                         if (retried) {
                             builder.append(ECHO_FALLBACK)
