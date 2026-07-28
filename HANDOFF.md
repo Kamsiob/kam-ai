@@ -24,6 +24,41 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### Session of 27 July, second part: the regurgitation work
+
+Read DECISIONS.md, "Demonstration regurgitation", before touching any prompt.
+The short version is that five prompt fixes in a row each caused the next
+failure, because every one of them added text and the failure is caused by text.
+
+What changed:
+
+- The rule now applied to every example in every prompt: **it may stay only if
+  emitting it verbatim at the wrong moment would still be harmless.** Exactly one
+  example passes today, the clarifying question in General.
+- `PromptEcho` catches a reply that is really prompt text, abandons it a few
+  words in, and regenerates. Two copies in a row fall back to a line written in
+  code. It is a safety net, not a fix, and it is deliberately not clever.
+- Logic Partner contradicted itself: every reply must end in an objection, and
+  never manufacture an objection when the point is sound. That leaves no
+  permissible reply to a sound argument, which is what #120 reports.
+
+Still open and unanswered: whether any of this is really the 2B model rather than
+the prompt. Both models are on the device (`gemma-4-e2b-it-q4km.gguf` and
+`gemma-4-e4b-it-q4km.gguf`), and `tools/mode_battery.sh` runs the same ten inputs
+against whichever is active. If E4B does not regurgitate, the answer is the
+recommended tier rather than more prompt work.
+
+**Lock the phone to portrait before any scripted run.** Every tap coordinate and
+every crop in `tools/` assumes portrait, and a run that rotated mid-way produced
+ten landscape captures that looked like nonsense output rather than a rotated
+screen. `shot.sh` now refuses them, and `say.sh` no longer presses Back unless the
+keyboard is actually up, which was sending whole runs into the launcher.
+
+    adb shell settings put system accelerometer_rotation 0
+    adb shell settings put system user_rotation 0
+
+Restore `accelerometer_rotation` to 1 when finished; it was 1 before.
+
 ### Session of 27 July: the background download had a daily limit (#121, closed)
 
 Worth knowing before touching downloads. Android allows a `dataSync` foreground
