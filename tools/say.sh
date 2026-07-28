@@ -12,11 +12,15 @@ text="${1:?usage: say.sh <message> [wait-seconds]}"
 # A ceiling, not a duration. See the wait at the end of this file.
 wait_s="${2:-25}"
 
-# How many generations have finished so far. The engine logs one KamPerf line
-# carrying decode= when a generation ends, so this counts completions rather
-# than guessing at them.
+# The most recently finished generation, as its whole log line. The engine logs
+# one KamPerf line carrying decode= when a generation ends.
+#
+# The last line rather than a count of them. Counting looked simpler and is
+# wrong: logcat's buffer is circular, so old lines age out while new ones
+# arrive, the total stops rising, and every message then waits out the full
+# ceiling. That turned a thirty case battery into an hour of sleeping.
 completions() {
-  "$adb" logcat -d -s KamPerf 2>/dev/null | grep -c 'decode=' || true
+  "$adb" logcat -d -s KamPerf 2>/dev/null | grep 'decode=' | tail -1 || true
 }
 before="$(completions)"
 
@@ -88,7 +92,7 @@ quiet=0
 while [ "$SECONDS" -lt "$deadline" ]; do
   sleep 3
   now="$(completions)"
-  if [ "$now" -gt "$before" ]; then
+  if [ "$now" != "$before" ]; then
     before="$now"
     seen=1
     quiet=0

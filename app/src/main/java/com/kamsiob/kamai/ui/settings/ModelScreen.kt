@@ -69,6 +69,14 @@ fun ModelScreen(
     val recommended = TierRecommendation.recommended(totalRamGb)
     var advancedOpen by remember { mutableStateOf(false) }
 
+    // Decoded once for the whole screen so every card can place itself against
+    // what this phone has actually done, including models it has never run.
+    val decodedSpeeds = remember(measuredSpeeds) {
+        measuredSpeeds.mapNotNull { (id, stored) ->
+            MeasuredSpeed.decode(stored)?.let { (tps, _) -> id to tps }
+        }.toMap()
+    }
+
     fun dl(id: String) = downloads.firstOrNull { it.id == id }
 
     Column(
@@ -102,6 +110,7 @@ fun ModelScreen(
                 onCancel = { onCancel(model.id) },
                 onActivate = { onActivate(model) },
                 measuredSpeed = measuredSpeeds[model.id],
+                allMeasured = decodedSpeeds,
             )
             Spacer(Modifier.height(11.dp))
         }
@@ -159,6 +168,7 @@ fun ModelScreen(
                         onCancel = { onCancel(model.id) },
                         onActivate = { onActivate(model) },
                         measuredSpeed = measuredSpeeds[model.id],
+                        allMeasured = decodedSpeeds,
                         advanced = true,
                     )
                     Spacer(Modifier.height(9.dp))
@@ -186,10 +196,51 @@ private fun ModelCard(
     onActivate: () -> Unit,
     /** This phone's stored measurement for the model, if it has one. */
     measuredSpeed: String? = null,
+    /**
+     * Every measurement this phone holds, keyed by model id, so a model that has
+     * never run here can still be placed. That is the case the picker exists for:
+     * nobody is choosing between models they have already used.
+     */
+    allMeasured: Map<String, Double> = emptyMap(),
     advanced: Boolean = false,
 ) {
     val colors = KamTheme.colors
     val shape = RoundedCornerShape(KamTheme.dimens.cardRadius)
+    var showRatingHelp by remember { mutableStateOf(false) }
+
+    if (showRatingHelp) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { showRatingHelp = false }) {
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(20.dp)).padding(20.dp),
+            ) {
+                Text("What the stars mean", style = KamTheme.type.cardTitle, color = colors.textPrimary)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Speed is how quickly this model writes, measured on this phone " +
+                        "rather than quoted from someone else's. Until you have run a " +
+                        "model here there is nothing to measure, so nothing is shown. " +
+                        "Once one has run, the others are estimated from it and say so.",
+                    style = KamTheme.type.body, color = colors.textSecondary,
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Quality compares the models offered here with each other, not with " +
+                        "anything else. Five stars means the best of these, not the best " +
+                        "there is.",
+                    style = KamTheme.type.body, color = colors.textSecondary,
+                )
+                Spacer(Modifier.height(16.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Text(
+                        "Got it", style = KamTheme.type.label, color = colors.accent,
+                        modifier = Modifier.clip(CircleShape).clickable { showRatingHelp = false }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -254,6 +305,39 @@ private fun ModelCard(
         // models can be compared at a glance (item 22).
         Spacer(Modifier.height(8.dp))
         CapabilityRow(model)
+
+        // Speed and quality in the same units for every model on offer, before
+        // the download rather than after it, since after is too late to be of any
+        // use. Speed is silent until this phone has measured something, because a
+        // figure from another phone is worthless and an invented one is worse.
+        val speedStars = com.kamsiob.kamai.model.ModelRatings.speedStars(model, allMeasured)
+        val estimated = com.kamsiob.kamai.model.ModelRatings.isEstimated(allMeasured[model.id])
+        Spacer(Modifier.height(8.dp))
+        Column(modifier = Modifier.clickable { showRatingHelp = true }) {
+            if (speedStars != null) {
+                Text(
+                    "Speed     ${com.kamsiob.kamai.model.ModelRatings.bar(speedStars)}" +
+                        if (estimated) "  estimated" else "  on this phone",
+                    style = KamTheme.type.secondary,
+                    color = colors.textSecondary,
+                )
+            }
+            Text(
+                "Quality   ${com.kamsiob.kamai.model.ModelRatings.bar(
+                    com.kamsiob.kamai.model.ModelRatings.quality(model),
+                )}  against the models here",
+                style = KamTheme.type.secondary,
+                color = colors.textSecondary,
+            )
+        }
+
+        // One plain line where this model is weaker at something, and nothing at
+        // all where it is not. A caveat manufactured for every model teaches
+        // people to skip all of them.
+        if (model.modeNote.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(model.modeNote, style = KamTheme.type.secondary, color = colors.goldText)
+        }
 
         // Measured here, on this phone, from generations the user has actually
         // run. Nothing is claimed for a model nobody has used, and nothing is

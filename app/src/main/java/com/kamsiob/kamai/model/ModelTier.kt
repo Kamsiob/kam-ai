@@ -71,6 +71,24 @@ data class TierModel(
      * understanding is added per model when a vision build ships.
      */
     val capabilities: Set<Capability> = setOf(Capability.TEXT, Capability.DOCUMENTS),
+    /**
+     * Modes this model handles poorly, which the interface uses twice: one plain
+     * line on this model's entry in the picker, and a single notice the first
+     * time somebody opens one of these modes with this model installed.
+     *
+     * Empty for a model with no such weakness, and empty is the default, because
+     * a manufactured caveat on every model teaches people to ignore all of them.
+     * Populated only from measurement, never from an impression: see DECISIONS.md,
+     * "the tier, measured per mode".
+     */
+    val weakModes: Set<com.kamsiob.kamai.data.Mode> = emptySet(),
+    /**
+     * The one line saying what this model is weaker at, in the app's plain voice.
+     *
+     * A sentence rather than a matrix or a rating per mode. Somebody choosing a
+     * model needs to know what they are trading, not to study a table.
+     */
+    val modeNote: String = "",
 ) {
 
     fun supports(capability: Capability): Boolean = capability in capabilities
