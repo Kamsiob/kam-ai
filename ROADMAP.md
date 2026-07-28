@@ -9,28 +9,26 @@ disagree, the issue is right and this file is stale.
 
 ## Now: v1.0.0, the first public release
 
-**Setup and first run.** Getting a working model onto the device as the
-continuation of onboarding rather than a hunt through Settings (#75). The parts
-that cost the user something they did not agree to spend are done: the
-connection, the battery and the disk are all checked before a download is
-offered rather than after it is chosen, and a download survives being
-interrupted, resumes itself, and says how long is left.
-
 **Inference performance.** Cold time to first token (#38), build flags and ARM
 microkernels (#51), quantization format per tier (#55), titling polluting the
 conversation cache (#71), and sharing the instruction-block cache across
 conversations (#72).
 
-**Remaining quality work.** The mode bar reading as a way to start a chat (#93),
-Brainstorm's method choice for someone being too cautious (#73), Discover packs
-carrying full articles rather than introductions (#13), and screenshots
-recaptured from the release build (#113).
+**Remaining quality work.** Brainstorm's method choice for someone being too
+cautious (#73), Discover packs carrying full articles rather than introductions
+(#13), and screenshots recaptured from the release build (#113).
 
 **Model behavior.** The model reproducing text it was given: its own
 instructions, its worked examples, or the user's message handed straight back
-(#119, #122). Much of this is now caught before a user sees it, and the
-underlying behavior belongs to the model rather than to the prompt. See
-DECISIONS.md, "Demonstration regurgitation".
+(#119, #122). Much of this is now caught before a user sees it, and the cause
+turned out to be split between the model tier and the chat template rather than
+the prompt, after five rounds of prompt editing that could not have worked. See
+DECISIONS.md, "Demonstration regurgitation" and "The first turn is not like the
+others". Logic Partner still engages poorly with some arguments (#124).
+
+**First run and downloads are done.** #75 and #121 closed: the checks that cost
+the user something happen before an offer rather than after it is chosen, and the
+background download survives Android's daily foreground service limit.
 
 ## Blocked
 
