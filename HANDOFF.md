@@ -24,6 +24,32 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### Session of 28 July: the one lever that keeps working on this model
+
+**A small model follows a shape and ignores a condition.** Three modes were fixed
+by taking an instruction that was already in the prompt, already correct and
+already ignored, and rewriting it as an ordered list of what a reply does, in
+order, ending in a stop. None of the three added a rule; all replaced text with
+the same text arranged differently, so none cost a token.
+
+- Logic Partner, the sound-argument branch (#124, partly).
+- Brainstorm, the shape of every reply, which fixed #73 and #115 together.
+- General, replies to statements, which fixed #122.
+
+**Three prohibitions were tried in the same session and changed nothing**, and
+all three were reverted rather than kept because they sounded right: "never hand
+their own message back", "never offer a choice of approach", and making Logic's
+branch decision an explicit step. An unproven rule still costs prefill on every
+turn.
+
+So before adding anything to a prompt, check whether what you are about to say is
+already in it, phrased as a condition. Full reasoning in DECISIONS.md.
+
+**Where the lever does not reach.** It works on what a reply contains and not on
+what the model concludes. Logic Partner still misreads a sound argument's premise
+in order to have something to object to, and no restructuring moved that. The
+remaining lead there is the tier question (#124).
+
 ### Session of 28 July: what closed, and what the guards now catch
 
 Closed with device evidence: #38 (cold TTFT, with the caveat that the warm-up
