@@ -135,6 +135,29 @@ object PromptEcho {
      * write and the model writes that way. Forty-eight characters of an exact
      * run is not a house style, it is a copy.
      */
+    /**
+     * Prompt text that is a correct reply wherever it lands.
+     *
+     * The clarifying question is the one example held to be safe: any message too
+     * short to act on deserves it, so emitting it verbatim is never wrong. It is
+     * absent from [lines] for that reason, and it has to be absent here too.
+     *
+     * Missing that cost a run. [containsPromptText] was added later and knew
+     * nothing about the exemption, so it caught the one sentence deliberately
+     * allowed and "fix" started answering with the fallback instead of the right
+     * question. A rule with an exception needs the exception applied everywhere
+     * the rule is, and this one had two places.
+     */
+    private val ALWAYS_ALLOWED = listOf(
+        "Fix what? Tell me what is broken and I will start there.",
+    )
+
+    private fun isAllowedOutright(normalizedReply: String): Boolean =
+        ALWAYS_ALLOWED.any { allowed ->
+            val a = normalize(allowed)
+            normalizedReply == a || a.startsWith(normalizedReply) || normalizedReply.startsWith(a)
+        }
+
     private const val PROMPT_RUN = 36
 
     /**
@@ -156,6 +179,7 @@ object PromptEcho {
         val haystack = normalize(systemPrompt)
         val n = normalize(reply)
         if (haystack.isEmpty() || n.length < MIN_CHARS) return false
+        if (isAllowedOutright(n)) return false
         if (n.length <= PROMPT_RUN) return haystack.contains(n)
         // Step through rather than checking only the opening: a reply that starts
         // in its own words and then recites is still reciting.
@@ -171,6 +195,7 @@ object PromptEcho {
     fun couldBecomePromptText(partial: String, systemPrompt: String): Boolean {
         val n = normalize(partial)
         if (n.length < PROMPT_RUN) return false
+        if (isAllowedOutright(n)) return false
         return normalize(systemPrompt).contains(n.substring(0, PROMPT_RUN))
     }
 

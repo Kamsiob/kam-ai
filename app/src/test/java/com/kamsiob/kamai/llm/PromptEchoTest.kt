@@ -61,6 +61,20 @@ class PromptEchoTest {
     }
 
     @Test
+    fun theSafeExampleSurvivesEveryCheck() {
+        // Regression. containsPromptText was added after the exemption existed
+        // and knew nothing about it, so it caught the one sentence deliberately
+        // allowed: "fix" started answering with the fallback instead of the
+        // clarifying question. Found by running the battery after the change,
+        // which is the only reason it was noticed.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        val safe = "Fix what? Tell me what is broken and I will start there."
+        assertThat(PromptEcho.containsPromptText(safe, system)).isFalse()
+        assertThat(PromptEcho.couldBecomePromptText(safe, system)).isFalse()
+        assertThat(PromptEcho.couldBecomePromptText("Fix what? Tell me what is broken", system)).isFalse()
+    }
+
+    @Test
     fun theSafeExampleIsNotGuarded() {
         // The clarifying question is correct whenever it appears, so discarding
         // and regenerating it would throw away a right answer. It is the one
