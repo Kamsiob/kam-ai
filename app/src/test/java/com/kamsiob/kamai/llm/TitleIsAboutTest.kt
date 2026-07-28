@@ -71,6 +71,21 @@ class TitleIsAboutTest {
     }
 
     @Test
+    fun theExcerptSkipsAMessageWithNothingInIt() {
+        // A conversation opening with "?" has no title in its first message and
+        // plenty in its second. Taking the first and giving up left the Chats
+        // list showing a one-character snippet in place of a title.
+        assertThat(ConversationTitler.fallback(roman))
+            .isEqualTo("Tell me about the history of the Roman")
+    }
+
+    @Test
+    fun anExcerptOfNothingIsStillNothing() {
+        val silent = listOf(msg("?"), msg("Go on.", Role.ASSISTANT), msg("!"))
+        assertThat(ConversationTitler.fallback(silent)).isEmpty()
+    }
+
+    @Test
     fun matchingIsNotCaseOrPunctuationSensitive() {
         assertThat(ConversationTitler.titleIsAbout("POTATOES, stored", roman)).isTrue()
     }

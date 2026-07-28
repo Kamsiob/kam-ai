@@ -1193,7 +1193,10 @@ fun relativeTime(epochMillis: Long, now: Long = System.currentTimeMillis()): Str
  * "New conversation" placeholder (item 17).
  */
 private fun com.kamsiob.kamai.data.ConversationSummary.displayTitle(): String =
-    title ?: cleanSnippet()?.take(48)?.takeIf { it.isNotBlank() } ?: "Untitled chat"
+    // The snippet stands in for a missing title, so it has to be worth reading as
+    // one. A conversation whose latest message cleaned down to a single character
+    // showed "d" in the list, which names nothing and looks like a glitch (#125).
+    title ?: cleanSnippet()?.take(48)?.takeIf { it.trim().length >= 4 } ?: "Untitled chat"
 
 /**
  * The snippet as a reader would see the answer, not as it is stored.

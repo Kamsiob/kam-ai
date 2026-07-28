@@ -213,10 +213,18 @@ object ConversationTitler {
 
     /** A specific title from the first user message, e.g. "How tall is the Eiffel Tower". */
     fun fallback(history: List<MessageEntity>): String {
-        val firstUser = history.firstOrNull { it.role == Role.USER }?.content?.trim().orEmpty()
-        val line = firstUser.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
-        if (line.isBlank()) return ""
-        return line.split(Regex("\\s+")).take(8).joinToString(" ")
-            .take(TITLE_MAX_CHARS).trimEnd('.', ',', '!', '?', ':', ';')
+        // The first user message that actually says something, rather than the
+        // first one full stop. A conversation opening with "?" has no title in
+        // its first message and plenty in its second, and taking the first and
+        // giving up left the list showing a one-character snippet instead (#125).
+        for (message in history.filter { it.role == Role.USER }) {
+            val line = message.content.trim()
+                .lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+            if (line.isBlank()) continue
+            val candidate = line.split(Regex("\\s+")).take(8).joinToString(" ")
+                .take(TITLE_MAX_CHARS).trimEnd('.', ',', '!', '?', ':', ';')
+            if (candidate.length >= 2) return candidate
+        }
+        return ""
     }
 }
