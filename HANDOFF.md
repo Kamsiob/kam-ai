@@ -125,6 +125,14 @@ doing. A project instructed to begin every reply with "RIGHT" did so, and the
 same question asked outside the project did not, so instructions reach the model
 inside a project and do not leak out of one.
 
+**Also verified in the last pass:** the swipe actions on a chat row, and the
+archive round trip. Archiving removes the row from Chats, the Archived view
+explains that archiving is reversible and deleting is not, and Move to Chats puts
+it back. Done on a test conversation and restored afterwards.
+
+Landscape was checked incidentally and is fine: Follow-ups and an open
+conversation both lay out correctly, which is #62's area.
+
 **A test project called "Kitchen notes" is left on the phone**, with one chat in
 it, along with roughly fifty test conversations from tonight. All of it is mine
 rather than the owner's and none of it was deleted, because deleting is the one
