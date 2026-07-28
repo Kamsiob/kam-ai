@@ -27,6 +27,18 @@ discuss. An assistant overlay on the power button.
 Keystore. An encrypted backup and restore file for moving between phones. A data
 model that is already sync ready, though no sync exists and none is planned.
 
+**The model it starts with.** First run offers the smallest model that actually
+answers well rather than the smallest model. Measured on the device, the smaller
+one answered a message about a bereavement by stating what it was, and the larger
+one answered it properly. The download is longer, and everything that makes the
+wait bearable is built: it runs in the background, resumes itself, says how long
+is left, and the app is usable while it happens.
+
+**Replies that were really the instructions.** A reply that reproduces the app's
+own instructions, one of its worked examples, or the message just typed is caught
+before it is shown and generated again. Asked what model it ran on, it used to
+answer with its own instruction sheet.
+
 **Fixed before release.** Android limits how long an app may download in the
 background each day. Reaching that limit used to kill the app mid-download, which
 hit slow connections hardest, the exact case background downloading exists for.
