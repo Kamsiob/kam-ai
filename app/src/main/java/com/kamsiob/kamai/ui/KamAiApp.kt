@@ -234,7 +234,10 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
         val onboardingDl = downloads.firstOrNull {
             it.kind == "model" && it.status != com.kamsiob.kamai.download.Downloads.Status.PAUSED
         }
+        val startSlide by app.onboardingSlide.collectAsStateWithLifecycle()
         OnboardingScreen(
+            startSlide = startSlide,
+            onSlideChanged = app::saveOnboardingSlide,
             totalRamGb = app.totalRamGb,
             tiers = app.tiers,
             downloadProgress = onboardingDl?.let {

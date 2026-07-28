@@ -56,6 +56,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _onboardingDone = MutableStateFlow(false)
     val onboardingDone: StateFlow<Boolean> = _onboardingDone.asStateFlow()
 
+    /** Where onboarding resumes, read before the first frame so it is never 0 by default (#117). */
+    private val _onboardingSlide = MutableStateFlow(0)
+    val onboardingSlide: StateFlow<Int> = _onboardingSlide.asStateFlow()
+
     private val _toast = MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast.asStateFlow()
 
@@ -188,6 +192,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             repository.repairIncompleteMessages()
 
             _onboardingDone.value = repository.isOnboardingDone()
+            _onboardingSlide.value = repository.onboardingSlide()
             _reminderDismissed.value =
                 repository.setting(KamRepository.Keys.REMINDER_DISMISSED) == "true"
             val sessions =
@@ -332,13 +337,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun finishOnboarding() {
         viewModelScope.launch {
             repository.markOnboardingDone()
+            repository.setOnboardingSlide(0)
+            _onboardingSlide.value = 0
             _onboardingDone.value = true
         }
+    }
+
+    /** Remembers the slide as it is reached, so process death resumes there (#117). */
+    fun saveOnboardingSlide(index: Int) {
+        if (_onboardingSlide.value == index) return
+        _onboardingSlide.value = index
+        viewModelScope.launch { repository.setOnboardingSlide(index) }
     }
 
     fun replayOnboarding() {
         viewModelScope.launch {
             repository.replayOnboarding()
+            _onboardingSlide.value = 0
             _onboardingDone.value = false
         }
     }

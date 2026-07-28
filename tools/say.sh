@@ -18,7 +18,25 @@ escaped="$(printf '%s' "$text" | sed 's/ /%s/g; s/'"'"'/\\'"'"'/g')"
 sleep 1
 "$adb" shell input text "$escaped"
 sleep 1
-"$adb" shell input keyevent KEYCODE_BACK   # drop the keyboard so send is where we expect
-sleep 1
+
+# Drop the keyboard so send is where we expect, but only when it is actually up.
+#
+# This used to press Back unconditionally. When the keyboard had not opened, that
+# Back was delivered to the app instead: it popped the conversation, and on the
+# chat list it left the app altogether. The run continued typing into the
+# launcher. Seen twice, and both times the symptom was a battery that stopped
+# part way with no error from this script.
+if "$adb" shell dumpsys input_method 2>/dev/null | grep -q 'mInputShown=true'; then
+  "$adb" shell input keyevent KEYCODE_BACK
+  sleep 1
+fi
+
+# The composer must still be there. If Back or anything else moved us, sending
+# would tap whatever is now at that coordinate.
+if ! "$adb" shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus | grep -q com.kamsiob.kamai; then
+  echo "say.sh: Kam AI is no longer focused, refusing to tap send" >&2
+  exit 1
+fi
+
 "$adb" shell input tap 998 2263        # send
 sleep "$wait_s"

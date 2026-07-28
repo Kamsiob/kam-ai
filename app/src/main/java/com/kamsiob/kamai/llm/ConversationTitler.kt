@@ -114,7 +114,13 @@ object ConversationTitler {
             }
             val prompt = PromptBuilder.oneShot(format, SystemPrompts.TITLE_INSTRUCTION, transcript)
             val builder = StringBuilder()
-            engine.generate(prompt, Mode.BENCH, maxTokens = TITLE_MAX_TOKENS).collect { builder.append(it.text) }
+            // Snapshot the conversation's cache around this, or the title prompt
+            // is what stays in it and the user's next message re-prefills the
+            // whole conversation (#71).
+            engine.preservingCache {
+                engine.generate(prompt, Mode.BENCH, maxTokens = TITLE_MAX_TOKENS)
+                    .collect { builder.append(it.text) }
+            }
             val generated = clean(builder.toString())
             // A blank or generic answer is worse than the excerpt fallback.
             if (isUsable(generated)) generated else fallback(history)

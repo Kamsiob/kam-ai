@@ -26,6 +26,7 @@ class KamRepository(
 
     object Keys {
         const val ONBOARDING_DONE = "onboarding.done"
+        const val ONBOARDING_SLIDE = "onboarding.slide"
         const val CHATS_VIEW = "chats.view"
 
         /** Projects keeps its own density, since the two screens hold different
@@ -96,8 +97,27 @@ class KamRepository(
 
     suspend fun markOnboardingDone() = putSetting(Keys.ONBOARDING_DONE, "true")
 
+    /**
+     * The slide onboarding was last showing, so leaving and coming back resumes
+     * there instead of at the beginning (#117).
+     *
+     * Persisted rather than held in memory because the case that matters is the
+     * process being gone: the model slide is where a multi-gigabyte download
+     * starts, which is exactly when somebody leaves to check their wifi or their
+     * storage, and it is the furthest slide to have to walk back to.
+     */
+    suspend fun onboardingSlide(): Int = setting(Keys.ONBOARDING_SLIDE)?.toIntOrNull() ?: 0
+
+    suspend fun setOnboardingSlide(index: Int) =
+        putSetting(Keys.ONBOARDING_SLIDE, index.toString())
+
     /** Replaying onboarding from Settings must not wipe anything. */
-    suspend fun replayOnboarding() = putSetting(Keys.ONBOARDING_DONE, "false")
+    suspend fun replayOnboarding() {
+        putSetting(Keys.ONBOARDING_DONE, "false")
+        // Replaying means from the start; a resume point left over from the
+        // first run would drop the user into the middle of it.
+        putSetting(Keys.ONBOARDING_SLIDE, "0")
+    }
 
     // Device
 

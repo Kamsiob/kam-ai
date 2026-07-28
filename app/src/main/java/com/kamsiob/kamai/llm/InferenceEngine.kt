@@ -385,6 +385,38 @@ class InferenceEngine(
         Unit
     }
 
+    /**
+     * Runs [block] on the engine and leaves the KV cache holding what it held
+     * before, so a background pass does not cost the user a re-prefill (#71).
+     *
+     * Titling and memory extraction run their own prompts through the same single
+     * llama.cpp sequence as the conversation. When one finishes, the cache holds
+     * that prompt instead: measured at 268 tokens of titling prompt where the
+     * conversation was 1700 tokens long, so the user's next message re-prefilled
+     * everything.
+     *
+     * A snapshot is a few megabytes of memcpy, which is cheap next to a full
+     * re-prefill of a long conversation. The blob carries the token list as well
+     * as the cache, and `nativeRestoreState` reassigns the native side's
+     * `cached_tokens` from it, so prefix diffing stays consistent afterwards
+     * rather than believing it holds something it does not.
+     *
+     * The restore is NonCancellable on purpose. The path that most needs the
+     * cache back is the one where the caller was canceled part way, and a restore
+     * that is skipped because its scope died leaves the cache holding a titling
+     * prompt, which is the exact defect this exists to prevent.
+     */
+    suspend fun <T> preservingCache(block: suspend () -> T): T {
+        val saved = saveState()
+        return try {
+            block()
+        } finally {
+            if (saved != null) {
+                withContext(kotlinx.coroutines.NonCancellable) { restoreState(saved) }
+            }
+        }
+    }
+
     suspend fun saveState(): ByteArray? = withContext(nativeDispatcher) {
         if (LlamaBridge.isLibraryLoaded && LlamaBridge.nativeIsLoaded()) {
             LlamaBridge.nativeSaveState()

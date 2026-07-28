@@ -41,6 +41,10 @@ inputs=(
 # the only reason it was noticed at all. Check before typing, not after.
 require_app() {
   local top focus
+  # The shade counts as something drawn over the app and will fail the check
+  # below, which it should. It is also routine (a download notification is enough
+  # to leave it open), so close it and re-check rather than abandoning the run.
+  "$adb" shell cmd statusbar collapse >/dev/null 2>&1 || true
   top="$("$adb" shell dumpsys activity activities 2>/dev/null | grep -m1 topResumedActivity || true)"
   focus="$("$adb" shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus | tr -d '\r' || true)"
   if ! echo "$top" | grep -q com.kamsiob.kamai || ! echo "$focus" | grep -q com.kamsiob.kamai; then

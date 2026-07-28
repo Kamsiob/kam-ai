@@ -44,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,10 +87,22 @@ fun OnboardingScreen(
     onAddVoice: () -> Unit = {},
     onFinish: () -> Unit,
     onSupport: () -> Unit,
+    /** Where to resume, so leaving does not send the user back to slide one (#117). */
+    startSlide: Int = 0,
+    onSlideChanged: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
-    val pager = rememberPagerState(pageCount = { OnboardingCopy.SLIDE_COUNT })
+    val pager = rememberPagerState(
+        initialPage = startSlide.coerceIn(0, OnboardingCopy.SLIDE_COUNT - 1),
+        pageCount = { OnboardingCopy.SLIDE_COUNT },
+    )
+    // Recorded as each slide settles rather than on the way out. Back from
+    // onboarding leaves the app outright, so there is no exit path to hook: by
+    // the time anything would run, the process may already be gone.
+    LaunchedEffect(pager) {
+        snapshotFlow { pager.currentPage }.collect { onSlideChanged(it) }
+    }
     val scope = rememberCoroutineScope()
 
     Column(

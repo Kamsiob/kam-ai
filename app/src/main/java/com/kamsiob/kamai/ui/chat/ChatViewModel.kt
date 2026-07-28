@@ -19,6 +19,7 @@ import com.kamsiob.kamai.llm.ModelManager
 import com.kamsiob.kamai.llm.MemoryExtractor
 import com.kamsiob.kamai.llm.MemoryMode
 import com.kamsiob.kamai.llm.PromptBuilder
+import com.kamsiob.kamai.llm.PromptEcho
 import com.kamsiob.kamai.llm.Summarizer
 import com.kamsiob.kamai.llm.SystemPrompts
 import com.kamsiob.kamai.llm.WrapUp
@@ -731,6 +732,7 @@ class ChatViewModel(
                 // nothing for twenty feels broken even if it finishes sooner.
                 val builder = StringBuilder()
                 var first = true
+                engine.preservingCache {
                 engine.generate(prompt, Mode.BENCH, maxTokens = SUMMARY_MAX_TOKENS)
                     .collect { chunk ->
                         builder.append(chunk.text)
@@ -749,6 +751,7 @@ class ChatViewModel(
                             )
                         }
                     }
+                }
                 _summary.value = SummaryState.Ready(
                     PromptBuilder.cleanOutput(builder.toString()),
                     provenance,
@@ -767,8 +770,10 @@ class ChatViewModel(
         val format = repository.activeModel()?.format ?: ChatFormat.GEMMA
         val prompt = PromptBuilder.oneShot(format, instruction, body)
         val builder = StringBuilder()
-        engine.generate(prompt, Mode.BENCH, maxTokens = SUMMARY_MAX_TOKENS)
-            .collect { builder.append(it.text) }
+        engine.preservingCache {
+            engine.generate(prompt, Mode.BENCH, maxTokens = SUMMARY_MAX_TOKENS)
+                .collect { builder.append(it.text) }
+        }
         return PromptBuilder.cleanOutput(builder.toString())
     }
 
@@ -1136,7 +1141,12 @@ class ChatViewModel(
             var needsJoinSpace = continueFrom != null && builder.isNotEmpty()
             var stopReason: InferenceEngine.StopReason = InferenceEngine.StopReason.Finished
 
-            try {
+            // Guarded only for a fresh answer. A continuation is joined onto text
+            // the user has already read, so discarding it would delete their reply
+            // in front of them to fix a smaller problem.
+            val guardEcho = continueFrom == null
+
+            suspend fun streamOnce() {
                 engine.generate(prompt, _mode.value, onStop = { stopReason = it })
                     .collect { chunk ->
                         if (needsJoinSpace) {
@@ -1151,10 +1161,52 @@ class ChatViewModel(
                         } else {
                             builder.append(chunk.text)
                         }
+                        // Caught a few words in rather than at the end, so a copy
+                        // is abandoned before it finishes streaming. Waiting for
+                        // the whole answer would mean buffering every reply, which
+                        // would give back the time to first token #38 won.
+                        if (guardEcho && PromptEcho.couldBecomeEcho(builder.toString())) {
+                            throw EchoDetected()
+                        }
                         repository.updateMessage(
                             messageId, PromptBuilder.cleanOutput(builder.toString()), true,
                         )
                     }
+            }
+
+            try {
+                // A reply that is really the prompt read back gets one more go.
+                //
+                // Sampling is seeded randomly, so a second attempt is genuinely a
+                // different draw rather than the same tokens again. If that also
+                // comes back a copy, the answer is written in code instead: the
+                // worst instance of this was a message about a bereavement
+                // answered with a line lifted from the instructions, and showing
+                // that twice is not a risk worth carrying for the sake of letting
+                // the model try a third time (#119).
+                var retried = false
+                while (true) {
+                    try {
+                        streamOnce()
+                        if (guardEcho && !retried && PromptEcho.isEcho(builder.toString())) {
+                            throw EchoDetected()
+                        }
+                        break
+                    } catch (e: EchoDetected) {
+                        android.util.Log.w(
+                            "KamEcho",
+                            "reply matched prompt text, retried=$retried",
+                        )
+                        builder.setLength(0)
+                        if (retried) {
+                            builder.append(ECHO_FALLBACK)
+                            repository.updateMessage(messageId, ECHO_FALLBACK, true)
+                            break
+                        }
+                        retried = true
+                        repository.updateMessage(messageId, "", true)
+                    }
+                }
             } finally {
                 // NonCancellable because this block is what makes a stopped or
                 // abandoned answer honest, and every call in it suspends. If the
@@ -1265,8 +1317,13 @@ class ChatViewModel(
         )
 
         val builder = StringBuilder()
-        engine.generate(prompt, Mode.BENCH, maxTokens = AUTO_MEMORY_MAX_TOKENS).collect {
-            builder.append(it.text)
+        // Same reason as titling: this runs on the conversation's own sequence,
+        // so without a snapshot it leaves the extraction prompt in the cache and
+        // the next message re-prefills the conversation (#71).
+        engine.preservingCache {
+            engine.generate(prompt, Mode.BENCH, maxTokens = AUTO_MEMORY_MAX_TOKENS).collect {
+                builder.append(it.text)
+            }
         }
         val facts = MemoryExtractor.parseAutoReply(PromptBuilder.cleanOutput(builder.toString()))
         facts.forEach { repository.remember(it, conversationId, auto = true) }
@@ -1283,7 +1340,18 @@ class ChatViewModel(
         ConversationTitler.titleIfNeeded(repository, engine, conversationId)
     }
 
+    /** Raised when a reply turns out to be prompt text, so it can be abandoned. */
+    private class EchoDetected : RuntimeException("reply matched prompt text")
+
     companion object {
+        /**
+         * Written in code rather than by the model, for the case where two
+         * attempts both came back as prompt text. It says what is true and asks
+         * for the one thing that helps, without pretending an answer was given.
+         */
+        const val ECHO_FALLBACK =
+            "That came out wrong. Say it again, or add a little more, and I will have another go."
+
         fun factory(
             repository: KamRepository,
             engine: InferenceEngine,
