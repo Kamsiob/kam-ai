@@ -35,15 +35,19 @@ observed once.
   obvious follow-on and saying something new means reaching for *why*. Keep it in
   the battery as the hardest of its kind, and do not generalize from it.
 
-  **The rate was measured on 28 July and it is not one in three.** That figure
-  came from four samples and was used to argue the cause was sampling. Twelve
-  fresh chats, counting the guard's own rejections rather than reading replies:
-  `runs=12 drafts=21 rejections=18`, every one of them the restatement check. The
-  model restates on about 85 percent of drafts, which is the most probable
-  continuation rather than an unlucky draw, and the sampler values the research
-  recommends against echo (temperature 0.7, minimum p 0.05) are already in place.
-  Use `tools/echo_rate.sh` rather than impressions. What is left is whether a
-  larger model does the same, which is the same question #119 turned on.
+  **There is currently no valid rate for this, and that is deliberate.** "About
+  one in three" came from four samples and was used to argue the cause was
+  sampling. A twelve run measurement then put it near 85 percent. **Both are
+  void.** Three defects were found in the harness afterwards, one of which meant
+  a run could silently put every message into a single conversation, so whether
+  those twelve conversations were twelve conversations is unknown. See
+  DECISIONS.md, "a measurement taken with a broken instrument is not evidence":
+  figures from a harness later found broken are re-taken, never reasoned about.
+
+  What is *not* in doubt: the sampler values the research recommends against echo
+  (temperature 0.7, minimum p 0.05) are already applied, so that lever is spent.
+  The fresh rate comes from `tools/tier_battery.sh`, which also answers whether a
+  larger model does the same, the question #119 turned on.
 - **#124** is not "Logic Partner does not engage". It engages, in the right
   shape, on first turns. It misreads a *sound* argument's premise in order to
   have something to object to. Restructuring the branch decision changed nothing,
@@ -94,6 +98,49 @@ it keeps being cited after it stops being true.
 table invites reading every difference as an effect of the change, and doing that
 produced a wrong claim in DECISIONS.md on 28 July that a test then disproved.
 Attribute a row only when the mechanism is checkable.
+
+### The tier question, opened 28 July, and it may reframe everything above
+
+Normal use suggested E4B produces noticeably fewer of these defects than E2B,
+with the gap worst in Logic Partner. If that holds, the three open quality issues
+are not prompts to keep rewriting but a tier that cannot do this work, and five
+failed rounds of prompt editing is the kind of result that means the explanation
+is somewhere else.
+
+`tools/tier_battery.sh <model-id> <label>` runs the same inputs through the same
+modes and counts guard rejections rather than reading replies. The model is forced
+with `debug.kamai.model`, the same escape hatch as `debug.kamai.threads`, so a
+comparison does not depend on tapping through Settings a dozen times.
+
+**Do not install a build while a tier comparison is in flight.** Both runs have to
+be the same binary or the comparison measures two things at once.
+
+Workbench is deliberately absent from that battery, and the reason corrects an
+error made earlier the same day. **Workbench is not a chat mode.** It has its own
+screen: the text in one box, the instruction chosen from seven buttons or typed.
+Every request carries an instruction the user chose, so there is no route that
+sends it a bare message, and the audit finding that it was the worst positioned
+mode was wrong. Its interface answers the question Brainstorm's prompt has to
+guess at.
+
+### Honest limits now cover the tier, at four places and nowhere else
+
+The model picker has the two five star ratings it was specified to have and did
+not: speed measured on this phone, estimated from a model that has run here when
+the one being considered has not, and silent when nothing has been measured at
+all. Quality relative to this lineup only, so five stars means the best of these.
+
+`TierModel.weakModes` and `TierModel.modeNote` drive the rest: one line on the
+picker entry, one line on the first run tier card, and a single note in the
+transcript the first time somebody opens a weak mode with that model installed,
+keyed to mode and model together. Both fields are empty for every model until the
+tier measurement fills them, and they are filled from measurement rather than
+impression.
+
+**What is deliberately absent, and must stay absent:** any badge on the mode
+chips, any line above a reply, anything that repeats. Somebody on an eight
+gigabyte phone has one real option and the tone owes them respect rather than an
+apology.
 
 ### Performance, settled 28 July
 
