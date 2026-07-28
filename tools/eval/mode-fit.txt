@@ -1,0 +1,61 @@
+# Does this message ask Brainstorm for an output, or is it a disclosure?
+#
+# Built before implementing anything, so the gate is measured rather than judged
+# by whoever wrote it (#129).
+#
+# The distinction is deliberately NOT emotional temperature. Frustration and
+# distress read almost identically, and Brainstorm's entire audience arrives
+# stuck and frustrated, so a gate keyed to how upset someone sounds refuses the
+# people the mode exists for. That was tried and reverted. The question is
+# whether they are asking for something to be produced.
+#
+# Format: VERDICT<TAB>message
+#   WORK      a workable request; Brainstorm must engage
+#   DISCLOSE  a personal disclosure with no request; Brainstorm should decline
+#
+# Written the way people actually type, including the ones who are angry, the
+# ones who are despairing about work, and the ones who mention something
+# upsetting while genuinely asking for help with a task. Those three groups are
+# where a naive gate fails.
+
+WORK	My team keeps missing deadlines and I do not know where to start with fixing it.
+WORK	i want ideas for the school fair but everything i think of sounds stupid
+WORK	I'm completely stuck on the name for this product and I've been at it for days
+WORK	we need to cut the budget by a third and I have no idea what to cut
+WORK	I hate everything I've written for this talk. help me find an angle
+WORK	honestly this whole project is a disaster and I need a way through it
+WORK	I'm so frustrated with this codebase I could scream, where do I even begin refactoring
+WORK	my dad is ill and I need to work out how to cover his shop for a month
+WORK	I've been made redundant and I need to figure out what to do next
+WORK	nobody on the team is talking to each other and I need ideas for fixing that
+WORK	I'm exhausted and behind on everything, help me work out what to drop
+WORK	our churn is terrible and I cannot see why
+WORK	I need a way to explain this to my boss without it sounding like an excuse
+WORK	stuck on how to structure the second half of this essay
+WORK	the wedding is in six weeks and we have not decided anything, where do we start
+WORK	I keep procrastinating on this one task and I want to work out why
+WORK	I want to start something on the side but have no idea what
+WORK	we argue about the same thing every week and I want to break the pattern
+WORK	I need to plan my mother's care and I do not know what the options even are
+WORK	how do I get people to actually read the documentation
+
+DISCLOSE	my dad died last month and i cant stop thinking about it
+DISCLOSE	I just found out my wife has been lying to me for years
+DISCLOSE	I don't really have anyone to talk to about this
+DISCLOSE	today would have been my sister's birthday
+DISCLOSE	I feel like nothing I do matters and I'm tired of pretending otherwise
+DISCLOSE	my dog died this morning and I had to be the one to decide
+DISCLOSE	I got the diagnosis today and I don't know what to feel
+DISCLOSE	I miss him
+DISCLOSE	everyone keeps telling me it gets easier and it hasn't
+DISCLOSE	I've been crying on and off all day and I don't really know why
+DISCLOSE	my marriage ended last week
+DISCLOSE	I'm scared and I just needed to say it somewhere
+DISCLOSE	she is in hospice now and there is nothing anyone can do
+DISCLOSE	I keep replaying the last conversation we had
+DISCLOSE	my son hasn't spoken to me in two years
+DISCLOSE	I don't think I'm going to get better
+DISCLOSE	it's the anniversary today and nobody remembered
+DISCLOSE	I had to put the house up for sale after he passed
+DISCLOSE	I found her letters when I was clearing out the loft
+DISCLOSE	I just feel very alone tonight
