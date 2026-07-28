@@ -16,7 +16,10 @@ conversations (#72).
 
 **Remaining quality work.** Brainstorm's method choice for someone being too
 cautious (#73), Discover packs carrying full articles rather than introductions
-(#13), and screenshots recaptured from the release build (#113).
+(#13, where the builder change is done and no pack has been rebuilt with it yet),
+Brainstorm running its method on somebody who came to say something rather than
+to make something (#129), and screenshots recaptured from the release build
+(#113).
 
 **Model behavior.** The model reproducing text it was given: its own
 instructions, its worked examples, or the user's message handed straight back
@@ -32,10 +35,19 @@ background download survives Android's daily foreground service limit.
 
 ## Blocked
 
-**The project board and CI activation** (#99, #110, #111). These need GitHub
-token scopes and repository settings that require the repository owner. The board
-is written and waiting as an idempotent script at `tools/setup_board.sh`; the CI
-workflow is parked at `docs/ci/ci.yml` rather than `.github/workflows/`.
+**Branch protection** (#110, #111): requiring a pull request with passing checks
+before a merge to main, and requiring signed commits. Both are repository settings
+rather than code, so both require the repository owner. #109, adopting the branch
+and pull request workflow in practice, is not blocked and is worth doing first,
+since a protected branch with nobody using branches protects nothing.
+
+**Build provenance** (#112) waits on the release keystore, which does not exist
+yet, so there is no artifact to attest to.
+
+CI is no longer blocked and no longer parked. It runs on every push from
+`.github/workflows/ci.yml`: secret check, compile, every test source set, unit
+tests, and Android lint. The project board is set up. Both of those were listed
+here as blocked long enough to be worth saying plainly that they are not.
 
 ## Next: a Linux desktop version
 
