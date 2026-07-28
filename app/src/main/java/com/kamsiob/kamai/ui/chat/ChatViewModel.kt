@@ -1158,7 +1158,12 @@ class ChatViewModel(
             // The instructions actually in force, so a reply that recites them is
             // caught without anyone having to have listed the line in advance.
             // Asked what model it ran on, the model answered with this text.
-            val systemText = SystemPrompts.forMode(_mode.value)
+            // The boundary is part of what is sent, so it belongs in what the
+            // guard compares against. Without it, the one sentence added to
+            // separate the instructions from the message would be the one piece
+            // of the prompt that could come back unnoticed.
+            val systemText = SystemPrompts.forMode(_mode.value) +
+                com.kamsiob.kamai.llm.ChatFormat.SYSTEM_BOUNDARY
 
             suspend fun streamOnce() {
                 engine.generate(prompt, _mode.value, onStop = { stopReason = it })
