@@ -25,6 +25,17 @@ object QuestionsAndAnswers {
                 "for.",
         ),
         Entry(
+            "Why is it better at some modes than others?",
+            "The modes ask different amounts of the model. General and Workbench are " +
+                "the most forgiving: answering a question and reshaping text you provide " +
+                "are things even a small model does well. Logic Partner and Brainstorm ask " +
+                "more, because holding an argument or running a session means keeping track " +
+                "of what you said several turns ago and sticking to an approach. A smaller " +
+                "model does those less reliably. If those modes matter to you and your " +
+                "phone has the memory, a larger model is worth the space. Settings, then " +
+                "Model, shows what each one is like.",
+        ),
+        Entry(
             "Why can't it make images?",
             "Making images needs a different, much heavier kind of AI model. Kam AI " +
                 "sticks to text on purpose so it can run well on your phone.",

@@ -718,6 +718,21 @@ private fun TierCard(
                 )
             }
         }
+
+        // What this tier is weaker at, said where the choice is made rather than
+        // discovered later. A recommendation that presents a model as simply the
+        // right one, when we know what it is poor at, is not a recommendation.
+        //
+        // Nothing at all for a model with no recorded weakness, which is the
+        // normal case, and nothing for one that cannot be chosen anyway.
+        if (!unavailable && model.modeNote.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                model.modeNote,
+                style = KamTheme.type.secondary,
+                color = colors.goldText,
+            )
+        }
     }
 }
 

@@ -27,6 +27,16 @@ at long, polished documents. The app is built around admitting that rather than
 hiding it. When something is worth double checking, you get a bookmark to come
 back to instead of a confident guess.
 
+**The modes ask different amounts of the model, and that is worth knowing before
+you choose one.** General and Workbench are the forgiving ones: answering a
+question, and reshaping text you have already provided, are things a small model
+does well. Logic Partner and Brainstorm ask more, because holding an argument or
+running a session means keeping track of what you said several turns ago and
+sticking to an approach. A smaller model does those less reliably. This is a
+tradeoff rather than a defect, and the app says which model it recommends for your
+phone, what each one is stronger and weaker at, and tells you once if you open a
+mode the installed model is poor at.
+
 There are no characters to talk to, no roleplay, no pretend friend, and nothing
 engineered to keep you opening the app. Those are commitments, not settings you
 can turn on later.
