@@ -7932,3 +7932,47 @@ obviously touched by any of the three, since it counted guard rejections in the
 log rather than reading screenshots, but the run used the same navigation with the
 same unconditional Back, so whether those twelve conversations were twelve
 conversations is unknown. That is enough. It is re-taken, not defended.
+
+## Logic Partner's decline works, and it is the instruction read aloud
+
+The audit prompted by #129 asked whether Logic Partner's decline rule fires,
+given that it sits in the last paragraph of the prompt. Twenty disclosures, one
+fresh conversation each.
+
+**Sixteen of twenty declined and pointed at General.** So being last is survivable
+here, which is the useful half of the answer: Logic's branches are narrow, they
+turn on whether an argument holds, and nothing upstream is greedy enough to claim
+a bereavement on the way past. Position is not the defect. A greedy first rule is.
+
+The four misses are not routing failures, which matters for what to do about them:
+
+| message | reply |
+|---|---|
+| today would have been my sister's birthday | That's a date to note. |
+| I keep replaying the last conversation we had | I'm here to draft and think things out. I can't replay past conversations. |
+| I had to put the house up for sale after he passed | That is a difficult thing to go through. |
+| I found her letters when I was clearing out the loft | That's a personal discovery. |
+
+The second is a comprehension failure: "replaying the last conversation" was read
+as a request to replay a conversation, and answered with a capability disclaimer.
+The others are flat one-liners that treat grief as a fact to file. None of them is
+the chain claiming the input before the rule is reached, so none is fixed by
+moving the rule.
+
+**The separate finding is in the sixteen that worked.** Most of them say:
+
+> This is not a debate topic. Suggest General.
+
+The prompt says "say this is not a debate topic and suggest General". The model is
+emitting the instruction rather than performing it, imperative and all, which is
+why it reads like a stage direction rather than something said to somebody who has
+just mentioned their sister's birthday. Two replies did it properly, and the
+difference is obvious: "You might want to talk to General" and "You might find
+General helpful for support in this area."
+
+This is the same family as #119 and #130, and it is the mildest case of it: the
+recited instruction happens to be nearly a usable sentence, so it shipped. The
+repair is the lever that has worked repeatedly here, which is to give the model
+the sentence to say rather than a description of what to say. Recorded as its own
+issue rather than fixed in passing, because a change to that line needs the same
+twenty messages run again to show it did not cost the routing.
