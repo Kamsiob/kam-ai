@@ -487,7 +487,7 @@ fun AboutScreen(
 /**
  * Storage: every downloaded artifact, with its size and a delete action.
  *
- * A single download deletes from its own card. To remove several — or all — at
+ * A single download deletes from its own card. To remove several, or all, at
  * once, long-press any card to enter selection mode, tick what you want gone,
  * and delete the lot in one confirmation.
  */

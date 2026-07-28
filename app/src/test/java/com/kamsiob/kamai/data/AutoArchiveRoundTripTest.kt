@@ -17,7 +17,7 @@ import org.robolectric.annotation.Config
  *
  * `AutoArchivePolicyTest` proves the decision: the boundary, the exemptions, the
  * second pass finding nothing. It is a pure function over a list, which leaves
- * the parts either side of it untested — the query that decides what the policy
+ * the parts either side of it untested, the query that decides what the policy
  * even sees, and the bulk update that carries the decision out. Both are places
  * this can go wrong in ways the policy test cannot notice: a query that quietly
  * omits pinned rows, or a bulk archive that also moves the timestamps and makes
@@ -151,7 +151,7 @@ class AutoArchiveRoundTripTest {
         seedUsedInstall()
         // Same data, same code, different setting. Three days reaches everything
         // but yesterday's; thirty reaches the forty-day-old one and the
-        // thirty-day-old one, which sits exactly on the boundary and is taken —
+        // thirty-day-old one, which sits exactly on the boundary and is taken, 
         // the inclusive rule, arrived at from the other direction.
         assertThat(due(AutoArchive.DAYS_3)).containsExactly("old", "older", "open-right-now")
         assertThat(due(AutoArchive.DAYS_30)).containsExactly("older", "open-right-now")
