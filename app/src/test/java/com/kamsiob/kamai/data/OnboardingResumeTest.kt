@@ -68,6 +68,21 @@ class OnboardingResumeTest {
     }
 
     @Test
+    fun `replaying the introduction offers the mode explanation again`() {
+        // "Shown once, ever" means not shown twice by accident. Somebody opening
+        // "What Kam AI is for" is asking to be re-introduced, and the mode
+        // control explanation is part of that introduction (#93).
+        kotlinx.coroutines.test.runTest {
+            repository.markModeHintSeen()
+            assertThat(repository.modeHintSeen()).isTrue()
+
+            repository.replayOnboarding()
+
+            assertThat(repository.modeHintSeen()).isFalse()
+        }
+    }
+
+    @Test
     fun `a value that is not a number is treated as the beginning`() = runTest {
         // Nothing writes a non-number today. This is about what happens when a
         // restore, a migration or a future change puts something unexpected in

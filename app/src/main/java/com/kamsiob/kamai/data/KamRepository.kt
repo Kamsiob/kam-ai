@@ -131,6 +131,11 @@ class KamRepository(
         // Replaying means from the start; a resume point left over from the
         // first run would drop the user into the middle of it.
         putSetting(Keys.ONBOARDING_SLIDE, "0")
+        // The mode control explanation is part of the introduction, so somebody
+        // asking to see the introduction again is asking for that too. "Shown
+        // once, ever" means not shown twice by accident, not that asking for it
+        // is refused (#93).
+        putSetting(Keys.MODE_HINT_SEEN, "false")
     }
 
     // Device

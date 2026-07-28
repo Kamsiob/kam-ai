@@ -371,6 +371,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.replayOnboarding()
             _onboardingSlide.value = 0
+            _modeHintPending.value = true
             _onboardingDone.value = false
         }
     }
