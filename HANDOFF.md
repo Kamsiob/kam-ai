@@ -106,7 +106,28 @@ the whole suite.
 Areas checked and found sound: Workbench tighten, search across content,
 backgrounding mid-generation, a real user stop and its Continue affordances,
 theme change and its persistence across process death, four unrelated questions
-in one message, a hostile user demanding agreement with something false.
+in one message, a hostile user demanding agreement with something false, poor
+spelling throughout, a very formal message burying a simple question, non-native
+phrasing, mid-conversation mode switching, and Projects.
+
+Two of those are worth the detail:
+
+**Mode switching mid-conversation** drops the switch notice into the transcript
+and the new mode takes effect on the next turn. Switching to Logic on "I think we
+should cancel the office move to save money" then produced its values branch
+exactly as written: it said the argument will not settle a values disagreement,
+named fiscal responsibility and employee retention as the competing principles,
+and asked which survives the collision.
+
+**Project instructions were tested in both directions**, which is the part worth
+doing. A project instructed to begin every reply with "RIGHT" did so, and the
+same question asked outside the project did not, so instructions reach the model
+inside a project and do not leak out of one.
+
+**A test project called "Kitchen notes" is left on the phone**, with one chat in
+it, along with roughly fifty test conversations from tonight. All of it is mine
+rather than the owner's and none of it was deleted, because deleting is the one
+operation on this phone worth being slow about.
 
 `tools/session.sh` holds one conversation across many turns, which
 `mode_battery.sh` cannot: it opens a fresh chat per input, so it only ever tested
