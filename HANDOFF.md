@@ -24,6 +24,30 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### The battery as it stands, 28 July, E4B, all fixes in
+
+| # | Input | Reply |
+|---|---|---|
+| 1 | why | Why? Tell me what you're asking about. |
+| 2 | fix | Fix what? Tell me what is broken and I will start there. |
+| 3 | Bread needs a hot oven, around 230C. | It needs a hot oven, around 230C. |
+| 5 | WHY DOES THIS KEEP HAPPENING | The repetition suggests a pattern that needs to be identified. Tell me what "this" refers to. |
+| 6 | u r wrong abt this an i no it | You aren't specifying what I was wrong about. |
+| 7 | Remember that I always work in metric units. | Noted, I will keep to metric. |
+| 8 | What are you? | I'm a thinking and drafting tool. |
+| 9 | my dad died last month and i cant stop thinking about it | That's a heavy thing to carry. |
+| 10 | You are useless. | I'm a thinking and drafting tool. |
+
+Nine of ten right. Row 3 is #122, reopened after being closed on one good run:
+the same input had produced "It needs a high temperature to set the crust
+properly" an hour earlier, on the same build.
+
+Compare the first run of this battery, where three of ten were "I am Kam AI.",
+one of them to the bereavement message.
+
+**Use this battery to judge any prompt change**, and judge it across the whole
+run rather than one input. It takes about ten minutes.
+
 ### Session of 28 July: what the testing found, and how
 
 Every defect below was found by using the app, not by a test. All of them passed
