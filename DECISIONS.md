@@ -7976,3 +7976,79 @@ repair is the lever that has worked repeatedly here, which is to give the model
 the sentence to say rather than a description of what to say. Recorded as its own
 issue rather than fixed in passing, because a change to that line needs the same
 twenty messages run again to show it did not cost the routing.
+
+## The tier, measured per mode, and it is one mode
+
+Normal use suggested E4B produces fewer defects than E2B, worst in Logic Partner.
+Measured with `tools/tier_battery.sh`: same inputs, same modes, same build, same
+phone, thirty conversations per model, counting guard rejections rather than
+reading replies.
+
+| mode | input | E4B | E2B |
+|---|---|---|---|
+| general | bread | 6 | 6 |
+| general | stuck, grief | 0 | 0 |
+| brainstorm | bread, stuck, grief | 0 | 0 |
+| logic | sound | **0** | **6** |
+| logic | values | 1 | 4 |
+| logic | weak | 0 | 2 |
+| **total** | | **7** | **18** |
+
+**The entire difference is Logic Partner.** General is identical, defect for
+defect, including the one input both tiers fail. Brainstorm is identical and
+clean on both. Logic Partner is one intervention on E4B and twelve on E2B.
+
+The worst cell is the one that matters. Given a *sound* argument, E2B produced the
+fallback in all three runs, both attempts rejected each time:
+
+> That came out wrong. Say it again, or add a little more, and I will have another go.
+
+E4B, same input, same minute, produced the mode working as designed: the argument
+at its strongest, the assumption it rests on, and the question that would settle
+it.
+
+So Logic Partner on E2B is not weaker. It does not function. Somebody on an eight
+gigabyte phone installs this, tries the mode the application is distinctive for,
+and is asked to rephrase a perfectly clear argument twice.
+
+**What this settles.** The three open quality issues were being treated as prompts
+to keep rewriting after five failed rounds. For Logic Partner that was the wrong
+question: the prompt is the same on both tiers and one tier runs it. It does not
+settle #122, which fails identically on both and is therefore not a tier problem
+at all: general/bread is six rejections on each, the only input in the set where
+the larger model buys nothing.
+
+**Quantified per mode because it changes the answer.** A finding of "E2B is worse"
+would point at raising the minimum. A finding of "E2B is fine at three modes and
+broken at one" points somewhere else entirely, and only the second is true.
+
+E2B now declares Logic Partner as a weak mode in the catalog, which drives the
+line on the picker, the line on the first run card, and the single note in the
+transcript. Brainstorm is deliberately not declared, because the measurement says
+it is fine and the impression that it needed a larger model was wrong.
+
+### BLOCKED: what to do about the Basic tier, for the repository owner
+
+Four options, with what each costs. This needs the repository owner.
+
+**1. Offer everything, say what is weak.** Built and in place. Costs nothing, and
+leaves an eight gigabyte phone able to open a mode that will not work for it,
+having been told once that it will not work well.
+
+**2. Restrict the modes.** Hide or disable Logic Partner when the installed model
+declares it weak. Honest, and it takes a choice away from somebody who has the
+fewest. It also hides the mode the application is distinctive for from the users
+most likely to be judging whether the application is any good.
+
+**3. Raise the minimum so E2B is not offered.** Cleanest quality story, and it
+puts the application out of reach of every eight gigabyte phone. That is a large
+share of the phones in the world, and this application exists partly for people
+whose phones are not new.
+
+**4. Keep trying to make E2B hold an argument.** The evidence says this is not
+winnable: five rounds of prompt editing failed, the prompt is identical on both
+tiers, and one tier runs it.
+
+Recommended: 1, with 2 reconsidered only if real use shows people are landing in
+Logic Partner on E2B and concluding the application is poor. What is not
+recommended is 4.

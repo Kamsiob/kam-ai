@@ -42,6 +42,14 @@ object ModelCatalog {
         sha256 = "740185b21d22ceb83a11c3aa62ad5842ef32c70f6096d756bbee85a1e4ec34b8",
         format = ChatFormat.GEMMA,
         description = "The lightest Gemma 4. Runs well on an 8 GB phone.",
+        // Measured, not assumed. Thirty conversations per model, same inputs,
+        // same build, same phone: E2B needed the reply guard twelve times in
+        // Logic Partner against E4B's once, and on a sound argument it produced
+        // the fallback in every run. General and Brainstorm were identical on
+        // both. See DECISIONS.md, "the tier, measured per mode".
+        weakModes = setOf(com.kamsiob.kamai.data.Mode.LOGIC),
+        modeNote = "Logic Partner asks more than this model reliably gives. " +
+            "The other modes are unaffected.",
     )
 
     val balanced = TierModel(
