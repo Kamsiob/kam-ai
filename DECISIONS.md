@@ -1526,7 +1526,7 @@ normal dev or CI machine with a JDK 17 or 21 runs all 105 green. This machine
 has no JDK besides 26 and no way to provision one offline, so the Robolectric
 suite cannot execute here.
 
-The 68 pure-JVM tests — which do not touch the Android runtime — all pass,
+The 68 pure-JVM tests, which do not touch the Android runtime, all pass,
 including the ones that matter most for correctness: ModelManagerTest (15, the
 memory fit-check that was rearchitected after the on-device load failure),
 TierRecommendationTest (12, the 8/12/16 GB boundaries), and ChatFormatTest (12,
@@ -1601,7 +1601,7 @@ previously created conversation's id, so the second new chat showed the first on
 The `LaunchedEffect(conversationId)` could not reset it either, because the key never changed.
 
 Fix: `Pushed.Conversation` now carries a `vmKey` computed once at push time by
-`conversationVmKey(id)` — a real conversation id keys by itself (so reopening one reuses its
+`conversationVmKey(id)`, a real conversation id keys by itself (so reopening one reuses its
 state), and a new chat (empty id) gets a unique `new-<uuid>` token, so every new chat gets a
 fresh view model and cannot inherit a previous conversation. Conversation creation stays lazy
 (on first send) so backing out of a new chat still leaves no empty row. Regression test:
@@ -1610,7 +1610,7 @@ ConversationVmKeyTest asserts existing ids are stable and two new chats never sh
 Known minor follow-up logged in WORKLIST.md: Activity-scoped view models are not cleared on
 back-pop, so a session accumulates lightweight dead ChatViewModels. Correctness is unaffected.
 
-### Item 3: inference speed (part 1 of several) — thread count
+### Item 3: inference speed (part 1 of several), thread count
 
 Measured on the connected Pixel (Tensor G5, cores: 2 @ 2.25 GHz little, 5 @ 3.05 GHz mid,
 1 @ 3.78 GHz prime) with the Basic tier model (Gemma 4 E2B, Q4_K_M, ctx 4096). Decode is the
@@ -1665,7 +1665,7 @@ Actionable, applied incrementally:
 - KV cache type: f16 today. q8_0 KV halves KV memory for a small quality cost; not pressing at
   16 GB, revisit if a tier is memory-tight with vision (item 3/22).
 
-### Speculative decoding / Gemma 4 MTP (item 3) — feasibility CONFIRMED, implementation planned
+### Speculative decoding / Gemma 4 MTP (item 3): feasibility CONFIRMED, implementation planned
 
 The pinned llama.cpp (b10058) contains the pieces: common/speculative.{h,cpp}, the
 `gemma4-assistant` architecture (LLM_ARCH_GEMMA4_ASSISTANT), MTP context/graph types
@@ -1865,7 +1865,7 @@ injection. Remaining refinements (issue #16 stays open): full contradiction supe
 recency component simply ranks a newer conflicting fact above the older one) and an optional indicator
 that a given response was influenced by memory.
 
-## Item 9 — Unified saving (one bookmark, one destination)
+## Item 9: Unified saving (one bookmark, one destination)
 
 Owner decision: there should be one saving action and one destination across the whole app. The
 bookmark icon means the same thing everywhere, and everything saved lands in the single Follow-ups
@@ -1896,7 +1896,7 @@ under the DISCOVER source chip and in Discover's own Saved section (same data); 
 discussion from both the Follow-ups list and the Discover Saved section; toggled the bookmark off and
 it left the one list. The 3->4 migration ran cleanly over the phone's existing data with no crash.
 
-## Item 21 — Discover scope boundary visible, with a one-tap way out
+## Item 21: Discover scope boundary visible, with a one-tap way out
 
 A grounded Discover discussion confines the model to a saved passage. That boundary was invisible: a
 person could ask something the passage does not cover and get a flat "the passage does not say",
@@ -1958,7 +1958,7 @@ the save bookmark on a Discover card fills with the accent color instead. With s
 are the same save-to-Follow-ups action and should look the same. This is a real inconsistency, left
 in the code and tracked as a GitHub issue rather than fixed under this documentation-only task.
 
-## Item 18 — Power button assistant polish (quiet visual character, both themes)
+## Item 18: Power button assistant polish (quiet visual character, both themes)
 
 The earlier pass fixed the functional gaps (input locks while generating with a Stop control, the mic
 made reactive from the active-speech-model flow, and a Settings toggle for the default input mode).
@@ -5331,8 +5331,8 @@ receives a `TextContextMenuSession` and nothing else:
 
 `TextContextMenuDataProvider` exposes `position`, `contentBounds` and `data`, and
 `TextContextMenuBuilderScope` exposes `separator`, `addComponent` and
-`addFilter`. None of them carries the selected text. Compose has it internally —
-it builds `PROCESS_TEXT` items from it — and does not hand it out. Reconstructing
+`addFilter`. None of them carries the selected text. Compose has it internally, 
+it builds `PROCESS_TEXT` items from it, and does not hand it out. Reconstructing
 it from `Selection` offsets is not available either: `MarkdownText` renders each
 block as its own `Text`, so a selection spans several selectables whose ids are
 assigned internally, and there is no mapping back to the source string.
@@ -5380,7 +5380,7 @@ first attempt used 0.92 and read as a full screen, because the only strip left
 over was the status bar and there was nothing behind the scrim to see.
 
 The header carries what the transcript used to have to say. The moment's title,
-and under it the topic and the scope — "History · answers come from this passage
+and under it the topic and the scope, "History · answers come from this passage
 only". `ChatScreen` gains `scoped`, which drops its conversation header, its
 grounded banner and the hairline between them, since on this surface all three
 would restate the header a few pixels below it.
@@ -5463,7 +5463,7 @@ make undo restore conversations to the top of Chats instead of where the user
 left them. `AutoArchiveRoundTripTest` drives a real Room database through a whole
 pass and its undo, and asserts both.
 
-The screen also now says what the setting would do right now — "Nothing is old
+The screen also now says what the setting would do right now, "Nothing is old
 enough right now", or a count. The count-before-confirm dialog says that at the
 moment of switching; this says it while somebody is looking at the setting, which
 is where they decide whether to trust it. It is recounted per option, so moving
@@ -5524,7 +5524,7 @@ claim that a person has exactly one of these at a time, and that claim deserves
 to be visible and arguable rather than emerging from a similarity threshold. A
 new "lives in Manchester" replaces "lives in Leeds". A new "prefers short
 answers" replaces nothing, because preferences are not single-valued and someone
-can hold both — which is the mistake the whole object exists to avoid.
+can hold both, which is the mistake the whole object exists to avoid.
 
 **Retractions.** "no longer learning Spanish" is not a durable fact, it is an
 instruction to drop one. It removes what it names and is not itself stored. Every
@@ -5534,8 +5534,8 @@ retraction that matches nothing is kept as an ordinary fact rather than
 discarded: it may be true and worth knowing, and dropping it would lose it
 silently.
 
-Matching is over crudely stemmed words — a trailing -ing, -ed, -es or -s comes
-off, never below two characters — because a retraction and the fact it retracts
+Matching is over crudely stemmed words, a trailing -ing, -ed, -es or -s comes
+off, never below two characters, because a retraction and the fact it retracts
 are almost never in the same tense. "stopped going to the Tuesday class" is about
 "goes to the Tuesday class", and exact matching sees only the class in common.
 Both sides get the same treatment, so the stems only have to agree with each
@@ -5575,7 +5575,7 @@ That is the point: it is the arrangement that is wrong to leave unbuilt, because
 the failure it prevents is discovered by somebody who has already chosen a file,
 waited for it to be read, and asked their question before anything tells them the
 model cannot see it. `CapabilityGatingTest` pins it, including that no model
-currently claims images — which is also the reminder to widen the attachment
+currently claims images, which is also the reminder to widen the attachment
 picker if a vision model is ever added.
 
 Speed is reported as a measured number from this phone rather than a rating out
@@ -5584,8 +5584,8 @@ score they cannot.
 
 ## Logic Partner: the values-stop had to be a branch, not a footnote (#57)
 
-The argument-analysis method was already in the prompt — claim, grounds,
-warrant, qualifier, claim kind, then the crux and the kind of disagreement — and
+The argument-analysis method was already in the prompt, claim, grounds,
+warrant, qualifier, claim kind, then the crux and the kind of disagreement, and
 the values case still did not land. Reproduced on the phone with "Zoos are
 simply wrong. Keeping animals caged for our entertainment is immoral, full
 stop.":
@@ -5613,7 +5613,7 @@ label, not an objection."
 
 Paid for inside the existing budget rather than raising it again. #57 said any
 rise had to be bought with the stage 2 caching work, which is not done, so the
-whole prompt was tightened instead — the claim-kind enumeration removed from the
+whole prompt was tightened instead, the claim-kind enumeration removed from the
 silent-read paragraph since the branches below name the kinds anyway, and a dozen
 smaller compressions. 1228 estimated tokens on the first draft, 1079 shipped,
 against the 1080 budget.
@@ -5671,8 +5671,8 @@ it suspends judgment and asks for the ideas "even the ones you think are stupid"
 which is the useful half, but it frames the exercise as an unload and still opens
 by reading their mood back to them. Rules 1 and 8 are adjacent and the
 discrimination between them under emotional language is beyond this model size
-with prompt wording alone. The behavior is now acceptable — judgment suspended,
-nothing handed over — and the gap is real.
+with prompt wording alone. The behavior is now acceptable, judgment suspended,
+nothing handed over, and the gap is real.
 
 ## The conversation cache survives closing the app (#52)
 
@@ -5694,7 +5694,7 @@ attempt streamed the blob straight through the Keystore cipher, which produced
 **thirteen bytes in twenty seconds** and was still going: the key lives in
 StrongBox, so every block is an IPC round trip to the secure element. Each file
 now gets a fresh random data key used in software, where AES is a CPU
-instruction, and only that thirty-two byte key is wrapped by the Keystore — the
+instruction, and only that thirty-two byte key is wrapped by the Keystore, the
 same shape SQLCipher's own key already uses. Eight megabytes now encrypts in
 about sixty milliseconds.
 
@@ -5702,14 +5702,14 @@ about sixty milliseconds.
 saved when the chat screen went away, and it never once ran: the screen's
 teardown and the view model being cleared are the same moment, so the coroutine
 was canceled before it wrote anything, silently. Worse, saving late saves the
-wrong thing — titling and auto-extraction each run their own prompt through the
+wrong thing, titling and auto-extraction each run their own prompt through the
 same single sequence, so a state taken after them held **268 tokens of titling
 instruction where the conversation was 1700 tokens long**. It is written the
 moment the answer is finished and before either runs. At sixty milliseconds on
 the end of a turn that took a minute, per-turn costs nothing worth measuring.
 
-**One file at a time.** State is proportional to context — 31 MB for 2281
-tokens — so a library of them would cost more disk than the models. Only the
+**One file at a time.** State is proportional to context, 31 MB for 2281
+tokens, so a library of them would cost more disk than the models. Only the
 most recently answered conversation keeps one. An early version of this cleanup
 deleted the temporary file before it could be renamed, so the feature wrote a
 perfect 31 MB file and then removed it; it now deletes everything *except* the
@@ -5717,7 +5717,7 @@ file just written.
 
 Invalidation is explicit: mode switches and edits from the chat, instructions,
 memory and project changes from the app. Worth saying plainly that this is a
-performance measure and not a correctness one — `nativeIngest` already diffs the
+performance measure and not a correctness one, `nativeIngest` already diffs the
 prompt against the cached tokens and re-prefills from the divergence, with a
 desync check that clears the sequence rather than answer from the wrong history.
 A stale cache is slow, never wrong. The one thing that would be wrong is a blob
@@ -5746,8 +5746,8 @@ Three owner-reported items, all small and all about the app being pleasant to
 use rather than correct.
 
 **Nav order (#68).** Projects sat first, which put a container ahead of the thing
-being contained. Chats is the home root — an empty back stack falls through to
-it, a new chat starts there, most sessions live there — so it goes first.
+being contained. Chats is the home root, an empty back stack falls through to
+it, a new chat starts there, most sessions live there, so it goes first.
 Declaration order in `NavItem` is the display order and nothing depends on the
 ordinals, so reordering the enum is the whole change.
 
@@ -5757,8 +5757,8 @@ because the sliding thumb is positioned against the same number.
 
 **Mode control thumb in dark mode (#69).** The moving pill was `colors.surface`
 on `colors.surfaceSecondary`. In light that is pure white on a warm gray and
-reads instantly. In dark it was #182019 on #131A15 — five points apart on each
-channel — so the indicator telling you which mode you are in was very nearly
+reads instantly. In dark it was #182019 on #131A15, five points apart on each
+channel, so the indicator telling you which mode you are in was very nearly
 invisible. The palette gains `controlThumb`: unchanged white in light, and
 #2A352C in dark, a deliberate step lighter. A theme field rather than a local
 tweak, because the next segmented control should not have to rediscover this.
@@ -5766,7 +5766,7 @@ tweak, because the next segmented control should not have to rediscover this.
 **Long-press to copy your own message (#70).** An answer could be selected, or
 copied from its action row. Your own message had exactly one gesture, tap to
 edit, so getting your own words back out meant retyping them. Long-press now
-copies, tap still edits, and both copy paths confirm with a toast — the action
+copies, tap still edits, and both copy paths confirm with a toast, the action
 row's Copy was silent before, which is fine beside a visible button and not fine
 for a gesture with no affordance at all.
 
@@ -5791,7 +5791,7 @@ rather than a queue of scrolls to places it has already left.
 
 **Any drag turned following off for the rest of the answer.** A
 `DragInteraction.Start` closed a latch that only reopened when the last message's
-end came back on screen — and during a long answer the text keeps growing past
+end came back on screen, and during a long answer the text keeps growing past
 the fold, so it never did. One incidental touch meant the jump-to-latest arrow
 was the only way back, for the whole answer. The arrow is for returning after
 deliberately scrolling up. It was never meant to be required.
@@ -5803,7 +5803,7 @@ follow; further, leave them alone.
 That is safe for the reason the original latch existed to guard against, and the
 guard had the direction backwards. Text arriving pushes a reader *away* from the
 bottom, never towards it. Nothing can carry somebody back into following except
-their own scrolling, which is precisely the intent that should resume it — with
+their own scrolling, which is precisely the intent that should resume it, with
 no state to reset and nothing to tap.
 
 Device-verified on all three cases, with 400-word answers. Untouched: the view
