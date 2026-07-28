@@ -38,7 +38,7 @@ enum class ChatFormat {
                     Role.USER -> {
                         append("<start_of_turn>user\n")
                         if (!systemAttached) {
-                            append(systemPrompt).append("\n\n")
+                            append(systemPrompt).append(SYSTEM_BOUNDARY)
                             systemAttached = true
                         }
                         append(turn.content).append("<end_of_turn>\n")
@@ -76,7 +76,7 @@ enum class ChatFormat {
             // warm up decoded 739 tokens that were then decoded again. It cost
             // nothing to get wrong and nothing to detect except measuring, which
             // is the only reason it was found: the timing did not move.
-            BOS + "<start_of_turn>user\n" + systemPrompt + "\n\n"
+            BOS + "<start_of_turn>user\n" + systemPrompt + SYSTEM_BOUNDARY
 
         override val stopMarkers = listOf("<end_of_turn>", "<start_of_turn>", "<eos>")
     },
@@ -146,5 +146,28 @@ enum class ChatFormat {
     internal companion object {
         const val BOS = "<bos>"
         const val EMPTY_THINKING = "<think>\n\n</think>\n\n"
+
+        /**
+         * What separates the instructions from the user's message when the
+         * template has no system role and both share a turn.
+         *
+         * Gemma has no system role, so the instructions are folded into the first
+         * user turn. On the first turn of a conversation the user's actual
+         * message is therefore the last line of about 1,650 tokens of
+         * instructions, while on every later turn it arrives in a turn of its
+         * own. Two newlines were all that marked the join.
+         *
+         * That difference lines up with a family of defects that only ever
+         * appeared on a first turn: the instructions recited back, the message
+         * handed back, and an argument answered with a request for the argument.
+         * A model continuing a wall of instructions rather than answering the one
+         * line at the end of it is a plausible reading of all three.
+         *
+         * Phrased as an instruction rather than as a marker, so that if it is
+         * ever emitted it reads as a stray sentence rather than as scaffolding,
+         * and so it can never be mistaken for a control token.
+         */
+        const val SYSTEM_BOUNDARY =
+            "\n\nThose are your instructions. What follows is the message to answer.\n\n"
     }
 }
