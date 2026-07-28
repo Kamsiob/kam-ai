@@ -24,6 +24,25 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### The three model-quality issues still open, and what is actually left
+
+All three narrowed considerably once they were measured across runs rather than
+observed once.
+
+- **#122** is not "statements get repeated back". Water boiling, concrete curing
+  and a train time all get real replies that add something. One input resists,
+  about one time in three: "Bread needs a hot oven, around 230C.", because it
+  already carries its own most obvious follow-on and saying something new means
+  reaching for *why*. Keep it in the battery as the hardest of its kind; do not
+  generalise from it.
+- **#124** is not "Logic Partner does not engage". It engages, in the right
+  shape, on first turns. It misreads a *sound* argument's premise in order to
+  have something to object to. Restructuring the branch decision changed nothing,
+  which is the boundary of the shape lever: it moves form, not judgement.
+- **#126** is half fixed. A heading no longer appears above a one-sentence
+  answer; a preamble restating the question still does. The stronger fix removed
+  the preamble and thinned the answers, and was reverted.
+
 ### Performance, settled 28 July
 
 Measured back to back on the device, same phone, same thermal state, same prompt:
