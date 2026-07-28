@@ -663,16 +663,18 @@ right.
 
 ### Open, 28 July
 
-**Model quality, all narrowed by measurement rather than by opinion.** See the
-section above for what each one actually turned out to be, which in all three
-cases is narrower than its title.
+**Model quality: one left.**
 
 - **#122** a statement that carries its own answer sometimes gets restated. One
-  good reply in four on that input, measured across four runs. Other statements
+  good reply in three or four on that input, across seven runs. Other statements
   of fact answer correctly, so the scope is one hard input rather than a class.
-- **#124** Logic Partner misreads a sound argument's premise to have something to
-  object to. The shape lever does not reach it.
-- **#126** half fixed: no heading above a short answer, preamble still present.
+  **Three prompt levers were tried and all three failed**, which is recorded in
+  DECISIONS.md along with the decision to stop trying: a prohibition, a shape,
+  and a named situation. Do not spend a fourth on it.
+
+#124 and #126 closed after this section was first written. Logic Partner now
+tells a sound argument from one with a real assumption, and answers each in its
+own shape; lists no longer arrive under a line restating the question.
 
 **Waiting on the repository owner.**
 
