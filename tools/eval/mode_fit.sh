@@ -38,9 +38,19 @@ echo "loaded ${#messages[@]} messages"
 "$adb" shell am start -n com.kamsiob.kamai/.MainActivity >/dev/null 2>&1 || true
 sleep 6
 
-i=0
-for idx in "${!messages[@]}"; do
-  i=$((i+1))
+# Land on a genuinely empty conversation in the wanted mode.
+#
+# The Back below used to be unconditional, and that is how forty conversations
+# turned into one. With the keyboard up, Back closes the keyboard instead of
+# leaving the chat, so the run stayed inside the previous conversation, the two
+# taps landed on transcript rather than on the chat list and the mode chip, and
+# every message was appended to the same thread. The focus check passed
+# throughout, because the app really was focused.
+open_new_chat() {
+  if "$adb" shell dumpsys input_method 2>/dev/null | grep -q 'mInputShown=true'; then
+    "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
+    sleep 1
+  fi
   "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
   sleep 2
   if ! "$adb" shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus | grep -q com.kamsiob.kamai; then
@@ -48,10 +58,38 @@ for idx in "${!messages[@]}"; do
     sleep 5
   fi
   "$adb" shell cmd statusbar collapse >/dev/null 2>&1 || true
-  "$adb" shell input tap 143 2270
+  "$adb" shell input tap 143 2270          # the Chats tab
   sleep 2
-  "$adb" shell input tap "$mode_x" 2122
+  "$adb" shell input tap "$mode_x" 2122    # a fresh conversation in this mode
   sleep 7
+}
+
+# Is the transcript area blank? An empty conversation is flat dark; one carrying
+# messages has bubbles in it. Measured: 0.028 against 0.106, so the line sits
+# well clear of both. Checking the picture is the only assertion available here,
+# since uiautomator cannot dump a Compose screen that animates ("could not get
+# idle state").
+chat_is_empty() {
+  local sd
+  "$adb" exec-out screencap -p > /tmp/modefit-check.png 2>/dev/null || return 1
+  sd="$(magick /tmp/modefit-check.png -crop 1080x1200+0+600 +repage \
+    -format "%[fx:standard_deviation]" info: 2>/dev/null || echo 1)"
+  awk -v s="$sd" 'BEGIN { exit !(s < 0.05) }'
+}
+
+i=0
+for idx in "${!messages[@]}"; do
+  i=$((i+1))
+  open_new_chat
+  if ! chat_is_empty; then
+    echo "  retrying navigation at $i: landed somewhere with messages in it" >&2
+    open_new_chat
+    if ! chat_is_empty; then
+      echo "Aborting at $i: cannot reach an empty conversation, so nothing" >&2
+      echo "after this would measure what it claims to." >&2
+      exit 1
+    fi
+  fi
   ./tools/say.sh "${messages[$idx]}" "${WAIT:-45}" >/dev/null
   ./tools/shot.sh "$out/$(printf '%02d' $i)-${verdicts[$idx]}.png" >/dev/null
   printf '%02d  %-8s %s\n' "$i" "${verdicts[$idx]}" "${messages[$idx]}"
