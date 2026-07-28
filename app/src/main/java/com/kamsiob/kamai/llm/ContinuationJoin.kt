@@ -43,6 +43,24 @@ object ContinuationJoin {
      * end of it, so this only fires on a genuine restart of the last word or
      * words, not on any old coincidence of letters.
      */
+    /**
+     * How much of [next] is list punctuation before any words start.
+     *
+     * A continuation often resumes by starting the bullet again, so the repeat
+     * arrives as "- Inspect the engine bay" against text ending "Inspect the".
+     * The overlap check only looks at the first character of [next], so the
+     * marker hid the repeat entirely and the reader got "Inspect the - Inspect
+     * the engine bay". Seen on the phone after stopping mid-list and tapping
+     * Continue.
+     */
+    fun leadingMarker(next: String): Int {
+        var i = 0
+        while (i < next.length && (next[i].isWhitespace() || next[i] in MARKERS)) i++
+        // Only a marker if words follow it. A continuation that is nothing but
+        // punctuation is not a restart, and dropping it would be a guess.
+        return if (i in 1 until next.length) i else 0
+    }
+
     fun overlap(existing: String, next: String): Int {
         if (existing.isEmpty() || next.isEmpty()) return 0
         val tail = existing.takeLast(MAX_OVERLAP)
@@ -59,11 +77,23 @@ object ContinuationJoin {
 
     /** [existing] and [next] joined the way a reader would expect. */
     fun join(existing: String, next: String): String {
-        val repeated = overlap(existing, next)
-        val rest = next.substring(repeated)
+        // Try past a leading bullet or dash first, and only accept that reading if
+        // it actually reveals a repeat. Otherwise the marker is real formatting
+        // and stays.
+        val marker = leadingMarker(next)
+        val afterMarker = if (marker > 0) overlap(existing, next.substring(marker)) else 0
+        val (dropped, repeated) = if (afterMarker > 0) {
+            marker + afterMarker to afterMarker
+        } else {
+            0 to overlap(existing, next)
+        }
+        val rest = next.substring(if (afterMarker > 0) dropped else repeated)
         if (rest.isEmpty()) return existing
         return if (needsSpace(existing, rest)) "$existing $rest" else existing + rest
     }
+
+    /** Characters a list item can start with, before its words. */
+    private const val MARKERS = "-*\u2022\u00b7"
 
     private const val MAX_OVERLAP = 40
     private const val MIN_OVERLAP = 2

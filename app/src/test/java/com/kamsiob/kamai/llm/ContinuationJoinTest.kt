@@ -90,4 +90,30 @@ class ContinuationJoinTest {
         assertThat(ContinuationJoin.join("it moves the", "The water rises"))
             .isEqualTo("it moves the water rises")
     }
+
+    @Test
+    fun aBulletBeforeTheRepeatDoesNotHideIt() {
+        // Seen on the phone: stopped mid-list at "Inspect the", tapped Continue,
+        // and the model restarted the bullet. The marker meant the repeat was no
+        // longer at the start of the continuation, so the overlap check missed it
+        // and the reader got "Inspect the - Inspect the engine bay".
+        assertThat(
+            ContinuationJoin.join("Inspect the", "- Inspect the engine bay for oil leaks."),
+        ).isEqualTo("Inspect the engine bay for oil leaks.")
+    }
+
+    @Test
+    fun aRealBulletIsKeptWhenNothingRepeats() {
+        // The other side: a continuation that genuinely starts a new list item is
+        // formatting, not a restart, and dropping the marker would flatten it.
+        assertThat(
+            ContinuationJoin.join("things to check:", "- Tyres and brakes."),
+        ).isEqualTo("things to check: - Tyres and brakes.")
+    }
+
+    @Test
+    fun punctuationAloneIsNotTreatedAsAMarker() {
+        assertThat(ContinuationJoin.leadingMarker("-")).isEqualTo(0)
+        assertThat(ContinuationJoin.leadingMarker("")).isEqualTo(0)
+    }
 }
