@@ -387,6 +387,22 @@ class ChatViewModel(
     }
 
     /**
+     * Says once, in the transcript, that the installed model is weak at this mode.
+     *
+     * Written as a note in the conversation rather than as a banner because that
+     * is how this application already says a thing once: it sits where the user
+     * is looking, it scrolls away, and it cannot come back. A badge on the mode
+     * chip or a line above every reply would be nagging, which is banned.
+     */
+    private suspend fun noteWeakMode(conversationId: String, mode: Mode) {
+        val model = repository.activeModel() ?: return
+        val seen = repository.wasWeakModeNoticed(mode, model.id)
+        if (!WeakModeNote.shouldShow(mode, model, seen)) return
+        repository.addMessage(conversationId, Role.SYSTEM, WeakModeNote.text(mode, model))
+        repository.markWeakModeNoticed(mode, model.id)
+    }
+
+    /**
      * Marks in the transcript that a linked Workbench was opened from here.
      *
      * Choosing Workbench from the mode picker does not change this
@@ -452,6 +468,9 @@ class ChatViewModel(
                 pendingAttachment = null
             }
             explainModeIfFirstTime(id)
+            // After the mode explanation, so somebody meeting a mode for the
+            // first time reads what it does before what it is weak at here.
+            noteWeakMode(id, _mode.value)
             repository.addMessage(id, Role.USER, trimmed)
             maybeManualRemember(id, trimmed)
             // Typing "let's wrap up" reaches the same place as the Wrap-up

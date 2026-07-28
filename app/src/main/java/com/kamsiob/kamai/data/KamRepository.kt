@@ -88,6 +88,19 @@ class KamRepository(
 
     suspend fun markModeExplained(mode: Mode) = putSetting("mode.explained.${mode.name}", "1")
 
+    /**
+     * Whether the user has been told, once, that this model is weak at this mode.
+     *
+     * Keyed by both, so somebody who upgrades their model is not told again about
+     * a model they no longer run, and somebody who goes back to a small one is
+     * told once for that one.
+     */
+    suspend fun wasWeakModeNoticed(mode: Mode, modelId: String): Boolean =
+        setting("mode.weak.${mode.name}.$modelId") == "1"
+
+    suspend fun markWeakModeNoticed(mode: Mode, modelId: String) =
+        putSetting("mode.weak.${mode.name}.$modelId", "1")
+
     /** The user's system-wide instructions, applied to every conversation. */
     suspend fun userInstructions(): String = setting(Keys.SYSTEM_INSTRUCTIONS).orEmpty()
 
