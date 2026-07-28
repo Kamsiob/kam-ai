@@ -7606,6 +7606,28 @@ So the full rule, after five attempts across four modes: **prefer an ordered lis
 of what a reply does; where that does not fit, name the situation the rule
 applies to. Never state a bare property.**
 
+### One case where all three levers failed
+
+#122 is the exception, and it is worth knowing that it is one. A prohibition, a
+shape, and a named situation were each tried against the same input and none of
+them changed the rate: about one good reply in three or four, across seven runs.
+
+The input is "Bread needs a hot oven, around 230C." Other statements of fact are
+answered well: water boiling gets the pressure qualifier, concrete curing gets
+the conditions, a train time gets a caution about delays. What is different about
+this one is that its most obvious reply is the thing already said, so answering
+it means reaching for *why* the heat matters, which is a different operation from
+what the others need.
+
+That reads as a limit of the model on a hard case rather than a rule that is
+missing, and three failed prompt changes is enough evidence to stop paying prefill
+for a fourth. If it is fixed it will probably be by the tier, the way #119 was.
+
+**The general point: the levers above are good, and knowing when to stop using
+them is part of using them.** Every one of the three attempts here was reverted,
+which cost nothing but the time to measure. Keeping any of them would have cost a
+few tokens on every turn of every conversation, forever, for nothing.
+
 
 ## An intermittent defect cannot be closed on one good run
 
