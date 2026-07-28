@@ -58,6 +58,11 @@ fun ModelScreen(
     onActivate: (TierModel) -> Unit,
     /** What this phone has measured for each model, by id (item 22). */
     measuredSpeeds: Map<String, String?> = emptyMap(),
+    /**
+     * What is free where models land, so a model that cannot fit says so on the
+     * card rather than after it is chosen (#75).
+     */
+    freeBytes: Long = Long.MAX_VALUE,
     modifier: Modifier = Modifier,
 ) {
     val colors = KamTheme.colors
@@ -85,6 +90,8 @@ fun ModelScreen(
             ModelCard(
                 model = model,
                 locked = TierRecommendation.isLocked(model.tier, totalRamGb),
+                fitsOnDisk = com.kamsiob.kamai.download.DownloadGuard
+                    .fitsOnDisk(model.downloadBytes, freeBytes),
                 installed = model.id in installedIds,
                 active = model.id == activeId,
                 recommended = model.tier == recommended,
@@ -140,6 +147,8 @@ fun ModelScreen(
                     ModelCard(
                         model = model,
                         locked = TierRecommendation.isLocked(model.tier, totalRamGb),
+                        fitsOnDisk = com.kamsiob.kamai.download.DownloadGuard
+                            .fitsOnDisk(model.downloadBytes, freeBytes),
                         installed = model.id in installedIds,
                         active = model.id == activeId,
                         recommended = false,
@@ -164,6 +173,8 @@ fun ModelScreen(
 private fun ModelCard(
     model: TierModel,
     locked: Boolean,
+    /** False when the download cannot land here, headroom included. */
+    fitsOnDisk: Boolean = true,
     installed: Boolean,
     active: Boolean,
     recommended: Boolean,
@@ -267,6 +278,20 @@ private fun ModelCard(
                     style = KamTheme.type.secondary, color = colors.textTertiary,
                 )
             }
+        }
+
+        // Said here, on the card, rather than at download time. Offering
+        // something and refusing it a tap later is the defect #75 names.
+        if (!fitsOnDisk && !locked) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "Not enough room on this phone for this one. Free up some space, " +
+                    "or choose a smaller model.",
+                style = KamTheme.type.secondary,
+                color = colors.goldText,
+                fontWeight = FontWeight.W600,
+            )
+            return@Column
         }
 
         if (locked) {

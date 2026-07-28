@@ -67,6 +67,22 @@ class DownloadGuardTest {
     }
 
     @Test
+    fun `the offer and the download agree about disk`() {
+        // #75 wants a model that cannot fit refused before it is offered rather
+        // than after it is chosen. That only holds while both places ask the same
+        // question, so the offer calls the same function the download does. Two
+        // checks with two slightly different constants is one screen offering
+        // what the next screen refuses.
+        val tooSmall = fiveGb + 1
+        assertThat(DownloadGuard.fitsOnDisk(fiveGb, tooSmall)).isFalse()
+        assertThat(check(size = fiveGb, free = tooSmall))
+            .isInstanceOf(DownloadGuard.Verdict.Stop::class.java)
+
+        assertThat(DownloadGuard.fitsOnDisk(fiveGb, plenty)).isTrue()
+        assertThat(check(size = fiveGb, free = plenty)).isEqualTo(DownloadGuard.Verdict.Go)
+    }
+
+    @Test
     fun `headroom is kept, so a download that exactly fits is still refused`() {
         val exactly = fiveGb
         assertThat(check(free = exactly)).isInstanceOf(DownloadGuard.Verdict.Stop::class.java)

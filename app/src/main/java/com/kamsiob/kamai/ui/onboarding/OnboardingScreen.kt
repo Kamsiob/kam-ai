@@ -80,6 +80,8 @@ fun OnboardingScreen(
     tiers: List<TierModel>,
     downloadProgress: Float?,
     onDownload: (TierModel) -> Unit,
+    /** What is free where models land, so a tier that cannot fit says so (#75). */
+    freeBytes: Long = Long.MAX_VALUE,
     /** The recommended speech setup for this phone, with its combined size (#77). */
     voiceLabel: String = "",
     /** True once it has been queued, so the card stops offering it again. */
@@ -144,6 +146,7 @@ fun OnboardingScreen(
                     totalRamGb = totalRamGb,
                     tiers = tiers,
                     downloadProgress = downloadProgress,
+                    freeBytes = freeBytes,
                     onDownload = onDownload,
                     onContinue = advance,
                 )
@@ -482,6 +485,7 @@ private fun SlideFour(
     totalRamGb: Int,
     tiers: List<TierModel>,
     downloadProgress: Float?,
+    freeBytes: Long,
     onDownload: (TierModel) -> Unit,
     onContinue: () -> Unit,
 ) {
@@ -534,6 +538,8 @@ private fun SlideFour(
                         TierCard(
                             model = model,
                             locked = TierRecommendation.isLocked(model.tier, totalRamGb),
+                            fitsOnDisk = com.kamsiob.kamai.download.DownloadGuard
+                                .fitsOnDisk(model.downloadBytes, freeBytes),
                             recommended = model.tier == recommended,
                             selected = model.tier == chosen,
                             onSelect = { chosen = model.tier },
@@ -648,24 +654,31 @@ private fun DownloadBar(progress: Float, onContinue: () -> Unit) {
 private fun TierCard(
     model: TierModel,
     locked: Boolean,
+    /**
+     * False when the download cannot land on this phone. Treated as another way
+     * of being locked, so a tier nobody can download is never selectable, and it
+     * says which of the two reasons applies (#75).
+     */
+    fitsOnDisk: Boolean = true,
     recommended: Boolean,
     selected: Boolean,
     onSelect: () -> Unit,
 ) {
     val colors = KamTheme.colors
     val shape = RoundedCornerShape(KamTheme.dimens.cardRadius)
+    val unavailable = locked || !fitsOnDisk
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(if (selected && !locked) colors.tonalFill else colors.surface)
+            .background(if (selected && !unavailable) colors.tonalFill else colors.surface)
             .border(
-                width = if (selected && !locked) 2.dp else 1.dp,
-                color = if (selected && !locked) colors.accent else colors.border,
+                width = if (selected && !unavailable) 2.dp else 1.dp,
+                color = if (selected && !unavailable) colors.accent else colors.border,
                 shape = shape,
             )
-            .then(if (locked) Modifier else Modifier.clickable(onClick = onSelect))
+            .then(if (unavailable) Modifier else Modifier.clickable(onClick = onSelect))
             .padding(16.dp)
             .semantics {
                 contentDescription = buildString {
@@ -674,7 +687,7 @@ private fun TierCard(
                     if (recommended) append(", recommended")
                     // Color is never the only carrier of meaning: the locked
                     // reason is spoken as well as shown.
-                    if (locked) append(", locked, ").append(TierRecommendation.lockedNote(model.tier))
+                    if (unavailable) append(", locked, ").append(lockNote(model, fitsOnDisk))
                 }
             },
     ) {
@@ -682,15 +695,15 @@ private fun TierCard(
             Text(
                 model.tier.displayName,
                 style = KamTheme.type.cardTitle,
-                color = if (locked) colors.textTertiary else colors.textPrimary,
+                color = if (unavailable) colors.textTertiary else colors.textPrimary,
             )
             Spacer(Modifier.width(9.dp))
-            if (recommended && !locked) KamChip("Recommended", tonal = true)
+            if (recommended && !unavailable) KamChip("Recommended", tonal = true)
             Spacer(Modifier.weight(1f))
             Text(
                 model.downloadLabel,
                 style = KamTheme.type.mono,
-                color = if (locked) colors.textTertiary else colors.textSecondary,
+                color = if (unavailable) colors.textTertiary else colors.textSecondary,
             )
         }
         Spacer(Modifier.height(6.dp))
@@ -700,10 +713,10 @@ private fun TierCard(
                 style = KamTheme.type.secondary,
                 color = colors.textTertiary,
             )
-            if (locked) {
+            if (unavailable) {
                 Spacer(Modifier.weight(1f))
                 Text(
-                    TierRecommendation.lockedNote(model.tier),
+                    lockNote(model, fitsOnDisk),
                     style = KamTheme.type.mono,
                     color = colors.goldText,
                     fontWeight = FontWeight.W600,
@@ -712,6 +725,10 @@ private fun TierCard(
         }
     }
 }
+
+/** Which of the two reasons a tier cannot be chosen, in the same short form. */
+private fun lockNote(model: TierModel, fitsOnDisk: Boolean): String =
+    if (!fitsOnDisk) "No room" else TierRecommendation.lockedNote(model.tier)
 
 @Composable
 private fun SlideFive(onSupport: () -> Unit, onFinish: () -> Unit) {

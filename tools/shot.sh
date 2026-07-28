@@ -49,6 +49,19 @@ fi
 
 "$adb" exec-out screencap -p > "$out"
 
+# Orientation is part of whether a capture is usable. A run once produced ten
+# landscape captures because the phone had rotated on the desk, and every crop
+# and every tap coordinate in these tools assumes portrait, so it looked like
+# nonsense output rather than a rotated screen.
+if command -v python3 >/dev/null 2>&1 && [ -s "$out" ]; then
+  if ! python3 -c 'import sys;from PIL import Image;w,h=Image.open(sys.argv[1]).size;sys.exit(0 if h>w else 1)' "$out" 2>/dev/null; then
+    echo "Refusing to keep a landscape capture: the phone is rotated." >&2
+    echo "  lock it with: adb shell settings put system user_rotation 0" >&2
+    rm -f "$out"
+    exit 1
+  fi
+fi
+
 # An empty capture is a failure worth catching here rather than three steps later.
 if [ ! -s "$out" ]; then
   echo "Refusing to keep an empty capture: $out" >&2

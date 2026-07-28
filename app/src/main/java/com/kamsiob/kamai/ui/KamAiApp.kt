@@ -237,6 +237,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
         val startSlide by app.onboardingSlide.collectAsStateWithLifecycle()
         OnboardingScreen(
             startSlide = startSlide,
+            freeBytes = app.repository.freeDownloadBytes(),
             onSlideChanged = app::saveOnboardingSlide,
             totalRamGb = app.totalRamGb,
             tiers = app.tiers,
@@ -929,6 +930,7 @@ private fun ModelHost(app: AppViewModel) {
         onResume = app::resumeDownload,
         onCancel = app::cancelDownload,
         onActivate = app::activateModel,
+        freeBytes = app.repository.freeDownloadBytes(),
     )
 }
 

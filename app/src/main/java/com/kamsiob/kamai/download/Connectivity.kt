@@ -119,6 +119,17 @@ object DownloadGuard {
      * @param batteryPercent 0..100, or null when it cannot be read.
      * @param charging whether the device is plugged in.
      */
+    /**
+     * Whether a download of this size can land at all, headroom included.
+     *
+     * Public and separate so the offer and the download agree. #75 asks for the
+     * storage check to happen *before* something is offered rather than at
+     * download time, and the way that goes wrong is two checks with two slightly
+     * different constants: one screen offers a model the next screen refuses.
+     */
+    fun fitsOnDisk(sizeBytes: Long, freeBytes: Long): Boolean =
+        freeBytes >= sizeBytes + DISK_HEADROOM_BYTES
+
     fun check(
         sizeBytes: Long,
         network: Connectivity.State,
@@ -129,7 +140,7 @@ object DownloadGuard {
         // Order matters. Disk first, because no amount of agreeing makes a
         // download fit; then network, because it costs money; then battery, which
         // is only ever advice.
-        if (freeBytes < sizeBytes + DISK_HEADROOM_BYTES) {
+        if (!fitsOnDisk(sizeBytes, freeBytes)) {
             return Verdict.Stop(
                 "This needs ${bytes(sizeBytes)} and there is ${bytes(freeBytes)} free. " +
                     "Free up some space, or pick a smaller model.",
