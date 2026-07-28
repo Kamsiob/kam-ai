@@ -40,6 +40,16 @@ first message of a conversation was read as the tail of an instruction sheet.
 That is why first replies were sometimes strange in ways later ones never were.
 They are now clearly separated.
 
+**How the modes answer.** Logic Partner now says so plainly when an argument
+holds, instead of returning nothing. Brainstorm picks a method and runs it
+instead of offering a menu and asking which you would prefer. A statement gets a
+reply that says something you did not say, rather than your own sentence back.
+Short answers no longer arrive with a heading above them.
+
+**Conversation titles.** A conversation can no longer be given a title about
+something it never mentioned, and one that starts with a word or two takes its
+name from the first message that actually says something.
+
 **Replies that were really the instructions.** A reply that reproduces the app's
 own instructions, one of its worked examples, or the message just typed is caught
 before it is shown and generated again. Asked what model it ran on, it used to
