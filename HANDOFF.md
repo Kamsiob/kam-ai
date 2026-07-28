@@ -24,6 +24,30 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### Session of 28 July: what the testing found, and how
+
+Every defect below was found by using the app, not by a test. All of them passed
+the whole suite.
+
+| Found by | Defect |
+|---|---|
+| Asking what model it runs on | It replied with the system prompt (#118, #119) |
+| Running the same battery after each change | Two guard regressions that discarded *correct* replies |
+| Typing "?" on the way to another test | A conversation titled about something it never mentioned (#125) |
+| Stopping a generation mid-list | Continue duplicated the fragment: "Inspect the - Inspect the engine bay" |
+| Reading a reply carefully rather than glancing | A heading above a one-sentence answer, and the question restated (#126) |
+| Turning memory Off and watching the line under a reply | Memory Off still sent stored memories (#123) |
+
+Areas checked and found sound: Workbench tighten, search across content,
+backgrounding mid-generation, a real user stop and its Continue affordances,
+theme change and its persistence across process death, four unrelated questions
+in one message, a hostile user demanding agreement with something false.
+
+`tools/session.sh` holds one conversation across many turns, which
+`mode_battery.sh` cannot: it opens a fresh chat per input, so it only ever tested
+first impressions. Both refuse to type unless the app holds focus, after early
+runs typed into a browser and a launcher.
+
 ### Session of 28 July: the one lever that keeps working on this model
 
 **A small model follows a shape and ignores a condition.** Three modes were fixed
