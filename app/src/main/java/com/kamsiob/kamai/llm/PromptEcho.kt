@@ -236,6 +236,50 @@ object PromptEcho {
     }
 
     /**
+     * The one question the reply path asks, so every exemption is applied once.
+     *
+     * The checks grew one at a time and the exemptions did not follow them. The
+     * clarifying question is allowed to be emitted verbatim, and an example
+     * answer is allowed when it lands on the message it belongs to, and both of
+     * those were honoured by the check they were written for and ignored by the
+     * two added afterwards. Twice that reached the device as a correct reply
+     * being thrown away and replaced with "That came out wrong."
+     *
+     * One entry point, exemptions first, detectors after. A new detector added
+     * below inherits the exemptions instead of forgetting them.
+     */
+    fun isBadReply(reply: String, systemPrompt: String, userMessage: String?): Boolean {
+        val n = normalize(reply)
+        if (n.isEmpty()) return false
+        if (isAllowedOutright(n)) return false
+        if (isLegitimateExampleAnswer(n, userMessage)) return false
+
+        return isEcho(reply, userMessage) ||
+            containsPromptText(reply, systemPrompt) ||
+            isParrot(reply, userMessage) ||
+            startsWithRoleMarker(reply)
+    }
+
+    /** The streaming form of [isBadReply], for abandoning a reply part way. */
+    fun couldBecomeBadReply(partial: String, systemPrompt: String, userMessage: String?): Boolean {
+        val n = normalize(partial)
+        if (n.isEmpty()) return false
+        if (isAllowedOutright(n)) return false
+        if (isLegitimateExampleAnswer(n, userMessage)) return false
+
+        return couldBecomeEcho(partial, userMessage) ||
+            couldBecomePromptText(partial, systemPrompt)
+    }
+
+    /** True when this reply is an example answer landing on its own example input. */
+    private fun isLegitimateExampleAnswer(normalizedReply: String, userMessage: String?): Boolean =
+        lines.any { line ->
+            val answer = normalize(line.answer)
+            line.isAnsweringItsOwnExample(userMessage) &&
+                (normalizedReply.startsWith(answer) || answer.startsWith(normalizedReply))
+        }
+
+    /**
      * True when the reply is really the user's own message handed back (#122).
      *
      * A third shape of the same underlying behavior. The model reproduces its

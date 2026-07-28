@@ -1185,10 +1185,9 @@ class ChatViewModel(
                         // the whole answer would mean buffering every reply, which
                         // would give back the time to first token #38 won.
                         if (guardEcho &&
-                            (
-                                PromptEcho.couldBecomeEcho(builder.toString(), lastUser) ||
-                                    PromptEcho.couldBecomePromptText(builder.toString(), systemText)
-                                )
+                            PromptEcho.couldBecomeBadReply(
+                                builder.toString(), systemText, lastUser,
+                            )
                         ) {
                             throw EchoDetected()
                         }
@@ -1218,12 +1217,7 @@ class ChatViewModel(
                         // accepted unconditionally. The catch below is what knows
                         // the difference, falling back once one retry is spent.
                         if (guardEcho &&
-                            (
-                                PromptEcho.isEcho(builder.toString(), lastUser) ||
-                                    PromptEcho.containsPromptText(builder.toString(), systemText) ||
-                                    PromptEcho.isParrot(builder.toString(), lastUser) ||
-                                    PromptEcho.startsWithRoleMarker(builder.toString())
-                                )
+                            PromptEcho.isBadReply(builder.toString(), systemText, lastUser)
                         ) {
                             throw EchoDetected()
                         }

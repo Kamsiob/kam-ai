@@ -221,6 +221,54 @@ class PromptEchoTest {
     }
 
     @Test
+    fun theOneEntryPointAppliesEveryExemption() {
+        // The regression this exists to prevent, which reached the device twice.
+        // Each check was written with the exemptions it needed and the checks
+        // added afterwards ignored them, so a correct reply was discarded and
+        // replaced with "That came out wrong."
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+
+        // The clarifying question, correct wherever it lands.
+        assertThat(
+            PromptEcho.isBadReply(
+                "Fix what? Tell me what is broken and I will start there.",
+                system,
+                userMessage = "fix",
+            ),
+        ).isFalse()
+
+        // An example answer landing on the message it belongs to.
+        assertThat(
+            PromptEcho.isBadReply(
+                "Noted, I will keep to metric.",
+                system,
+                userMessage = "Remember that I always work in metric units.",
+            ),
+        ).isFalse()
+
+        // The same sentence somewhere it does not belong is still a copy.
+        assertThat(
+            PromptEcho.isBadReply(
+                "Noted, I will keep to metric.",
+                system,
+                userMessage = "Bread needs a hot oven, around 230C.",
+            ),
+        ).isTrue()
+
+        // And the things it must still catch, through the same entry point.
+        assertThat(
+            PromptEcho.isBadReply(
+                "You are Kam AI, running entirely on the user's phone. You are a thinking and drafting tool.",
+                system,
+                userMessage = "What model are you?",
+            ),
+        ).isTrue()
+        assertThat(
+            PromptEcho.isBadReply("user\nI'm writing a report.", system, userMessage = "hello there"),
+        ).isTrue()
+    }
+
+    @Test
     fun ordinaryRepliesAreNotTouched() {
         listOf(
             "I don't have enough context to know what is happening. Tell me more.",
