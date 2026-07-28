@@ -676,6 +676,26 @@ cases is narrower than its title.
 - **#109** adopt the branch and pull request workflow. Everything to date is
   direct to `main`, including this session.
 
+### Two things closed without full device verification, both on the record
+
+Checked as part of the same audit, since "closed" and "verified on the device"
+are supposed to mean the same thing here.
+
+- **#31, auto-archive.** Everything else was verified on the phone; the archive
+  pass itself has never run there, because no conversation on that device is old
+  enough for any window to match. The archive, the count, the toast and the undo
+  are proven by unit tests alone. Still true today: every conversation on the
+  phone is from the last two days. Manufacturing old rows in the owner's real
+  database to force a demonstration is not a reasonable thing to do.
+- **#45, the overlay memory warning.** Not device-verified, because forcing a
+  real memory refusal on a 16 GB phone with the model already resident could not
+  be arranged. The diagnosis is provable by reading the file. Its closing note
+  says to reopen rather than re-diagnose if the warning is ever seen again.
+
+Both said so plainly in their closing comments rather than claiming verification
+they did not have, which is the behaviour to keep. Neither is a case of something
+being marked done quietly.
+
 ### What "genuinely empty" means here
 
 Nothing above is a correctness defect. The three model-quality issues are each a
