@@ -991,6 +991,14 @@ class KamRepository(
      * caller (and the extractor) can avoid duplicates.
      */
     suspend fun relevantMemory(query: String, budgetChars: Int, max: Int): List<String> {
+        // Off means not used, not merely not added to (#123). The mode gated
+        // storing and never gated this, so somebody who turned memory off still
+        // had everything already stored sent with every message, while the screen
+        // told them "Nothing is remembered between conversations."
+        //
+        // Enforced here rather than at the one call site, so a second caller
+        // cannot reintroduce it by forgetting to ask.
+        if (memoryMode() == com.kamsiob.kamai.llm.MemoryMode.OFF) return emptyList()
         val items = db.memory().mostRecent(200).map {
             com.kamsiob.kamai.llm.MemoryRetrieval.Item(it.text, it.updatedAt)
         }

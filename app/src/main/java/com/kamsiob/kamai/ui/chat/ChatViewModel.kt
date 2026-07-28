@@ -974,6 +974,8 @@ class ChatViewModel(
         val contextSize = engine.contextSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT
         val lastUser = history.lastOrNull { it.role == Role.USER }?.content.orEmpty()
         val memBudgetChars = (contextSize * MEMORY_CTX_FRACTION * CHARS_PER_TOKEN).toInt()
+        // Off is honoured inside relevantMemory rather than here, so no caller can
+        // reintroduce the bug by forgetting to check (#123).
         val memories = repository.relevantMemory(lastUser, memBudgetChars, MEMORY_LIMIT)
         system = SystemPrompts.withMemory(system, memories)
         // Recorded on the answer that is about to be written, so the transcript
