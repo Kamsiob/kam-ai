@@ -7764,3 +7764,70 @@ only thing that reliably teaches this model a behaviour and the thing it copies.
 Those are not two problems; they are the same property seen from two sides. The
 reply guard exists because that property cannot be written away, and this issue
 is the clearest case of it: the fix and the defect are the same sentence.
+
+## The restatement guard, measured against the battery rather than argued about
+
+The reply guard gained a check for a reply that hands the user's own sentence
+back with the words shuffled. Whether that check was worth having is exactly the
+kind of question that gets settled by whoever is most confident, so it was
+settled by running the same ten inputs before and after and putting the replies
+side by side.
+
+Two inputs changed for the better and nothing changed for the worse.
+
+| input | before | after |
+|---|---|---|
+| Bread needs a hot oven, around 230C. | It needs a hot oven, around 230C. | the fallback, asking them to say it again |
+| u r wrong abt this an i no it | You're wrong about this and I know it. | I need more information to know what you mean. |
+
+The second is the one that carries weight. It is a verbatim hand-back that the
+previous guard did not catch, on an input the new check was not built from, so it
+is evidence the check generalizes rather than evidence it was fitted to its own
+test case. The first is a real improvement of a modest kind: the fallback is not
+an answer, but it asks for something, which the restatement did not.
+
+Four other replies differ in wording between the runs. Those are not attributed
+to the guard. One sample per input cannot separate a guard effect from the
+sampler picking a different continuation, and the honest reading is that only the
+two rows above are explained by the change.
+
+**What it costs.** Measured on the reporting input for #122, the model produced a
+restatement on 18 of 21 drafts. So on that input a user now sees the fallback most
+of the time instead of their own sentence. That is a real cost and it is the right
+trade only because the restatement was worth nothing: being asked to say it
+again is worse than a good answer and better than being told what you just said.
+
+The rate also corrects the record. This defect was described as happening about
+one in three times, from four samples, and that estimate was used to argue the
+cause was sampling. At 85% it is the most probable continuation for the input, not
+an unlucky draw, and the sampler values the research recommends for suppressing it
+are already in place.
+
+## Brainstorm's escape hatch was written, and placed where it cannot be reached
+
+Brainstorm asks a grieving person which memories of their dead father feel
+strongest (#129). The obvious reading is that the mode lacks the rule Logic
+Partner has. It is not missing. It is there:
+
+> If it is not a brainstorm, answer briefly and offer General or Workbench.
+
+The problem is where it sits. Method selection is an eleven-rule chain evaluated
+in order, "pick a method by the first rule that matches", and the escape hatch
+comes after the chain, guarded by "if none clearly matches". Rule 1 is "a lot of
+unsorted material, or overwhelmed". Rule 6 is "stuck, same answers recurring".
+Bereavement matches rule 1 on the first pass, so the chain never falls through,
+and the rule written for precisely this case is unreachable for precisely this
+case.
+
+That is worth stating as a general shape rather than a single bug: **a fallback
+placed at the end of a first-match chain only ever sees inputs that match nothing,
+which is rarely the set it was written for.** Anything that reads as a fit,
+however wrong a fit, is claimed before the fallback is consulted.
+
+So the fix is ordering, not wording, and the check moves to the front. What it
+tests is deliberately not how upset the message sounds. Distress and frustration
+are not distinguishable in text, Brainstorm's audience arrives stuck and
+frustrated, and a gate keyed to emotional register was tried and refused the
+people the mode exists for. The question asked first is whether an output is being
+sought. Somebody furious about their codebase wants work done. Somebody saying
+they miss him does not.
