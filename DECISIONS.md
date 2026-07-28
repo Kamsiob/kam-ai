@@ -7731,3 +7731,36 @@ wrong thing, and how often that will be.** The same question kills the idea of
 widening the parrot check to catch reworded restatements, and it is the reason
 the reply guard checks for copies rather than for quality: a copy is a question
 with an answer, and "is this reply any good" is not.
+
+
+## Why the examples cannot simply be removed, and cannot be rotated either
+
+#130 turned out to be Brainstorm reciting its own worked opening: asked about
+missed deadlines, it produced the example about starting a business, twice, and
+the reply guard caught both. Not a regression, and not sampling: the guard was
+right.
+
+Removing the two openings fixes it and reopens #58. Without a demonstration the
+model names the technique it selected, "using the six questions", or repeats the
+condition that chose it, "the exercise that deals with hesitation and
+self-doubt", both of which the prompt forbids in the paragraph immediately after
+them. Three runs gave one clean reply and two violations.
+
+So the examples are not teaching the shape, which the ordered reply shape now
+does. They are teaching the model to name **what it will do with this person's
+material** rather than **which method it picked**, and nothing else in the prompt
+carries that.
+
+**Rotating examples per request, which the over-prompting work recommends, is
+architecturally unavailable here.** The system prompt is the KV cache prefix, and
+this app's time to first token depends on it being byte identical between turns:
+about 35 tokens of prefill against 863. Varying it per request re-prefills the
+instruction block every turn, roughly 28 seconds on E4B instead of 1.4. Rotating
+per conversation would keep the cache but does not address a first-turn copy,
+which is what this defect is.
+
+**The general shape of the problem.** A worked example in a prompt is both the
+only thing that reliably teaches this model a behaviour and the thing it copies.
+Those are not two problems; they are the same property seen from two sides. The
+reply guard exists because that property cannot be written away, and this issue
+is the clearest case of it: the fix and the defect are the same sentence.
