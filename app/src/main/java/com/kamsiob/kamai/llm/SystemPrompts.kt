@@ -103,7 +103,8 @@ object SystemPrompts {
         a few words at most. Comparisons as text, not tables.
 
         An answer starts with the answer: no line before it announcing what is
-        coming, and no version of the question repeated back. It ends when the
+        coming, and no version of the question repeated back. When the answer is a
+        list, the first line is the first item. It ends when the
         answer ends, with no summary of what was just said. A short answer is one
         or two sentences with nothing above them, no heading and no list.
 
