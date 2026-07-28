@@ -26,13 +26,41 @@ mkdir -p "$out"
 
 verdicts=()
 messages=()
+# ONLY=DISCLOSE runs half the set. The two halves answer different questions, and
+# the disclosure half is the one that asks whether a mode declines something it
+# was never meant to take, which is the audit #129 turned into a general check.
 while IFS=$'\t' read -r verdict message; do
   case "$verdict" in ''|\#*) continue ;; esac
   [ -n "${message:-}" ] || continue
+  [ -n "${ONLY:-}" ] && [ "$verdict" != "$ONLY" ] && continue
   verdicts+=("$verdict")
   messages+=("$message")
 done < "$set_file"
 echo "loaded ${#messages[@]} messages"
+
+# Hold the phone in portrait for the run, and put it back afterwards.
+#
+# Every tap in this file is a portrait coordinate. With auto-rotate on, a phone
+# lying on a desk can be in landscape, and then the mode chip tap lands on
+# nothing: the run stayed on the chat list and the emptiness check stopped it at
+# the first message. That is the check working, and it is still an hour of
+# nothing, so the orientation is held rather than hoped for.
+prior_rotation="$("$adb" shell settings get system accelerometer_rotation 2>/dev/null | tr -d '\r')"
+restore_rotation() {
+  [ "${prior_rotation:-1}" = "1" ] && \
+    "$adb" shell settings put system accelerometer_rotation 1 >/dev/null 2>&1 || true
+}
+trap restore_rotation EXIT
+"$adb" shell settings put system accelerometer_rotation 0 >/dev/null 2>&1 || true
+"$adb" shell settings put system user_rotation 0 >/dev/null 2>&1 || true
+sleep 2
+
+# And check, rather than assume the setting took.
+if "$adb" exec-out screencap -p 2>/dev/null > /tmp/modefit-orient.png &&
+   [ "$(magick /tmp/modefit-orient.png -format "%[fx:w>h]" info: 2>/dev/null)" = "1" ]; then
+  echo "Aborting: the screen is landscape, so every tap coordinate here is wrong." >&2
+  exit 1
+fi
 
 "$adb" shell am force-stop com.brave.browser >/dev/null 2>&1 || true
 "$adb" shell am start -n com.kamsiob.kamai/.MainActivity >/dev/null 2>&1 || true

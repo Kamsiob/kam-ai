@@ -7862,17 +7862,35 @@ fine.
 
 Audited every mode for the same shape. Three findings.
 
-**Workbench has no escape hatch at all, and forbids the obvious one.** It says
-the user gives text and an instruction, to return only the transformed text, and:
+**Workbench was called the worst case here, and that was wrong.** The claim was
+that it has no escape hatch and forbids the obvious one, since its prompt says to
+return only the transformed text and:
 
 > If the instruction is ambiguous, pick the most ordinary reading and carry on
 > rather than asking.
 
-That is not a misplaced fallback, it is an absent one with the natural substitute
-ruled out in the same sentence. Somebody who taps the wrong mode chip and says
-their father died has handed Workbench a document and no instruction, and the
-prompt's answer to having no instruction is to pick a reading and carry on. This
-is the worst position of any mode and nothing had tested it.
+Read as a chat mode, that is alarming: somebody taps the wrong chip, says their
+father died, and the prompt's answer to having no instruction is to proceed.
+
+**Workbench is not a chat mode.** It is a separate screen with a box for the
+text, seven preset transformations as buttons, and a field to describe a change.
+Every request carries an instruction chosen by the user, from `Action` in
+WorkbenchViewModel, and the free-text path returns early when the instruction is
+blank. There is no route that sends text with no instruction, so the sentence
+above only ever applies to an instruction that is present and unclear.
+
+That makes the residual risk small and different in kind. Somebody can paste a
+grieving message and press Tighten, and it will be tightened, which is what they
+asked for. **Workbench's interface answers the question Brainstorm's prompt has
+to guess at**, because choosing a transformation is an unambiguous statement that
+an output is wanted. That is worth keeping in mind as a design point rather than
+a defect: the surest way to know whether somebody wants something produced is to
+have them say so.
+
+The error is worth recording alongside the finding. The prompt was read carefully
+and the mode was never opened. Reading the instructions is not the same as knowing
+how the mode is reached, and the audit only turned up its own mistake because the
+harness refused to run against a screen that had no chat in it.
 
 **Logic Partner has the rule, and it is last.** "If they bring distress rather
 than an idea, say this is not a debate topic and suggest General" sits in the

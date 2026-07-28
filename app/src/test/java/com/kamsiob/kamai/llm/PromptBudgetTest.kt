@@ -210,7 +210,19 @@ class PromptBudgetTest {
             // 95 percent of the workable set and decline 90 percent of the
             // disclosures, or this raise and the prompt change both come out
             // again.
-            Mode.BRAINSTORM to 2570,
+            //
+            // Then lowered to 2400, below where it started, because the two worked
+            // openings came out for #130 and gave back 199 tokens, more than #129
+            // cost. Measured at 2359 after both changes.
+            //
+            // The openings were the most expensive text in this prompt and the
+            // hardest to justify: they are what stopped the mode announcing its
+            // method, and they are what it copied verbatim onto unrelated
+            // problems. That trade is now settled in code instead, by
+            // MethodAnnouncement, which detects an announcement in the draft and
+            // rewrites it out. A prompt cannot forbid a shape it demonstrates, so
+            // it no longer demonstrates one.
+            Mode.BRAINSTORM to 2400,
             Mode.BENCH to 1240,
             Mode.OVERLAY to 1180,
             Mode.DISCOVER to 1320,

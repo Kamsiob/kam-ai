@@ -15,6 +15,7 @@ import com.kamsiob.kamai.llm.ConversationState
 import com.kamsiob.kamai.llm.ConversationTitler
 import com.kamsiob.kamai.llm.GenerationService
 import com.kamsiob.kamai.llm.InferenceEngine
+import com.kamsiob.kamai.llm.MethodAnnouncement
 import com.kamsiob.kamai.llm.ModelManager
 import com.kamsiob.kamai.llm.MemoryExtractor
 import com.kamsiob.kamai.llm.MemoryMode
@@ -1220,6 +1221,31 @@ class ChatViewModel(
                             PromptEcho.isBadReply(builder.toString(), systemText, lastUser)
                         ) {
                             throw EchoDetected()
+                        }
+                        // Brainstorm reading its method selection out loud is a
+                        // formatting failure, so it is repaired rather than
+                        // regenerated. The question after the announcement was
+                        // built out of what the user actually said and is worth
+                        // keeping; another draw costs them a minute and often
+                        // comes back worse.
+                        //
+                        // Regenerating only when nothing usable is left, which is
+                        // what strip returning null means: no question survived,
+                        // and a Brainstorm reply without its question is not a
+                        // shorter reply but a different mode.
+                        if (_mode.value == Mode.BRAINSTORM) {
+                            MethodAnnouncement.matched(builder.toString())?.let { hit ->
+                                val fixed = MethodAnnouncement.strip(builder.toString())
+                                android.util.Log.w(
+                                    "KamMethod",
+                                    "announced matched=$hit rewritten=${fixed != null} " +
+                                        "draft=${builder.toString().take(160)}",
+                                )
+                                if (fixed == null) throw EchoDetected()
+                                builder.setLength(0)
+                                builder.append(fixed)
+                                repository.updateMessage(messageId, fixed, true)
+                            }
                         }
                         break
                     } catch (e: EchoDetected) {
