@@ -659,8 +659,9 @@ right.
 section above for what each one actually turned out to be, which in all three
 cases is narrower than its title.
 
-- **#122** a statement that carries its own answer sometimes gets restated. About
-  one time in three, on one input.
+- **#122** a statement that carries its own answer sometimes gets restated. One
+  good reply in four on that input, measured across four runs. Other statements
+  of fact answer correctly, so the scope is one hard input rather than a class.
 - **#124** Logic Partner misreads a sound argument's premise to have something to
   object to. The shape lever does not reach it.
 - **#126** half fixed: no heading above a short answer, preamble still present.
