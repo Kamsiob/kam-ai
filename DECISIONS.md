@@ -7291,3 +7291,46 @@ The three-part shape is now conditional and the sound case has its own shape,
 stated as a complete reply rather than as an exception to a rule it cannot meet.
 Worth generalising: when a mode answers badly, read what is actually being sent
 before blaming the model.
+
+## KleidiAI: the build reason was wrong, and it still buys nothing yet
+
+ARM's microkernels were recorded as unavailable because turning them on made the
+ggml build fetch a tarball at configure time and "that download does not happen
+in this build environment". That was the wrong diagnosis. The download works: the
+release archive fetches in a couple of seconds and matches the MD5 ggml pins.
+
+The actual cause was our own arch flags. ggml decides which KleidiAI kernels to
+compile by regexing `CMAKE_C_FLAGS` for `+dotprod` and `+i8mm`. We set those
+through `add_compile_options`, which never reaches `CMAKE_C_FLAGS`, so ggml
+concluded the target had neither, skipped compiling exactly the kernels its own
+wrappers call, and the build failed at link with undefined `kai_*` symbols. The
+flags were reaching the compiler the whole time. They were not reaching ggml's
+decision, and the error message pointed at the symptom rather than the cause.
+
+Now vendored by `tools/fetch_kleidiai.sh`, at the tag and checksum ggml itself
+pins, with FetchContent pointed at that directory so the build never reaches the
+network and stays reproducible offline. Fifteen kernels compile, and the device
+confirms them at load:
+
+```
+kleidiai: primary q4 kernel feature I8MM
+kleidiai: primary q8 kernel feature I8MM
+```
+
+### And it is inert, which is the part worth writing down
+
+KleidiAI claims only `Q4_0`, `Q8_0`, `F32` and `F16` tensors. Every model this app
+ships is `Q4_K_M`, so none of its weights are ever handed to those kernels. It is
+correct, active, and does nothing.
+
+Measured after enabling it, on E4B: decode 3.0, 4.7 and 5.0 tok/s against a 5.9
+to 6.4 baseline. That looks like a regression and is not one. The big cores were
+at 79 C from an evening of downloads and inference, and the framework thermal
+status stays 0 while the SoC throttles itself, so the numbers say more about heat
+than about kernels. A measurement taken on a hot phone is not a measurement, and
+the honest thing is to discard it rather than quote it in either direction.
+
+It is left enabled. The stripped library grows by about a tenth of a megabyte,
+and the moment a `Q4_0` model is used it becomes free speed with no further work.
+Whether that ever happens is #55, which is exactly the question of whether Q4_0
+plus these kernels beats Q4_K_M without them.

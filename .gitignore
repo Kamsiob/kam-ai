@@ -79,3 +79,6 @@ app/src/androidTest/assets/piper-amy.onnx
 # Discover pipeline outputs and cache
 tools/discover/out/
 tools/discover/.cache/
+
+# KleidiAI is fetched by tools/fetch_kleidiai.sh at a pinned tag
+app/src/main/cpp/kleidiai/

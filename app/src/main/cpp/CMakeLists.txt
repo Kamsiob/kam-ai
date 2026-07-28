@@ -27,18 +27,44 @@ set(BUILD_SHARED_LIBS    OFF CACHE BOOL "" FORCE)
 # arm64 dot-product and matrix-multiply extensions. Every phone this app will
 # run on has them, and they are worth a large fraction of the token rate.
 set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
-add_compile_options(-march=armv8.2-a+dotprod+i8mm+fp16)
 
-# KleidiAI stays off, and this line is deliberate rather than a default.
+# Set through CMAKE_*_FLAGS rather than add_compile_options, which is not a
+# style preference. ggml decides which KleidiAI microkernels to compile by
+# regexing CMAKE_C_FLAGS for "+dotprod" and "+i8mm". Flags added through
+# add_compile_options never appear there, so ggml concluded this device had
+# neither, skipped exactly the kernels its own wrappers call, and the build
+# failed at link with undefined kai_* symbols. The flags were reaching the
+# compiler the whole time; they were not reaching ggml's decision.
+set(KAMAI_ARCH_FLAGS "-march=armv8.2-a+dotprod+i8mm+fp16")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${KAMAI_ARCH_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KAMAI_ARCH_FLAGS}")
+
+# KleidiAI: ARM's int8 matmul microkernels, issue #51.
 #
-# ARM's microkernels are a live option for issue #51 and ggml exposes them, but
-# turning them on makes the ggml build fetch the KleidiAI release tarball from
-# GitHub at configure time. That download does not happen in this build
-# environment, so the wrappers compile, the kai_* symbols are never defined, and
-# the link fails. Set to ON in an environment that can reach the network, or
-# vendor the KleidiAI sources next to llama.cpp the way llama.cpp itself is
-# vendored, which would also keep the build reproducible offline.
-set(GGML_CPU_KLEIDIAI OFF CACHE BOOL "" FORCE)
+# ggml can fetch these itself, but only at CMake configure time from inside the
+# Gradle build, and when that download does not happen the wrappers still
+# compile, the kai_* symbols are never defined, and it surfaces as a link error
+# a long way from its cause. That is why this was off.
+#
+# So KleidiAI is vendored the same way llama.cpp is: tools/fetch_kleidiai.sh
+# pulls the tag ggml pins, checks the same MD5 ggml checks, and puts it beside
+# llama.cpp. Pointing FetchContent at that directory means ggml finds it already
+# present and never reaches the network, so the build is reproducible offline and
+# the dependency is explicit rather than implied.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/kleidiai/CMakeLists.txt")
+    set(GGML_CPU_KLEIDIAI ON CACHE BOOL "" FORCE)
+    # FetchContent honours FETCHCONTENT_SOURCE_DIR_<NAME> with the name
+    # uppercased, and ggml declares this one as KleidiAI_Download.
+    set(FETCHCONTENT_SOURCE_DIR_KLEIDIAI_DOWNLOAD
+        "${CMAKE_CURRENT_SOURCE_DIR}/kleidiai" CACHE PATH "" FORCE)
+    message(STATUS "KleidiAI: using vendored sources")
+else()
+    # Not fatal. The app builds and runs without it, just without the ARM
+    # microkernels, and a missing optional optimisation should not stop somebody
+    # building the project.
+    set(GGML_CPU_KLEIDIAI OFF CACHE BOOL "" FORCE)
+    message(STATUS "KleidiAI: not present, run tools/fetch_kleidiai.sh to enable")
+endif()
 
 
 add_subdirectory("${LLAMA_DIR}" llama_build)
