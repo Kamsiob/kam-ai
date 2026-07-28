@@ -7760,7 +7760,7 @@ per conversation would keep the cache but does not address a first-turn copy,
 which is what this defect is.
 
 **The general shape of the problem.** A worked example in a prompt is both the
-only thing that reliably teaches this model a behaviour and the thing it copies.
+only thing that reliably teaches this model a behavior and the thing it copies.
 Those are not two problems; they are the same property seen from two sides. The
 reply guard exists because that property cannot be written away, and this issue
 is the clearest case of it: the fix and the defect are the same sentence.

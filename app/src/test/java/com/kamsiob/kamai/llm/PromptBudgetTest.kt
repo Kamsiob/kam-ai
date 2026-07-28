@@ -186,7 +186,31 @@ class PromptBudgetTest {
             // an illustration of one. There are now two, on visibly different
             // problems, which teaches the pattern instead of the sentence. The
             // prose those examples replaced paid most of the cost.
-            Mode.BRAINSTORM to 2450,
+            // Raised to 2570 for #129, which is the worst tone failure found in
+            // the app: asked about a father who died last month, Brainstorm asked
+            // which memories of him felt strongest. That is the method working, on
+            // somebody who did not come for a method.
+            //
+            // The rule for it was already written and unreachable. Method
+            // selection is an eleven-rule chain, first match wins, and the "if it
+            // is not a brainstorm" clause sat after it behind "if none clearly
+            // matches". Rule 1 is "a lot of unsorted material, or overwhelmed", so
+            // a bereavement is claimed on the first pass and the chain never falls
+            // through. A fallback at the end of a first-match chain only ever sees
+            // inputs that match nothing.
+            //
+            // So the check moved in front of the chain, which is 109 estimated
+            // tokens once per conversation and then reused from the KV cache. It
+            // asks whether an output is being sought, not how upset the message
+            // sounds: distress and frustration read alike, this mode's audience
+            // arrives stuck and angry, and a gate keyed to emotional register was
+            // tried here before and refused the people the mode exists for.
+            //
+            // Conditional on measurement, per tools/eval/mode-fit.txt: engage with
+            // 95 percent of the workable set and decline 90 percent of the
+            // disclosures, or this raise and the prompt change both come out
+            // again.
+            Mode.BRAINSTORM to 2570,
             Mode.BENCH to 1240,
             Mode.OVERLAY to 1180,
             Mode.DISCOVER to 1320,
