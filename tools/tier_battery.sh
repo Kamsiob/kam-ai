@@ -36,9 +36,16 @@ mkdir -p "$out"
 run_case() {  # mode_name mode_x input_id input_text
   local mode_name="$1" mode_x="$2" input_id="$3" text="$4" i
   for i in $(seq 1 "$repeats"); do
-    local before_echo before_method after_echo after_method
-    before_echo="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
-    before_method="$("$adb" logcat -d -s KamMethod 2>/dev/null | grep -c 'announced' || true)"
+    local echoes methods
+    # Empty the log before each case, then count what this case put into it.
+    #
+    # This used to take a count before and after and subtract. logcat's buffer is
+    # circular, so lines age out while a run is going, and the difference came out
+    # negative: one case recorded minus six rejections. A count that can go
+    # negative is not a count, and every understated one would have read as a
+    # clean run. Clearing first also keeps the buffer small enough that the
+    # completion check in say.sh stays cheap.
+    "$adb" logcat -c >/dev/null 2>&1 || true
 
     "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
     sleep 2
@@ -55,13 +62,12 @@ run_case() {  # mode_name mode_x input_id input_text
     WAIT=200 ./tools/say.sh "$text" 200 >/dev/null 2>&1 || true
     ./tools/shot.sh "$out/${mode_name}-${input_id}-$i.png" >/dev/null 2>&1 || true
 
-    after_echo="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
-    after_method="$("$adb" logcat -d -s KamMethod 2>/dev/null | grep -c 'announced' || true)"
+    echoes="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
+    methods="$("$adb" logcat -d -s KamMethod 2>/dev/null | grep -c 'announced' || true)"
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "$model" "$mode_name" "$input_id" "$i" \
-      "$((after_echo - before_echo))" "$((after_method - before_method))" >> "$log"
+      "$model" "$mode_name" "$input_id" "$i" "$echoes" "$methods" >> "$log"
     printf '  %-10s %-14s run %s  echo=%s method=%s\n' \
-      "$mode_name" "$input_id" "$i" "$((after_echo - before_echo))" "$((after_method - before_method))"
+      "$mode_name" "$input_id" "$i" "$echoes" "$methods"
   done
 }
 
