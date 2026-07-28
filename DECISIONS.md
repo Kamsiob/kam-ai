@@ -7427,3 +7427,39 @@ This is the same shape as #116, where the acknowledgement example is both the fi
 for one defect and the cause of another. Worth stating as a general rule: before
 deleting anything from a prompt to make it smaller, find out which defect put it
 there. The tests are where that is written down.
+
+## Before deleting anything from a prompt, find out which defect put it there
+
+Learned twice in one session, in opposite directions, which is what makes it
+worth writing down as a rule rather than as two incidents.
+
+The prompts are large: General about 1,010 tokens, Logic about 1,650, Brainstorm
+about 2,120. Cold time to first token is dominated by decoding them, so every
+attempt at speed reaches for the same lever, and every worked example in them is
+also quotable text the model can copy. Cutting them looks like it pays twice.
+
+**Twice it was tried and twice the tests refused it.**
+
+`FormattingGuidanceTest` records that #91 replaced a described formatting rule
+with four worked examples because a *described* shape was exactly what the model
+failed to follow. The diagnosis there was precise: a tested answer produced "User
+Experience and Interface Design." as an ordinary sentence, which is a heading
+written as prose. Removing those examples to save four seconds of warm-up would
+have re-broken that.
+
+`PromptBudgetTest` records why Logic is the largest prompt in the app: "the
+alternative was a flagship mode that answers in five words of jargon, which is
+not a trade worth protecting time to first token for". That length was bought
+with #114.
+
+So the rule: **a prompt is a record of defects, and its length is the sum of
+them.** Anything in it that looks like padding is more likely to be a fix whose
+reason has been forgotten. The tests are where the reasons live, which is the
+argument for writing the reason into the test rather than into a commit message
+nobody will find.
+
+This does not mean prompts cannot shrink. It means a shrink is an experiment with
+two sides: it has to be measured against the defect it might fix *and* against
+the defect the deleted text was preventing. A change that fixes one and
+reintroduces the other is not an improvement, and only running both tells you
+which happened.
