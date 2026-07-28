@@ -7556,7 +7556,7 @@ hour. "Before any exercise, say the plan in your own words and about their
 subject, then ask" was already in the prompt and was already correct. It was
 phrased as a condition, buried mid-prompt, and the model did not follow it. Made
 into the shape of every reply, ordered and ending in "then stop", it produced
-exactly the behaviour two separate issues had been asking for.
+exactly the behavior two separate issues had been asking for.
 
 The rule, stated for the next person:
 
