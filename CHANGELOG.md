@@ -34,6 +34,12 @@ one answered it properly. The download is longer, and everything that makes the
 wait bearable is built: it runs in the background, resumes itself, says how long
 is left, and the app is usable while it happens.
 
+**The first message of a conversation.** The model's instructions and the first
+thing a person types shared one turn with almost nothing between them, so the
+first message of a conversation was read as the tail of an instruction sheet.
+That is why first replies were sometimes strange in ways later ones never were.
+They are now clearly separated.
+
 **Replies that were really the instructions.** A reply that reproduces the app's
 own instructions, one of its worked examples, or the message just typed is caught
 before it is shown and generated again. Asked what model it ran on, it used to
