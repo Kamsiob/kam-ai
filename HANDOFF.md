@@ -24,6 +24,28 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### Performance, settled 28 July
+
+Measured back to back on the device, same phone, same thermal state, same prompt:
+
+| | Q4_0 | Q4_K_M |
+|---|---|---|
+| Prefill | 66.7, 71.4 tok/s | 58.2, 56.7 tok/s |
+| Decode | 9.0, 9.8 tok/s | 9.3, 9.2 tok/s |
+
+**Q4_0 is about 20 percent faster at prefill and identical at decode**, which
+closes #55 and answers what ARM's microkernels are worth here: less than their
+headline figures, because the comparison is against repacked Q4_K_M rather than
+against nothing. Q4_0 ships as an Advanced option, not as the Basic default,
+because decode is the part a user sits through and it did not move.
+
+Batch threads: 4, 5, 6 and 8 give 21.2, 22.7, 29.5 to 30.8, and 24.4 tok/s. Six
+is already the default. Reproduced three times, twice at 79 C, so not thermal.
+
+`tools/perf_probe.sh` sends the same long-answer prompt through fresh chats so
+runs are comparable. Use it rather than measuring by hand: every hand-driven
+attempt this session drifted into the wrong screen at least once.
+
 ### The battery as it stands, 28 July, E4B, all fixes in
 
 | # | Input | Reply |
