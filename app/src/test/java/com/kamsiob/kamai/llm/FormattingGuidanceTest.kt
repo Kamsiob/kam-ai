@@ -21,7 +21,10 @@ class FormattingGuidanceTest {
     // The anti-over-formatting half matters as much as the rest: swinging from
     // walls of text to bullets everywhere would be a worse outcome than the
     // original bug.
-    private val antiOverFormat = "Never a heading on a short answer"
+    // Moved when the rules became a shape rather than a list of "never" clauses
+    // (#126). The guard is on the guidance being present, not on any one
+    // sentence, so the marker moves with it.
+    private val antiOverFormat = "no heading and no list"
 
     @Test
     fun `every mode prompt carries the formatting guidance`() {
@@ -112,12 +115,15 @@ class FormattingExamplesTest {
         // Swinging from walls of text to bullets everywhere would be worse than
         // the original bug, and bullets everywhere is the clearest sign of
         // generic machine output.
+        // Restated as a shape for #126: what an answer starts with, what it ends
+        // with, and what a short one looks like. Same four prohibitions, in the
+        // form this model has repeatedly been shown to follow.
         listOf(
-            "Never a heading on a short answer",
-            "never prose turned into bullets",
-            "never a single-item list",
-            "never restate the question",
-            "never summarize at the end",
+            "An answer starts with the answer",
+            "no version of the question repeated back",
+            "no summary of what was just said",
+            "A short answer is one or two sentences",
+            "no heading and no list",
         ).forEach { assertThat(flat).contains(it) }
     }
 }
