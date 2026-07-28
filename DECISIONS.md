@@ -7593,3 +7593,32 @@ The three that worked fully all had the same form: **a reply does these things,
 in this order, and then stops.** The two that failed described a property rather
 than an ordered list. That is a narrower rule than "use a shape", and it is the
 one the evidence actually supports.
+
+
+## An intermittent defect cannot be closed on one good run
+
+#122 was closed on a single measurement and reopened an hour later. The reply the
+fix was meant to produce did appear:
+
+> Bread needs a hot oven, around 230C.
+> It needs a high temperature to set the crust properly.
+
+and the same input on the same build, in a later run, produced the restatement
+the issue was opened for:
+
+> It needs a hot oven, around 230C.
+
+The fix improved the odds and did not settle it. Closing on one sample was the
+error, and the condition that made it an error is the one that makes it tempting:
+the defect was already intermittent, so any single sample has a good chance of
+looking fixed.
+
+**The rule: a defect that appears intermittently is only closed on a run of the
+whole battery, and preferably more than one.** Ten inputs take about ten minutes,
+which is cheap next to recording a fix that is not there and then trusting the
+record.
+
+This also applies to the fixes recorded above as working. Logic Partner,
+Brainstorm and the format shape were each measured on two or three inputs, which
+is better than one and is not many. Each is stated here as measured rather than
+settled, and the ones with a single measurement behind them say so.
