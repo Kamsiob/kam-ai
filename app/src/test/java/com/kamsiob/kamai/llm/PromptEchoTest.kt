@@ -112,6 +112,33 @@ class PromptEchoTest {
     }
 
     @Test
+    fun obeyingTheInstructionsIsNotRecitingThem() {
+        // The trap in comparing replies against the prompt: the prompt says how
+        // to write, partly in the words to use. "say when you are unsure or might
+        // be wrong, and that it is worth checking and bookmarking" means a reply
+        // doing exactly that shares a long run with the instructions. It is the
+        // model obeying, not copying, and discarding it would punish the
+        // behaviour the prompt asks for.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        listOf(
+            "I might be wrong about the date, and it is worth checking and bookmarking.",
+            "I am not certain, so it is worth checking.",
+        ).forEach {
+            assertThat(PromptEcho.containsPromptText(it, system)).isFalse()
+        }
+
+        // And the other side of the line, so the threshold is pinned from both
+        // directions: instruction text quoted at length is still reciting, even
+        // though it is the same prompt these replies are obeying.
+        assertThat(
+            PromptEcho.containsPromptText(
+                "Match the shape of the answer to what was asked. Four examples of shape only.",
+                system,
+            ),
+        ).isTrue()
+    }
+
+    @Test
     fun anOrdinaryAnswerIsNotMistakenForTheInstructions() {
         // The prompt is written in plain English and tells the model how to
         // write, so short phrases from it genuinely appear in good answers. Only

@@ -158,7 +158,22 @@ object PromptEcho {
             normalizedReply == a || a.startsWith(normalizedReply) || normalizedReply.startsWith(a)
         }
 
-    private const val PROMPT_RUN = 36
+    /**
+     * How much contiguous instruction text a reply must contain before it counts
+     * as reciting rather than obeying.
+     *
+     * Lowered to 36 once and put back. The instructions tell the model how to
+     * write, partly in the words it should use: "say when you are unsure or might
+     * be wrong, and that it is worth checking and bookmarking". A reply that does
+     * exactly that shares a forty-character run with the prompt, so at 36 the
+     * guard would have discarded answers for following their own instructions.
+     *
+     * The case this was lowered for, a reply that recited the format examples in
+     * a different order, is not reachable at any safe threshold: its longest
+     * exact run is 25 characters. It is caught by [startsWithRoleMarker] instead.
+     * Better a check that is sure about less than one that is wrong about more.
+     */
+    private const val PROMPT_RUN = 48
 
     /**
      * True when [reply] contains a long verbatim run of [systemPrompt].
