@@ -7844,3 +7844,73 @@ frustrated, and a gate keyed to emotional register was tried and refused the
 people the mode exists for. The question asked first is whether an output is being
 sought. Somebody furious about their codebase wants work done. Somebody saying
 they miss him does not.
+
+## Where a decline rule sits decides whether it exists
+
+#129 was a rule that could never fire because of where it sat, and the shape is
+general enough to check for deliberately rather than wait for. **A fallback
+placed at the end of a first-match chain only ever sees the inputs that match
+nothing, which is rarely the set it was written for.** Anything that reads as a
+fit, however bad a fit, is claimed before the fallback is consulted.
+
+The refinement matters as much as the rule. Position alone is not the defect. It
+becomes one when an early rule in the chain is broad enough to claim almost
+anything. Brainstorm's rule 1 is "a lot of unsorted material, or overwhelmed",
+which a bereavement matches on sight, so nothing ever reached the escape hatch
+eleven rules later. A chain of narrow conditions with a fallback at the end is
+fine.
+
+Audited every mode for the same shape. Three findings.
+
+**Workbench has no escape hatch at all, and forbids the obvious one.** It says
+the user gives text and an instruction, to return only the transformed text, and:
+
+> If the instruction is ambiguous, pick the most ordinary reading and carry on
+> rather than asking.
+
+That is not a misplaced fallback, it is an absent one with the natural substitute
+ruled out in the same sentence. Somebody who taps the wrong mode chip and says
+their father died has handed Workbench a document and no instruction, and the
+prompt's answer to having no instruction is to pick a reading and carry on. This
+is the worst position of any mode and nothing had tested it.
+
+**Logic Partner has the rule, and it is last.** "If they bring distress rather
+than an idea, say this is not a debate topic and suggest General" sits in the
+final paragraph, immediately after an instruction to argue from their reasoning
+and their tradeoffs. It works today, which is the point worth recording: Logic's
+branches are narrow (does the argument hold or not), so nothing claims a
+bereavement on the way past. Being last is survivable when nothing upstream is
+greedy. It is still the most fragile rule in the file, and it is tested rather
+than trusted.
+
+**The shared root is in the hard rules**, which every mode inherits: "Told
+something with no question in it, respond to the substance." That is deliberately
+broad, it is right for General, and it is what points every other mode at a
+disclosure before any mode-specific rule gets a say.
+
+Whenever a rule chain is written from here: check what the first rule claims
+before deciding where the exceptions go.
+
+## A measurement taken with a broken instrument is not evidence
+
+Three defects were found in the device harness in one day, after it had been used
+to produce figures that decisions were being made on. The wait was a timer rather
+than a completion check, so replies were photographed mid-sentence. Composer text
+survived into a new conversation, so an interrupted run silently prepended a
+fragment to the next message. An unconditional Back was eaten by the keyboard, so
+forty conversations became one and the focus check passed throughout.
+
+None of them failed loudly. All three produce output that looks exactly like
+data.
+
+**The standing rule: when a harness defect is found, every figure that harness
+produced is re-taken rather than reasoned about.** Not adjusted, not
+caveated, not argued down to a range. The temptation is to decide which numbers
+were probably unaffected, and that reasoning is unreliable in exactly the way the
+instrument was.
+
+Applied immediately, the 85 percent restatement rate for #122 is void. It was not
+obviously touched by any of the three, since it counted guard rejections in the
+log rather than reading screenshots, but the run used the same navigation with the
+same unconditional Back, so whether those twelve conversations were twelve
+conversations is unknown. That is enough. It is re-taken, not defended.
