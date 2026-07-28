@@ -236,6 +236,56 @@ object PromptEcho {
     }
 
     /**
+     * Why a reply was rejected, in enough detail to debug from a log.
+     *
+     * A guard that cannot explain itself cannot be debugged. The first version
+     * logged only that something matched, and when a reply was rejected that
+     * should not have been, there was no way to tell which of four checks did it
+     * or on what text. That cost a night of guessing.
+     */
+    data class Reason(val check: String, val matched: String)
+
+    /** The reason [isBadReply] would return true, or null when it would not. */
+    fun reasonFor(reply: String, systemPrompt: String, userMessage: String?): Reason? {
+        val n = normalize(reply)
+        if (n.isEmpty()) return null
+        if (isAllowedOutright(n)) return null
+        if (isLegitimateExampleAnswer(n, userMessage)) return null
+
+        lines.firstOrNull { line ->
+            val answer = normalize(line.answer)
+            (n == answer || n.startsWith(answer)) && !line.isAnsweringItsOwnExample(userMessage)
+        }?.let { return Reason("example-answer", it.answer.take(60)) }
+
+        if (startsWithRoleMarker(reply)) {
+            return Reason("role-marker", reply.trimStart().lineSequence().firstOrNull().orEmpty().take(40))
+        }
+        if (isParrot(reply, userMessage)) {
+            return Reason("parrot", n.take(60))
+        }
+        if (isRestatement(reply, userMessage)) {
+            return Reason("restatement", n.take(60))
+        }
+        promptRunIn(reply, systemPrompt)?.let { return Reason("prompt-run", it) }
+        return null
+    }
+
+    /** The exact run of instruction text a reply reproduced, for the log. */
+    private fun promptRunIn(reply: String, systemPrompt: String): String? {
+        val haystack = normalize(systemPrompt)
+        val n = normalize(reply)
+        if (haystack.isEmpty() || n.length < MIN_CHARS) return null
+        if (n.length <= PROMPT_RUN) return if (haystack.contains(n)) n else null
+        var i = 0
+        while (i + PROMPT_RUN <= n.length) {
+            val w = n.substring(i, i + PROMPT_RUN)
+            if (haystack.contains(w)) return w
+            i += PROMPT_RUN / 2
+        }
+        return null
+    }
+
+    /**
      * The one question the reply path asks, so every exemption is applied once.
      *
      * The checks grew one at a time and the exemptions did not follow them. The
@@ -257,6 +307,7 @@ object PromptEcho {
         return isEcho(reply, userMessage) ||
             containsPromptText(reply, systemPrompt) ||
             isParrot(reply, userMessage) ||
+            isRestatement(reply, userMessage) ||
             startsWithRoleMarker(reply)
     }
 
@@ -278,6 +329,77 @@ object PromptEcho {
             line.isAnsweringItsOwnExample(userMessage) &&
                 (normalizedReply.startsWith(answer) || answer.startsWith(normalizedReply))
         }
+
+    /**
+     * Words too common to carry meaning, so an overlap made only of these is not
+     * an overlap worth acting on.
+     */
+    private val FUNCTION_WORDS = setOf(
+        "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "for",
+        "from", "has", "have", "how", "i", "if", "in", "is", "it", "its", "of",
+        "on", "or", "should", "so", "that", "the", "their", "them", "then",
+        "there", "they", "this", "to", "was", "were", "what", "when", "which",
+        "will", "with", "you", "your",
+    )
+
+    /**
+     * Crudely reduced to a stem, so "ovens" and "oven" count as the same word.
+     *
+     * Without this, "Hot ovens are needed for bread." shares two words with
+     * "Bread needs a hot oven" instead of four, and a restatement escapes on
+     * grammar alone. Deliberately dumb: this is comparing a reply to one message,
+     * not indexing a corpus, and a wrong stem costs a percentage point on one
+     * ratio.
+     */
+    private fun stem(word: String): String = when {
+        word.length > 4 && word.endsWith("ies") -> word.dropLast(3) + "y"
+        word.length > 4 && word.endsWith("es") -> word.dropLast(2)
+        word.length > 3 && word.endsWith("ed") -> word.dropLast(2)
+        word.length > 4 && word.endsWith("ing") -> word.dropLast(3)
+        word.length > 3 && word.endsWith("s") -> word.dropLast(1)
+        else -> word
+    }
+
+    private fun contentWords(text: String): List<String> =
+        normalize(text).split(" ")
+            .filter { it.isNotBlank() && it !in FUNCTION_WORDS }
+            .map { stem(it) }
+
+    /**
+     * How much of a reply has to be the user's own content words before it counts
+     * as a restatement rather than a reply.
+     *
+     * Calibrated against replies already judged good and bad on the device, not
+     * picked. "It needs a hot oven, around 230C." shares every content word with
+     * the message and is a restatement. "It needs a high temperature to set the
+     * crust properly." shares one in six and is a reply. "It boils at 100 degrees
+     * Celsius at standard atmospheric pressure." shares four in seven and is
+     * acceptable, which is what puts the line above that rather than below it.
+     */
+    private const val RESTATEMENT_OVERLAP = 0.65
+
+    /**
+     * True when the reply says the user's own content back in different words
+     * (#122).
+     *
+     * [isParrot] catches a copy, by containment, and cannot catch this: "Bread
+     * needs a hot oven, around 230C." answered "It needs a hot oven, around
+     * 230C." is not contained in the message, because the first word changed.
+     *
+     * Length is part of the test on purpose. A long answer that happens to reuse
+     * the subject's vocabulary is answering; a reply about as long as the message
+     * and made of the same words is repeating.
+     */
+    fun isRestatement(reply: String, userMessage: String?): Boolean {
+        val said = contentWords(userMessage.orEmpty())
+        val back = contentWords(reply)
+        if (said.size < 3 || back.size < 3) return false
+        // Not much longer than the message. An answer that adds substance is
+        // longer than what it answers, and this is looking for one that does not.
+        if (back.size > said.size * 3 / 2) return false
+        val shared = back.count { it in said.toSet() }
+        return shared.toDouble() / back.size >= RESTATEMENT_OVERLAP
+    }
 
     /**
      * True when the reply is really the user's own message handed back (#122).

@@ -1223,9 +1223,16 @@ class ChatViewModel(
                         }
                         break
                     } catch (e: EchoDetected) {
+                        // Every rejection says which check fired, on what text,
+                        // and what the model had actually written. Without the
+                        // draft there is no way to tell a correct rejection from
+                        // a false positive after the fact, and a guard that
+                        // regenerates silently cannot be debugged at all.
+                        val why = PromptEcho.reasonFor(builder.toString(), systemText, lastUser)
                         android.util.Log.w(
                             "KamEcho",
-                            "reply matched prompt text, retried=$retried",
+                            "rejected retried=$retried check=${why?.check ?: "streaming"} " +
+                                "matched=${why?.matched?.take(60)} draft=${builder.toString().take(160)}",
                         )
                         // Abandoning the stream trips the same path a user stop
                         // does, and the transcript then said "You stopped this
