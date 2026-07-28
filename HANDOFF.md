@@ -30,11 +30,20 @@ All three narrowed considerably once they were measured across runs rather than
 observed once.
 
 - **#122** is not "statements get repeated back". Water boiling, concrete curing
-  and a train time all get real replies that add something. One input resists,
-  about one time in three: "Bread needs a hot oven, around 230C.", because it
-  already carries its own most obvious follow-on and saying something new means
-  reaching for *why*. Keep it in the battery as the hardest of its kind; do not
-  generalise from it.
+  and a train time all get real replies that add something. One input resists:
+  "Bread needs a hot oven, around 230C.", because it already carries its own most
+  obvious follow-on and saying something new means reaching for *why*. Keep it in
+  the battery as the hardest of its kind, and do not generalize from it.
+
+  **The rate was measured on 28 July and it is not one in three.** That figure
+  came from four samples and was used to argue the cause was sampling. Twelve
+  fresh chats, counting the guard's own rejections rather than reading replies:
+  `runs=12 drafts=21 rejections=18`, every one of them the restatement check. The
+  model restates on about 85 percent of drafts, which is the most probable
+  continuation rather than an unlucky draw, and the sampler values the research
+  recommends against echo (temperature 0.7, minimum p 0.05) are already in place.
+  Use `tools/echo_rate.sh` rather than impressions. What is left is whether a
+  larger model does the same, which is the same question #119 turned on.
 - **#124** is not "Logic Partner does not engage". It engages, in the right
   shape, on first turns. It misreads a *sound* argument's premise in order to
   have something to object to. Restructuring the branch decision changed nothing,
@@ -42,6 +51,49 @@ observed once.
 - **#126** is half fixed. A heading no longer appears above a one-sentence
   answer; a preamble restating the question still does. The stronger fix removed
   the preamble and thinned the answers, and was reverted.
+
+### #130 and #129, diagnosed 28 July
+
+Both turned out to be misdescribed by their own issues, and both diagnoses came
+from instrumenting rather than from reading the prompt harder.
+
+**#130 is a true positive, not a fallback bug.** The guard now logs which check
+fired and what it matched, so the draft it rejected can be read directly:
+
+    check=prompt-run matched=let s start from what you already notice rather
+
+That is Brainstorm's own worked opening, reproduced verbatim in answer to an
+unrelated question about missed deadlines. The guard caught it and fell back,
+which is what it is for. Removing the two worked openings stops the copying and
+reopens #58, one clean run in three, so it was reverted. Rotating them per
+request is architecturally unavailable: the system prompt is the KV cache prefix,
+and varying it costs about 28 seconds of re-prefill per turn on E4B against 1.4.
+
+**#129's rule is not missing, it is unreachable.** Brainstorm already says "if it
+is not a brainstorm, answer briefly and offer General or Workbench". It sits after
+an eleven-rule first-match chain, behind "if none clearly matches", and rule 1 is
+"a lot of unsorted material, or overwhelmed", so a bereavement is claimed on the
+first pass. Worth carrying forward as a shape: **a fallback at the end of a
+first-match chain only ever sees the inputs that match nothing.** The fix moves
+the check in front of the chain and asks whether an output is being sought rather
+than how upset the message sounds, because distress and frustration are not
+distinguishable in text and this mode's audience arrives stuck and angry. Pending
+measurement against `tools/eval/mode-fit.txt`; if it cannot engage with 95 percent
+of the workable set and decline 90 percent of the disclosures, it and its budget
+raise both come out.
+
+### How to test forty things without giving up on the third
+
+`tools/eval/mode_fit.sh` crops each capture to the reply and tiles ten onto a
+sheet, so a forty-conversation evaluation is four images rather than forty. This
+is worth knowing because the alternative is an evaluation that gets run once and
+then quietly stops being run, and a measurement nobody repeats is worse than none:
+it keeps being cited after it stops being true.
+
+**One sample per input cannot tell a guard from the sampler.** A before-and-after
+table invites reading every difference as an effect of the change, and doing that
+produced a wrong claim in DECISIONS.md on 28 July that a test then disproved.
+Attribute a row only when the mechanism is checkable.
 
 ### Performance, settled 28 July
 
