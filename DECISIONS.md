@@ -7517,3 +7517,38 @@ mistaken for a control token by anything that scans for those.
 into these symptoms. None of them could have worked, because the prompt was not
 where the difference was. What separated a good turn from a bad one was not what
 the instructions said but where they sat relative to the question.
+
+## Adding a prohibition to a long prompt stopped changing this model's behavior
+
+Three prompt edits were tried on the device in one session and measured against
+the input that produced the defect. Two of them changed nothing at all.
+
+**Did not work.** "Never hand their own message back as the reply" added to the
+hard rules, against a message that reliably produced a parrot. The same input
+parroted twice again on the next run.
+
+**Did not work.** "Never offer a choice of approach, since choosing the method is
+your job" added to Brainstorm's Never list, against the message in #73. The next
+run still opened with two approaches joined by "Or, we can try".
+
+**Worked.** Replacing Logic Partner's *description* of what to do with a sound
+argument with an ordered three-step shape. That input had been producing the
+user's own message handed back, twice, then the fallback; afterwards it produced
+all three steps in order.
+
+Both reverted, because an unproven rule is not worth its prefill cost on every
+turn, and because a prompt that accumulates rules nobody has shown to work is how
+these prompts got long enough to be part of the problem.
+
+The pattern is consistent with what the over-prompting work would predict.
+Brainstorm is the largest prompt in the app at roughly 2,100 tokens and already
+carries a Never list, a numbered method table and two worked openings. Another
+clause in that list is another clause competing with everything already there.
+What worked was not adding a rule but **changing the shape of one that already
+existed**, in the mode with the second-largest prompt.
+
+So the working hypothesis for the remaining mode defects (#73, #115, #122) is
+that they will not yield to more instruction. Either an existing instruction
+needs restructuring into something a small model follows, or the honest move is
+the one #73 itself suggests: rewrite the rule to describe what the model actually
+does well, rather than keeping a rule it does not take.
