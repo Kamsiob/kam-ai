@@ -7622,3 +7622,49 @@ This also applies to the fixes recorded above as working. Logic Partner,
 Brainstorm and the format shape were each measured on two or three inputs, which
 is better than one and is not many. Each is stated here as measured rather than
 settled, and the ones with a single measurement behind them say so.
+
+## Q4_0 against Q4_K_M, measured back to back
+
+The one untried performance lever was the quantisation format. ARM's KleidiAI
+microkernels are compiled into the binary and claim only `Q4_0`, `Q8_0`, `F32`
+and `F16`, so with every shipped model at `Q4_K_M` they never engage. The
+question was what they are worth.
+
+Answered by adding the same E2B weights in `Q4_0` and measuring both within a few
+minutes of each other, on the same phone in the same thermal state, with the same
+prompt through `tools/perf_probe.sh`:
+
+| | Q4_0 | Q4_K_M |
+|---|---|---|
+| Prefill | 66.7, 71.4 tok/s | 58.2, 56.7 tok/s |
+| Decode | 9.0, 9.8 tok/s | 9.3, 9.2 tok/s |
+
+**Prefill is about 20 percent faster. Decode is the same.**
+
+That is a smaller answer than ARM's headline figures suggest, and it is the one
+that matters here, because it was measured on this device against the path this
+app actually runs, which already has weight repacking on.
+
+### What it changes
+
+Prefill is what the cold path is made of: the instruction block has to be decoded
+before a first message can be answered, and that is where the seconds are. Twenty
+percent off it is worth having and does not change what the app feels like once a
+conversation is warm, because decode is what a user watches and decode did not
+move.
+
+So `Q4_0` stays as an Advanced option rather than becoming the Basic default.
+Switching the default would trade a coarser quantisation, with a real if
+unmeasured risk to answer quality, for a faster cold start and no change to the
+thing people actually sit through. That is not a trade worth making without a
+quality comparison, and the quality comparison is a battery run on each, which is
+the obvious next step if anyone wants to make it.
+
+Answer quality on `Q4_0` looked fine in passing: asked why bread needs a hot
+oven, it gave a correct eight-sentence explanation of the Maillard reaction. That
+is one sample and is not a quality comparison.
+
+### And it means KleidiAI is no longer dead weight
+
+The kernels now have a model that uses them. That was the other half of the case
+for keeping them compiled in.
