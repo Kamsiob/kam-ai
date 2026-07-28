@@ -102,6 +102,7 @@ the whole suite.
 | Stopping a generation mid-list | Continue duplicated the fragment: "Inspect the - Inspect the engine bay" |
 | Reading a reply carefully rather than glancing | A heading above a one-sentence answer, and the question restated (#126) |
 | Turning memory Off and watching the line under a reply | Memory Off still sent stored memories (#123) |
+| Noticing an outlined bookmark on a reply that was in Follow-ups | Reopening a conversation forgot what was bookmarked, and re-bookmarking duplicated it (#128) |
 
 Areas checked and found sound: Workbench tighten, search across content,
 backgrounding mid-generation, a real user stop and its Continue affordances,
