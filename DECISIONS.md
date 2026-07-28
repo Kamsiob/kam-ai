@@ -7594,6 +7594,18 @@ in this order, and then stops.** The two that failed described a property rather
 than an ordered list. That is a narrower rule than "use a shape", and it is the
 one the evidence actually supports.
 
+**And the repair for the property case: name the situation instead.** The format
+preamble was eventually fixed by "when the answer is a list, the first line is
+the first item". That is still a property rather than an ordered list, and it
+works because it names the case it applies to, which leaves the model no room to
+generalise it into a rule about length. The failed version, "the first word of
+your reply is the first word of the answer", named no case and was generalised
+immediately.
+
+So the full rule, after five attempts across four modes: **prefer an ordered list
+of what a reply does; where that does not fit, name the situation the rule
+applies to. Never state a bare property.**
+
 
 ## An intermittent defect cannot be closed on one good run
 
