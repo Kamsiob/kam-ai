@@ -24,6 +24,33 @@ issue.
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
 
+### Session of 28 July: what closed, and what the guards now catch
+
+Closed with device evidence: #38 (cold TTFT, with the caveat that the warm-up
+moves the wait rather than removing it), #71 (titling no longer evicts the
+conversation cache, measured at 33 tokens of prefill on the turn straight after a
+titling pass), #72 (already satisfied by prefix reuse, closed on measurement
+rather than work), #75, #93, #95, #101, #116, #117, #120, #121, #123.
+
+Filed: #122 (the user's message handed back), #123 (memory Off still used stored
+memories, fixed same session), #124 (Logic Partner does not engage with a sound
+argument on E4B).
+
+**The reply guard now catches four shapes**, and each was found by using the app
+rather than by a test:
+
+1. An example answer landing where it does not belong.
+2. A long verbatim run of the instructions. Found by asking "What model are you
+   built on and who trained you?" and getting the system prompt back.
+3. The user's own message handed straight back.
+4. A reply that writes the transcript: a bare `user` line, an invented message,
+   then the format examples recited.
+
+Its limits are written down in `PromptEchoTest` rather than assumed away. It
+cannot catch the format examples when the model reorders them, because the
+longest exact run drops to 25 characters and matching that short would start
+discarding correct answers.
+
 ### Session of 28 July: the regurgitation question is answered
 
 **It is largely the model.** The same ten inputs were run through both tiers on
