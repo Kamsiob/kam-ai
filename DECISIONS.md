@@ -7568,3 +7568,28 @@ same text arranged differently, so neither cost a token of prefill.
 
 Before adding anything to a prompt, check whether what you are about to say is
 already in it, phrased as a condition.
+
+### Where the pattern stops
+
+Two boundaries found by pushing it until it broke, both worth knowing before
+reaching for it a fifth time.
+
+**It works on what a reply contains, not on what the model concludes.** Logic
+Partner still misreads a sound argument's premise in order to have something to
+object to, and restructuring the decision that selects the branch changed
+nothing. That is a judgement rather than a form, and form is what this lever
+moves.
+
+**A shape about position generalises into a shape about size.** The format rules
+were restated as "an answer starts with the answer", which fixed a heading
+appearing above a one-sentence reply and left a preamble in place. Pushed harder,
+to "the first word of your reply is the first word of the answer", the preamble
+went and so did the answer: a request for eight things to check came back as
+eight nouns in a row with none of the detail that made the previous answer worth
+reading. Reverted. The model read a rule about where a reply starts as a rule
+about how much a reply should contain.
+
+The three that worked fully all had the same form: **a reply does these things,
+in this order, and then stops.** The two that failed described a property rather
+than an ordered list. That is a narrower rule than "use a shape", and it is the
+one the evidence actually supports.
