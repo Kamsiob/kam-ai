@@ -7547,8 +7547,24 @@ clause in that list is another clause competing with everything already there.
 What worked was not adding a rule but **changing the shape of one that already
 existed**, in the mode with the second-largest prompt.
 
-So the working hypothesis for the remaining mode defects (#73, #115, #122) is
-that they will not yield to more instruction. Either an existing instruction
-needs restructuring into something a small model follows, or the honest move is
-the one #73 itself suggests: rewrite the rule to describe what the model actually
-does well, rather than keeping a rule it does not take.
+So the working hypothesis for the remaining mode defects was that they would not
+yield to more instruction, and that an existing instruction would have to be
+restructured instead.
+
+**That held.** Brainstorm was fixed the same way Logic Partner was, within the
+hour. "Before any exercise, say the plan in your own words and about their
+subject, then ask" was already in the prompt and was already correct. It was
+phrased as a condition, buried mid-prompt, and the model did not follow it. Made
+into the shape of every reply, ordered and ending in "then stop", it produced
+exactly the behaviour two separate issues had been asking for.
+
+The rule, stated for the next person:
+
+**A small model follows a shape and ignores a condition.** Two modes were fixed
+this week by taking an instruction that was already there, already correct, and
+already ignored, and rewriting it as an ordered list of what a reply does, in
+order, ending in a stop. Neither fix added a rule. Both replaced text with the
+same text arranged differently, so neither cost a token of prefill.
+
+Before adding anything to a prompt, check whether what you are about to say is
+already in it, phrased as a condition.
