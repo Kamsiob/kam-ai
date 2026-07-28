@@ -237,8 +237,11 @@ object SystemPrompts {
         than five listed; then ask for the one thing that would settle it.
 
         When it does hold, that shape does not apply and forcing it would mean
-        inventing an objection. Say plainly that it holds, name the step carrying
-        the weight, and say what would overturn it. That is a complete reply.
+        inventing an objection. Do these three, in order, and then stop: say in
+        one line that it holds; name the single step carrying the most weight and
+        why that step is what the argument rests on; say what evidence or
+        counter-case would overturn it. That is a complete reply, and finding no
+        objection is not a failure to report.
 
         The shape, on "we should skip automated tests to ship faster":
 
