@@ -136,6 +136,50 @@ class PromptEchoTest {
     }
 
     @Test
+    fun aReplyThatWritesTheTranscriptIsCaught() {
+        // Seen in Logic Partner, 28 July. The reply opened with a bare "user"
+        // line, invented a message from the user, and then recited the prompt's
+        // format examples. The invented text differs every time, so matching
+        // against the prompt cannot be relied on, but the opening is always one
+        // of a few words and is never a legitimate way to begin an answer.
+        assertThat(
+            PromptEcho.startsWithRoleMarker("user\nI'm trying to write a short report."),
+        ).isTrue()
+        assertThat(PromptEcho.startsWithRoleMarker("model:\nHere is the answer.")).isTrue()
+        assertThat(PromptEcho.startsWithRoleMarker("assistant")).isTrue()
+    }
+
+    @Test
+    fun anAnswerThatMerelyMentionsAUserIsNotCaught() {
+        // The check is on the reply opening with a bare speaker label, not on the
+        // word appearing. "User" is an ordinary noun in this app's subject matter.
+        assertThat(PromptEcho.startsWithRoleMarker("User accounts are not needed here.")).isFalse()
+        assertThat(PromptEcho.startsWithRoleMarker("The user decides what is kept.")).isFalse()
+    }
+
+    @Test
+    fun reorderedExamplesAreNotCaughtByTheRunCheck() {
+        // Recorded rather than fixed, because the honest answer is that this
+        // check cannot catch it and should not be stretched until it can.
+        //
+        // The reply seen on 28 July recited the format examples with the headings
+        // in the opposite order, which cuts the longest exact run to 25
+        // characters. Matching on runs that short would start catching ordinary
+        // answers, and discarding a good reply is the same failure as showing a
+        // copied one.
+        //
+        // That reply is caught anyway, by startsWithRoleMarker, because it opened
+        // by announcing a speaker. This test exists so the limitation is written
+        // down rather than assumed away.
+        val system = SystemPrompts.forMode(Mode.LOGIC)
+        val recited = "## What to watch\nA paragraph.\n## Cost\nA paragraph."
+        assertThat(PromptEcho.containsPromptText(recited, system)).isFalse()
+        assertThat(
+            PromptEcho.startsWithRoleMarker("user\nI'm writing a report.\n$recited"),
+        ).isTrue()
+    }
+
+    @Test
     fun ordinaryRepliesAreNotTouched() {
         listOf(
             "I don't have enough context to know what is happening. Tell me more.",

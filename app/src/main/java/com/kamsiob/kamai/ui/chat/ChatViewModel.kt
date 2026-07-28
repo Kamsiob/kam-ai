@@ -1216,7 +1216,8 @@ class ChatViewModel(
                             (
                                 PromptEcho.isEcho(builder.toString(), lastUser) ||
                                     PromptEcho.containsPromptText(builder.toString(), systemText) ||
-                                    PromptEcho.isParrot(builder.toString(), lastUser)
+                                    PromptEcho.isParrot(builder.toString(), lastUser) ||
+                                    PromptEcho.startsWithRoleMarker(builder.toString())
                                 )
                         ) {
                             throw EchoDetected()

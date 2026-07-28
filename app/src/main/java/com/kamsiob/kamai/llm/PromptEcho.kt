@@ -135,7 +135,7 @@ object PromptEcho {
      * write and the model writes that way. Forty-eight characters of an exact
      * run is not a house style, it is a copy.
      */
-    private const val PROMPT_RUN = 48
+    private const val PROMPT_RUN = 36
 
     /**
      * True when [reply] contains a long verbatim run of [systemPrompt].
@@ -172,6 +172,27 @@ object PromptEcho {
         val n = normalize(partial)
         if (n.length < PROMPT_RUN) return false
         return normalize(systemPrompt).contains(n.substring(0, PROMPT_RUN))
+    }
+
+    /**
+     * Role markers a chat template uses. A reply that opens with one of these is
+     * the model writing the transcript rather than a turn in it.
+     */
+    private val ROLE_OPENERS = listOf("user", "model", "assistant", "system")
+
+    /**
+     * True when the reply begins by announcing a speaker.
+     *
+     * Seen in Logic Partner: a reply that opened with a bare "user" line followed
+     * by an invented message, and then recited the prompt's format examples. The
+     * text after it was different every time, so nothing matching against the
+     * prompt could be relied on to catch it, but the opening is always the same
+     * few words and is never a legitimate way to start an answer.
+     */
+    fun startsWithRoleMarker(reply: String): Boolean {
+        val firstLine = reply.trimStart().lineSequence().firstOrNull()?.trim().orEmpty()
+        val bare = firstLine.trimEnd(':').lowercase()
+        return bare in ROLE_OPENERS
     }
 
     /**
