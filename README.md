@@ -273,7 +273,7 @@ which applies to the pack content only.
 ## Project
 
 - [Board](https://github.com/users/Kamsiob/projects/1): what is being worked on, what is blocked, and what has shipped
-- [Roadmap](https://github.com/Kamsiob/kam-ai/issues?q=is%3Aissue+label%3Aroadmap): what is planned and what is deliberately not
+- [Roadmap](ROADMAP.md): what is planned and what is deliberately not
 - [Issues](https://github.com/Kamsiob/kam-ai/issues): the authoritative record of state
 - [Contributing](CONTRIBUTING.md), [Architecture](ARCHITECTURE.md), [Security](SECURITY.md), [Code of conduct](CODE_OF_CONDUCT.md)
 
