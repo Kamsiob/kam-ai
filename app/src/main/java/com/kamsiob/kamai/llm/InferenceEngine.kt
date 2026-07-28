@@ -284,9 +284,16 @@ class InferenceEngine(
         val decodeMs = (System.nanoTime() - decodeStart) / 1_000_000.0
         val decodeTps = if (decodeMs > 0) produced * 1000.0 / decodeMs else 0.0
         val prefillTps = if (prefillMs > 0 && ingested > 0) ingested * 1000.0 / prefillMs else 0.0
+        // The model id is on every line on purpose. A measurement that does not
+        // say what it measured is worse than none: a whole run was read as one
+        // model's figures when a finished download had quietly made another one
+        // active, and it was caught only by the numbers matching the other
+        // tier's recorded baseline.
+        val runningModel = (_state.value as? EngineState.Ready)?.model?.id ?: "unknown"
         Log.i(
             "KamPerf",
-            "TTFT=${"%.0f".format(firstTokenMs)}ms prefill=${ingested}tok/${"%.0f".format(prefillMs)}ms" +
+            "model=$runningModel mode=$mode" +
+                " TTFT=${"%.0f".format(firstTokenMs)}ms prefill=${ingested}tok/${"%.0f".format(prefillMs)}ms" +
                 " (${"%.1f".format(prefillTps)} tok/s) decode=${produced}tok/${"%.0f".format(decodeMs)}ms" +
                 " (${"%.1f".format(decodeTps)} tok/s) threads=${threadCount()} ctx=${contextSize}",
         )
