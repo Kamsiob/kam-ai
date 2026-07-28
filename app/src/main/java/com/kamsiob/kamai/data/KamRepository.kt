@@ -182,7 +182,32 @@ class KamRepository(
         }
 
     suspend fun activeModel(): TierModel? =
-        db.artifacts().active(ArtifactKind.LLM)?.let { ModelCatalog.byId(it.id) }
+        debugModelOverride() ?: db.artifacts().active(ArtifactKind.LLM)?.let { ModelCatalog.byId(it.id) }
+
+    /**
+     * `debug.kamai.model` forces which downloaded model is used, for on-device
+     * measurement:
+     *
+     *     adb shell setprop debug.kamai.model gemma-4-e2b-it-q4km
+     *     adb shell setprop debug.kamai.model ""     (back to the chosen one)
+     *
+     * The same escape hatch as `debug.kamai.threads`, and for the same reason.
+     * Comparing two tiers on the same inputs means switching models a dozen
+     * times, and doing that by tapping through Settings is both slow and a source
+     * of runs that measured the model nobody meant to measure.
+     *
+     * Ignored unless the file is actually present, so this can never point the
+     * app at a model that is not there.
+     */
+    private fun debugModelOverride(): TierModel? {
+        val id = runCatching {
+            val c = Class.forName("android.os.SystemProperties")
+            val m = c.getMethod("get", String::class.java)
+            (m.invoke(null, "debug.kamai.model") as String).takeIf { it.isNotBlank() }?.trim()
+        }.getOrNull() ?: return null
+        val model = ModelCatalog.byId(id) ?: return null
+        return model.takeIf { fileFor(it).exists() }
+    }
 
     suspend fun registerModel(model: TierModel, file: File, makeActive: Boolean = true) {
         db.artifacts().upsert(
