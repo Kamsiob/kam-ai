@@ -84,6 +84,32 @@ object ModelCatalog {
      */
     val advanced = listOf(
         TierModel(
+            // The same weights as Basic, quantised Q4_0 instead of Q4_K_M, so the
+            // two are directly comparable (#55).
+            //
+            // Q4_0 is the format ARM's KleidiAI microkernels claim. Those kernels
+            // are compiled into the binary and select themselves at load, and
+            // they never engage today because every shipped model is Q4_K_M, so
+            // they sit inert. This is the one model that can tell us what they
+            // are worth on this hardware.
+            //
+            // Listed rather than swapped in: Q4_0 is a coarser quantisation and
+            // may answer worse, and whether it is worth shipping is a measured
+            // question, not an assumption. Remove it if it loses on both counts.
+            id = "gemma-4-e2b-it-q40",
+            tier = Tier.BASIC,
+            displayName = "Gemma 4 E2B, Q4_0",
+            parameterLabel = "E2B",
+            quantisation = "Q4_0",
+            downloadBytes = 3_041_378_400L,
+            contextTokens = 4096,
+            licence = "Apache-2.0",
+            sourceUrl = "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf",
+            sha256 = "31d3a3c630d4e71a7416498c42660dd3805066948acaec76a47e1ffac7010132",
+            format = ChatFormat.GEMMA,
+            description = "The same model as Basic in an older quantisation, which some phones run faster.",
+        ),
+        TierModel(
             id = "gemma-4-e4b-it-q6k",
             tier = Tier.BEST,
             displayName = "Gemma 4 E4B, maximum quality",
