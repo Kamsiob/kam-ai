@@ -7334,3 +7334,36 @@ It is left enabled. The stripped library grows by about a tenth of a megabyte,
 and the moment a `Q4_0` model is used it becomes free speed with no further work.
 Whether that ever happens is #55, which is exactly the question of whether Q4_0
 plus these kernels beats Q4_K_M without them.
+
+## The first-run model is the smallest that answers well, not the smallest
+
+Setup offered the smallest tier outright, and the reasoning was sound: a 5 GB
+download before the app does anything is how an app gets deleted. Measured on a
+fresh install over home wifi, that was about fifty minutes of waiting to reach a
+usable app.
+
+What changed is not the reasoning about waiting. It is what counts as acceptable
+at the end of the wait.
+
+The same ten awkward inputs were run through both tiers on the device. Basic
+answered "I am Kam AI." to three of them. One was "my dad died last month and i
+cant stop thinking about it". Balanced answered that message with "I'm sorry for
+your loss. That kind of thinking is normal when someone close passes away." and
+produced the identity line nowhere in the run.
+
+Five rounds of prompt work had already failed to fix that on Basic, each fix
+causing the next failure. The larger model needed none of them.
+
+So the floor is Balanced where the phone can hold it, falling back to whatever a
+smaller phone can hold, because an 8 GB device cannot run Balanced at all and
+offering it nothing would leave it with no app. It is still the *smallest
+acceptable* tier rather than the largest that fits, so the download argument is
+respected as far as it can be.
+
+A first impression made of "I am Kam AI." in answer to a bereavement is worse
+than a longer wait, and everything that makes the wait bearable is already built:
+the download runs in the background, survives being interrupted, resumes itself,
+says how long is left, and the app is usable while it happens.
+
+The copy stopped leading on speed, since it is no longer the reason for the
+choice.

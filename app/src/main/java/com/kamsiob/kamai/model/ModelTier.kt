@@ -137,6 +137,41 @@ object TierRecommendation {
     fun isLocked(tier: Tier, totalRamGb: Int): Boolean = totalRamGb < tier.minimumRamGb
 
     /**
+     * The smallest tier whose answers are good enough to hand somebody on first
+     * run, measured rather than assumed (#119).
+     *
+     * Setup used to offer the smallest tier outright, because a 5 GB download
+     * before the app does anything is how an app gets deleted. That reasoning
+     * still holds and is why this is the *smallest* acceptable tier rather than
+     * the largest that fits. What changed is what counts as acceptable.
+     *
+     * Ten awkward inputs were run through both tiers on the device. Basic
+     * answered "I am Kam AI." to three of them, including "my dad died last month
+     * and i cant stop thinking about it". Balanced answered the same message with
+     * "I'm sorry for your loss", and produced the identity line nowhere. Five
+     * rounds of prompt work had already failed to fix that on Basic, and the
+     * larger model needed none.
+     *
+     * A first impression made of that answer is worse than a longer wait, and a
+     * model that says it to somebody who has just lost their father is not a tier
+     * to recommend to save twenty minutes.
+     */
+    val QUALITY_FLOOR = Tier.BALANCED
+
+    /**
+     * What first run should offer: the quality floor when the phone can hold it,
+     * and otherwise the best it can hold.
+     *
+     * Falling back rather than refusing is deliberate. A phone with 8 GB cannot
+     * run Balanced at all, and offering nothing would leave it with no app. Basic
+     * is worse, and it is what that device has.
+     */
+    fun forFirstRun(totalRamGb: Int): Tier? {
+        if (!isLocked(QUALITY_FLOOR, totalRamGb)) return QUALITY_FLOOR
+        return available(totalRamGb).maxByOrNull { it.minimumRamGb }
+    }
+
+    /**
      * The tier to recommend, leaving comfortable headroom.
      *
      * A tier is recommended only when the device has its requirement plus the

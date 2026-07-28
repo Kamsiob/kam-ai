@@ -139,6 +139,33 @@ class MarketedRamTest {
     }
 
     @Test
+    fun firstRunOffersTheSmallestTierThatAnswersWell() {
+        // Not simply the smallest. Measured on the device, Basic answered "I am
+        // Kam AI." to three of ten awkward inputs, one of them a bereavement, and
+        // Balanced answered that message properly and never produced the line
+        // (#119). A shorter download does not make up for that first impression.
+        val flagship = marketedRamGb(15_948_992L * 1024)
+        assertThat(TierRecommendation.forFirstRun(flagship)).isEqualTo(Tier.BALANCED)
+        assertThat(TierRecommendation.forFirstRun(12)).isEqualTo(Tier.BALANCED)
+    }
+
+    @Test
+    fun aPhoneTooSmallForTheFloorGetsWhatItCanHold() {
+        // Falling back rather than refusing. An 8 GB phone cannot run Balanced at
+        // all, and offering nothing would leave it with no app; Basic is worse and
+        // it is what that device has.
+        assertThat(TierRecommendation.forFirstRun(8)).isEqualTo(Tier.BASIC)
+        assertThat(TierRecommendation.isLocked(TierRecommendation.QUALITY_FLOOR, 8)).isTrue()
+    }
+
+    @Test
+    fun theFloorIsNeverBelowWhatWasMeasured() {
+        // Guards the value itself. Lowering the floor back to Basic would undo a
+        // decision made from measurement, so it has to change this test too.
+        assertThat(TierRecommendation.QUALITY_FLOOR).isEqualTo(Tier.BALANCED)
+    }
+
+    @Test
     fun theFlagshipCaseEndToEnd() {
         // The bug: a 16 GB phone reporting 15 had Best Available locked and was
         // recommended the smallest model in the catalog.

@@ -491,22 +491,17 @@ private fun SlideFour(
 ) {
     val colors = KamTheme.colors
 
-    // First run offers the smallest model, not the biggest one that fits.
+    // First run offers the smallest tier that actually answers well, which is not
+    // the same as the smallest tier.
     //
-    // It used to recommend by memory, so a 16 GB phone was offered the 5 GB
-    // Balanced model. Measured on a fresh install over home wifi that is about
-    // fifty minutes of downloading before the app does anything, and the honest
-    // assessment of that is that people delete the app rather than wait. A better
-    // model nobody waits for is worth less than a smaller one they are talking to
-    // in twenty minutes.
-    //
-    // So setup takes the smallest tier regardless of how much memory the phone
-    // has, and the bigger ones are a row in Settings for anybody who wants one
-    // later, by which point they know what they would be waiting for and why.
-    // Memory still decides what is *allowed*: a phone that cannot hold a tier
-    // still cannot pick it, which is what TierRecommendation guards.
-    val smallest = tiers.minByOrNull { it.downloadBytes }?.tier
-    val recommended = smallest ?: TierRecommendation.recommended(totalRamGb)
+    // It used to offer the smallest outright, because 5 GB of downloading before
+    // the app does anything is how an app gets deleted. That reasoning still
+    // holds. What changed is what counts as acceptable: measured on the device,
+    // Basic answered "I am Kam AI." to three of ten awkward inputs, including
+    // somebody saying their father had died, and Balanced answered that message
+    // properly and never produced the line at all. See TierRecommendation.
+    val recommended = TierRecommendation.forFirstRun(totalRamGb)
+        ?: TierRecommendation.recommended(totalRamGb)
     var chosen by remember(recommended) { mutableStateOf(recommended) }
 
     // One recommendation, with the full list a tap away (#76).

@@ -127,10 +127,14 @@ object OnboardingCopy {
      * thing the user is actually deciding about, and points at Settings so the
      * bigger models read as available later rather than withheld.
      */
+    // Named for what it does rather than for how it used to choose. Setup offered
+    // the quickest download until measurement showed the smallest model answering
+    // badly enough to matter, so the copy stopped leading on speed (#119).
     const val SLIDE4_SMALLEST_FIRST =
-        "This one is the quickest to download, so you can start using it sooner. " +
-            "It runs entirely on your phone. Bigger models give better answers and " +
-            "take longer to download, and they are in Settings whenever you want one."
+        "This is the one worth having on this phone. It runs entirely on your " +
+            "device, so it downloads once and then works with no connection at " +
+            "all. It is a large file and you can keep using the app while it " +
+            "arrives. Other sizes are in Settings whenever you want to change."
 
     const val SLIDE4_CLOSING =
         "A read-aloud voice can be picked later in Settings, male or female."
