@@ -404,6 +404,20 @@ class KamRepository(
     suspend fun installedPackIds(): List<String> =
         db.artifacts().observeByKind(ArtifactKind.PACK).firstOrNull().orEmpty().map { it.id }
 
+    /**
+     * The version of each installed pack, so a newer one in the manifest can be
+     * offered rather than silently ignored.
+     *
+     * Without this, whatever pack somebody downloads on the day they install is
+     * the pack they keep forever: installed packs are matched by id, so an
+     * improved pack under the same id reads as already installed. That was very
+     * nearly shipped, and it is the kind of thing that becomes permanent at
+     * launch rather than merely wrong.
+     */
+    suspend fun installedPackVersions(): Map<String, String> =
+        db.artifacts().observeByKind(ArtifactKind.PACK).firstOrNull().orEmpty()
+            .associate { it.id to it.version }
+
     suspend fun installedPackFileNames(): Map<String, String> =
         db.artifacts().observeByKind(ArtifactKind.PACK).firstOrNull().orEmpty()
             .associate { it.id to it.fileName }

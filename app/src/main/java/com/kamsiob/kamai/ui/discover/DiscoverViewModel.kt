@@ -41,6 +41,15 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
     private val _installedIds = MutableStateFlow<Set<String>>(emptySet())
     val installedIds: StateFlow<Set<String>> = _installedIds.asStateFlow()
 
+    /**
+     * Installed packs whose version is behind the one the manifest offers.
+     *
+     * Packs are matched by id, so without this an improved pack under the same id
+     * reads as already installed and reaches nobody who has the old one.
+     */
+    private val _updatableIds = MutableStateFlow<Set<String>>(emptySet())
+    val updatableIds: StateFlow<Set<String>> = _updatableIds.asStateFlow()
+
     private val _current = MutableStateFlow<Moment?>(null)
     val current: StateFlow<Moment?> = _current.asStateFlow()
 
@@ -74,8 +83,10 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _installedIds.value = repository.installedPackIds().toSet()
             if (_installedIds.value.isNotEmpty() && _current.value == null) deal()
-            // Manifest is best-effort and only for discovering new packs.
+            // Manifest is best-effort, for discovering new packs and for noticing
+            // that an installed one has been superseded.
             _manifest.value = repository.fetchDiscoverManifest()
+            recomputeUpdatable()
         }
     }
 
@@ -152,12 +163,25 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
 
     fun dismissNotice() { _notice.value = null }
 
+    /**
+     * Compares installed versions against the manifest.
+     *
+     * The comparison itself is in [com.kamsiob.kamai.discover.PackUpdates], pure
+     * and tested, because every part of it is a way to get this wrong.
+     */
+    private suspend fun recomputeUpdatable() {
+        _updatableIds.value = com.kamsiob.kamai.discover.PackUpdates.updatable(
+            _manifest.value, repository.installedPackVersions(),
+        )
+    }
+
     // Packs
 
     fun downloadPack(pack: PackInfo) {
-        // Packs are single-digit megabytes, so the guard will wave almost all of
-        // them through; it is here for the disk and offline cases, which apply
-        // whatever the size (#79).
+        // Packs run to about twenty megabytes since they started carrying whole
+        // articles (#13), which is still under the threshold that asks before
+        // spending mobile data. The guard is here for the disk and offline cases,
+        // which apply whatever the size (#79).
         val verdict = com.kamsiob.kamai.download.DownloadGuard.check(
             sizeBytes = pack.sizeBytes,
             network = com.kamsiob.kamai.download.Connectivity.state(getApplication()),
@@ -182,6 +206,7 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
                 onInstalled = { file ->
                     repository.registerPack(pack, file)
                     _installedIds.value = repository.installedPackIds().toSet()
+                    recomputeUpdatable()
                     if (_current.value == null) deal()
                     _notice.value = "${pack.name} is ready. ${pack.moments} moments to read."
                 },

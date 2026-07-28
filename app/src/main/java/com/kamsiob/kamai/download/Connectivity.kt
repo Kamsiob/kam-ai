@@ -90,9 +90,14 @@ object DownloadGuard {
     /**
      * Anything at or above this is worth a question on a metered connection.
      *
-     * Content packs are single-digit megabytes and nobody wants a dialog for
-     * those. Models and voices are hundreds of megabytes upward, which is real
-     * money on a capped plan.
+     * Content packs run to about twenty megabytes since they began carrying
+     * whole articles rather than introductions (#13), and nobody wants a dialog
+     * for those. Models and voices are hundreds of megabytes upward, which is
+     * real money on a capped plan.
+     *
+     * Twenty is comfortably under this line and deliberately so: the largest pack
+     * is a fortieth of the smallest model, and a question asked too often is a
+     * question people learn to dismiss without reading.
      */
     const val METERED_ASK_BYTES: Long = 50L * 1024 * 1024
 

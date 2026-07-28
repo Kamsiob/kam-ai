@@ -959,6 +959,7 @@ private fun DiscoverHost(
     val current by vm.current.collectAsStateWithLifecycle()
     val exhausted by vm.exhausted.collectAsStateWithLifecycle()
     val installedIds by vm.installedIds.collectAsStateWithLifecycle()
+    val updatableIds by vm.updatableIds.collectAsStateWithLifecycle()
     val readerOpen by vm.readerOpen.collectAsStateWithLifecycle()
     val currentSaved by vm.currentSaved.collectAsStateWithLifecycle()
     val saved by vm.saved.collectAsStateWithLifecycle()
@@ -1023,6 +1024,7 @@ private fun DiscoverHost(
         com.kamsiob.kamai.ui.discover.PacksSheet(
             manifest = manifest,
             installedIds = installedIds,
+            updatableIds = updatableIds,
             downloads = downloads,
             onGet = vm::downloadPack,
             onRemove = vm::removePack,

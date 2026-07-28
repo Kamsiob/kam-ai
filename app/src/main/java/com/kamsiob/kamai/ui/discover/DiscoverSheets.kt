@@ -187,6 +187,7 @@ fun QuizSheet(
 fun PacksSheet(
     manifest: List<PackInfo>,
     installedIds: Set<String>,
+    updatableIds: Set<String> = emptySet(),
     downloads: List<com.kamsiob.kamai.download.Downloads.Item>,
     onGet: (PackInfo) -> Unit,
     onRemove: (String) -> Unit,
@@ -248,6 +249,19 @@ fun PacksSheet(
                             com.kamsiob.kamai.ui.components.DownloadControls(
                                 dl, { onPause(pack.id) }, { onResume(pack.id) }, { onCancel(pack.id) },
                             )
+                        // An installed pack that has been superseded offers the
+                        // newer one. Without this the pack somebody downloads on
+                        // the day they install is the pack they keep forever,
+                        // because packs are matched by id and an improved one
+                        // under the same id reads as already installed.
+                        installed && pack.id in updatableIds -> {
+                            PrimaryButton(
+                                "Update to ${pack.sizeLabel}",
+                                onClick = { onGet(pack) },
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            SecondaryButton("Remove", onClick = { onRemove(pack.id) })
+                        }
                         installed -> SecondaryButton("Remove", onClick = { onRemove(pack.id) })
                         else -> PrimaryButton("Get ${pack.sizeLabel}", onClick = { onGet(pack) })
                     }
