@@ -8694,3 +8694,39 @@ earlier in the shared path audit, and the contradiction is harmless in practice
 because the specific instruction wins. That is worth knowing rather than assuming,
 and it is still worth tidying eventually: a prompt that says "ask when vague" and
 "never ask" in the same breath is one edit away from the wrong one winning.
+
+## What the metric example was holding up
+
+The example has been implicated across three days and the effort had gone into
+containing it rather than removing it. Removed, with nothing in its place, and the
+General battery run against it.
+
+**One thing broke, and it is the one that matters.**
+
+> Remember that I always work in metric units.
+>
+> -> The metric system is used widely in science and trade. Are you looking for a
+> conversion or information on a specific unit?
+
+Without the example, the model no longer recognizes a memory instruction at all.
+It reads "remember that I always..." as a question about the subject and answers
+it. **That phrase is what the Memory screen tells people to type**, so deleting the
+example does not cost a stylistic nicety, it removes the app's ability to notice
+somebody storing a preference.
+
+Everything else survived. Nine of ten inputs answered as well as they had before:
+"why" and "fix" both got clarifying questions rather than reaching for prompt
+text, the bereavement got a warm reply, the identity question got the identity
+line, and only the bread input still put a restated sentence in front of a real
+answer.
+
+So the answer to what it was holding up is precise and narrow: **the memory
+acknowledgment path, and nothing else observed.** Nobody knew that before, and the
+containment work of the last three days had been aimed at a piece of the prompt
+whose job had never been established.
+
+That also means the two options that remain are both open rather than one being
+obviously right. If the example's *subject* is what causes the collision, moving
+it to a distant subject keeps the behaviour and removes the interference. If the
+mechanism is the problem, the leaking will follow the new example wherever it
+goes, and no wording will help.
