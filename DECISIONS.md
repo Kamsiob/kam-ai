@@ -8453,3 +8453,63 @@ Thermal status was 0 for the first nineteen cases and 1 for the rest, recorded p
 row. The phone was on charge throughout, which heats it independently of
 inference, so these are counts rather than timings and the warming does not bear
 on them.
+
+## Clean declarative statements, and the two things that came out of them
+
+#122 has only ever been measured on "Bread needs a hot oven, around 230C." The
+hard rules carry a worked example about metric units, those sit in the same
+semantic space, and the earliest failure on record is that metric line appearing
+on an unrelated message. So the input could not distinguish "this model restates
+declarative statements" from "this input collides with that example".
+
+Four statements sharing no subject matter with any prompt, no units, no
+measurement, no temperature, no cooking, nothing resembling a storable preference,
+run beside the bread input. Three runs each, General, E4B.
+
+| input | rejections | what came back |
+|---|---|---|
+| bread | 1 of 3 | one restatement, two real answers |
+| the back gate sticks when the wood swells | 0 | why it sticks, then what they want to do |
+| the library closes early on Sundays | 0 | **one fabrication**, two good questions |
+| sparrows nesting in the porch roof | 0 | where sparrows nest, then a question |
+| the photocopier jams when the paper is damp | 1 of 3 | mechanism, then a question |
+
+**Thirteen of fifteen replies were good.** That is a different application from the
+one this issue was opened against.
+
+### The restatement that is left escapes the guard
+
+> Bread needs a hot oven, around 230C. -> The oven temperature needs to be around
+> 230 degrees Celsius.
+
+Zero guard rejections on that run. It is a restatement and the guard did not see
+it, because paraphrasing far enough drops the word overlap below the threshold:
+"temperature", "degrees" and "Celsius" are new words, so the ratio falls even
+though nothing new is said. This is the same limit already recorded for corrected
+spelling, from the other direction: **the check measures shared words, and a
+restatement that changes the words is invisible to it.**
+
+### And a new failure that is worse than the one it replaced
+
+> The library closes early on Sundays. -> It closes at 1:00 PM on Sundays.
+
+The model invented a specific time for a specific library it knows nothing about,
+and stated it with no hedge at all. One run in three; the other two asked what time
+it closes, which is the right move.
+
+**This is caused by the fix.** The instruction now asks for "a detail they left
+out", and for a statement about the user's own circumstances there is no detail to
+supply, so one gets invented. The wording that produced restatements has been
+traded for wording that occasionally produces confabulation.
+
+That is the worse of the two. A restatement is useless and obviously so. A
+confident invented fact is the failure this application's central claim is about,
+it is not visible as an error, and nothing guards it: the echo guard checks for
+copied text and this is the opposite of copied.
+
+Fix direction, not yet applied: the additive options that cannot be satisfied by
+invention are what it implies, what it rules out, and a question about what they
+want to do with it. General knowledge that bears on the subject is also safe, and
+is what produced the good answers about damp paper and nesting sparrows. A
+*detail about their situation* is the one thing the model cannot supply and must
+not.
