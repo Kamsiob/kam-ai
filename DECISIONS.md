@@ -8293,8 +8293,8 @@ Workbench, forty lines later in the same prompt:
 > rather than asking.
 
 One says ask, the other says never ask, and both are in force. This is what the
-audit was looking for: a rule written for General's behaviour, placed in the
-shared layer, contradicting a mode whose correct behaviour is the opposite.
+audit was looking for: a rule written for General's behavior, placed in the
+shared layer, contradicting a mode whose correct behavior is the opposite.
 Workbench's own line is the right one for Workbench, because the user has already
 chosen a transformation from a button, so there is no ambiguity about whether an
 output is wanted.
@@ -8307,7 +8307,7 @@ conversions.
 ### The standing check, so this is done before rather than after
 
 Before any change to shared prompt text or shared reply handling: name the modes
-it affects and what correct behaviour is in each. Where a fix is right for one
+it affects and what correct behavior is in each. Where a fix is right for one
 mode and wrong for another, it belongs in that mode. Where it genuinely belongs in
 the shared layer, name the modes it must not alter and confirm afterwards that it
 did not.
