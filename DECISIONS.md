@@ -9353,3 +9353,40 @@ from the smaller one. shot.sh refused the capture, which is the third time that
 guard has caught something tonight.
 
 Font scale restored to 1.0 afterwards, and the browser closed.
+
+## The crash walk, and what a minified build costs to skip
+
+A reviewer runs the application through a script and one crash is a rejection, so
+this is the check that matters most before a submission. Thirty-three steps across
+two walks against `releaseCheck`, which is R8 minified with the same keep rules as
+release and differs only in signature, so it installs over the existing app instead
+of demanding an uninstall that would destroy the database key and a five gigabyte
+model.
+
+**The first run found a crash**, in the release build, in a path a reviewer would
+take:
+
+    IndexOutOfBoundsException: index: -1, size: 0
+      at SnapshotStateList.remove
+      at ChatsScreenKt$$ExternalSyntheticLambda32
+      at AndroidComposeView.dispatchKeyEvent
+
+Selection toggling was `if (contains(id)) remove(id) else add(id)`.
+`SnapshotStateList.remove(element)` resolves an index internally, so two
+activations arriving together both see contains as true, the first empties the
+list, and the second resolves an index of minus one. It arrived through a key
+event activating a focused row, which is how somebody with a keyboard or an
+accessibility service meets it.
+
+Fixed in all four places the pattern appears rather than the one that crashed.
+
+**Two things about how it was found are worth keeping.**
+
+The obfuscated trace was unreadable: `gz.a`, `zw2.remove`, `d10.b1`. Running it
+through `mapping.txt` named the file in one step. Do that first rather than
+reasoning about the frames.
+
+And it only appears in a minified build. Every walk of the debug build, for days,
+passed. The lesson is not that R8 introduced a bug; the bug was always there, and
+minification changed the timing enough to surface it. **A crash pass on the debug
+build is not a crash pass.**
