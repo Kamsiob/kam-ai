@@ -8972,3 +8972,16 @@ to precisely the person who would act on it.
 the README and onboarding, that nothing is uploaded. One reply implying otherwise
 outweighs all three, because it reads as the admission rather than the marketing.
 A user cannot check the claim; they can only notice the app contradicting itself.
+
+## Backgrounding mid-generation works
+
+Tested directly, since the chaotic persona in the testing plan does this and
+nothing had checked it: a long answer was started, the app was sent to the home
+screen four seconds in, left there for twenty-five seconds, and reopened.
+
+The answer was still streaming on return and finished normally: 215 tokens
+decoded, well-formed, with the numbered structure intact across the interruption.
+
+That is the foreground service and the NonCancellable block in the reply path doing
+what they were built for (#40, #121). Recorded as a pass rather than left untested,
+because "it probably works" is what was said about several things that did not.
