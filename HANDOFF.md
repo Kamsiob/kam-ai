@@ -67,6 +67,37 @@ input here was written by somebody who knew what a good test input looks like.
 `tools/input_styles.sh` is that sweep. Only General has been run; the other modes
 are untouched.
 
+### Two more closed, and how they were found
+
+#135 and #136, both defects in the app's account of itself rather than its answers
+about the world. It claimed a web browser version exists, and told somebody
+checking the privacy promise that what they type "stays on this phone until you
+have a connection", describing an upload queue that does not exist.
+
+**Neither was found by a battery.** They came from two techniques nothing here had
+used, and both are cheap:
+
+- `tools/input_styles.sh`, ten inputs written the way messages actually arrive:
+  rambling, shouted, misspelled throughout, three questions at once,
+  self-contradictory. Fifteen minutes.
+- `tools/session.sh` holding one conversation for six turns as somebody who does
+  not trust the app and is trying to catch it contradicting its privacy claims.
+  Ten minutes.
+
+Four days of batteries missed both, because every battery input was written by
+somebody who already knew what the app was.
+
+**A scoping mistake worth not repeating.** The fix went into General because Logic
+and Brainstorm had the least budget headroom, and the Logic sweep then found the
+same defect there. Budget numbers do not know which claims are load-bearing. What
+the app is, and whether it uploads anything, has to hold in every mode, because a
+user changes mode by tapping a chip. Now in the shared rules with every budget
+raised together.
+
+Both example answers are exempt from every guard check, because both are true
+wherever they land. That is the third case in "some answers are safe to copy" and
+it applied twice tonight.
+
 ### Still open, with the thing worth knowing about each
 
 - **#122** is down to a prefix. The bread input answers well and sometimes leads
