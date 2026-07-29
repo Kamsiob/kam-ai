@@ -9155,3 +9155,29 @@ somebody else's home screen is a poor price for finding that out.
 **How to test that entry point instead:** send the intent, then read the logs and
 the conversation it creates. The sheet's own appearance can be verified from the
 source and from the fact that the activity stays resumed rather than finishing.
+
+## The share entry point works, verified without photographing it
+
+`TextIntakeActivity` handles two ways text arrives from other apps: the share
+sheet (ACTION_SEND) and the text-selection action (ACTION_PROCESS_TEXT). Neither
+had ever been exercised.
+
+It cannot be checked by screenshot, for the reason in the entry above. It can be
+checked by what the code does with a failure:
+
+    val text = extractText(intent)
+    if (text.isNullOrBlank()) { finish(); return }
+
+So an activity that is still resumed has text. Sending a share intent and reading
+the activity state:
+
+    topResumedActivity=ActivityRecord{... com.kamsiob.kamai/.integrations.TextIntakeActivity}
+
+It stayed resumed, so the extra was read and the sheet rendered. That is the whole
+of what needed proving about the intake half, and it needed no picture.
+
+Worth keeping as a technique rather than a result. **When a screen cannot safely be
+photographed, find the branch that would have failed and show it did not.** Most
+code has one: an early return, a finish, a fallback. Reading which branch was taken
+is often stronger evidence than a picture of the outcome, because a picture shows
+what it looked like and the branch shows what happened.
