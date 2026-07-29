@@ -187,7 +187,23 @@ class PromptBudgetTest {
             // conversation, amortised by prefix reuse afterwards. The alternative
             // was a flagship mode that answers in five words of jargon, which is
             // not a trade worth protecting time to first token for.
-            Mode.LOGIC to 1880,
+            // Every budget below rose once more, together, when the two identity
+            // examples moved from General into the shared hard rules.
+            //
+            // They were put in General to save tokens in the modes with the least
+            // headroom, and the input-style sweep run against Logic Partner showed
+            // what that bought: "how it is working the thing for saving the chat"
+            // was answered "It depends on the platform you're using. Are you
+            // talking about saving it in a cloud service, or is it stored locally
+            // on your phone?" The same defect as #135, in a mode the fix did not
+            // reach.
+            //
+            // What the app is, and that nothing it holds is uploaded, is not a
+            // property of one mode. Scoping it to General meant the privacy claim
+            // was defended in one place and contradicted in five, and a user
+            // switches modes with a chip. So it costs about eighty tokens
+            // everywhere, once per conversation and then reused from the KV cache.
+            Mode.LOGIC to 1990,
             // Raised from 1600 to 1660 for #58, deliberately and not quietly, and
             // after trimming everything that could be trimmed. Two device-found
             // failures paid for it. The mode announced its own method ("Only a
@@ -266,10 +282,10 @@ class PromptBudgetTest {
             // MethodAnnouncement, which detects an announcement in the draft and
             // rewrites it out. A prompt cannot forbid a shape it demonstrates, so
             // it no longer demonstrates one.
-            Mode.BRAINSTORM to 2400,
-            Mode.BENCH to 1240,
-            Mode.OVERLAY to 1180,
-            Mode.DISCOVER to 1320,
+            Mode.BRAINSTORM to 2510,
+            Mode.BENCH to 1290,
+            Mode.OVERLAY to 1210,
+            Mode.DISCOVER to 1350,
         )
         budgets.forEach { (mode, budget) ->
             val tokens = approxTokens(SystemPrompts.forMode(mode))
