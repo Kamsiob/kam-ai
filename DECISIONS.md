@@ -8936,3 +8936,39 @@ grew one at a time, the exemptions did not follow, and twice a correct reply was
 discarded and replaced with "That came out wrong." This case would have made it
 three, since `legitimateFor` needs the user's message to match the example
 question and support questions arrive as paraphrases.
+
+## The app was wrong about itself in two different ways, and neither was in the tests
+
+#135 and #136 were found within an hour of each other by two techniques this
+project had never used, and both are defects in the application's account of
+itself rather than in its answers about the world.
+
+- Asked why it kept losing scroll position, it asked whether the user was on the
+  web version. There is no web version.
+- Asked what happens with no signal, it said what they type "stays on this phone
+  until you have a connection" and "stores it locally first", which describes an
+  upload queue that does not exist.
+
+**Both have the same cause.** A question about "the app" or about "no signal"
+pulls toward the most common arrangement in ordinary software, which is a hosted
+product with an offline queue. The model fills the gap with the usual thing rather
+than this thing, and nothing in the prompt said what this thing is beyond one line
+of identity.
+
+**Both were found by testing differently, not by testing more.** Four days of
+batteries missed them because every battery input was written by somebody who
+already knew what the app was. The two that found them:
+
+- ten inputs written the way messages actually arrive, rambling, shouted,
+  misspelled, several questions at once
+- one conversation held for six turns as somebody who does not trust the app and
+  is trying to catch it contradicting its privacy claims
+
+The second is worth repeating for the other personas in the testing plan. It cost
+ten minutes and found a defect in the claim the whole application rests on, told
+to precisely the person who would act on it.
+
+**What makes these worse than a wrong fact.** The app says, in the store listing,
+the README and onboarding, that nothing is uploaded. One reply implying otherwise
+outweighs all three, because it reads as the admission rather than the marketing.
+A user cannot check the claim; they can only notice the app contradicting itself.
