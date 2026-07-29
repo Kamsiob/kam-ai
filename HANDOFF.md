@@ -36,43 +36,59 @@ submission from a new organization account takes one to two weeks.
 
 ## 1. Exactly where the work stopped
 
-**Item: #113, the screenshots. Sub step: the Play listing set, not the documentation set.**
+**Item: #113, the listing screenshots. Sub step: clearing the chat list, then recapturing.**
 
-The documentation set is finished and committed (`fad1b4f`). What was in progress is the
-five images that actually reach the store listing, in `store-assets/phone`.
+The ordering dependency that used to sit here is discharged. #113 no longer waits on #133.
 
-The last completed action: `tools/make_phone_shots.sh` was written and run, replacing five
-hand-committed listing files with five derived from the canonical captures.
+**What blocked it was the conversation frame carrying "Used 2 things it remembers about
+you" under an answer about a coffee stain.** Three separate changes each removed that,
+and all three are on the device:
 
-**The next action was going to be** to reseed the chat list on the phone with plausible
-conversations, recapture the conversation and chat-list frames, and rerun
-`make_phone_shots.sh`. That work is blocked on #133, so the honest next action for a fresh
-session is **fix #133 first, then recapture**. See Part II.
+1. The line reads "Included N things it remembers about you", because the app knows what
+   it put in front of the model and not what the model leaned on (`f790b72`).
+2. The line is **off by default**. #144 added a setting for whether it appears at all
+   (`dd49f73`), so an ordinary install shows no note under any reply.
+3. The count is right anyway. #133's relevance floor means a coffee stain question no
+   longer pulls in a fact about a rowing club: measured on the device, two included
+   memories became one.
+
+**The next action is the other half of #113, which was always independent: the chat list
+is not clean.** It carries this session's probe conversations, several near duplicates:
+two "Is the rowing club open on Sunday", two "How do I get a coffee stain out", a "What
+are you", a "Tracking small home repairs". Judged against the listing bar rather than the
+documentation bar, a list of near duplicate test prompts does not look like ordinary use
+even though every frame would be truthful. So: clear or archive those, seed plausible
+ones, recapture the conversation and chat-list frames, rerun `tools/make_phone_shots.sh`.
+
+### Numbers in this file that were wrong, now measured
+
+**The test suite is 650 tests across 85 classes** as of `f790b72`, and **656 across 86**
+as of `dd49f73`. This file previously claimed 174 across 27, and a forced rerun elsewhere
+gave 635 across 84. Counted from the JUnit XML, with the result files confirmed written by
+the run rather than left over from a previous one. Nothing was failing.
+
+The 9 second suite time is real and is not a sign the tests were skipped; that was checked
+by file timestamp rather than assumed.
 
 ### Uncommitted, half written, or inconsistent
 
-At the moment this was written, `git status` showed:
+Nothing. The working tree is clean and everything below is committed and on the phone.
 
-- `tools/make_phone_shots.sh`, new, working, run once successfully.
-- `tools/thermal_frequency.sh`, new, not yet run in the form committed. It is the
-  throwaway `/tmp/thermlog.sh` turned into a real tool with its reasoning attached.
-- `store-assets/phone/`: three files deleted, two modified, three added. All five current
-  files are output of the script.
-
-Nothing is stubbed, nothing is temporarily disabled, and no code change is half applied.
-The only inconsistency is the one named above and it is recorded on #113: two of the five
-listing frames are known bad and must be recaptured before upload.
+The previous version of this section described `tools/make_phone_shots.sh`,
+`tools/thermal_frequency.sh` and five `store-assets/phone` files as uncommitted. They
+landed in `fad1b4f` and that description was stale.
 
 ### Running or queued
 
-**Nothing is running on the phone and nothing is queued.** No battery, no capture script,
-no instrumentation.
+**Nothing is running on the phone and nothing is queued.**
 
-A polling script (`/tmp/thermlog.sh`) was sampling thermal status every 20 seconds for the
-#134 question. **It was stopped deliberately and its output discarded**, because all 71
-samples read status 0 against an idle phone. That is not evidence that LIGHT is rare, only
-evidence that nothing was running. The reasoning is now written into
-`tools/thermal_frequency.sh` so the same mistake is not repeated.
+`tools/prefix_probe.sh` has been run once for the #133 cost question and its result is in
+#143. `tools/memory_floor_probe.sh` has been run once and its result is in #133.
+
+The #134 thermal question is still unmeasured. The one attempt sampled an idle phone: 71
+samples all reading status 0, which is evidence nothing was running rather than evidence
+that LIGHT is rare. `tools/thermal_frequency.sh` carries the reasoning. **It needs
+measuring under sustained inference load, which has not been done.**
 
 ### Device state, and what was changed on it
 
@@ -111,8 +127,9 @@ is opened, defaulting to deferred when unsure, and saying why.**
 | | Every permission has a user-facing justification | **Done.** All seven traced to a feature and a listing location in `docs/release-permissions.md`. |
 | | Target API level 36 | **Done.** `targetSdk` 36, `compileSdk` 37. |
 | | No false claim about privacy, data handling, or what the app does with what a user types | **Partly done.** Three false claims found and fixed. The sweep has not been run end to end. See Part II. |
-| 113 | Screenshots matching the application | **Nearly done.** 20 documentation frames finished. Two listing frames blocked, one on #133. |
-| 133 | Memory retrieval injects irrelevant facts | **Half done.** Ordering fixed with a test. Relevance floor and interface half open. |
+| 113 | Screenshots matching the application | **Nearly done.** 20 documentation frames finished. No longer blocked on #133. Needs the probe conversations cleared, then two frames recaptured. |
+| 133 | Memory retrieval injects irrelevant facts | **Nearly done.** Ordering, relevance floor and interface half all fixed and device verified. Only `memory_leak.sh` plus #142's channel test remain. |
+| 144 | A setting for whether the memory note appears | **Done.** Off by default, device verified, and it unblocked #113. |
 | 137 | Hostility repetition, and an insult trips the character rule | **Open, reopened once.** Fix verified on one phrasing, still fails on another. |
 | 134 | Nothing said or done when the phone throttles | **Fix committed, decision open.** Whether LIGHT should speak needs a measurement. |
 | 142 | The echo guard checks one of six sources of prompt text | **De-escalating.** Both privacy-relevant channels tested clean. Two correctness channels left. |
@@ -126,7 +143,6 @@ is opened, defaulting to deferred when unsure, and saying why.**
 | 110 | Require a pull request and passing checks before merging. |
 | 111 | Require signed commits once the key is registered. |
 | 112 | Build provenance on release artifacts. |
-| 113 | (the parts beyond the release-blocking minimum) |
 | 138 | The self-referential answers class. |
 | 139 | Audit every pair of places that must agree. |
 | 140 | Does the leakage class appear on Qwen3, which has a real system role. |
@@ -193,9 +209,36 @@ One sitting, no context needed. Everything preparable is prepared.
 3. **Measure how often LIGHT occurs before deciding whether it should speak.** Instrument
    written (`tools/thermal_frequency.sh`), question unanswered. The first attempt sampled
    an idle phone and produced nothing usable. See Part III.
-4. **Run the claims sweep end to end, including the model's own answers.** The checklist
-   exists; the run does not. This is the largest remaining piece of release-blocking work
-   and Part II says exactly which locations are checked and which are not.
+4. **Run the claims sweep end to end, including the model's own answers.** Still the
+   largest remaining piece of release-blocking work. **Started, not finished.**
+
+   **A fourth false claim was found and fixed, and it was the worst placed of the four.**
+   `HARD_RULES` in `SystemPrompts.kt` *instructed* the model to answer "Everything works
+   the same offline", and `PromptEcho.ALWAYS_ALLOWED` exempted that sentence from every
+   guard on the written grounds that it was "true wherever it lands". It is not: two
+   network calls exist, a download the user starts and the Discover pack manifest fetched
+   when Discover opens. So "can I get new packs with no signal" or "do I need a connection
+   to download a model" got a false answer from the one place in the app where nothing
+   would catch it. Same defect as the worst of the original three: a sentence whose breadth
+   implied there were no network calls at all. Now "Everything you type is handled the same
+   with no connection", matching PRIVACY.md rather than overshooting it.
+
+   Also fixed: onboarding described Discover as "Short reads from Wikipedia, offline",
+   where the commas made "offline" a property of the feature rather than of the packs.
+
+   **Newly checked:** every string in `app/src/main` matching network, offline, upload,
+   tracking and data-location claim shapes, which covers the onboarding copy, the settings
+   subtitles, the Discover explanatory copy and the help text. Assessed and found sound:
+   `SupportSignpost` ("no ads, no tracking"), `VoiceScreen` ("no network and no account"),
+   `BackupScreen`, `DiscoverSheets`, `QuestionsAndAnswers`, and slide 5's "No locked
+   features" (which is about payment; the "locked" model tiers are a memory constraint).
+
+   **Still not checked, and this is now the whole of the remaining sweep: the model's own
+   answers.** Asked in every mode, on both tiers, about privacy, offline behavior and where
+   data goes. Still the check most likely to be skipped, because it is not a string and no
+   grep will find it, and the one most likely to produce a false claim, because the model
+   generates the sentence fresh every time. The exemplar it is now told to follow is
+   correct, which was not true before this session.
 
 ---
 
