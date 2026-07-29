@@ -9012,3 +9012,25 @@ placed in a shared path that should have been in one mode. This was a fix placed
 one mode that should have been shared. Both were decided by convenience rather than
 by asking which modes the behavior belongs to, which is what the standing check
 exists to force.
+
+## The battery after moving the identity examples into the shared rules
+
+Thirty cases, three runs each, E4B. Two interventions, both in `logic values`,
+which is the values-based argument input.
+
+The full series for that one cell across the night: 1, 0, 1, 1, 0, 2. Every other
+cell has been zero for the last three builds.
+
+**So this is not called a regression and it is not called a clean pass.** A single
+run cannot distinguish 0 from 2 in a cell whose observed range is 0 to 2, and
+saying "the shared-rules move cost two" would be exactly the mistake already
+recorded tonight: reading a difference in one sample as an effect of the change.
+
+What can be said: the twenty-seven cases outside that cell are unchanged at zero,
+including every General and Brainstorm case and the three Logic cases that are not
+this one. If the eighty tokens added to every mode had broken something structural,
+it would not have confined itself to the noisiest cell.
+
+Left as an open question with the data written down rather than resolved by
+assertion. The way to settle it is more runs of that one input, which is cheap and
+has not been done.
