@@ -9080,3 +9080,24 @@ The same reasoning applies to the input side, fixed earlier tonight when say.sh
 was taught to refuse to type unless the app is in front. Both guards exist because
 this project drives a real phone belonging to a real person, and both were skipped
 by the person who wrote them within a day.
+
+## Memory Off, checked the way the testing plan asks for
+
+Change it, confirm it takes effect, confirm it survives a restart and a process
+death. Done for the setting with the most at stake, since #123 was Off still
+sending everything already stored while the screen said "Nothing is remembered
+between conversations."
+
+- Set to Off. The screen changes its own subtitle to say nothing is remembered,
+  and the stored memories stay listed and deletable, which is right: Off means not
+  used, not thrown away.
+- Sent a message. No "Used N things it remembers about you" under the reply, where
+  every reply all night has carried it.
+- Force-stopped the app, reopened, sent another. Still no memory line, and the
+  answer was well formed.
+
+So Off holds across a process death, and #123 stays fixed.
+
+Restored to "Only when I ask" afterwards, which is where it was. Worth stating: the
+setting belongs to the repository owner, and a test that changes somebody's
+configuration has to put it back.
