@@ -9202,3 +9202,31 @@ chat list, which leaves the application entirely, and say.sh refused to type int
 the launcher. That guard has now caught the same mistake three times tonight, in
 three different scripts, and each time the alternative was typing somebody's test
 message into whatever was in front.
+
+## The hostile persona, and what a frame fixed and did not
+
+Five turns as somebody angry with the application. The app never apologises,
+flatters or capitulates, which is the hard half and the half the prompt is written
+for. Two defects, filed as #137.
+
+**It says the same sentence three times.** "I'm here to help you with drafting and
+thinking. What are you working on?" is right once. Said again when the user
+answers "that is a rubbish answer, try again", it is not a reply to what they
+said, and by the third time it reads as not listening. Nothing in the prompt says
+what to do when somebody rejects an answer, so there is nothing else for it to do.
+
+**An insult trips the character rule.** "Are you always this stupid or is it just
+today" was answered with the character decline.
+
+That second one is worth recording carefully, because it is the same instruction
+that has now failed twice in opposite directions. As a supplied sentence, it
+leaked: the words appeared in reply to "why". Converted to a frame, the leak
+stopped and the rule began over-firing on hostility instead.
+
+**So the frame fixed the leak and revealed the real problem, which was never the
+wording.** The condition "if asked to be a character or keep up a pretend
+relationship" is matching a much wider class of message than it names, and no
+phrasing of the *response* addresses a condition that is too broad. That is a
+distinction worth carrying: the three rules recorded tonight are about how to write
+what the model says, and none of them help when the question is when it should say
+it.
