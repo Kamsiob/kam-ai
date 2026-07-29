@@ -67,6 +67,30 @@ class BackupFieldCoverageTest {
     }
 
     @Test
+    fun aBackupWrittenBeforeTheFieldExistedStillOpens() {
+        // Adding a field to the codec must not orphan the backups somebody already
+        // has, which is the reason this went in without bumping the format
+        // version. A missing key decodes to null rather than throwing, so an old
+        // export restores with no link, which is exactly what it had.
+        val old = JSONObject(
+            """
+            {
+              "formatVersion": 3, "appVersion": "1.0", "schemaVersion": 3,
+              "conversations": [
+                {"id":"c1","title":"Old","mode":"GENERAL","modesUsed":"GENERAL",
+                 "createdAt":1,"updatedAt":2}
+              ],
+              "messages": [], "projects": [], "memory": [], "followUps": [],
+              "drawn": [], "quizStats": [], "artifacts": [], "settings": []
+            }
+            """,
+        )
+        val restored = BackupCodec.decode(old)
+        assertThat(restored.conversations.single().id).isEqualTo("c1")
+        assertThat(restored.conversations.single().linkedConversationId).isNull()
+    }
+
+    @Test
     fun aMessageSurvivesWithEveryFieldSet() {
         val message = MessageEntity(
             id = "m1",
