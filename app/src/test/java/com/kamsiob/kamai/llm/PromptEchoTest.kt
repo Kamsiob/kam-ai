@@ -420,4 +420,49 @@ class PromptEchoTest {
         assertThat(exempt.any { it.startsWith("Everything you type is handled the same") }).isTrue()
         exempt.forEach { assertThat(it).doesNotContain("works the same offline") }
     }
+
+    // ---- an allowance on a partial match is the pattern, not just the one instance ----
+
+    @Test
+    fun `a one word message does not certify a canned answer as legitimate`() {
+        // The second instance of the exemption-list bypass shape, found by sweeping for
+        // the pattern. isAnsweringItsOwnExample had no floor on its containment tests,
+        // so any message that was a *substring* of an example released that example's
+        // answer through the guard untouched.
+        //
+        // Every one of these was reachable before the fix.
+        val stairs = "Noted, I will assume the stairs rather than the lift."
+        val thirdTime = "Third time in a day points at something repeatable rather than bad luck."
+
+        assertThat(PromptEcho.isEcho(stairs, userMessage = "remember")).isTrue()
+        assertThat(PromptEcho.isEcho(stairs, userMessage = "the stairs")).isTrue()
+        assertThat(PromptEcho.isEcho(stairs, userMessage = "i always")).isTrue()
+        assertThat(PromptEcho.isEcho(thirdTime, userMessage = "again")).isTrue()
+        assertThat(PromptEcho.isEcho(thirdTime, userMessage = "today")).isTrue()
+        assertThat(PromptEcho.isEcho(thirdTime, userMessage = "third time")).isTrue()
+        assertThat(PromptEcho.isEcho(thirdTime, userMessage = "failed again")).isTrue()
+        assertThat(PromptEcho.isEcho(thirdTime, userMessage = "install failed")).isTrue()
+    }
+
+    @Test
+    fun `somebody who actually asks for the example still gets it`() {
+        // The regression risk of the floor above, and the reason the whole exemption
+        // mechanism exists: a right answer thrown away is the same failure pointed the
+        // other way, and harder to notice because nothing looks wrong.
+        val stairs = "Noted, I will assume the stairs rather than the lift."
+        assertThat(
+            PromptEcho.isEcho(stairs, userMessage = "Remember that I always take the stairs."),
+        ).isFalse()
+        // A shortened restatement, which is how a real message arrives.
+        assertThat(
+            PromptEcho.isEcho(stairs, userMessage = "remember that i always take the stairs"),
+        ).isFalse()
+        // And the example plus more around it.
+        assertThat(
+            PromptEcho.isEcho(
+                stairs,
+                userMessage = "Please remember that I always take the stairs, thanks.",
+            ),
+        ).isFalse()
+    }
 }

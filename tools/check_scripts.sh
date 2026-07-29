@@ -83,6 +83,10 @@ for f in $scripts; do
   fi
 done
 
+# 7. The Kotlin guards, checked for the partial-match allowance pattern. Separate
+#    file because the rule needs function scope, which is beyond grep.
+python3 tools/check_partial_match.py || fail=1
+
 if [ "$fail" -ne 0 ]; then
   echo "" >&2
   echo "tools/check_scripts.sh found scripts that can report a pass they did not" >&2

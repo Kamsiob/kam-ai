@@ -9940,3 +9940,112 @@ The third question is why the battery re-run counts guard interventions *and* re
 replies directly. One number cannot disagree with itself.
 
 This is a standing rule, not an observation about one afternoon.
+
+## Two banked results are void, and one is re-established
+
+Both follow from this session's own findings, and neither was followed through when the
+findings were made. The standing rule is that a figure from an instrument later found
+broken is void rather than something to reason about, and it applies to results this
+session produced as much as to older ones.
+
+### The crash-free pass was certified by the broken script, and is now re-earned
+
+`crash_walk.sh` counted crashes with `grep -c ... || true` inside a pipeline. **With the
+device gone, that prints a clean zero.** Demonstrated rather than argued:
+
+```
+OLD line, device dead:  crashes=[0]   <- this is what certified the gate
+NEW line, device dead:  refused, exit non-zero
+```
+
+So the previous clean pass across both walks was a result from an instrument that could
+not distinguish "nothing crashed" from "nothing ran". Same category as the eighty five
+percent restatement rate and the seventy one thermal zeroes.
+
+**Re-run on the current build with the fixed script: walk one, 22 steps, every step ok, no
+crashes, exit 0.** Captures in `/tmp/walk-fixed-instrument`. Walk two queued.
+
+**And the gate was proved to fail, which matters more than the pass.** A gate that cannot
+be demonstrated to fail is not a gate. A stand-in `adb` that works for eight calls and then
+reports `device '(null)' not found`, which is what a pulled cable looks like, was run
+against the walk:
+
+```
+  01  ok: cold start
+  MISSING EVIDENCE: no capture for /tmp/walk-cable-pulled/01.png
+adb: device '(null)' not found
+EXIT=1
+```
+
+It aborts, it says why, and it records the missing capture on the way out. The old script
+would have continued to step 33 and printed a clean pass.
+
+### Every battery figure that counted guard interventions is unverified
+
+The batteries count the guard's own rejections rather than reading replies, deliberately
+and for good reasons: it is mechanical, it needs no judgement, and it can run thirty cases
+unattended.
+
+**But `isAllowedOutright` exempted anything merely beginning with an allowed sentence,
+unbounded, and the model is instructed to produce those sentences.** So a reply could carry
+a complete recital, register zero interventions, and be counted clean.
+
+Which means the sequence **seven, three, nine, two, zero, two, zero** was measured through
+a guard with a promptable bypass in it. Some of those zeros are real and some may be the
+bypass, and **there is no way to tell from the numbers**, which is the definition of a void
+figure rather than a suspect one.
+
+Marked unverified, not corrected, because correcting them would mean inventing which zeros
+were which:
+
+| result | where | status |
+|---|---|---|
+| the frame form sequence, seven then nine then two | "The frame form, measured" | **unverified** |
+| guard interventions across 30 cases, 7 / 2 / 0 | the mode battery comparison | **unverified** |
+| "zero guard rejections on that run" | the restatement tally | **unverified** |
+| "six interventions across three runs" on Logic Partner | the tier comparison | **unverified** |
+| "two interventions, both in logic values" | the thirty case E4B run | **unverified** |
+| rejection counts per wording | the wording comparison table | **unverified** |
+| E4B versus E2B intervention counts | the tier finding | **unverified as figures** |
+
+**The tier finding's conclusion survives its figures.** It rested on replies that were read
+and compared, not on the tallies, and the tallies were corroboration. Recorded that way so
+the conclusion is not thrown out with the numbers, and so nobody re-litigates a decision
+that had better evidence than the part now void.
+
+The re-run counts both intervention totals **and** a direct read of the replies, so the two
+can disagree. If they do, the difference is the size of what the bypass was hiding.
+
+## The partial-match allowance, swept as a pattern, and it was in three places
+
+The exemption list bypass was structural rather than a wording mistake: a check that
+examined part of an input and cleared the whole of it. Swept for the shape rather than the
+instance, and the shape was in three places, only one of which had been found.
+
+1. **`isAllowedOutright`.** Any reply beginning with an allowed sentence was exempt whole.
+   Fixed by stripping the exempt prefix and judging the remainder.
+2. **`isAnsweringItsOwnExample`.** Any message that was a *substring* of an example
+   certified that example's canned answer as legitimate. Reachable by eight one and two
+   word messages: typing "remember" released "Noted, I will assume the stairs rather than
+   the lift.", and "again" or "today" released the third-time answer. Fixed with a coverage
+   floor of two thirds.
+3. **`isLegitimateExampleAnswer`.** Cleared a reply that merely *started with* an example
+   answer, so a reply opening with the canned answer and continuing into a recital was
+   exempted. **Found by the checker, not by reading**, which is the argument for having
+   written the checker at all. Fixed by bounding the overhang to a trailing clause, because
+   this function has no system prompt to re-judge a remainder against.
+
+Everywhere else the shape appears it points the safe way: `isEcho` and `couldBecomeEcho`
+use a prefix test to catch *more*, `StreamGuard` and `ContinuationJoin` hold back text that
+might become a marker, and `Memory.parseAutoReply` drops lines on a substring. A partial
+match that causes rejection is not this defect; only one that causes clearance is.
+
+**`tools/check_partial_match.py` is the rule**, wired into `tools/check_scripts.sh` so
+there is one entry point. It flags a function whose name says it grants an allowance,
+containing a prefix or containment test, with no length comparison. A bounded-by-
+construction case opts out with `partial-match: bounded` and a sentence saying why, because
+the two safe cases here cannot be told from the shape and an unexplained exemption is how
+this started.
+
+It was verified by reintroducing the defect and watching it fail, not only by watching it
+pass.

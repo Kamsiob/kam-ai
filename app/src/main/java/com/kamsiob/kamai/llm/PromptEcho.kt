@@ -90,13 +90,49 @@ object PromptEcho {
      */
     private const val MIN_CHARS = 24
 
-    /** True when the user asked for exactly what this example demonstrates. */
+    /**
+     * The least of the example a message has to cover before it counts as asking for
+     * it. A fraction rather than a character count, because the two examples differ in
+     * length by half.
+     *
+     * Two thirds is chosen to keep a genuinely shortened restatement of an example and
+     * to exclude an incidental overlap. "remember that i always take the stairs"
+     * against "the stairs" is the distinction being drawn.
+     */
+    private const val EXAMPLE_COVERAGE = 2.0 / 3.0
+
+    /**
+     * True when the user asked for exactly what this example demonstrates.
+     *
+     * **The containment tests used to have no floor, and that was the same defect as
+     * the exemption list's prefix bypass, in a second place.** It read
+     * `said == example || said.contains(example) || example.contains(said)`, so a
+     * message that was merely a *substring* of the example certified the canned answer
+     * as legitimate and the guard let it through untouched.
+     *
+     * Reachable, and not with contrived input. Typing "remember" is a substring of
+     * "Remember that I always take the stairs", which released "Noted, I will assume
+     * the stairs rather than the lift." Typing "again" or "today" is a substring of
+     * "The install failed again, third time today", which released the third-time
+     * answer. Eight one and two word messages were found to do it.
+     *
+     * That is an allowance granted on a partial match: a decision made from part of an
+     * input and applied to all of it. Found by sweeping for the *shape* of the
+     * exemption list bypass rather than for its instance, which is why the sweep was
+     * worth doing at the level of the pattern.
+     *
+     * Same treatment as there. The full-containment direction is kept, because a user
+     * who typed the whole example plus more did ask for it. The other direction now
+     * requires the message to cover most of the example rather than any part of it.
+     */
     private fun Line.isAnsweringItsOwnExample(userMessage: String?): Boolean {
         val legitimate = legitimateFor ?: return false
         val said = normalize(userMessage.orEmpty())
         if (said.isEmpty()) return false
         val example = normalize(legitimate)
-        return said == example || said.contains(example) || example.contains(said)
+        if (said == example || said.contains(example)) return true
+        // A shortened restatement qualifies. An incidental word or phrase does not.
+        return example.contains(said) && said.length >= example.length * EXAMPLE_COVERAGE
     }
 
     /** True when [reply] is one of the protected lines, or opens with one. */
@@ -291,8 +327,12 @@ object PromptEcho {
     private fun isAllowedOutright(normalizedReply: String): Boolean =
         ALWAYS_ALLOWED.any { allowed ->
             val a = normalize(allowed)
-            // Equal, or the reply is a prefix of an allowed answer, which is what a
-            // half-streamed correct answer looks like.
+            // partial-match: bounded by construction. Equal, or the reply is a prefix
+            // *of the allowed answer*, which is what a half-streamed correct answer
+            // looks like. The reply is therefore shorter than the allowance and there
+            // is no remainder to go unchecked. The dangerous direction, the reply
+            // starting with the allowance and continuing, is handled by
+            // withoutAllowedPrefix instead.
             normalizedReply == a || a.startsWith(normalizedReply)
         }
 
@@ -496,12 +536,42 @@ object PromptEcho {
             couldBecomePromptText(partial, systemPrompt)
     }
 
-    /** True when this reply is an example answer landing on its own example input. */
+    /**
+     * How much a reply may carry past an example answer and still be cleared by it.
+     *
+     * A short trailing clause is ordinary: "Noted, I will assume the stairs rather than
+     * the lift. Anything else?" is one answer, not two. A long tail is the reply
+     * continuing into something the guard has not looked at.
+     */
+    private const val LEGITIMATE_OVERHANG = 40
+
+    /**
+     * True when this reply is an example answer landing on its own example input.
+     *
+     * **The third instance of the partial-match allowance, found by the checker rather
+     * than by reading.** It cleared the reply whenever it merely *started with* an
+     * example answer, so a reply that opened with the canned answer and then continued
+     * into a recital of the prompt was exempted whole. Narrower than the other two,
+     * because it needs the user's message to genuinely match the example, but the same
+     * shape: a decision from part of an input applied to all of it.
+     *
+     * Bounded rather than stripped, unlike [containsPromptText]. This function has no
+     * system prompt to re-scan the remainder against, so the remainder cannot be
+     * re-judged here; what it can do is refuse to vouch for more than a trailing
+     * clause, and let anything longer go on to face the other checks.
+     */
     private fun isLegitimateExampleAnswer(normalizedReply: String, userMessage: String?): Boolean =
         lines.any { line ->
             val answer = normalize(line.answer)
-            line.isAnsweringItsOwnExample(userMessage) &&
-                (normalizedReply.startsWith(answer) || answer.startsWith(normalizedReply))
+            if (!line.isAnsweringItsOwnExample(userMessage)) return@any false
+            // partial-match: bounded deliberately. The first branch is the reply part
+            // way through being written, so it is shorter than the answer and has no
+            // remainder at all. The second allows a trailing clause and no more.
+            answer.startsWith(normalizedReply) ||
+                (
+                    normalizedReply.startsWith(answer) &&
+                        normalizedReply.length - answer.length <= LEGITIMATE_OVERHANG
+                    )
         }
 
     /**
