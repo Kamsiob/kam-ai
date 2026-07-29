@@ -8730,3 +8730,35 @@ obviously right. If the example's *subject* is what causes the collision, moving
 it to a distant subject keeps the behavior and removes the interference. If the
 mechanism is the problem, the leaking will follow the new example wherever it
 goes, and no wording will help.
+
+## A safe example has to be long enough for the guard to catch it
+
+Found while replacing the acknowledgement example, and it is a constraint on
+writing prompt examples that was nowhere written down.
+
+The first replacement answered "Noted, no lifts." Four tests failed. The reason is
+the recital threshold in the echo guard, which is 48 characters and deliberately
+so: below that, ordinary correct short replies would be rejected, and this
+codebase has already shipped a guard that discarded good answers twice.
+
+So a 16-character example is one the guard can never protect against. If the model
+emitted it at the wrong moment, nothing would catch it, and the whole point of the
+allowlist in `PromptEcho` is that the safe example is exempt *when used correctly*
+and caught when it is not. An unguardable example gets the exemption for free and
+the protection never.
+
+**The rule: an example answer in a prompt must be at least as long as the recital
+threshold.** The replacement is 53 characters.
+
+This is also the third distinct constraint on prompt examples now on record, and
+they pull against each other, which is why writing one is harder than it looks:
+
+1. It must teach by demonstration, because described rules lose to worked
+   examples on this model.
+2. It must be harmless if emitted at the wrong moment, or it becomes the defect
+   it was meant to prevent.
+3. It must be long enough for the guard to recognize, or it cannot be protected.
+
+The stairs example satisfies all three. The metric one satisfied the first and
+third and failed the second, by sitting next to the subject matter of the app's
+hardest test input.
