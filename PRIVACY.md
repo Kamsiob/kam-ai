@@ -21,10 +21,10 @@ When Kam AI checks your phone's memory (RAM) to recommend a model size, that che
 Kam AI uses the network only when you ask it to, for these things:
 
 - **Downloading an AI model, voice, or content pack.** These are ordinary file downloads over HTTPS from public hosting (GitHub and, for some models, Hugging Face). Like any web request, the hosting server sees standard technical request data, such as your IP address, under that host's own privacy policy. The request contains nothing about you or your use of the app beyond the file being fetched.
-- **Web search, if you set it up.** Search is off by default and only works if you connect your own search endpoint or API key. When you use it, your search queries go to the endpoint you chose, under that service's privacy policy. We never see them.
+- **Checking which content packs exist.** When you open Discover, the app fetches a short list of the available packs from GitHub, so it can show you what there is. The request contains nothing about you, and if you are offline it simply shows nothing.
 - **Links you tap.** Links in the About screen or on Discover cards open in your browser.
 
-That is the complete list. If you never tap a download button and never set up search, Kam AI works entirely offline and makes no network requests.
+That is the complete list. If you never download anything and never open Discover, Kam AI makes no network requests at all, and everything it does with what you type works the same with no connection: nothing is queued up to send later.
 
 ## What Google sees
 

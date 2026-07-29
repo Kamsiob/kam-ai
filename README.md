@@ -205,8 +205,8 @@ onto the phone it came from.
 
 **It is already sync ready, though nothing syncs.** Every row carries a Lamport
 stamp and the identity of the install that wrote it, deletions leave tombstones,
-and the conflict rule is tested for convergence from both sides. There is no
-transport, no server and no network code. Those pieces are free to add before
+and the conflict rule is tested for convergence from both sides. There is no sync
+transport, no server, and no networking written for sync. Those pieces are free to add before
 there is data in the wild and impossible to add correctly afterwards.
 
 **Interface.** Kotlin and Jetpack Compose, one activity, Material 3 with a fully
