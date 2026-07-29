@@ -24,6 +24,24 @@ completions() {
 }
 before="$(completions)"
 
+# Refuse to touch the screen at all unless Kam AI is in front.
+#
+# This check used to sit further down, just before the send tap, which meant the
+# composer tap, a select-all, a delete and the typing had all already happened by
+# the time anything looked. A run once drove that sequence into the phone owner's
+# calendar because the app was not where it was assumed to be. Nothing was lost,
+# since those coordinates hit no editable field there, and that was luck rather
+# than design: a select-all followed by a delete is a destructive pair to send at
+# an unknown application.
+#
+# The capture guard in shot.sh caught the same run and refused to photograph
+# anything, which is why there were no screenshots of somebody's calendar. This
+# closes the earlier half of the same hole.
+if ! "$adb" shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus | grep -q com.kamsiob.kamai; then
+  echo "say.sh: Kam AI is not in front, refusing to type anything" >&2
+  exit 1
+fi
+
 # adb input text swallows everything after a bare space.
 escaped="$(printf '%s' "$text" | sed 's/ /%s/g; s/'"'"'/\\'"'"'/g')"
 
