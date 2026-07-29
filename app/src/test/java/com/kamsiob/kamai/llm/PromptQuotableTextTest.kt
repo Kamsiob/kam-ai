@@ -35,7 +35,7 @@ class PromptQuotableTextTest {
      * Testing a mode against its own example only proves the example is reachable.
      */
     private val allowed = mapOf(
-        "Remember that I always work in metric units." to
+        "Remember that I always take the stairs." to
             "The input half of the acknowledgement example. Fixes #116, where a " +
                 "statement made the model invent a question and answer it.",
         "The install failed again, third time today." to
@@ -96,7 +96,7 @@ class PromptQuotableTextTest {
         // them to save tokens would reintroduce the defect, and the token budget
         // is the exact pressure that would motivate it.
         val source = promptSource()
-        assertThat(source).contains("Noted, I will keep to metric.")
+        assertThat(source).contains("Noted, I will assume the stairs rather than the lift.")
         assertThat(source).contains("Always respond to the message the user actually sent")
     }
 

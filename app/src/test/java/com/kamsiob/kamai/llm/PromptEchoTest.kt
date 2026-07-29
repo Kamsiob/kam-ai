@@ -39,7 +39,7 @@ class PromptEchoTest {
         // must be covered here instead.
         val general = SystemPrompts.forMode(Mode.GENERAL)
         listOf(
-            "Noted, I will keep to metric.",
+            "Noted, I will assume the stairs rather than the lift.",
             "It was finished in 1889, for the Paris World's Fair.",
         ).forEach {
             assertThat(general).contains(it)
@@ -49,11 +49,12 @@ class PromptEchoTest {
 
     @Test
     fun theCopiesSeenOnTheDeviceAreCaught() {
-        // "Bread needs a hot oven, around 230C." answered with the metric
-        // example's answer, on 27 July.
-        assertThat(PromptEcho.isEcho("Noted, I will keep to metric.", "why")).isTrue()
+        // A bare statement answered with the acknowledgement example's answer,
+        // which is what happened on 27 July when that example was about metric
+        // units and the statement was about an oven temperature.
+        assertThat(PromptEcho.isEcho("Noted, I will assume the stairs rather than the lift.", "why")).isTrue()
         // Shortened and repunctuated, which is how they actually arrive.
-        assertThat(PromptEcho.isEcho("noted i will keep to metric", "why")).isTrue()
+        assertThat(PromptEcho.isEcho("noted i will assume the stairs rather than the lift", "why")).isTrue()
         // Copied and then continued, which is still a copy.
         assertThat(
             PromptEcho.isEcho("It was finished in 1889, for the Paris World's Fair. Anything else?"),
@@ -240,16 +241,16 @@ class PromptEchoTest {
         // An example answer landing on the message it belongs to.
         assertThat(
             PromptEcho.isBadReply(
-                "Noted, I will keep to metric.",
+                "Noted, I will assume the stairs rather than the lift.",
                 system,
-                userMessage = "Remember that I always work in metric units.",
+                userMessage = "Remember that I always take the stairs.",
             ),
         ).isFalse()
 
         // The same sentence somewhere it does not belong is still a copy.
         assertThat(
             PromptEcho.isBadReply(
-                "Noted, I will keep to metric.",
+                "Noted, I will assume the stairs rather than the lift.",
                 system,
                 userMessage = "Bread needs a hot oven, around 230C.",
             ),
@@ -297,7 +298,7 @@ class PromptEchoTest {
         // normalized characters, raised from 12 after a short opening that merely
         // began like an example got a good reply thrown away. A few words later
         // is the price of not discarding correct answers, and worth paying.
-        assertThat(PromptEcho.couldBecomeEcho("Noted, I will keep to metric", "why")).isTrue()
+        assertThat(PromptEcho.couldBecomeEcho("Noted, I will assume the stairs rather than the lift", "why")).isTrue()
         assertThat(PromptEcho.couldBecomeEcho("It was finished in 1889, for")).isTrue()
     }
 

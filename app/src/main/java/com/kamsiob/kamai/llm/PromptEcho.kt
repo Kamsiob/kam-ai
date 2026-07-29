@@ -11,7 +11,7 @@ package com.kamsiob.kamai.llm
  *
  * **The mistake this had to be corrected for.** A first version held only the
  * answer text. It then discarded a correct reply: "Remember that I always work
- * in metric units." was answered "Noted, I will keep to metric.", which is right,
+ * take the stairs." was answered "Noted, I will assume the stairs rather than the lift.", which is right,
  * and the guard threw it away because that sentence also appears in the prompt.
  *
  * An example answer is only wrong when it lands somewhere it does not belong. So
@@ -47,7 +47,7 @@ object PromptEcho {
      * throw away a right answer.
      */
     val lines: List<Line> = listOf(
-        Line("Noted, I will keep to metric.", legitimateFor = "Remember that I always work in metric units."),
+        Line("Noted, I will assume the stairs rather than the lift.", legitimateFor = "Remember that I always take the stairs."),
         Line(
             "Third time in a day points at something repeatable rather than bad luck.",
             legitimateFor = "The install failed again, third time today.",

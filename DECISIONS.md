@@ -8727,6 +8727,6 @@ whose job had never been established.
 
 That also means the two options that remain are both open rather than one being
 obviously right. If the example's *subject* is what causes the collision, moving
-it to a distant subject keeps the behaviour and removes the interference. If the
+it to a distant subject keeps the behavior and removes the interference. If the
 mechanism is the problem, the leaking will follow the new example wherever it
 goes, and no wording will help.
