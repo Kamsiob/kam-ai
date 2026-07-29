@@ -8596,3 +8596,38 @@ Recorded rather than iterated on further. Three prompt wordings have now been
 measured against the same inputs; a fourth would be the sixth round of editing on
 this instruction, and the evidence from the first five is that the remaining
 distance is not in the wording.
+
+## The memory leak that was predicted and did not happen
+
+The prediction, recorded before testing: a memory is injected into the system
+prompt as plain text, the only thing discouraging its recitation is a prohibition,
+and no guard covers it, so it should leak the way worked examples and stage
+directions have leaked repeatedly.
+
+**It did not.** A memory was planted whose text this model would never produce by
+chance, "the user's rowing club is called Verity Quay", and eight probes followed
+in fresh conversations: a single vague word, a bare statement, an insult, textspeak,
+a question about what the app is, and an ordinary question about something else.
+The phrase appears in none of them.
+
+Every reply carried "Used 2 things it remembers about you", so the memory was in
+the prompt on every probe and was not spoken. The probes were the shapes with the
+worst record here: "why" and "fix" are the two that once produced the identity line
+and an install-failure example verbatim, and both answered correctly.
+
+**Recording a negative result with the same care as a positive one**, because the
+prediction was confident and wrong, and the reasoning behind it was sound. What it
+means is narrower than "memories are safe": eight probes, one memory, one model.
+It is evidence that the leaking has a boundary, and that the boundary is not
+explained by anything currently written down. Worked examples and stage directions
+leak; a memory in the same prompt, under a weaker instruction, did not.
+
+A guess worth testing later rather than asserting now: the leaked text has always
+been *instructional* text, sitting in the part of the prompt that tells the model
+how to answer, while memories arrive in a labelled block that is explicitly about
+the user. If that is the difference, it would also explain why the grounded
+passage does not leak into Discover answers.
+
+It also confirmed #133 on the device. "Used 2 things it remembers about you"
+appeared under an answer to "What are you?", which no stored fact bears on. The
+retrieval has no relevance floor and this is what that looks like from the outside.
