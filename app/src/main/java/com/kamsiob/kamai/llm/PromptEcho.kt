@@ -150,6 +150,22 @@ object PromptEcho {
      */
     private val ALWAYS_ALLOWED = listOf(
         "Fix what? Tell me what is broken and I will start there.",
+        // The identity example's answer, added for #135. It belongs here for the
+        // same reason as the line above: it is true wherever it lands. Chats are
+        // always on this phone, in Kam AI's own storage, and nothing is ever
+        // uploaded, so a model that emits this at the wrong moment has still said
+        // something correct about the application.
+        //
+        // Guarding it could only throw away a right answer, and did. The first run
+        // after the example was added answered "Please I am wanting to know how it
+        // is working the thing for saving the chat" with the fallback, because the
+        // model gave the correct answer and the guard rejected it as prompt text.
+        //
+        // Note this cannot be handled by legitimateFor, which needs the user's
+        // message to say essentially the same thing as the example question. The
+        // question that triggered it was a paraphrase, and paraphrase is how
+        // support questions arrive.
+        "On this phone, in Kam AI's own storage. Nothing is uploaded anywhere.",
     )
 
     private fun isAllowedOutright(normalizedReply: String): Boolean =

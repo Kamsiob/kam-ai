@@ -62,6 +62,26 @@ class PromptEchoTest {
     }
 
     @Test
+    fun theIdentityAnswerSurvivesEveryCheck() {
+        // Added for #135 and immediately needed. The example answer is correct for
+        // any phrasing of "where do my chats go", and support questions arrive as
+        // paraphrases, so legitimateFor cannot help: it needs the user's message
+        // to say essentially the same thing as the example question.
+        //
+        // On the device, "Please I am wanting to know how it is working the thing
+        // for saving the chat" was answered correctly and the guard rejected it
+        // twice, so the user got "That came out wrong."
+        val answer = "On this phone, in Kam AI's own storage. Nothing is uploaded anywhere."
+        val prompt = SystemPrompts.forMode(com.kamsiob.kamai.data.Mode.GENERAL)
+        assertThat(
+            PromptEcho.isBadReply(answer, prompt, "how does the saving of the chat work"),
+        ).isFalse()
+        // And on a message with nothing to do with it, because it is true there
+        // too. This is the property that makes an example safe to keep at all.
+        assertThat(PromptEcho.isBadReply(answer, prompt, "why")).isFalse()
+    }
+
+    @Test
     fun theSafeExampleSurvivesEveryCheck() {
         // Regression. containsPromptText was added after the exemption existed
         // and knew nothing about it, so it caught the one sentence deliberately
