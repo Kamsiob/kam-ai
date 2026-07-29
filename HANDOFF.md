@@ -52,6 +52,36 @@ their own targets: the retry nudge flattened Logic Partner because it lived in a
 shared path, and the supplied sentences collided with the guard. Each was caught
 only because the battery runs every mode.
 
+### Closed on the device tonight
+
+#129, #130, #131 and #135, each verified with fresh conversations.
+
+**#135 came from testing the way people actually type**, which nothing here had
+done: ten inputs that ramble, are misspelled throughout, are shouted, carry three
+unrelated questions, or contradict themselves. Two of them, both ordinary support
+questions, had the app answering as if it were a model inside somebody else's
+product, asking whether the user was on the web version. Fifteen minutes of that
+found a user-facing defect four days of batteries had not, because every battery
+input here was written by somebody who knew what a good test input looks like.
+
+`tools/input_styles.sh` is that sweep. Only General has been run; the other modes
+are untouched.
+
+### Still open, with the thing worth knowing about each
+
+- **#122** is down to a prefix. The bread input answers well and sometimes leads
+  with the user's own sentence first. Three wordings have been measured against
+  the same inputs; a fourth is unlikely to help.
+- **#132**, the tier decision, needs the repository owner. Re-measured after the
+  largest prompt change yet: E2B went 18 to 13 while E4B went 7 to 0, and Logic
+  Partner on a sound argument did not move at all, so the gap widened rather than
+  closed.
+- **#133**, memory retrieval has no relevance floor. The leak it was feared to
+  enable did not reproduce, so the honest-interface argument is the strong one:
+  "Used 2 things it remembers about you" appears under answers that used neither.
+- **#134**, nothing is said or done when the phone throttles at LIGHT, and the
+  separate unexplained slowdown still needs a clean before and after.
+
 ### The rule this produced, which is the most reusable thing here
 
 - **Do not describe a response in a prompt. Supply it.** Describing makes the
