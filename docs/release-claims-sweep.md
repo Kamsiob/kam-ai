@@ -32,6 +32,35 @@ re-checked.
 Check each against the two calls above. Where two sources disagree, one is wrong,
 and which one is the interesting question.
 
+**Check the highest risk location first, because nothing downstream can catch an
+error in it.** Three of the four false claims found so far were in prose, where a
+wrong sentence sits there being read. The fourth was in the one structurally exempt
+place: a sentence the model was *instructed* to say, sitting on the echo guard's
+exemption list, bypassing every check by design, answering the question a privacy
+conscious user asks. So this sweep covers the guard's own allowances and not only
+documentation.
+
+- [ ] **`PromptEcho.ALWAYS_ALLOWED`, the exemption list. HIGHEST RISK.** Every entry
+      is a factual claim about the application that bypasses every check in the
+      guard. Read via `PromptEcho.exemptAnswers`. For each entry:
+      - Is it verified against what the application actually *does*, not against what
+        was believed when it was added? "It is true wherever it lands" is a claim
+        needing evidence, not a reason. That exact phrase justified two entries and
+        was wrong about one.
+      - Has anything it describes changed since it was verified? An entry must be
+        re-verified when its subject changes, not only when it is edited.
+      - Is it verifiable at all? **If not, it comes off.** An exemption nobody can
+        check is worse than none: a rejected right answer costs one fallback message,
+        an unchecked wrong claim ships.
+      - Test the *breadth*, not the sentence. Ask what questions it could land on, not
+        the one it was written for. "Everything works the same offline" was true of
+        what the user types and false of downloading a model or opening Discover.
+- [ ] **`SystemPrompts.HARD_RULES`, the example answers.** The exemption list's
+      entries are quoted here, which is what makes the model produce them reliably.
+      A claim fixed in one place and not the other leaves the guard and the prompt
+      disagreeing, and `ALWAYS_ALLOWED` matches by prefix, so they must be the same
+      text.
+
 - [ ] `tools/play/listing.json`, full description
 - [ ] `docs/release-data-safety.md`, the declaration itself
 - [ ] `PRIVACY.md`

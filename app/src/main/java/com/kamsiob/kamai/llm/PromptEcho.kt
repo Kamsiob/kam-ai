@@ -148,7 +148,54 @@ object PromptEcho {
      * question. A rule with an exception needs the exception applied everywhere
      * the rule is, and this one had two places.
      */
+    /**
+     * Replies that bypass every check in this file.
+     *
+     * ## The rule for adding to this list, which has two halves
+     *
+     * The first half was always here: a line belongs if guarding it could only throw
+     * away a right answer.
+     *
+     * **The second half was missing, and its absence is how the fourth false claim
+     * happened.** Everything here is a factual claim about the application that
+     * bypasses every check *by design*. Nothing downstream can catch an error in it.
+     * So:
+     *
+     * - **An entry may only be added after being verified against what the
+     *   application actually does**, not against what whoever added it believed.
+     * - **It must be re-verified whenever what it describes changes.** A sentence
+     *   asserted to be true wherever it lands is a claim, not a fact, until
+     *   something checks it.
+     * - **Anything unverifiable comes off.** An exemption nobody can check is worse
+     *   than no exemption, because a rejected right answer costs one fallback
+     *   message and an unchecked wrong claim is shipped.
+     *
+     * "It is true wherever it lands" appeared twice below as a justification and was
+     * wrong once. That phrase is now a claim requiring evidence, not a reason.
+     *
+     * This list is a named location in `docs/release-claims-sweep.md`, marked the
+     * highest risk one, because three of the four false claims found so far were in
+     * prose and the fourth was here.
+     *
+     * ## Verification, July 2026
+     *
+     * Ground truth: exactly two network calls exist, a download the user starts and
+     * the Discover pack manifest fetched when Discover opens. No analytics, no crash
+     * reporting, no telemetry, no search, and no upload of anything the user types.
+     */
     private val ALWAYS_ALLOWED = listOf(
+        // **Not a claim about the application, and the only entry that is not.**
+        // It asserts nothing about storage, network or capability; it is a
+        // clarifying question, quoted in the prompt as the example answer to a bare
+        // "fix". Guarding it discards a legitimate clarifying question and replaces
+        // it with a fallback, for no safety gain, because there is no fact here to
+        // be wrong about.
+        //
+        // Kept deliberately, and it is the boundary case that makes the rule above
+        // enforceable rather than a blanket "verify everything": the rule bites on
+        // factual claims, and a conversational example answer is not one. The soft
+        // promise "I will start there" is the app continuing the conversation, which
+        // is what it does.
         "Fix what? Tell me what is broken and I will start there.",
         // The identity example's answer, added for #135. It belongs here for the
         // same reason as the line above: it is true wherever it lands. Chats are
@@ -165,6 +212,15 @@ object PromptEcho {
         // message to say essentially the same thing as the example question. The
         // question that triggered it was a paraphrase, and paraphrase is how
         // support questions arrive.
+        //
+        // **Verified against behavior, July 2026, and it holds.** Conversations are
+        // in an encrypted database in the app's own storage, wrapped by a Keystore
+        // entry; see DatabaseKey. Both network calls are downloads, so nothing the
+        // user types is uploaded by anything. Checked against the sentences it could
+        // land on rather than only the question it was written for: asked where a
+        // model file lives, where a chat lives, or whether anything is uploaded, it
+        // is true each time. A user exporting a backup and sharing it themselves is
+        // the user uploading, not the application.
         "On this phone, in Kam AI's own storage. Nothing is uploaded anywhere.",
         // The offline answer, added for #136, and here for the same reason: it is
         // true wherever it lands.
@@ -187,15 +243,83 @@ object PromptEcho {
         // all. Narrowed to what it is actually answering, which is what happens to
         // what the user types, and which matches the corrected wording in
         // PRIVACY.md rather than overshooting it.
+        //
+        // **Verified against behavior in its narrowed form, July 2026.** Inference,
+        // memory retrieval and storage are all local, so what the user types is
+        // handled identically with no connection. There is no upload queue anywhere
+        // in the codebase, so nothing is held to send later. The two network calls
+        // are both about *fetching* things the user asked for, which is why the
+        // sentence had to be scoped to what the user types: the unscoped version
+        // was false about exactly those two.
         "Everything you type is handled the same with no connection. Nothing is " +
             "queued up to send later.",
     )
 
+    /**
+     * True when the reply *is* an allowed answer, whole or part way through being
+     * written.
+     *
+     * **What this deliberately no longer does is exempt a reply that merely starts
+     * with an allowed answer.** It read
+     * `normalizedReply.startsWith(a)`, which meant any reply beginning with an
+     * exempt sentence was exempt in full, with no bound on what followed. The model
+     * is *instructed* to produce these sentences, so it can produce one reliably and
+     * on demand, and everything after it was then unguarded. Both the completed
+     * check and the streaming one used this, so a recital opening with an allowed
+     * answer would not even be cut off mid flow.
+     *
+     * That is a bypass of the entire guard behind a promptable prefix, and it sat
+     * underneath the exemption list, which is already the one place nothing
+     * downstream can catch an error. Found by verifying every entry on the list
+     * against actual behavior rather than against what was believed when it was
+     * added.
+     *
+     * The overhang case is handled by [withoutAllowedPrefix] instead, which strips
+     * the exempt sentence and judges what is left on its own. That keeps a
+     * legitimate elaboration after a correct answer, which is why the loose form
+     * existed, without letting the elaboration go unchecked.
+     */
+    /**
+     * The exemption list, for the sweep and for the test that pins its scoping.
+     *
+     * Exposed because a list that bypasses every check should be readable by the
+     * thing that audits it. See `docs/release-claims-sweep.md`, where it is the
+     * highest risk named location.
+     */
+    val exemptAnswers: List<String> get() = ALWAYS_ALLOWED
+
     private fun isAllowedOutright(normalizedReply: String): Boolean =
         ALWAYS_ALLOWED.any { allowed ->
             val a = normalize(allowed)
-            normalizedReply == a || a.startsWith(normalizedReply) || normalizedReply.startsWith(a)
+            // Equal, or the reply is a prefix of an allowed answer, which is what a
+            // half-streamed correct answer looks like.
+            normalizedReply == a || a.startsWith(normalizedReply)
         }
+
+    /**
+     * The reply with any leading allowed answers removed, so what follows one can
+     * be judged on its own merits.
+     *
+     * Repeated, because the model can legitimately give two of these answers in a
+     * row: asked a question that is both about storage and about signal, "On this
+     * phone, in Kam AI's own storage. Nothing is uploaded anywhere. Everything you
+     * type is handled the same with no connection." is correct twice over.
+     */
+    private fun withoutAllowedPrefix(normalizedReply: String): String {
+        var rest = normalizedReply
+        var changed = true
+        while (changed) {
+            changed = false
+            for (allowed in ALWAYS_ALLOWED) {
+                val a = normalize(allowed)
+                if (a.isNotEmpty() && rest.startsWith(a)) {
+                    rest = rest.removePrefix(a).trimStart()
+                    changed = true
+                }
+            }
+        }
+        return rest
+    }
 
     /**
      * How much contiguous instruction text a reply must contain before it counts
@@ -231,9 +355,16 @@ object PromptEcho {
      */
     fun containsPromptText(reply: String, systemPrompt: String): Boolean {
         val haystack = normalize(systemPrompt)
-        val n = normalize(reply)
-        if (haystack.isEmpty() || n.length < MIN_CHARS) return false
-        if (isAllowedOutright(n)) return false
+        val full = normalize(reply)
+        if (haystack.isEmpty() || full.length < MIN_CHARS) return false
+        if (isAllowedOutright(full)) return false
+        // An allowed answer followed by more text is judged on the more text. The
+        // exempt sentence itself would otherwise match the prompt, because it is
+        // quoted in the prompt, and rejecting a correct answer for appearing in the
+        // instructions that asked for it is the false positive this whole list
+        // exists to prevent.
+        val n = withoutAllowedPrefix(full)
+        if (n.length < MIN_CHARS) return false
         if (n.length <= PROMPT_RUN) return haystack.contains(n)
         // Step through rather than checking only the opening: a reply that starts
         // in its own words and then recites is still reciting.
@@ -247,9 +378,13 @@ object PromptEcho {
 
     /** The streaming form, so a recital is cut off rather than shown in full. */
     fun couldBecomePromptText(partial: String, systemPrompt: String): Boolean {
-        val n = normalize(partial)
+        val full = normalize(partial)
+        if (full.length < PROMPT_RUN) return false
+        if (isAllowedOutright(full)) return false
+        // Same as the completed check: a recital that opens with an allowed answer
+        // used to stream out in full, because the opening exempted the whole thing.
+        val n = withoutAllowedPrefix(full)
         if (n.length < PROMPT_RUN) return false
-        if (isAllowedOutright(n)) return false
         return normalize(systemPrompt).contains(n.substring(0, PROMPT_RUN))
     }
 

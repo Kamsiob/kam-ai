@@ -339,4 +339,85 @@ class PromptEchoTest {
             assertThat(PromptEcho.couldBecomeEcho(it)).isFalse()
         }
     }
+
+    // ---- the exemption list is a bypass, so what follows one must still be checked ----
+
+    @Test
+    fun `a recital that opens with an allowed answer is still caught`() {
+        // The bypass this replaced: isAllowedOutright exempted any reply *starting*
+        // with an allowed sentence, with no bound on what followed. The model is
+        // instructed to produce these sentences, so it can produce one on demand,
+        // and everything after it went unguarded.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        val allowed = "On this phone, in Kam AI's own storage. Nothing is uploaded anywhere."
+        val recital = allowed + " " + system.take(300)
+
+        assertThat(PromptEcho.containsPromptText(recital, system)).isTrue()
+    }
+
+    @Test
+    fun `a streaming recital behind an allowed answer is cut off`() {
+        // Same hole in the streaming path, which mattered more: it meant the recital
+        // was not merely accepted, it was shown as it arrived.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        val allowed = "Everything you type is handled the same with no connection. " +
+            "Nothing is queued up to send later."
+        val partial = allowed + " " + system.take(200)
+
+        assertThat(PromptEcho.couldBecomePromptText(partial, system)).isTrue()
+    }
+
+    @Test
+    fun `an allowed answer on its own is still exempt`() {
+        // The regression risk of the fix above. These must keep passing or the guard
+        // starts discarding the correct answers the list exists to protect.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        listOf(
+            "Fix what? Tell me what is broken and I will start there.",
+            "On this phone, in Kam AI's own storage. Nothing is uploaded anywhere.",
+            "Everything you type is handled the same with no connection. " +
+                "Nothing is queued up to send later.",
+        ).forEach { allowed ->
+            assertThat(PromptEcho.containsPromptText(allowed, system)).isFalse()
+            assertThat(PromptEcho.couldBecomePromptText(allowed, system)).isFalse()
+        }
+    }
+
+    @Test
+    fun `two allowed answers in a row are exempt`() {
+        // A question that is about storage and about signal at once gets both, and
+        // both are correct. This is why the prefix strip repeats.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        val both = "On this phone, in Kam AI's own storage. Nothing is uploaded anywhere. " +
+            "Everything you type is handled the same with no connection. " +
+            "Nothing is queued up to send later."
+        assertThat(PromptEcho.containsPromptText(both, system)).isFalse()
+    }
+
+    @Test
+    fun `ordinary elaboration after an allowed answer is not rejected`() {
+        // The reason the loose form existed. A correct answer followed by the model's
+        // own words must survive, or the fix above trades one false positive class
+        // for another.
+        val system = SystemPrompts.forMode(Mode.GENERAL)
+        val reply = "On this phone, in Kam AI's own storage. Nothing is uploaded anywhere. " +
+            "You can see everything it has kept on the Memory screen, and delete any of it."
+        assertThat(PromptEcho.containsPromptText(reply, system)).isFalse()
+    }
+
+    @Test
+    fun `every factual claim on the exemption list is scoped to what the app does`() {
+        // Not a behavioral test and it does not pretend to be one. It pins the
+        // narrowing that the claims sweep forced, so the broad form cannot come back
+        // by someone shortening the sentence for readability.
+        //
+        // "Everything works the same offline" was false: two network calls exist, a
+        // download the user starts and the Discover pack manifest. The scoped form is
+        // about what the user types, which is the part that is genuinely unaffected.
+        val exempt = PromptEcho.exemptAnswers
+
+        assertThat(exempt).doesNotContain("Everything works the same offline. Nothing is queued up to send later.")
+        assertThat(exempt.any { it.startsWith("Everything you type is handled the same") }).isTrue()
+        exempt.forEach { assertThat(it).doesNotContain("works the same offline") }
+    }
 }
