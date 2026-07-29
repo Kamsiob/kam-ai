@@ -9,6 +9,9 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.isSelected
+import com.kamsiob.kamai.ui.components.RowTrailing
+import com.kamsiob.kamai.ui.components.SettingsRow
 import com.kamsiob.kamai.ui.components.SettingsToggleRow
 import com.kamsiob.kamai.ui.theme.KamTheme
 import org.junit.Rule
@@ -87,5 +90,30 @@ class MemoryNoteToggleSemanticsTest {
         content(checked = true)
         rule.onNodeWithText(title, useUnmergedTree = false)
             .assert(hasToggleState(ToggleableState.On))
+    }
+
+    @Test
+    fun aChoiceRowCarriesItsSelectedStateOnTheSameNodeAsItsName() {
+        // The same defect is available to any composite row where the trailing slot is
+        // the only thing carrying state. A radio dot is nothing to a screen reader, so
+        // without this the row reads its name and never says it is the chosen one.
+        //
+        // Nothing uses RowTrailing.Choice yet. That is why this test exists now: the
+        // toggle defect lasted as long as it did because the first toggle row shipped
+        // with it and every later one copied it.
+        rule.setContent {
+            KamTheme {
+                Column {
+                    SettingsRow(
+                        title = "Only when I ask",
+                        subtitle = "Nothing else is kept",
+                        trailing = RowTrailing.Choice(selected = true),
+                        showDivider = false,
+                        onClick = {},
+                    )
+                }
+            }
+        }
+        rule.onNodeWithText("Only when I ask").assert(isSelected())
     }
 }

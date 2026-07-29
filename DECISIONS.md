@@ -9835,3 +9835,54 @@ failed upstream command is fatal rather than zero, an empty value is rejected, a
 non-numeric value is rejected, and a missing capture fails the run. Then `adb_count`
 was run against the real device, where it returned a true zero, and against a
 nonexistent adb, where it refused instead of reporting zero.
+
+## The accessibility sweep, and what it found was mostly that the codebase was fine
+
+The toggle row defect raised the obvious question: the same mistake is available anywhere
+a composite control splits its label from its state, so where else is it?
+
+**Swept: radio rows, the mode segmented control, model picker entries with their ratings
+and capability icons, the view switcher, the mode filter, the follow-up kind indicators,
+and the mode dots on chat rows.**
+
+**The toggle row was the outlier, not the rule.** Sixty-three sites already set state or
+a content description, and the ones the sweep was most worried about were already right:
+
+| control | state | verdict |
+|---|---|---|
+| mode dots on chat rows | `contentDescription = "Modes used: ..."` via `modesLabel` | already correct |
+| mode filter button | `contentDescription` includes ", active" | already correct |
+| mode filter's per-mode rows | `semantics { selected = on }` | announces state |
+| mode segmented control | `semantics { selected = on }` | already correct |
+| view switcher, follow-ups, model picker, appearance | `selected` / description set | already correct |
+| **toggle rows** | name and state on different nodes | **was broken, fixed** |
+| **choice rows** | dot only, no selected state | **latent, fixed** |
+
+The mode dots are the interesting one, because they are the case that looks worst: colored
+dots conveying which modes a conversation used, which is nothing at all to a screen
+reader. Somebody had already put their names in the row label. That is worth recording as
+a clean result rather than passing over in silence, because the sweep's value is as much
+in what it rules out as in what it finds.
+
+**`RowTrailing.Choice` was fixed before it could happen.** Nothing uses it yet. The row is
+now `selectable` with `Role.RadioButton`, so the selected state lands on the same node as
+the name rather than living in a radio dot.
+
+That timing is the point. **The toggle defect lasted as long as it did because the first
+toggle row shipped with it and every later row copied it.** A latent trap in shared code is
+cheapest to close while it is still latent, and the test for it costs the same either way.
+
+### What the sweep deliberately did not change
+
+The mode filter's per-mode rows use `selected` for a multi-select, where `toggleable` with
+`Role.Checkbox` would be more precise. They do announce their state, which is the defect
+class in question, so this is a refinement rather than a defect and it is not worth
+touching shared behavior for. Noted so the next person does not mistake the omission for
+an oversight.
+
+### The limit of all of this, stated
+
+Every one of these is a mechanical check: is the state exposed, and is it attached to the
+name. **Whether the app *sounds* right still needs somebody listening to TalkBack**, and
+that remains an owner task in HANDOFF. The tests draw the same line `AnnouncementsTest`
+draws, and they should not be read as more than they are.

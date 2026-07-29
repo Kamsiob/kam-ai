@@ -10,6 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -332,6 +333,25 @@ fun SettingsRow(
                             value = trailing.on,
                             onValueChange = trailing.onChange,
                             role = Role.Switch,
+                            interactionSource = interaction,
+                            indication = null,
+                        )
+                        // A choice row has exactly the same defect available to it, and
+                        // it is fixed here before it can happen rather than after. The
+                        // dot in the trailing slot is the only thing carrying "this is
+                        // the selected one", and a dot is nothing to a screen reader. So
+                        // the row is `selectable` with Role.RadioButton, putting the
+                        // selected state on the same node as the name.
+                        //
+                        // Nothing uses RowTrailing.Choice yet, which is exactly why this
+                        // is worth doing now: the toggle defect existed for as long as it
+                        // did because the first toggle row shipped with it, and then
+                        // every later one copied it.
+                    } else if (trailing is RowTrailing.Choice && enabled && onClick != null) {
+                        Modifier.selectable(
+                            selected = trailing.selected,
+                            onClick = onClick,
+                            role = Role.RadioButton,
                             interactionSource = interaction,
                             indication = null,
                         )
