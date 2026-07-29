@@ -22,27 +22,35 @@ issue.
 
 ## SECTION 0: LIVE STATE, 28 JULY, LATE
 
-### Three quality issues closed on the device, and the sequence that got there
+### Where the model-quality work stands: seven guard interventions to zero
 
-#129, #130 and #131 are closed, each verified with three fresh conversations on
-E4B. Guard interventions across the whole battery went 7 at baseline, 3 with the
-retry nudge, 9 with the supplied sentence, and **2 now**.
+#129, #130 and #131 closed on the device. The battery across the night, thirty
+cases, three runs each, E4B:
 
-- Logic Partner answers a bereavement: "I'm sorry to hear about your dad. General
-  is the better place."
-- Brainstorm answers a bereavement, and answers a plain problem statement with a
-  real opening built from what the person said.
-- The bread input needs no guard intervention at all, down from two per turn.
+| build | interventions |
+|---|---|
+| baseline | 7 |
+| retry nudge | 3 |
+| supplied sentences | 9 |
+| frame form | 2 |
+| **example moved off its colliding subject, sentences converted to frames** | **0** |
 
-Two of those four columns went the wrong way, and both were a fix that worked on
-its own target: the retry nudge flattened Logic Partner because it lived in a
-shared path, and the supplied sentence collided with the guard because it put a
-fixed string in the prompt. Each was found only because the battery runs every
-mode. That is the argument for the rule, in one table, in DECISIONS.md under "the
-frame form, measured".
+The replies behind the zero are good rather than merely unrejected: Logic Partner
+gives all three moves on a sound argument, Brainstorm builds a question from the
+user's own material, and a bereavement in Logic Partner gets "I'm sorry to hear
+about your dad. General is the better place."
 
-The two remaining interventions are single ones where the retry then succeeded, so
-nothing reached the user. Not zero, and not claimed to be.
+**The zero does not mean #122 is gone.** The bread input still leads with the
+user's sentence before adding to it, and the guard does not count that because a
+real addition follows. The defect shrank from "the reply is a restatement" to "the
+reply begins with one". The hard rules already forbid repeating the question back,
+and the model follows the additive rule beside it instead, so another wording round
+is unlikely to settle it.
+
+Two of the five columns went the wrong way, and both were fixes that worked on
+their own targets: the retry nudge flattened Logic Partner because it lived in a
+shared path, and the supplied sentences collided with the guard. Each was caught
+only because the battery runs every mode.
 
 ### The rule this produced, which is the most reusable thing here
 
