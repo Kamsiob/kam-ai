@@ -22,22 +22,27 @@ issue.
 
 ## SECTION 0: LIVE STATE, 28 JULY, LATE
 
-### The Logic Partner regression is fixed in the tree, verifying now
+### Three quality issues closed on the device, and the sequence that got there
 
-A bereavement in Logic Partner was getting the reply guard's fallback, because the
-distress rule had been rewritten to supply an exact sentence, which put a fixed
-string in the prompt, which the guard then correctly rejected as prompt text.
+#129, #130 and #131 are closed, each verified with three fresh conversations on
+E4B. Guard interventions across the whole battery went 7 at baseline, 3 with the
+retry nudge, 9 with the supplied sentence, and **2 now**.
 
-Rewritten in the frame form that Brainstorm already uses and that produced zero
-rejections in the same run: say how many sentences, what each carries, and what
-must not appear, and leave the words to the model. **No guard change was needed
-and none was made.** Installed; battery running to confirm `logic grief` returns
-to zero.
+- Logic Partner answers a bereavement: "I'm sorry to hear about your dad. General
+  is the better place."
+- Brainstorm answers a bereavement, and answers a plain problem statement with a
+  real opening built from what the person said.
+- The bread input needs no guard intervention at all, down from two per turn.
 
-**The record was contradictory on this and has been corrected.** An earlier
-DECISIONS entry proposed extending the guard's safe-example exemption. That is
-unnecessary and the entry now says so in place. A resumed session reading only
-that entry would have weakened a guard for no reason.
+Two of those four columns went the wrong way, and both were a fix that worked on
+its own target: the retry nudge flattened Logic Partner because it lived in a
+shared path, and the supplied sentence collided with the guard because it put a
+fixed string in the prompt. Each was found only because the battery runs every
+mode. That is the argument for the rule, in one table, in DECISIONS.md under "the
+frame form, measured".
+
+The two remaining interventions are single ones where the retry then succeeded, so
+nothing reached the user. Not zero, and not claimed to be.
 
 ### The rule this produced, which is the most reusable thing here
 
