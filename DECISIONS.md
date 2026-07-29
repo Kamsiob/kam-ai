@@ -9319,3 +9319,37 @@ would break the flagship voice flow, and moving the stop control would leave the
 most-used button jumping around.
 
 Worth revisiting only if real use shows people losing answers this way.
+
+## The largest fonts, and the picker seen for the first time in use
+
+System font scale at 1.6, app restarted, three screens checked: the chat list,
+Settings, and the model picker.
+
+**Nothing broke.** Titles truncate with an ellipsis rather than overflowing, rows
+grow with their content, the support card wraps, and no text is clipped or
+overlapping anywhere.
+
+The model picker is the interesting one, because it is the screen built tonight and
+this is the first time it has been looked at rather than reasoned about:
+
+    Basic       Speed   ★★★★☆ on this phone
+                Quality ★★☆☆☆ against the models here
+                Logic Partner needs a larger model. On this one it usually cannot
+                hold an argument and asks you to rephrase instead. General,
+                Brainstorm and Workbench are unaffected.
+                About 7 words a second on this phone
+
+    Balanced    Speed   ★★☆☆☆ on this phone
+                Quality ★★★★☆ against the models here
+                About 3 words a second on this phone
+
+Both ratings are real: the speeds are this phone's own measurements, and the
+smaller model correctly rates faster and lower quality. The honest note appears on
+Basic and, correctly, nowhere else.
+
+A tap went astray during this and opened the phone owner's browser, on the "Fund
+the work" link, because the layout moves at a larger font and the coordinate was
+from the smaller one. shot.sh refused the capture, which is the third time that
+guard has caught something tonight.
+
+Font scale restored to 1.0 afterwards, and the browser closed.
