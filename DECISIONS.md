@@ -8145,3 +8145,42 @@ places where a one line reply to a statement is the right answer.
 This is the concrete argument for a rule that otherwise sounds like ceremony:
 re-run the entire battery after every change, not the part being worked on. The
 part being worked on improved. The number that mattered was somewhere else.
+
+## Supplying the sentence puts it in the prompt, where the guard is watching
+
+The stage direction conversion works and it collided with the echo guard on the
+first run, in the worst place.
+
+Logic Partner's distress rule was changed from describing the reply to supplying
+it. The model then said the supplied sentence, correctly, and the guard rejected
+it, because the guard's whole job is to catch a reply that is prompt text. Twice
+per turn, so the fallback shipped:
+
+| mode | input | before | after |
+|---|---|---|---|
+| logic | grief | 0 | **6** across 3 runs |
+
+Somebody who says their father died in Logic Partner now gets "That came out
+wrong. Say it again, or add a little more, and I will have another go." That is
+worse than the stage direction it replaced, which at least pointed at General.
+
+**The two fixes are in direct tension and both are right.** Supply the sentence,
+because describing it makes the model speak the description. Reject prompt text,
+because a reply lifted from the instructions is not a reply. A supplied sentence
+is prompt text that is *supposed* to be spoken, and nothing told the guard the
+difference.
+
+The repair is not to withdraw either one. It is the exemption that already exists
+for the safe worked example, extended to every supplied sentence, and DECISIONS
+already records the shape of getting that wrong: "a guard is only worth having if
+its false positives are cheaper than its misses", and "the safe example has to be
+exempt from every check, not one". Exempting it from `isParrot` alone would leave
+`containsPromptText` to reject the same reply.
+
+Not attempted under time pressure, deliberately. An unverified change to a guard,
+made on the way out, is how a false positive gets shipped to the one path where
+tone matters most.
+
+**Recorded as the immediate next step, and as a general warning: every remaining
+stage direction converted to a supplied sentence will hit this, so the guard
+exemption comes first and the conversions follow it.**
