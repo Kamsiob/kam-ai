@@ -8985,3 +8985,30 @@ decoded, well-formed, with the numbered structure intact across the interruption
 That is the foreground service and the NonCancellable block in the reply path doing
 what they were built for (#40, #121). Recorded as a pass rather than left untested,
 because "it probably works" is what was said about several things that did not.
+
+## Scoping a fix by budget rather than by where the claim has to hold
+
+The identity examples were put in General because Logic and Brainstorm had the
+least headroom. Running the input-style sweep against Logic Partner showed what
+that bought: the same defect, in a mode the fix did not reach, answering a question
+about where chats are saved with "It depends on the platform you're using. Are you
+talking about saving it in a cloud service?"
+
+Moved into the shared rules and verified: Logic Partner now answers "On this phone,
+in Kam AI's own storage. Nothing is uploaded anywhere", and all ten inputs in the
+sweep are clean.
+
+**The lesson is about how the scope was chosen.** It was chosen on a budget number,
+and a budget number does not know which claims are load-bearing. The question that
+should have been asked is where the claim has to hold, and the answer for "what
+this app is and whether it uploads anything" is everywhere, because a user changes
+mode by tapping a chip and the privacy promise does not change with it.
+
+Every budget rose together, which is the honest shape: the cost lands in the shared
+rules, so recording it as a General change would have hidden it.
+
+This is the same shape as the retry nudge, from the other direction. That was a fix
+placed in a shared path that should have been in one mode. This was a fix placed in
+one mode that should have been shared. Both were decided by convenience rather than
+by asking which modes the behavior belongs to, which is what the standing check
+exists to force.
