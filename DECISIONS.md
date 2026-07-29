@@ -9101,3 +9101,30 @@ So Off holds across a process death, and #123 stays fixed.
 Restored to "Only when I ask" afterwards, which is where it was. Worth stating: the
 setting belongs to the repository owner, and a test that changes somebody's
 configuration has to put it back.
+
+## The input-style sweep across three modes
+
+Ten inputs written the way messages actually arrive, run against General, Logic
+Partner and Brainstorm. Zero guard interventions in all three after the fixes.
+
+**Brainstorm handled every one**, and two are worth naming. The formally verbose
+message about defrosting a freezer was answered about a freezer, where General
+answered about food: the mode that asks a question back rather than answering is
+less exposed to a buried subject. And the chat-saving question got "On this phone,
+in Kam AI's own storage. Nothing is uploaded anywhere", which confirms the identity
+examples reach every mode now that they are in the shared rules.
+
+The single word "anyway" got "That's too vague to act on. What are you working
+on?", which is right, and the terse "shorter" got "What do you want to make
+shorter?" with no restatement prefix, where General has repeated the word back.
+
+**The false pass this nearly became is the more useful part.** The first Brainstorm
+run reported ten inputs with zero rejections and wrote no captures at all. It had
+navigated out of the app; say.sh refused to type, shot.sh refused to capture, and
+the script swallowed both with `|| true`. Two guards worked perfectly and the
+harness turned their refusals into a clean bill of health.
+
+Both calls now fail the run. This is the third harness defect of the same shape
+tonight, after the timer wait and the negative rejection count, and all three
+produced output that looked exactly like data. The pattern to watch for is not a
+crash; it is a result that arrives without the work having happened.
