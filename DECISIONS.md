@@ -8055,7 +8055,7 @@ recommended is 4.
 
 ## This model speaks descriptions of responses, so never describe one
 
-Three issues turned out to be one behaviour in three places. #118 answered a
+Three issues turned out to be one behavior in three places. #118 answered a
 bereavement with a line from the instructions. #129 replied "This is a statement
 about something that happened. I will acknowledge the difficulty of what you
 shared." #131 replied "This is not a debate topic. Suggest General."
