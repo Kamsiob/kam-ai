@@ -58,12 +58,31 @@ trap restore EXIT
 # Run it with a memory about metric units stored, which is this project's
 # canonical example, or the middle turn overlaps nothing and this is the useless
 # version again.
+# **The relevance floor (#133) changed what this has to cover, and the turn list
+# was incomplete again for the same reason it was the first time.**
+#
+# The floor drops a memory that neither overlaps the message nor is a standing
+# fact. So on an ordinary turn the block is now just the standing facts, which do
+# not vary with the message at all, and the five turns above are all ordinary: they
+# would report a perfect prefix reuse and say nothing about the floor. Turn 3
+# overlaps the metric memory, but that memory is standing and was in the block
+# already, so admitting it by overlap changes nothing.
+#
+# What varies now is a turn that overlaps a *topical* memory, because that memory
+# was absent on the turn before and present on this one. The last turn does that
+# against the rowing club memory, which is topical and which the floor excludes
+# from every other turn here.
+#
+# So this list now measures two different things and the distinction matters when
+# reading the output: turns 1 to 5 are the ordering guarantee, which must still
+# hold, and turn 6 is the cost the floor introduced, which is expected to miss.
 turns=(
   "What is a good way to keep track of small repairs around the house?"
   "The back gate sticks whenever the wood swells."
   "Is it worth switching from metric units to imperial for baking?"
   "What time do most libraries close on a Sunday?"
   "Remind me what we were talking about."
+  "Is the rowing club open on Sunday?"
 )
 
 "$adb" logcat -c >/dev/null 2>&1 || true

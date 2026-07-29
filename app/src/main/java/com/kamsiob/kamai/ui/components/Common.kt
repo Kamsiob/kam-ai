@@ -10,6 +10,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -310,7 +312,30 @@ fun SettingsRow(
                 .fillMaxWidth()
                 .background(if (pressed) colors.surfaceSecondary else Color.Transparent)
                 .then(
-                    if (onClick != null && enabled) {
+                    // A toggle row is toggleable, not clickable, and that is an
+                    // accessibility fix rather than a tidy-up (#144).
+                    //
+                    // With `clickable` the row node carried its name and an OnClick
+                    // and no state, while the Switch inside carried the state and no
+                    // name, on a separate node. A screen reader therefore read "Note
+                    // under each answer, off means no line saying ..." without ever
+                    // saying which way it was set, then an unlabeled switch. Every
+                    // toggle row in the app read that way, not just the one that
+                    // found it: "Confirm before deleting a chat" had the same defect.
+                    //
+                    // `toggleable` puts ToggleableState and Role.Switch on the same
+                    // node as the text, so the announcement is the name, the
+                    // description and the state together. Caught by
+                    // MemoryNoteToggleSemanticsTest, which failed on exactly this.
+                    if (trailing is RowTrailing.Toggle && enabled) {
+                        Modifier.toggleable(
+                            value = trailing.on,
+                            onValueChange = trailing.onChange,
+                            role = Role.Switch,
+                            interactionSource = interaction,
+                            indication = null,
+                        )
+                    } else if (onClick != null && enabled) {
                         Modifier.clickable(
                             interactionSource = interaction,
                             indication = null,
@@ -388,9 +413,14 @@ fun SettingsRow(
                         tint = colors.textTertiary,
                         modifier = Modifier.size(20.dp),
                     )
+                    // `onCheckedChange = null` on purpose: the row owns the gesture
+                    // and the semantics now, so the switch is the picture of the
+                    // state rather than a second control beside the first. Left
+                    // interactive it stayed independently focusable and a screen
+                    // reader still found an unlabeled switch after the row.
                     is RowTrailing.Toggle -> androidx.compose.material3.Switch(
                         checked = trailing.on,
-                        onCheckedChange = trailing.onChange,
+                        onCheckedChange = null,
                         colors = androidx.compose.material3.SwitchDefaults.colors(
                             checkedThumbColor = colors.onAccent,
                             checkedTrackColor = colors.accent,

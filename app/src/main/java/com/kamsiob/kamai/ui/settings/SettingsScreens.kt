@@ -689,6 +689,9 @@ fun MemoryScreen(
     entries: List<MemoryEntity>,
     mode: com.kamsiob.kamai.llm.MemoryMode,
     onModeChange: (com.kamsiob.kamai.llm.MemoryMode) -> Unit,
+    /** Whether the note under an answer is shown at all (#144). Display only. */
+    noteShown: Boolean,
+    onNoteShownChange: (Boolean) -> Unit,
     onForget: (String, String) -> Unit,
     onForgetMany: (List<String>) -> Unit,
     onForgetAll: () -> Unit,
@@ -770,6 +773,30 @@ fun MemoryScreen(
                 style = KamTheme.type.secondary,
                 color = colors.textTertiary,
             )
+            Spacer(Modifier.height(16.dp))
+
+            // Here rather than in the main settings list, so it sits with the thing
+            // it affects (#144). The mode control above decides what is remembered
+            // and used; this decides only whether the user is told about it.
+            //
+            // **The wording separates those two, and that separation matters more
+            // on this screen than it would anywhere else.** A user who read this as
+            // switching memory off would be wrong about how their own data is
+            // handled, and the Off segment of the control directly above genuinely
+            // does that. So the title is about the note and the description says in
+            // as many words that what Kam AI remembers is unchanged.
+            SettingsGroup(label = null) {
+                SettingsToggleRow(
+                    title = "Note under each answer",
+                    subtitle = "Off means no line saying what was included. " +
+                        "What Kam AI remembers does not change.",
+                    checked = noteShown,
+                    onCheckedChange = onNoteShownChange,
+                    icon = Icons.Rounded.Info,
+                    tile = com.kamsiob.kamai.ui.theme.TileColor.Slate,
+                    showDivider = false,
+                )
+            }
             Spacer(Modifier.height(16.dp))
         }
 

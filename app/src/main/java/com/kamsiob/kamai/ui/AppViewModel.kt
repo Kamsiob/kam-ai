@@ -105,6 +105,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _memoryMode = MutableStateFlow(MemoryMode.MANUAL)
     val memoryMode: StateFlow<MemoryMode> = _memoryMode.asStateFlow()
 
+    /**
+     * Whether the note under an answer is shown (#144). **Default off**, because
+     * the line is noise on the majority of replies and most people will not want a
+     * footnote under each one. Anybody who does can find the setting.
+     *
+     * Display only. Nothing about retrieval reads this, and
+     * `MemoryNoteSettingTest` pins that it cannot start to.
+     */
+    private val _memoryNoteShown = MutableStateFlow(false)
+    val memoryNoteShown: StateFlow<Boolean> = _memoryNoteShown.asStateFlow()
+
     val totalRamGb: Int = repository.totalRamGb()
     val tiers: List<TierModel> = ModelCatalog.defaults
     val recommendedTier = TierRecommendation.recommended(totalRamGb)
@@ -227,6 +238,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _confirmChatDelete.value =
                 repository.setting(KamRepository.Keys.CONFIRM_CHAT_DELETE) != "false"
             _memoryMode.value = repository.memoryMode()
+            // Read at startup so it survives a restart and a process death, the
+            // same way every other setting on this screen does.
+            _memoryNoteShown.value = repository.memoryNoteShown()
 
             // Never load a model at startup. The manager only reads which model
             // is active and repairs a dangling reference; loading happens lazily
@@ -732,6 +746,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         invalidateConversationCaches()
         _memoryMode.value = mode
         viewModelScope.launch { repository.setMemoryMode(mode) }
+    }
+
+    /**
+     * No `invalidateConversationCaches()` here, and the absence is deliberate.
+     *
+     * [setMemoryMode] invalidates because it changes what goes into a prompt, so a
+     * cached conversation would carry a stale one. This changes what is drawn under
+     * an answer and nothing else, so the state update alone is enough and an open
+     * conversation reflects it on the next frame rather than needing a reload.
+     *
+     * If a future change here ever needs an invalidation, that is the signal that
+     * the setting has stopped being display only, which is the thing it must not
+     * become.
+     */
+    fun setMemoryNoteShown(shown: Boolean) {
+        _memoryNoteShown.value = shown
+        viewModelScope.launch { repository.setMemoryNoteShown(shown) }
     }
 
     fun forgetAll() {

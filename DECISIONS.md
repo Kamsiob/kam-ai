@@ -9589,3 +9589,110 @@ same defect, and this one had been sitting behind the four fixed in 964c413.
 
 Fixed: it exits 1 and says that raising the ceiling is the usual answer. Same class
 as queued item 2, which is not finished.
+
+## A toggle for the memory note, defaulted off, and the accessibility defect it found
+
+### Why off is the default
+
+The line is noise on the majority of replies. With a relevance floor in place most
+answers include at least a standing fact, so most answers would carry a footnote, and
+a footnote under everything is not information. Anybody who wants it can find the
+setting; nobody has to turn off something they never asked for. On is the minority
+case, so on is the opt in.
+
+This is recorded rather than left implicit because a default that looks arbitrary gets
+reversed by whoever next thinks a feature should be visible. `MemoryNoteSettingTest`
+pins it.
+
+### The wording, which mattered more here than it usually would
+
+Title "Note under each answer". Description "Off means no line saying what was
+included. What Kam AI remembers does not change."
+
+**The second sentence exists because of what sits one row above it.** The mode control
+in the same group has an Off segment that genuinely stops memory being used and stored.
+A user who read this toggle as switching memory off would be wrong about how their own
+data is handled, on the one screen where being wrong about that matters most. So the
+title names the note rather than the mechanism, and the description says in as many
+words that what is remembered is unchanged.
+
+The description says what off means rather than only naming the setting, which is the
+settings rule this screen already follows.
+
+### Display only, and pinned as such
+
+Retrieval reads `Keys.MEMORY_MODE`. The note reads `Keys.MEMORY_NOTE`. Nothing reads
+both. `MemoryNoteSettingTest` asserts at source level that the retrieval path, the
+selection function, prompt assembly and the system prompts never mention the display
+key, because the coupling being guarded against is structural rather than something one
+execution would reveal.
+
+**The failure mode being prevented is #123 again.** There, Off gated storing and never
+gated using, so somebody who turned memory off still had everything already stored sent
+with every message while the screen told them nothing was remembered. A note that
+quietly became a retrieval switch would be the same defect from the other side: a
+preference that changes how data is handled without saying so.
+
+`setMemoryNoteShown` deliberately does not call `invalidateConversationCaches()`, which
+`setMemoryMode` does. If it ever needs to, that is the signal the setting has stopped
+being display only.
+
+### Verified on the device
+
+| check | result |
+|---|---|
+| default off | no note under a reply that included two memories |
+| retrieval unaffected with it off | the reply still named Verity Quay from memory |
+| takes effect on an open conversation | note appeared on an answer written while it was off |
+| survives process death | `am force-stop` then relaunch, still on |
+| reverting restores | toggled back off, note gone |
+| every reply surface | one parameter covers all of them, see below |
+| largest font, scale 2.0 | title one line, description three, switch in its slot, nothing clipped |
+
+**One parameter covers every surface because they are all one composable.** The main
+chat, the assistant overlay and the scoped Discover discussion are all `ChatScreen`,
+with the sheet distinguished by its existing `scoped` flag rather than by being a
+separate screen. The overlay was checked separately and never rendered the note at all,
+so it is not a gap this introduced.
+
+The parameter defaults to false. A call site that forgets it shows no note, which is a
+missing preference; defaulting to true would mean a forgotten call site printed a claim
+about the user's data on a surface nobody had wired up.
+
+### The accessibility defect this found, which was not new and was not mine
+
+`MemoryNoteToggleSemanticsTest` failed on the first run, and it was right to.
+
+The row was built as a clickable container with a Material `Switch` inside. The row node
+carried the name, the description and an `OnClick`, and **no state**. The switch carried
+the state on a separate node, with no name. So a screen reader read "Note under each
+answer, off means no line saying what was included ..." without ever saying which way it
+was set, then found an unlabeled switch.
+
+**Every toggle row in the application read that way**, not only the new one. "Confirm
+before deleting a chat" had the same defect and nothing had caught it, because until now
+no test had asked a toggle row what it announced.
+
+Fixed in `SettingsRow` rather than in the new row: a `Toggle` trailing makes the row
+`toggleable` with `Role.Switch` instead of `clickable`, so `ToggleableState` lands on the
+same node as the text, and the switch takes `onCheckedChange = null` so it stops being an
+independently focusable second control. The announcement is now the name, the description
+and the state together.
+
+Whether it *sounds* right still needs somebody listening to TalkBack. What can be checked
+mechanically is checked, which is the same line `AnnouncementsTest` draws.
+
+`ConfirmDialogTest`, `AnnouncementsTest` and `BackNavigationTest` all still pass, which
+is the regression check on shared row behavior.
+
+### A pre-existing defect seen while doing this, not fixed here
+
+At font scale 2.0 the memory mode control clips the first letter of "Only when I ask":
+the label wraps to two lines and the selected pill overflows its track. Unrelated to this
+change, in the same group, and filed rather than folded into an unrelated commit.
+
+### What this does not do
+
+It does not resolve #133. Irrelevant memories being injected is a real defect whether or
+not a note is displayed, and hiding the indicator would make it harder to notice rather
+than fixing it. Said on both issues so nobody later reads the toggle as the resolution.

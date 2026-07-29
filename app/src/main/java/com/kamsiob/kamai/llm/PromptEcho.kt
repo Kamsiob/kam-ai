@@ -167,15 +167,28 @@ object PromptEcho {
         // support questions arrive.
         "On this phone, in Kam AI's own storage. Nothing is uploaded anywhere.",
         // The offline answer, added for #136, and here for the same reason: it is
-        // true wherever it lands. The app works the same with no connection and
-        // queues nothing, always, so a model that emits this at the wrong moment
-        // has still said something correct.
+        // true wherever it lands.
         //
         // #136 was the app telling somebody who was explicitly checking the
         // privacy claim that what they type "stays on this phone until you have a
         // connection" and "stores it locally first", which describes a deferred
         // upload that does not exist.
-        "Everything works the same offline. Nothing is queued up to send later.",
+        //
+        // **It read "Everything works the same offline", and that was too broad to
+        // be exempt from every guard.** The claims sweep caught it. Two network
+        // calls exist: a download the user starts, and the Discover pack manifest
+        // fetched when Discover opens. So a model emitting the old sentence in
+        // answer to "can I get new packs with no signal" or "do I need a connection
+        // to download a model" said something false, and this list is the one place
+        // in the app where nothing would catch it.
+        //
+        // That is the same defect as the worst of the three claims the sweep
+        // found: a sentence whose breadth implied there were no network calls at
+        // all. Narrowed to what it is actually answering, which is what happens to
+        // what the user types, and which matches the corrected wording in
+        // PRIVACY.md rather than overshooting it.
+        "Everything you type is handled the same with no connection. Nothing is " +
+            "queued up to send later.",
     )
 
     private fun isAllowedOutright(normalizedReply: String): Boolean =

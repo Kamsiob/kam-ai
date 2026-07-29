@@ -611,7 +611,12 @@ private fun ConversationScreen(
         }
     }
 
+    // Collected here rather than passed down, so flipping the toggle updates an
+    // already open conversation on the next frame instead of only new ones (#144).
+    val showMemoryNote by app.memoryNoteShown.collectAsStateWithLifecycle()
+
     ChatScreen(
+        showMemoryNote = showMemoryNote,
         // The draft wins over a fresh intake text, since a half-written message
         // the user left behind is more theirs than one the share sheet supplied.
         initialComposerText = chat.draft.ifEmpty { initialText.orEmpty() },
@@ -1359,10 +1364,13 @@ private fun ArchivedHost(
 private fun MemoryHost(app: AppViewModel) {
     val memory by app.memory.collectAsStateWithLifecycle()
     val mode by app.memoryMode.collectAsStateWithLifecycle()
+    val noteShown by app.memoryNoteShown.collectAsStateWithLifecycle()
     MemoryScreen(
         entries = memory,
         mode = mode,
         onModeChange = app::setMemoryMode,
+        noteShown = noteShown,
+        onNoteShownChange = app::setMemoryNoteShown,
         onForget = { id, text -> app.forget(id, text) },
         onForgetMany = app::forgetMany,
         onForgetAll = app::forgetAll,

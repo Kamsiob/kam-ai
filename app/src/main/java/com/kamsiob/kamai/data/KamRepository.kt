@@ -45,6 +45,12 @@ class KamRepository(
         const val CONFIRM_CHAT_DELETE = "confirm.chat.delete"
         const val MEMORY_MODE = "memory.mode"
 
+        /**
+         * Whether the line under an answer saying what memory was included is
+         * shown at all (#144). Display only: it never reaches retrieval.
+         */
+        const val MEMORY_NOTE = "memory.note"
+
         /** How many times the app has been opened, for the bookmark note (#84). */
         const val SESSION_COUNT = "reminder.sessions"
 
@@ -1146,6 +1152,35 @@ class KamRepository(
 
     suspend fun setMemoryMode(mode: com.kamsiob.kamai.llm.MemoryMode) =
         putSetting(Keys.MEMORY_MODE, mode.name)
+
+    /**
+     * Whether to show the line under an answer saying what memory was included
+     * (#144).
+     *
+     * **Off by default, and it is worth saying why rather than leaving it looking
+     * arbitrary.** The line is noise on the majority of replies: most answers
+     * include something, most people do not want a footnote under each one, and
+     * anybody who does want it can find the setting. On is the minority case.
+     *
+     * **This is display only and must stay that way.** Retrieval reads
+     * [Keys.MEMORY_MODE] and never this key, so turning the note off changes what
+     * a user sees and not one byte of what is sent to the model.
+     * `MemoryNoteSettingTest` pins that, because a future change that made the
+     * note double as a retrieval switch would be a privacy defect wearing a
+     * preference's clothes: somebody who turned off a note would have quietly
+     * changed how their data was handled, or worse, somebody who wanted memory off
+     * would think this did it.
+     *
+     * Observed rather than read once, so an open conversation updates the moment
+     * the toggle moves rather than on the next one.
+     */
+    fun observeMemoryNoteShown(): Flow<Boolean> =
+        observeSetting(Keys.MEMORY_NOTE).map { it == "true" }
+
+    suspend fun memoryNoteShown(): Boolean = setting(Keys.MEMORY_NOTE) == "true"
+
+    suspend fun setMemoryNoteShown(shown: Boolean) =
+        putSetting(Keys.MEMORY_NOTE, shown.toString())
 
     suspend fun forget(id: String) {
         db.memory().deleteById(id)

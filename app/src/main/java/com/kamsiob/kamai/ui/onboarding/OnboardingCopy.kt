@@ -100,9 +100,14 @@ object OnboardingCopy {
                 "notes or a draft.",
         "Attach a document" to
             "Give it a file and ask about what is in it. The file never leaves your phone.",
+        // "Short reads from Wikipedia, offline" until the claims sweep. Set off by
+        // commas, "offline" read as a property of the feature rather than of the
+        // packs, and opening Discover fetches the pack manifest. Tied to the pack,
+        // which is the thing that genuinely works with no connection, and which is
+        // how the same idea is already worded on the Discover screen itself.
         "Discover" to
-            "Short reads from Wikipedia, offline, with a quiz and a discussion held to the " +
-                "passage.",
+            "Short reads from Wikipedia in packs that work offline, with a quiz and a " +
+                "discussion held to the passage.",
         "Projects" to
             "Keep related chats together, under instructions they all follow and notes " +
                 "they all start from.",

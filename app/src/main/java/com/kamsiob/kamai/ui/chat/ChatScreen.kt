@@ -201,6 +201,20 @@ fun ChatScreen(
     onOpenWorkbenchSession: (() -> Unit)? = null,
     /** Opens the Memory screen from the memory line under an answer (#16). */
     onOpenMemory: () -> Unit = {},
+    /**
+     * Whether the memory note appears under an answer at all (#144).
+     *
+     * One parameter covers every surface a reply can appear on, because they are
+     * all this composable: the main chat, the assistant overlay, and the scoped
+     * Discover discussion, which is the [scoped] flag above rather than a screen
+     * of its own.
+     *
+     * **Defaults to false, and the default is the safe direction on purpose.** A
+     * call site that forgets to pass it shows no note, which is a missing
+     * preference. Defaulting to true would mean a forgotten call site printed a
+     * claim about the user's data on a surface nobody had wired up.
+     */
+    showMemoryNote: Boolean = false,
     /** Confirms a copy, since neither gesture that copies leaves any other trace. */
     onCopied: () -> Unit = {},
     /** Runs a summary of this conversation, on request only (#86). */
@@ -570,6 +584,7 @@ fun ChatScreen(
                                     onDiscard = onDiscardIncomplete,
                                     message = message,
                                     flagged = message.id in flaggedMessageIds,
+                                    showMemoryNote = showMemoryNote,
                                     ttsAvailable = ttsAvailable,
                                     speaking = message.id == speakingMessageId,
                                     isLast = message.id == messages.lastOrNull()?.id,
@@ -1068,6 +1083,12 @@ private fun MessageRow(
     onDiscard: () -> Unit = {},
     message: MessageEntity,
     flagged: Boolean,
+    /**
+     * Whether the memory note is shown under this answer (#144). Display only:
+     * the note is the last thing that knows about memory, and nothing about
+     * retrieval reads this.
+     */
+    showMemoryNote: Boolean,
     ttsAvailable: Boolean,
     speaking: Boolean,
     isLast: Boolean,
@@ -1234,7 +1255,13 @@ private fun MessageRow(
             //
             // Only on finished answers. A line about memory appearing beside a
             // half-written response reads as part of the response.
-            if (message.role == Role.ASSISTANT && message.memoriesUsed > 0 && !message.incomplete) {
+            // Off by default (#144). The count and the reasoning are still stored
+            // on the message either way, so turning the note back on shows it on
+            // answers that were written while it was off rather than only on new
+            // ones.
+            if (showMemoryNote &&
+                message.role == Role.ASSISTANT && message.memoriesUsed > 0 && !message.incomplete
+            ) {
                 Spacer(Modifier.height(5.dp))
                 Text(
                     memoryNote(message.memoriesUsed),
