@@ -20,6 +20,113 @@ issue.
 
 ---
 
+## SECTION 0: STOPPED MID-TASK, 28 JULY, EVENING
+
+Read this before anything else. It is the state at the moment the session paused,
+and it includes a regression that is on the phone right now.
+
+### The build installed on the phone has a regression in a sensitive path
+
+**Logic Partner replies to a personal disclosure with the fallback.** "my dad died
+last month and i cant stop thinking about it" gets "That came out wrong. Say it
+again, or add a little more, and I will have another go." Six guard rejections
+across three runs, so it happens every time.
+
+It is caused by a fix that is correct, colliding with a guard that is correct.
+Logic's distress rule was converted from describing the reply to supplying the
+sentence, the model then said the supplied sentence, and the echo guard rejected
+it for being prompt text. See DECISIONS.md, "supplying the sentence puts it in the
+prompt, where the guard is watching".
+
+**The next step, before anything else:** extend the existing safe-example
+exemption in `PromptEcho` to cover supplied sentences, across *every* check rather
+than one. `isParrot` alone is not enough; `containsPromptText` will reject the
+same reply. Then re-run `tools/tier_battery.sh gemma-4-e4b-it-q4km <label> 3` and
+confirm `logic grief` returns to zero.
+
+**Every remaining stage-direction conversion will hit this same wall**, so the
+exemption comes first and further conversions follow it.
+
+### The last battery, three columns, E4B throughout
+
+    mode        input     baseline   nudge    now
+    brainstorm  bread            0       0      0
+    brainstorm  grief            0       0      0
+    brainstorm  stuck            0       0      0
+    general     bread            6       1      2
+    general     grief            0       0      0
+    general     stuck            0       0      0
+    logic       grief            0       0      6   <- the regression above
+    logic       sound            0       0      0
+    logic       values           1       0      1
+    logic       weak             0       2      0   <- fixed by the mode gate
+    TOTAL                        7       3      9
+
+Three runs per cell in every column, all thirty rows present in all three. The
+"now" column carries three changes at once: the stage-direction conversion across
+five prompts, the additive reframing of the statement rule, and the mode-gated
+retry nudge. That was a deliberate departure from one change at a time, to avoid
+three forty-minute runs. **If bisecting, start with the stage-direction
+conversion**: it touched five prompts and is the largest surface, and it is the
+one already known to have caused the `logic grief` regression.
+
+### What was next, and had not been started
+
+The owner's instruction, in order:
+
+1. **The #122 test input may be contaminated, and this may remove the rest of the
+   work on it.** The failing input is "Bread needs a hot oven, around 230C." The
+   hard rules contain a worked example about working in metric units. Those share
+   semantic space, and an early failure was that metric answer appearing on an
+   unrelated input. So every measurement on the bread input has been measuring two
+   hypotheses at once: that this model restates declarative statements in general,
+   or that this one input collides with that one example. Test three or four fresh
+   declarative statements with no units, no measurement, no temperature, no
+   cooking, and nothing resembling a storable preference. **Report the clean
+   inputs alongside the bread input rather than replacing it. The comparison is
+   the finding.** If the clean ones do not fail, #122 is interference between one
+   input and one example, and the honest resolution is to change the test input
+   rather than the prompt.
+2. **Change the metric example instead of engineering around it.** Three variants,
+   same battery, numbers per variant rather than a conclusion. Delete it with
+   nothing in its place and see what breaks, since nobody currently knows what it
+   is holding up. Replace it with a structurally identical example on a distant
+   subject: if the leaking follows the example, the problem is the mechanism and
+   no wording fixes it. Keep it but inject it through the memory system at
+   runtime, which is how it is meant to work. **The third case matters most and
+   has never been examined**: anything the memory system injects becomes prompt
+   text the model can speak, which puts every stored memory in the same category
+   as a worked example and a stage direction. Stage directions, worked examples
+   and prompt text have each already leaked, so there is no reason to assume
+   injected memories are exempt. Test with a memory whose text would be obvious if
+   it appeared. If a user's own memories can be recited back at them, that is a
+   defect affecting every user rather than a test artifact.
+3. **Audit the shared reply path** for anything else written for a defect seen in
+   one mode. The retry nudge was found only because it regressed visibly; anything
+   similar sitting there quietly is an unnoticed regression. The same applies to
+   the guards, since a guard tuned to one mode's output shape will produce false
+   positives in modes whose correct output looks different.
+
+### The standing check that came out of the nudge regression
+
+Before any change to shared prompt text or shared reply handling: state which
+modes it affects and what correct behavior is in each. Where a fix is right for
+one mode and wrong for another, it belongs in that mode, not the shared layer.
+Where it genuinely belongs in the shared layer, name the modes it must not alter
+and confirm afterwards that it did not.
+
+Where run time forces batching, say so at the time rather than afterwards, and
+prefer batching changes that affect *different* modes, since those are separable
+by reading the output instead of by re-running.
+
+### Nothing is running, and the phone is restored
+
+No battery, no script, no install or download in flight. Rotation returned to
+auto, Do Not Disturb off, `debug.kamai.model` cleared. The phone holds exactly one
+copy of the app, the current build, with the regression described above.
+
+---
+
 ## SECTION 1: WHERE THE WORK STANDS AND WHAT IS NEXT
 
 **Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
