@@ -1242,7 +1242,7 @@ class ChatViewModel(
                         // cached instruction block, so it costs nothing in prefix
                         // reuse.
                         val attempt = if (!retried) prompt else {
-                            RestatementRetry.instruction(lastUser)
+                            RestatementRetry.instruction(lastUser, _mode.value)
                                 ?.let { buildPrompt(conversationId, pending = it) }
                                 ?: prompt
                         }

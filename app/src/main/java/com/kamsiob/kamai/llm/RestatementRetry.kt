@@ -27,8 +27,26 @@ object RestatementRetry {
      *
      * Null for an empty message, because the instruction talks about "what they
      * said" and there is no sense in saying that about nothing.
+     *
+     * **Null for the modes that have their own reply shape**, which was found by
+     * measuring rather than by thinking about it. The first version applied
+     * everywhere, and Logic Partner's replies to a weak argument collapsed into
+     * one bland line: "Productivity differences are often tied to the specific
+     * nature of the work and the individual's environment." That is this
+     * instruction being obeyed exactly, and it is not what Logic Partner is for.
+     * Its contract is the argument at its strongest, then its weakest link, then
+     * the question that would settle it, and no single additive sentence can be
+     * all three.
+     *
+     * So this belongs only where a one line reply to a statement is the right
+     * answer, which is General and the quick panel.
      */
-    fun instruction(userMessage: String): String? {
+    fun instruction(userMessage: String, mode: com.kamsiob.kamai.data.Mode): String? {
+        if (mode != com.kamsiob.kamai.data.Mode.GENERAL &&
+            mode != com.kamsiob.kamai.data.Mode.OVERLAY
+        ) {
+            return null
+        }
         if (userMessage.isBlank()) return null
         return "They stated something rather than asking a question. Reply with one " +
             "sentence carrying information their sentence did not: why it is so, what " +
