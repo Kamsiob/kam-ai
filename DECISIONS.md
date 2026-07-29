@@ -8863,3 +8863,40 @@ every other cell on E2B, and it moved that one not at all.
 Worth noting what would have happened without the per-mode breakdown. "E2B went
 from 18 to 13" reads as progress. Per mode it reads as the improvement landing
 everywhere except the place that matters, which is the opposite conclusion.
+
+## The way people actually type, and what it found
+
+Ten inputs written the way messages arrive rather than the way test inputs are
+written: terse, rambling dictation, misspelled throughout, formally verbose,
+shouted, several questions at once, self-contradictory, non-native phrasing, one
+long unpunctuated run, and a single word that is neither question nor statement.
+
+**Zero guard interventions across all ten**, and seven of the ten answered well.
+The rambling dictation got a sensible question back. Three unrelated questions in
+one message got three answers. Consistent misspelling was understood without
+comment, which is the right behavior: correcting somebody's spelling at them would
+be its own defect.
+
+Three things came out of it.
+
+**The app does not know it is the app (#135).** Two inputs, both ordinary support
+questions about the application, produced replies placing Kam AI inside some other
+product: "Are you using the native application or a web browser version?" and "The
+chat saving depends on the application you're using to run me." There is no web
+version and no host. The identity rules added for #118 stop it naming what it is
+made of; nothing stops it inventing what it is inside.
+
+**A comprehension failure worth keeping in the battery.** Asked, at length and very
+formally, how to defrost a freezer, it explained how to thaw food and asked what
+food was being defrosted. The verbosity buried the subject and the model took the
+nearest familiar one.
+
+**The restatement prefix again.** "shorter" was answered "shorter / What do you
+want me to make shorter?", leading with the user's own word. Same shape as the
+bread reply, and more evidence that the smallest remaining piece of #122 is a
+prefix rather than a whole reply.
+
+Worth noting what this exercise cost and returned. Ten conversations, about
+fifteen minutes, and it found a user-facing defect that four days of batteries had
+not, because every battery input in this project was written by somebody who knew
+what a good test input looks like.
