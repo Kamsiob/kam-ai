@@ -8052,3 +8052,68 @@ tiers, and one tier runs it.
 Recommended: 1, with 2 reconsidered only if real use shows people are landing in
 Logic Partner on E2B and concluding the application is poor. What is not
 recommended is 4.
+
+## This model speaks descriptions of responses, so never describe one
+
+Three issues turned out to be one behaviour in three places. #118 answered a
+bereavement with a line from the instructions. #129 replied "This is a statement
+about something that happened. I will acknowledge the difficulty of what you
+shared." #131 replied "This is not a debate topic. Suggest General."
+
+All three prompts described the response instead of supplying it, and the model
+spoke the description. "Suggest General" is an imperative addressed to the model,
+said out loud to a user. "I will acknowledge the difficulty" is the model
+narrating the instruction rather than following it.
+
+**The rule, for all future prompt work: do not describe a response in a prompt.
+Supply it.** Any instruction of the form acknowledge, explain, suggest, decline
+and offer, point them to, or say that is a latent instance, waiting for the input
+that triggers it. It has been found three times by waiting, which is three times
+too many.
+
+The evidence for the conversion was already in the file and unnoticed. The hard
+rules have always handled one of these correctly:
+
+    "Remember that I always work in metric units." ->
+    Noted, I will keep to metric.
+
+That is the only rule of its kind that has never misfired, and it is the only one
+that supplied the sentence rather than describing it.
+
+Converted in one pass rather than one at a time as each is reported: Logic
+Partner's distress rule, Discover's answer for a question the passage does not
+cover, Brainstorm's not-a-brainstorm exit, Brainstorm's hand-off at the end of a
+session, and the hard rules on being asked to play a character. Five instructions,
+five sentences, net cost about nine estimated tokens across the prompts and every
+budget still met.
+
+**Where a fixed sentence would be wrong**, because the reply has to vary with what
+the user said, the frame is supplied and the varying part kept small. Logic
+Partner's three-move reply for an argument that does not hold is described rather
+than supplied, and correctly so: it is different every time and it is anchored by
+a worked example underneath. A description is safe when a demonstration sits next
+to it.
+
+## An instruction whose right answer resembles the input is a bad instruction here
+
+#122 survives both the tier explanation and the sampler explanation. It fails
+identically on E4B and E2B, six guard interventions each across three runs, the
+only input in the whole tier battery where the larger model buys nothing. The
+sampler was already at the values recommended against echo. That leaves the
+instruction.
+
+The hard rules say a statement gets acknowledged in one line. **Acknowledgement
+and restatement are adjacent in output space**, so the instruction asks for
+something barely distinguishable from the failure, and the most probable reading
+of "acknowledge this" is "say it back". The model is doing what it was told, under
+the reading that costs it least.
+
+So the ask changes from acknowledging to adding: a detail the statement did not
+include, what it implies, or what they want to do with it. None of those can be
+satisfied by echoing the input, which is the property the old instruction lacked.
+
+**The general form, if it holds: an instruction whose correct output resembles its
+input is a bad instruction for this model.** It sits beside the rule above as the
+second way a prompt can ask for the defect it is trying to prevent. One asks the
+model to speak the instruction; the other asks for something the input already
+satisfies.
