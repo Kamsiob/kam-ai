@@ -8762,3 +8762,34 @@ they pull against each other, which is why writing one is harder than it looks:
 The stairs example satisfies all three. The metric one satisfied the first and
 third and failed the second, by sitting next to the subject matter of the app's
 hardest test input.
+
+## The third variant was already answered by the first
+
+The third option was to keep the fact but let it arrive through the memory system
+at runtime rather than sitting in the prompt as an example, on the grounds that a
+user preference is what the memory system is for.
+
+**Variant A already tested this without meaning to.** When the example was
+deleted, the phone had two memories stored, and every capture in that run says so:
+"Used 2 things it remembers about you" appears under all ten replies, including
+the one where the acknowledgement broke. So the memory system was live, carrying
+facts about the user, and "Remember that I always work in metric units" was still
+answered with an explanation of the metric system.
+
+The reason is a distinction worth stating plainly, because it decides where things
+belong:
+
+**The example teaches a behavior. The memory system carries facts.** What the
+example holds up is not the knowledge that this user prefers metric, it is the
+model's ability to recognize the shape "remember that I always..." as an
+instruction to store something rather than a question to answer. No fact injected
+at runtime can teach that, because the behavior is about the *form* of the
+message, not its content.
+
+So the third variant is not viable, and it is not viable for a reason that
+generalizes: anything the model needs to learn how to *do* has to be demonstrated
+in the prompt, and anything it needs to *know* can come from memory. Moving a
+demonstration into memory silently removes the demonstration.
+
+Recorded rather than run, because running it would reproduce variant A exactly and
+the evidence is already sitting in that run's captures.
