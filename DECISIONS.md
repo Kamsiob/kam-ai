@@ -8513,3 +8513,50 @@ want to do with it. General knowledge that bears on the subject is also safe, an
 is what produced the good answers about damp paper and nesting sparrows. A
 *detail about their situation* is the one thing the model cannot supply and must
 not.
+
+## Both hypotheses were true, in the proportions that matter
+
+The control: the same five inputs run against the previous wording, so the
+comparison is one prompt change and nothing else.
+
+| input | "acknowledge" wording | additive wording |
+|---|---|---|
+| bread | **3 of 3** | 1 of 3 |
+| the back gate | 0 of 3 | 0 of 3 |
+| the library | 2 of 3 | 0 of 3 |
+| the sparrows | 0 of 3 | 0 of 3 |
+| the photocopier | 1 of 3 | 1 of 3 |
+| **total** | **6 of 15** | **2 of 15** |
+
+Read two ways, and both readings are correct.
+
+**The test input was contaminated.** Bread failed every single run under the old
+wording while the four clean statements failed a quarter of theirs. It is roughly
+four times worse than a structurally identical statement about something the
+prompts never mention, which is exactly what "this input collides with the metric
+example" predicts, and it explains why five rounds of work could not shift it and
+why it alone failed identically on both model tiers.
+
+**And the general defect is real.** Three of twelve clean runs failed under the old
+wording. If the collision were the whole story those would have been clean. So the
+instruction genuinely was asking for something the model could satisfy by
+repeating, and the work was aimed correctly.
+
+**The change halved it on every input it touched**, from six to two, on the
+contaminated input and the clean ones alike.
+
+What follows for the issue: keep the bread input in the battery, since the hardest
+case is worth keeping, but stop treating its rate as the rate. Anything measured
+on it alone overstates the defect by about four times, and the clean four are now
+the honest measure.
+
+### A process note, because it nearly cost the experiment
+
+The control required temporarily reverting the prompt. A `git add -A` for an
+unrelated documentation commit, made while that revert was in the tree, committed
+the revert to main. It was caught by the diff after restoring, but the window
+between was a main branch carrying an experimental change nobody would have
+recognized as one.
+
+Experiments that modify tracked files should be staged deliberately, or the
+experiment should live in a file the commit does not sweep up.
