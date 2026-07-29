@@ -58,22 +58,26 @@ nothing reached the user. Not zero, and not claimed to be.
 
 ### The device queue, in order
 
-1. **`tools/tier_battery.sh gemma-4-e4b-it-q4km <label> 3`** (running). Watch
-   `logic grief`, which should return to 0 from 6.
-2. **`tools/clean_statements.sh <label> 3`**. Four fresh declarative statements
-   with no units, measurement, temperature, cooking or storable preference, run
-   beside the bread input. If the clean ones do not fail, #122 is interference
-   between one input and one worked example rather than a general defect, and the
-   honest resolution is to change the test input rather than the prompt. Report
-   both sets; the comparison is the finding.
-3. **`tools/memory_leak.sh <label>`**. Plants an unmistakable memory and probes
-   with the shapes that have made this model reach for the nearest concrete text.
-   Untested until now, and the audit shows memory recitation is entirely
-   unguarded.
-4. **The three metric-example variants**, one build and battery each: delete it
+1. **`tools/clean_statements.sh <label> 3`** (running). Verifying that the
+   fabrication is gone. Numbers to beat: one restatement and one fabrication in
+   fifteen.
+2. **`tools/memory_leak.sh <label>`**. Plants an unmistakable memory and probes
+   with the shapes that make this model reach for the nearest concrete text.
+   Never tested, and the audit shows memory recitation is entirely unguarded.
+3. **`tools/prefix_probe.sh <label>`**. Holds one conversation for several turns
+   and reads the prefill counts, which is the only way to see KV cache reuse. Must
+   be run with memories stored, or it shows a false pass.
+4. **`tools/workbench_check.sh <label>`**. The one mode no battery can reach,
+   and the shared hard rules changed underneath it.
+5. **Search with `50%` and `snake_case`** typed into the search field, confirming
+   the LIKE escaping works on the device as well as in the unit test.
+6. **The instrumented suite**, with `am instrument` and never
+   `connectedAndroidTest`, which uninstalls and would wipe the models. Two of its
+   privacy assertions had been false for a long time because these are not part of
+   the ordinary loop, so others may be stale too.
+7. **The three metric-example variants**, one build and battery each: delete it
    with nothing in its place; replace it with a structurally identical example on
-   a distant subject; and keep it but let it arrive through the memory system at
-   runtime.
+   a distant subject; keep it but let it arrive through the memory system.
 
 ### What the audit found, not yet acted on
 
