@@ -20,6 +20,66 @@ issue.
 
 ---
 
+## SECTION -1: THE RELEASE, IN ORDER, FOR ONE SITTING
+
+Read this first if the goal is to ship. Everything else in this file is context.
+
+### What blocks the release
+
+| # | item | state |
+|---|---|---|
+| — | Crash-free pass on the minified build | **Done.** 33 steps, two walks, after fixing a real crash |
+| — | Data safety declaration re-derived | **Done.** `docs/release-data-safety.md` |
+| — | Permissions traced to features and listing | **Done.** `docs/release-permissions.md` |
+| — | Target API 36 | **Done.** Already 36 |
+| #113 | Screenshots from the release build | 14 of 16 done, chat list being finished |
+| #142 | Guard covers 1 of 6 prompt sources | 3 of 5 channels clean, 2 left |
+| #133 | Memory retrieval | Not started |
+| #137 | Insult trips the character rule | Reopened, fix was partial |
+| #134 | Nothing happens at thermal LIGHT | Not started |
+
+### What the repository owner does, in order
+
+1. **Nothing, for the keystore.** It works. `~/.kamsiob-secrets/keystore.properties`
+   is read by the build and produces a signed APK, `CN=Kamsiob, O=B7 Collective`.
+   #113 was wrongly marked blocked and is not.
+2. **Install the real signed release build, once, deliberately.** See below.
+3. **Create the Play listing** and paste `tools/play/listing.json`. The permissions
+   paragraph and the data safety answers are already written and derived from the
+   build, in the two `docs/release-*.md` files.
+4. **Upload and submit.** Not to be done by anyone else: the standing constraint is
+   no upload, no submission, no track promotion, no tag, no release.
+5. **Expect one to two weeks in review**, sometimes longer, for a first submission
+   from a new organisation account. **The clock starts at submission**, and changing
+   the binary during review restarts the queue. That is the whole reason the deferred
+   list exists: work done before submission delays the start, work done during it is
+   free.
+
+### The one-time signed-build check, to be done deliberately
+
+Before submission, the actual signed release APK should be installed on the phone
+once, as a final sanity check. It is not the same artifact as `releaseCheck`, and
+signature is the one thing that differs.
+
+**It requires an uninstall**, because the installed build is debug-signed and
+Android refuses the upgrade. That destroys the Keystore entry wrapping the database
+key, making every existing conversation permanently unreadable, and costs a five
+gigabyte model re-download.
+
+So, in this order and not casually:
+
+1. Export from Settings, then Backup and restore.
+2. **Verify the export round-trips field by field** before anything is uninstalled.
+   `BackupFieldCoverageTest` covers the codec; the export file itself still needs
+   opening and checking against what is on the device.
+3. Uninstall, install the signed release APK, walk `tools/crash_walk.sh` and
+   `tools/crash_walk2.sh`.
+4. Re-import, and re-download the model.
+
+Doing this once is worth it. Doing it casually costs the owner their data.
+
+---
+
 ## SECTION 0: LIVE STATE, 29 JULY, EARLY MORNING
 
 ### Where things stand
