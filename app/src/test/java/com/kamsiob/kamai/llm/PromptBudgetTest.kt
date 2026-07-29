@@ -32,7 +32,11 @@ class PromptBudgetTest {
         // answered it on the next turn, ignoring what was actually said. The
         // examples now name the kind of thing asked instead of quoting somebody
         // asking it, plus an explicit rule to answer the message that was sent.
-        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 1160)
+        // Raised to 1190 with the map entry below, for the same reason and in
+        // the same step. Two assertions guard this one prompt and only one was
+        // moved at first, which is the sort of half-edit this file exists to
+        // catch.
+        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 1190)
     }
 
     @Test
@@ -107,7 +111,24 @@ class PromptBudgetTest {
             // underneath, which contradicts the app's own rule of no name beyond
             // Kam AI and tells the user they installed something other than what
             // they installed.
-            Mode.GENERAL to 1160,
+            // Raised to 1190 for #135, and the defect is worth the sixty tokens.
+            // Asked why the app kept losing their place, it replied "Are you
+            // using the native application or a web browser version?", and asked
+            // where chats are saved it said that depends on "the application
+            // you're using to run me". There is no web version and no host: it is
+            // the application. Two of ten inputs in the first sweep written the
+            // way people actually type, both of them ordinary support questions.
+            //
+            // The identity rules added for #118 stop it naming what it is made
+            // of. Nothing stopped it inventing what it is inside, and a
+            // prohibition would not: this model follows demonstrations and
+            // ignores conditions, which is the most repeated finding in
+            // DECISIONS.md. So it is a worked example, checked against the three
+            // constraints recorded there: it teaches by demonstration, it is
+            // harmless if emitted at the wrong moment since it is true of every
+            // chat in the app, and at 69 characters it is above the guard's
+            // 48-character recital threshold so a misplaced copy is catchable.
+            Mode.GENERAL to 1190,
             // Raised from 1000 to 1080 for #57, deliberately and not quietly. The
             // argument-analysis method (claim, grounds, warrant, qualifier, claim
             // kind, then the crux and the kind of disagreement) cannot be added for

@@ -50,6 +50,12 @@ class PromptQuotableTextTest {
                 "at an ambiguous message, the output is still correct.",
         "we should skip automated tests to ship faster" to
             "The topic of Logic Partner's worked argument. Fixes #114.",
+        "Where do my chats get saved?" to
+            "The input half of the identity example in General. Fixes #135, where " +
+                "questions about the app were answered as though Kam AI were a " +
+                "model inside somebody else's product: it asked whether the user " +
+                "was on the web version, and said chat saving depends on whatever " +
+                "is running it.",
     )
 
     private fun promptSource(): String =
