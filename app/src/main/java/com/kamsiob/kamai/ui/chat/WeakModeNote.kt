@@ -27,17 +27,19 @@ object WeakModeNote {
     fun text(mode: Mode, model: TierModel): String {
         val what = when (mode) {
             Mode.LOGIC ->
-                "Logic Partner asks more of the model than the other modes. Holding an " +
-                    "argument means tracking what you claimed and what it rests on, across turns."
+                "Logic Partner needs a larger model than ${model.displayName}. Holding an " +
+                    "argument means tracking what you claimed and what it rests on across " +
+                    "turns, and on this model it usually cannot, so it will often ask you to " +
+                    "rephrase rather than answer."
             Mode.BRAINSTORM ->
-                "Brainstorm asks more of the model than the other modes. Running a session " +
-                    "means choosing an approach and sticking to it while building on your answers."
+                "Brainstorm needs a larger model than ${model.displayName}. Running a session " +
+                    "means choosing an approach and sticking to it across turns, and on this " +
+                    "model it usually cannot."
             else ->
-                "This mode asks more of the model than the others."
+                "This mode needs a larger model than ${model.displayName}."
         }
-        return "$what ${model.displayName} is one of the smaller models, and it does this " +
-            "less reliably than the larger ones. Everything else works the same. If this " +
-            "phone has room, there is a bigger one in Settings, then Model."
+        return "$what The other modes are unaffected and work the same on this model. If " +
+            "this phone has room, there is a bigger one in Settings, then Model."
     }
 
     /**

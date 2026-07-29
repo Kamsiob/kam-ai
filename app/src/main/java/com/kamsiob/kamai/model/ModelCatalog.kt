@@ -48,8 +48,9 @@ object ModelCatalog {
         // the fallback in every run. General and Brainstorm were identical on
         // both. See DECISIONS.md, "the tier, measured per mode".
         weakModes = setOf(com.kamsiob.kamai.data.Mode.LOGIC),
-        modeNote = "Logic Partner asks more than this model reliably gives. " +
-            "The other modes are unaffected.",
+        modeNote = "Logic Partner needs a larger model. On this one it usually " +
+            "cannot hold an argument and asks you to rephrase instead. General, " +
+            "Brainstorm and Workbench are unaffected.",
     )
 
     val balanced = TierModel(

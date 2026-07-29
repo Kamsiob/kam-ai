@@ -61,6 +61,11 @@ class WeakModeNoteTest {
         assertThat(text).contains("Model")
         // And it says the rest of the app is unaffected, so this reads as a
         // tradeoff rather than an apology for the whole application.
-        assertThat(text).contains("Everything else works the same")
+        assertThat(text).contains("The other modes are unaffected")
+        // Plainly, not softened. A sound argument produced the fallback in three
+        // runs out of three, so this mode does not work at this size rather than
+        // working less well, and a user who reads a mild caveat and then watches
+        // it fail entirely will trust the rest of the app's honesty less.
+        assertThat(text).contains("needs a larger model")
     }
 }
