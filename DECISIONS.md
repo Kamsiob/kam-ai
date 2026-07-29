@@ -8341,3 +8341,39 @@ Recorded before measuring rather than after, so the prediction is on the record
 either way: if a planted memory can be made to appear in an answer about something
 else, this is a defect affecting every user who has ever told it anything. If it
 cannot, that is a real finding about where the leaking stops, and worth as much.
+
+## Memory retrieval has no relevance floor, and that costs more than context
+
+Reading `MemoryRetrieval.select` while preparing the leak test turned up two
+things neither of which is about leaking.
+
+**It ranks and never filters.** Items are sorted by `overlap * 10 + recency` and
+the top `max` are taken, with no threshold. A memory with no connection to the
+message is included whenever there is room. `MEMORY_LIMIT` is 12 and the budget is
+ten percent of the context window, so a user with twelve stored facts has all
+twelve in front of the model on every message, most of them irrelevant to it. That
+is what "Used 1 thing it remembers about you" has been reporting under every reply
+captured today, including the ones about bread and about a bereavement.
+
+The prompt says "use them only when relevant". Relevance is asked of the model and
+never applied by the retrieval, which is the wrong way round: the cheap
+deterministic filter is skipped and the expensive unreliable one is relied on.
+
+**The order varies with the query, and the memories sit in the KV cache prefix.**
+`chosen` is built in ranked order, and ranking depends on word overlap with the
+current message. So two consecutive turns in the same conversation can present the
+same twelve memories in a different order, which changes the system block, which
+is the prefix this application's time to first token depends on being byte
+identical. See "the system prompt is the KV cache prefix": 35 tokens of prefill
+against 863.
+
+If that is happening, it is a performance defect at the heart of the thing #38 and
+#52 were about, and it would be invisible in every measurement taken so far,
+because the battery opens a fresh conversation for every message and a fresh
+conversation has no prefix to reuse.
+
+**Both are predictions from reading code, not measurements.** The order effect is
+testable directly: hold one conversation across several turns with memories
+stored, and read the prefill token counts in the KamPerf lines. A cache that is
+being reused reports a handful of tokens; one that is not reports the whole block.
+Queued behind the leak test, which uses the same setup.
