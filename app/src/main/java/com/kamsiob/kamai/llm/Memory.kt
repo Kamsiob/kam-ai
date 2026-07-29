@@ -147,15 +147,30 @@ object MemoryRetrieval {
             val recency = 1.0 / (1.0 + ageDays)
             overlap * 10.0 + recency
         }
-        val chosen = ArrayList<String>()
+        val chosen = ArrayList<Item>()
         var used = 0
         for (item in ranked) {
             if (chosen.size >= max) break
             val cost = item.text.length + 1
             if (used + cost > budgetChars) continue
-            chosen += item.text
+            chosen += item
             used += cost
         }
-        return chosen
+        // Ranking decides *which* memories go in. It must not decide the order
+        // they are written in, and that distinction is the whole of this line.
+        //
+        // These are injected into the system block, and the system block is the
+        // KV cache prefix that time to first token depends on being byte
+        // identical between turns (#38, #52): about 35 tokens of prefill against
+        // 863. Ranking depends on word overlap with the current message, so two
+        // turns of one conversation presented the same memories in a different
+        // order, the block was different text, and the prefix was missed every
+        // turn. Nothing measured it because the batteries open a fresh
+        // conversation per message, and a fresh conversation has no prefix to
+        // reuse.
+        //
+        // Newest first, which is stable for a given set and is the order somebody
+        // would expect if they ever saw it.
+        return chosen.sortedByDescending { it.updatedAt }.map { it.text }
     }
 }
