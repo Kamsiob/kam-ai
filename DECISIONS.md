@@ -9034,3 +9034,25 @@ it would not have confined itself to the noisiest cell.
 Left as an open question with the data written down rather than resolved by
 assertion. The way to settle it is more runs of that one input, which is cheap and
 has not been done.
+
+## Settled: the two were noise
+
+The open question from the previous entry, resolved by doing the cheap thing it
+named. Ten runs of the values-based Logic input on its own, same build:
+
+    run 1..10  echo=0
+    TOTAL over 10 runs: 0
+
+So the two interventions in the thirty-case battery were an unlucky pair, and
+moving the identity examples into the shared rules cost nothing measurable. The
+whole battery is at zero across every mode and every input.
+
+**Worth keeping for the method rather than the number.** The previous entry
+deliberately refused to call it either way and named what would settle it. That
+took fifteen minutes and produced a definite answer, where an assertion in either
+direction would have gone into the record as a fact and stayed there.
+
+The general form: when one cell of a battery moves and the cell is known to be
+noisy, run that cell alone enough times to tell. Do not re-run the whole battery,
+which costs forty minutes and answers a question nobody asked, and do not reason
+about it, which costs nothing and answers nothing.
