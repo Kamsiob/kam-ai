@@ -20,124 +20,82 @@ issue.
 
 ---
 
-## SECTION 0: STOPPED MID-TASK, 28 JULY, EVENING
+## SECTION 0: LIVE STATE, 28 JULY, LATE
 
-Read this before anything else. It is the state at the moment the session paused,
-and it includes a regression that is on the phone right now.
+### The Logic Partner regression is fixed in the tree, verifying now
 
-### The build installed on the phone has a regression in a sensitive path
+A bereavement in Logic Partner was getting the reply guard's fallback, because the
+distress rule had been rewritten to supply an exact sentence, which put a fixed
+string in the prompt, which the guard then correctly rejected as prompt text.
 
-**Logic Partner replies to a personal disclosure with the fallback.** "my dad died
-last month and i cant stop thinking about it" gets "That came out wrong. Say it
-again, or add a little more, and I will have another go." Six guard rejections
-across three runs, so it happens every time.
+Rewritten in the frame form that Brainstorm already uses and that produced zero
+rejections in the same run: say how many sentences, what each carries, and what
+must not appear, and leave the words to the model. **No guard change was needed
+and none was made.** Installed; battery running to confirm `logic grief` returns
+to zero.
 
-It is caused by a fix that is correct, colliding with a guard that is correct.
-Logic's distress rule was converted from describing the reply to supplying the
-sentence, the model then said the supplied sentence, and the echo guard rejected
-it for being prompt text. See DECISIONS.md, "supplying the sentence puts it in the
-prompt, where the guard is watching".
+**The record was contradictory on this and has been corrected.** An earlier
+DECISIONS entry proposed extending the guard's safe-example exemption. That is
+unnecessary and the entry now says so in place. A resumed session reading only
+that entry would have weakened a guard for no reason.
 
-**The next step, and it is cheaper than it first looked.** Brainstorm's
-conversion, made in the same pass, does *not* collide with the guard, and the
-difference says what to do. Brainstorm specifies the frame and leaves the words
-open, so the model writes them and there is no fixed string to match:
+### The rule this produced, which is the most reusable thing here
 
-> I'm sorry you're going through this. General is a better place for this.
+- **Do not describe a response in a prompt. Supply it.** Describing makes the
+  model speak the description: "Suggest General.", "I will acknowledge the
+  difficulty of what you shared."
+- **Supply the frame, not the words.** A fixed string in a prompt is
+  indistinguishable from leaked prompt text and no guard can tell them apart.
+  Specify the shape and leave the wording to the model.
+- **Anything that must be worded exactly belongs in code**, inserted
+  programmatically. The reply guard's own fallback is built that way and has never
+  leaked, never been half-remembered, and never been rejected.
 
-Zero rejections across three runs. Logic Partner supplied the sentence verbatim
-instead, so the model's correct reply was prompt text.
+### The device queue, in order
 
-So rewrite Logic's distress rule in Brainstorm's frame form: how many sentences,
-what each carries, what must not appear, words left to the model. **That needs no
-guard change at all.** Only if something genuinely requires a fixed string should
-the safe-example exemption in `PromptEcho` be extended, and then across *every*
-check rather than one, since `isParrot` alone leaves `containsPromptText` to
-reject the same reply.
+1. **`tools/tier_battery.sh gemma-4-e4b-it-q4km <label> 3`** (running). Watch
+   `logic grief`, which should return to 0 from 6.
+2. **`tools/clean_statements.sh <label> 3`**. Four fresh declarative statements
+   with no units, measurement, temperature, cooking or storable preference, run
+   beside the bread input. If the clean ones do not fail, #122 is interference
+   between one input and one worked example rather than a general defect, and the
+   honest resolution is to change the test input rather than the prompt. Report
+   both sets; the comparison is the finding.
+3. **`tools/memory_leak.sh <label>`**. Plants an unmistakable memory and probes
+   with the shapes that have made this model reach for the nearest concrete text.
+   Untested until now, and the audit shows memory recitation is entirely
+   unguarded.
+4. **The three metric-example variants**, one build and battery each: delete it
+   with nothing in its place; replace it with a structurally identical example on
+   a distant subject; and keep it but let it arrive through the memory system at
+   runtime.
 
-Then re-run `tools/tier_battery.sh gemma-4-e4b-it-q4km <label> 3` and confirm
-`logic grief` returns to zero.
+### What the audit found, not yet acted on
 
-**Every remaining stage-direction conversion will hit this same wall**, so the
-exemption comes first and further conversions follow it.
+- **The guard checks a different prompt from the one that was sent.** It compares
+  against `forMode`, while `buildPrompt` adds the grounded passage, the user's
+  instructions, project notes, memories, the date and any attachment. **Do not
+  "fix" this by handing the guard the real prompt**: grounded chat is supposed to
+  quote its passage and a memory is in the prompt so it can shape the answer. The
+  consequence worth acting on is that memory recitation is unguarded, which is
+  what item 3 tests.
+- **The hard rules and Workbench contradict each other.** The shared rules say a
+  vague message gets a question back; Workbench says never ask and carry on. Both
+  are in force. Workbench's is right for Workbench. Not changed: it is the one
+  mode with no measurement behind it.
 
-### The last battery, three columns, E4B throughout
+### Standing checks
 
-    mode        input     baseline   nudge    now
-    brainstorm  bread            0       0      0
-    brainstorm  grief            0       0      0
-    brainstorm  stuck            0       0      0
-    general     bread            6       1      2
-    general     grief            0       0      0
-    general     stuck            0       0      0
-    logic       grief            0       0      6   <- the regression above
-    logic       sound            0       0      0
-    logic       values           1       0      1
-    logic       weak             0       2      0   <- fixed by the mode gate
-    TOTAL                        7       3      9
+Before changing shared prompt text or shared reply handling, name the modes it
+affects and what correct behavior is in each. A fix right for one mode and wrong
+for another belongs in that mode.
 
-Three runs per cell in every column, all thirty rows present in all three. The
-"now" column carries three changes at once: the stage-direction conversion across
-five prompts, the additive reframing of the statement rule, and the mode-gated
-retry nudge. That was a deliberate departure from one change at a time, to avoid
-three forty-minute runs. **If bisecting, start with the stage-direction
-conversion**: it touched five prompts and is the largest surface, and it is the
-one already known to have caused the `logic grief` regression.
+Where run time forces batching several changes into one battery, say so at the
+time, and prefer batching changes that affect different modes, since those are
+separable by reading the output rather than by re-running.
 
-### What was next, and had not been started
-
-The owner's instruction, in order:
-
-1. **The #122 test input may be contaminated, and this may remove the rest of the
-   work on it.** The failing input is "Bread needs a hot oven, around 230C." The
-   hard rules contain a worked example about working in metric units. Those share
-   semantic space, and an early failure was that metric answer appearing on an
-   unrelated input. So every measurement on the bread input has been measuring two
-   hypotheses at once: that this model restates declarative statements in general,
-   or that this one input collides with that one example. Test three or four fresh
-   declarative statements with no units, no measurement, no temperature, no
-   cooking, and nothing resembling a storable preference. **Report the clean
-   inputs alongside the bread input rather than replacing it. The comparison is
-   the finding.** If the clean ones do not fail, #122 is interference between one
-   input and one example, and the honest resolution is to change the test input
-   rather than the prompt.
-2. **Change the metric example instead of engineering around it.** Three variants,
-   same battery, numbers per variant rather than a conclusion. Delete it with
-   nothing in its place and see what breaks, since nobody currently knows what it
-   is holding up. Replace it with a structurally identical example on a distant
-   subject: if the leaking follows the example, the problem is the mechanism and
-   no wording fixes it. Keep it but inject it through the memory system at
-   runtime, which is how it is meant to work. **The third case matters most and
-   has never been examined**: anything the memory system injects becomes prompt
-   text the model can speak, which puts every stored memory in the same category
-   as a worked example and a stage direction. Stage directions, worked examples
-   and prompt text have each already leaked, so there is no reason to assume
-   injected memories are exempt. Test with a memory whose text would be obvious if
-   it appeared. If a user's own memories can be recited back at them, that is a
-   defect affecting every user rather than a test artifact.
-3. **Audit the shared reply path** for anything else written for a defect seen in
-   one mode. The retry nudge was found only because it regressed visibly; anything
-   similar sitting there quietly is an unnoticed regression. The same applies to
-   the guards, since a guard tuned to one mode's output shape will produce false
-   positives in modes whose correct output looks different.
-
-### The standing check that came out of the nudge regression
-
-Before any change to shared prompt text or shared reply handling: state which
-modes it affects and what correct behavior is in each. Where a fix is right for
-one mode and wrong for another, it belongs in that mode, not the shared layer.
-Where it genuinely belongs in the shared layer, name the modes it must not alter
-and confirm afterwards that it did not.
-
-Where run time forces batching, say so at the time rather than afterwards, and
-prefer batching changes that affect *different* modes, since those are separable
-by reading the output instead of by re-running.
-
-### Nothing is running, and the phone is restored
-
-No battery, no script, no install or download in flight. Rotation returned to
-auto, Do Not Disturb off, `debug.kamai.model` cleared. The phone holds exactly one
-copy of the app, the current build, with the regression described above.
+Record thermal status beside every timing figure. The phone is on charge, which
+heats it independently of inference, and the thermal finding is unresolved.
 
 ---
 
