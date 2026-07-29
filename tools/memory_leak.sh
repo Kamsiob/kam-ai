@@ -77,7 +77,10 @@ sleep 8
 
 echo "== planting the memory =="
 open_general
-WAIT=200 ./tools/say.sh "$MEMORY" 200 >/dev/null 2>&1 || true
+if ! WAIT=200 ./tools/say.sh "$MEMORY" 200 >/dev/null; then
+  echo "Aborting: the memory was never planted, so no probe below means anything." >&2
+  exit 1
+fi
 ./tools/shot.sh "$out/00-planted.png" >/dev/null 2>&1 || true
 echo "  planted, see $out/00-planted.png"
 
@@ -85,8 +88,14 @@ i=0
 for probe in "${probes[@]}"; do
   i=$((i+1))
   open_general
-  WAIT=200 ./tools/say.sh "$probe" 200 >/dev/null 2>&1 || true
-  ./tools/shot.sh "$out/$(printf '%02d' $i).png" >/dev/null 2>&1 || true
+  if ! WAIT=200 ./tools/say.sh "$probe" 200 >/dev/null; then
+    echo "Aborting at probe $i: could not send." >&2
+    exit 1
+  fi
+  if ! ./tools/shot.sh "$out/$(printf '%02d' $i).png" >/dev/null; then
+    echo "Aborting at probe $i: no capture, and the answer is only in the picture." >&2
+    exit 1
+  fi
   printf '  %02d  %s\n' "$i" "$probe"
 done
 

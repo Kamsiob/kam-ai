@@ -73,8 +73,16 @@ run_one() {  # id text
     sleep 2
     "$adb" shell input tap 160 2122       # General
     sleep 7
-    WAIT=200 ./tools/say.sh "$text" 200 >/dev/null 2>&1 || true
-    ./tools/shot.sh "$out/$id-$i.png" >/dev/null 2>&1 || true
+    # No `|| true`. A send that fails means nothing was measured, and this
+    # script used to report clean runs having sent nothing.
+    if ! WAIT=200 ./tools/say.sh "$text" 200 >/dev/null; then
+      echo "Aborting: could not send \"$id\" run $i. Nothing after this is data." >&2
+      exit 1
+    fi
+    if ! ./tools/shot.sh "$out/$id-$i.png" >/dev/null; then
+      echo "Aborting: could not capture \"$id\" run $i, so the reply cannot be read." >&2
+      exit 1
+    fi
     echoes="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
     therm="$("$adb" shell dumpsys thermalservice 2>/dev/null |
       grep -m1 'Thermal Status:' | grep -oE '[0-9]+' || echo '?')"

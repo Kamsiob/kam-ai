@@ -59,8 +59,16 @@ run_case() {  # mode_name mode_x input_id input_text
     "$adb" shell input tap "$mode_x" 2122
     sleep 7
 
-    WAIT=200 ./tools/say.sh "$text" 200 >/dev/null 2>&1 || true
-    ./tools/shot.sh "$out/${mode_name}-${input_id}-$i.png" >/dev/null 2>&1 || true
+    # No `|| true`. A rejection count of zero from a message that was never
+    # sent looks exactly like a clean result.
+    if ! WAIT=200 ./tools/say.sh "$text" 200 >/dev/null; then
+      echo "Aborting: could not send $mode_name/$input_id run $i." >&2
+      exit 1
+    fi
+    if ! ./tools/shot.sh "$out/${mode_name}-${input_id}-$i.png" >/dev/null; then
+      echo "Aborting: could not capture $mode_name/$input_id run $i." >&2
+      exit 1
+    fi
 
     echoes="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
     methods="$("$adb" logcat -d -s KamMethod 2>/dev/null | grep -c 'announced' || true)"

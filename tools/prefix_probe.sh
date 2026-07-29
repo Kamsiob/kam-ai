@@ -99,7 +99,10 @@ sleep 7
 i=0
 for t in "${turns[@]}"; do
   i=$((i+1))
-  WAIT=200 ./tools/say.sh "$t" 200 >/dev/null 2>&1 || true
+  if ! WAIT=200 ./tools/say.sh "$t" 200 >/dev/null; then
+    echo "Aborting at turn $i: could not send, so the prefill counts would be wrong." >&2
+    exit 1
+  fi
   ./tools/shot.sh "$out/$(printf '%02d' $i).png" >/dev/null 2>&1 || true
   printf '  turn %s sent\n' "$i"
 done

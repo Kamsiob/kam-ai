@@ -9390,3 +9390,43 @@ And it only appears in a minified build. Every walk of the debug build, for days
 passed. The lesson is not that R8 introduced a bug; the bug was always there, and
 minification changed the timing enough to surface it. **A crash pass on the debug
 build is not a crash pass.**
+
+## A harness that reports a pass it did not earn, five times
+
+Five of these now, all producing a confident wrong conclusion:
+
+1. A fixed timer wait photographed replies mid-sentence, and forty screenshots
+   looked like data.
+2. Composer text survived into a new conversation, so a fragment was prepended to
+   the next message and the model answered the combination sensibly.
+3. An unconditional Back was eaten by the keyboard, so forty messages landed in one
+   conversation while the focus check passed throughout.
+4. A rejection counter differenced a circular log buffer and came out negative, so
+   understated counts read as clean runs.
+5. A seeding script reported six conversations created and created none, because
+   `|| true` hid a refusal to send.
+
+**The class is not "bugs in scripts". It is any construct that turns a failure into
+a value.** `|| true` on a command whose success is the point. `2>/dev/null` on the
+command that would have said why. A count defaulted to zero when the source was
+unreadable. Continuing past an error because the next step does not obviously
+depend on it.
+
+Every one produced output shaped exactly like a good result, which is why none was
+caught by looking at the output.
+
+**The fix as a class.** A send that fails means nothing was measured, and a capture
+that fails in a measurement script means the evidence does not exist. Both now stop
+the run and say what is void, rather than what went wrong: "nothing after this is
+data" is the useful sentence, because the reader's next question is always which
+results to throw away.
+
+`|| true` is kept, deliberately, on the cosmetic commands: collapsing the status
+bar, setting rotation, clearing a log. Those genuinely do not matter and making them
+fatal would turn a tidy-up into an outage. The distinction is whether the command's
+success is part of the result.
+
+**What this cost, so the next person weighs it properly.** Roughly two hours across
+the session, and one wrong claim that reached the record before a test disproved
+it. A harness that lies costs more than the defect it was built to find, because
+the defect is at least still there to be found afterwards.
