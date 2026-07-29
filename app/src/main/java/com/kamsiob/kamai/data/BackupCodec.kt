@@ -54,6 +54,10 @@ object BackupCodec {
         put("projectId", e.projectId); put("createdAt", e.createdAt); put("updatedAt", e.updatedAt)
         put("pinned", e.pinned); put("archived", e.archived); put("titleIsManual", e.titleIsManual)
         put("groundingMomentId", e.groundingMomentId)
+        // Added by a later migration than this codec, and missed until an audit
+        // compared every entity field against what is written. Without it a
+        // restored chat forgets which Workbench session belongs to it.
+        put("linkedConversationId", e.linkedConversationId)
         putStamp(e.rev, e.lastWriterId)
     }
     private fun conv(o: JSONObject): ConversationEntity {
@@ -68,6 +72,7 @@ object BackupCodec {
             projectId = o.s("projectId"), createdAt = o.l("createdAt"), updatedAt = o.l("updatedAt"),
             pinned = o.b("pinned"), archived = o.b("archived"),
             titleIsManual = o.b("titleIsManual"), groundingMomentId = o.s("groundingMomentId"),
+            linkedConversationId = o.s("linkedConversationId"),
             rev = o.rev(), lastWriterId = o.writer(),
         )
     }
