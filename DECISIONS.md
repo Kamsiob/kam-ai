@@ -9292,3 +9292,30 @@ around six hundred tokens of shared instruction inherited by every mode, grown o
 defensible line at a time over several days. That wants trimming as a piece of work
 rather than defending one line at a time, and the trimming is where the room for
 this instruction will come from.
+
+## The hurried user, and a button that changes meaning
+
+Typing a follow-up while an answer is still streaming, then tapping send, which is
+what somebody in a hurry does.
+
+The send button is a stop button during generation, at the same coordinate. So the
+tap stops the answer instead of sending. What happens then is well handled:
+
+- the partial answer is kept and labelled "You stopped this one."
+- Continue, Retry and Discard are offered
+- **the typed follow-up is still in the composer**, so nothing the user wrote is
+  lost, and the next tap sends it
+
+So no data is lost and nothing is misrepresented, which are the two things that
+would make this a defect rather than a trap. It is still a trap: the control under
+their thumb changed meaning while they were typing, and the cost of the mistake is
+an answer they were waiting for.
+
+Not filed as a bug, because every part of the behavior is deliberate and the
+recovery is complete. Recorded because it is the kind of thing that reads as broken
+to somebody who does not know the button changed, and because the alternative
+designs all cost more than this does: disabling the composer during generation
+would break the flagship voice flow, and moving the stop control would leave the
+most-used button jumping around.
+
+Worth revisiting only if real use shows people losing answers this way.
