@@ -9181,3 +9181,24 @@ photographed, find the branch that would have failed and show it did not.** Most
 code has one: an early return, a finish, a fallback. Reading which branch was taken
 is often stronger evidence than a picture of the outcome, because a picture shows
 what it looked like and the branch shows what happened.
+
+## A long, repetitive message is handled well
+
+Boundary testing, since every battery input here is one or two sentences. A 1400
+character message, the same sentence fourteen times with small variations, which is
+what somebody venting actually types:
+
+> The repeated lateness from multiple trades suggests poor project management or
+> scheduling on the part of the main contractor. What do you want to do about the
+> delays?
+
+No truncation, no guard rejection, the whole message preserved in the transcript,
+and an answer that adds something rather than summarising back. That last part is
+the interesting one: a message that repeats itself fourteen times is the strongest
+possible invitation to restate, and it did not.
+
+Also worth noting what refused first. The initial attempt pressed Back from the
+chat list, which leaves the application entirely, and say.sh refused to type into
+the launcher. That guard has now caught the same mistake three times tonight, in
+three different scripts, and each time the alternative was typing somebody's test
+message into whatever was in front.
