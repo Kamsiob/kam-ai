@@ -8117,3 +8117,31 @@ input is a bad instruction for this model.** It sits beside the rule above as th
 second way a prompt can ask for the defect it is trying to prevent. One asks the
 model to speak the instruction; the other asks for something the input already
 satisfies.
+
+## A fix aimed at one input has to be paid for in every mode
+
+The instruction added for #122 worked. On the input the issue is named for, guard
+interventions fell from six across three runs to one, and the fallback stopped
+appearing. Tested against that input, it was a clean success.
+
+It also broke Logic Partner, in the same run, and nothing about the change
+suggested it would. The nudge tells the model to reply with one sentence carrying
+information the user's sentence did not, and Logic Partner obeyed:
+
+    Productivity differences are often tied to the specific nature of the work
+    and the individual's environment.
+
+That is a correct execution of the instruction and a failure of the mode. Logic
+Partner owes the argument at its strongest, then its weakest link, then the
+question that would settle it, and no single additive sentence can be all three.
+The instruction was mode blind, so it was always going to trade one mode for
+another, and the trade only became visible because the battery runs every mode.
+
+**The lesson is about where a fix is allowed to reach.** An instruction that lives
+in a shared path applies to every mode that shares it, whatever input it was
+written for. The fix is now restricted to General and the quick panel, the two
+places where a one line reply to a statement is the right answer.
+
+This is the concrete argument for a rule that otherwise sounds like ceremony:
+re-run the entire battery after every change, not the part being worked on. The
+part being worked on improved. The number that mattered was somewhere else.

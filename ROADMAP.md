@@ -21,7 +21,14 @@ Brainstorm running its method on somebody who came to say something rather than
 to make something (#129), and screenshots recaptured from the release build
 (#113).
 
-**Model behavior.** The model reproducing text it was given: its own
+**Model behavior.** Two findings from 28 July reshape this. The tier is measured
+and the entire quality gap between Basic and Balanced is one mode: Logic Partner
+does not function on E2B, while General and Brainstorm are identical on both
+(#132, blocked on the repository owner). And three issues turned out to be one
+behavior, the model speaking a description of a response instead of the response,
+now converted across every prompt in one pass and recorded as a rule.
+
+What remains is the model reproducing text it was given: its own
 instructions, its worked examples, or the user's message handed straight back
 (#119, #122). Much of this is now caught before a user sees it, and the cause
 turned out to be split between the model tier and the chat template rather than
