@@ -92,6 +92,40 @@ condition itself was narrowed.
 
 Keep the two apart. A fix for one looks like progress on the other and is not.
 
+### Where the prompts stand, and the one thing being deliberately not done
+
+Seven batteries across the night: 7, 3, 9, 2, 0, 2, 0 guard interventions over
+thirty cases. The last two are clean, and the final one covers a change to the
+shared hard rules.
+
+**Budget headroom is now the constraint**: about twenty tokens in Logic Partner,
+sixteen in Brainstorm, five in General. Three raises were taken tonight, each paid
+for by the app asserting something false about itself.
+
+The remaining half of #137 needs about thirty tokens and **is deliberately not
+being added**. It should wait for a proper look at what the hard rules have
+accumulated, which is around six hundred tokens inherited by every mode, grown one
+defensible line at a time. That trimming is where the room will come from, and it
+is a piece of work rather than another raise.
+
+### Things checked and found sound
+
+Not everything tested tonight was broken, and the passes are worth knowing so they
+are not re-tested blindly.
+
+- Backgrounding mid-generation: a long answer survived twenty-five seconds on the
+  home screen and finished normally.
+- A 1400 character rambling message: no truncation, and an additive reply rather
+  than a summary, on the input most likely to invite a restatement.
+- Memory Off: takes effect, the memory line disappears, stored items remain listed
+  and deletable, and it survives a force-stop.
+- Workbench: unaffected by the shared rules change, returns the transformed text
+  and nothing else.
+- Sending while streaming: the send button is the stop button, so the answer stops
+  rather than a second message being sent. Nothing is lost, the partial is labelled
+  honestly, and the typed follow-up stays in the composer.
+- The instrumented suite: 52 tests, all passing.
+
 ### Still open
 
 - **#122** is down to a prefix: the reply is right and sometimes starts by
