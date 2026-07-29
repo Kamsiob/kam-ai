@@ -47,29 +47,62 @@ class PrivacyClaimsTest {
         "android.permission.ACCESS_LOCAL_NETWORK",
     )
 
+    /**
+     * Every permission the app asks for, and why it has it.
+     *
+     * This used to assert exactly INTERNET, which stopped being true when
+     * background downloads and voice typing were built, and nobody noticed
+     * because the instrumented tests are not part of the ordinary loop. A test
+     * asserting something false is worse than no test: whoever eventually runs
+     * it reads a real failure as a stale one and stops trusting the file.
+     *
+     * The point survives the change. The list is exhaustive and each entry is
+     * justified, so anything *else* appearing here is a dependency smuggling in
+     * capability the app does not use and the privacy policy does not describe,
+     * which is what this test exists to catch.
+     */
+    private val justified = mapOf(
+        // Downloading a model, a voice or a content pack, and opt-in web search.
+        "android.permission.INTERNET" to "downloads and opt-in web search",
+        // Read-only, and only about the current connection: whether there is one
+        // and whether it is metered, so a five gigabyte model never starts on
+        // cellular without the user choosing it (#79).
+        "android.permission.ACCESS_NETWORK_STATE" to "is there a connection, is it metered",
+        // A model download runs for twenty minutes and must survive the app being
+        // backgrounded, which needs a foreground service and its notification.
+        "android.permission.FOREGROUND_SERVICE" to "downloads continue in the background",
+        "android.permission.FOREGROUND_SERVICE_DATA_SYNC" to "the type that service declares",
+        "android.permission.POST_NOTIFICATIONS" to "download progress, and nothing else",
+        // Voice typing, transcribed on device. Asked for at first use, and the
+        // microphone is not required to install.
+        "android.permission.RECORD_AUDIO" to "voice typing, transcribed on device",
+    )
+
     @Test
-    fun theAppShipsWithExactlyOneRealPermission() {
-        // INTERNET is the only permission any feature needs: downloading a
-        // model, a voice, or a pack, and opt-in web search. Anything else
-        // appearing here is a dependency smuggling in capability the app does
-        // not use and the privacy policy does not describe.
+    fun everyPermissionOnThePackageIsOneWeChose() {
         val permissions = requestedPermissions()
             .filterNot { it.endsWith("DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION") }
             .filterNot { it in platformInjected }
 
-        assertThat(permissions).containsExactly("android.permission.INTERNET")
+        assertThat(permissions).containsExactlyElementsIn(justified.keys)
     }
 
     @Test
     fun nothingCanStartTheAppInTheBackground() {
         val permissions = requestedPermissions()
 
-        // WorkManager pulled all three of these in while being entirely unused.
-        // An app that only touches the network when asked has no business
-        // starting itself at boot or holding a wake lock.
+        // WorkManager pulled these in while being entirely unused. An app that
+        // only touches the network when asked has no business starting itself at
+        // boot or holding a wake lock.
         assertThat(permissions).doesNotContain("android.permission.RECEIVE_BOOT_COMPLETED")
         assertThat(permissions).doesNotContain("android.permission.WAKE_LOCK")
-        assertThat(permissions).doesNotContain("android.permission.FOREGROUND_SERVICE")
+
+        // FOREGROUND_SERVICE was on this list and has been taken off it
+        // deliberately. It is now held, for downloads that continue while the app
+        // is in the background, which is a service the *user* started and can see
+        // in a notification. That is a different thing from the app waking itself
+        // up, which is what this test is about and which is still forbidden by
+        // the two assertions above.
     }
 
     @Test
