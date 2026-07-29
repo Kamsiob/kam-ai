@@ -64,8 +64,14 @@ run_case() {  # mode_name mode_x input_id input_text
 
     echoes="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
     methods="$("$adb" logcat -d -s KamMethod 2>/dev/null | grep -c 'announced' || true)"
-    printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "$model" "$mode_name" "$input_id" "$i" "$echoes" "$methods" >> "$log"
+    # Thermal state beside every row, so a figure can be judged in context later
+    # rather than argued about. A phone on charge heats independently of
+    # inference, and a run taken warm is not comparable with one taken cool.
+    local therm
+    therm="$("$adb" shell dumpsys thermalservice 2>/dev/null |
+      grep -m1 'Thermal Status:' | grep -oE '[0-9]+' || echo '?')"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$model" "$mode_name" "$input_id" "$i" "$echoes" "$methods" "${therm:-?}" >> "$log"
     printf '  %-10s %-14s run %s  echo=%s method=%s\n' \
       "$mode_name" "$input_id" "$i" "$echoes" "$methods"
   done
