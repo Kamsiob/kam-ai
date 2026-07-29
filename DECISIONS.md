@@ -8377,3 +8377,39 @@ testable directly: hold one conversation across several turns with memories
 stored, and read the prefill token counts in the KamPerf lines. A cache that is
 being reused reports a handful of tokens; one that is not reports the whole block.
 Queued behind the leak test, which uses the same setup.
+
+## The standing check, applied to the change that prompted it
+
+The rule says: before changing shared prompt text, name the modes it affects and
+what correct behavior is in each. Applied to the additive reframing, which edited
+the hard rules and therefore every mode.
+
+| mode | what a bare statement should get | covered by the battery |
+|---|---|---|
+| General | one line that adds to it. This is the target of the change | yes |
+| Logic Partner | an argument taken apart, not one line | yes, three inputs |
+| Brainstorm | one thing you are doing and one question | yes, three inputs |
+| Overlay | one line, same as General | no |
+| Discover | an answer from the passage, or that it is not covered | no |
+| **Workbench** | **the transformed text and nothing else** | **no** |
+
+**Workbench is the gap and it is the one that matters.** Its contract is to return
+only the transformed text, starting with the first word of the result, with no
+commentary. The hard rules now say a statement gets one line that adds to it, and
+a Workbench request *is* a statement plus an instruction. If the shared rule wins,
+the reply becomes a remark about the text instead of the text.
+
+That is precisely the shape of the defect this rule was written after: an
+instruction in a shared path, correct for the mode it was written for, wrong for
+a mode with a different contract, and invisible because the battery does not cover
+that mode.
+
+The battery cannot cover it, either. Workbench is not a chat mode: it has its own
+screen, the text in one box and the instruction chosen from buttons, so nothing
+that types into a composer reaches it. That is why it was missed, and it is a
+reason to test it separately rather than a reason to skip it.
+
+Queued as a device check rather than assumed either way. Recording the prediction
+first: the mode prompt is more specific and sits after the shared rules, so it
+probably wins, and "probably" is not a standard this project accepts for a mode
+nobody has measured.
