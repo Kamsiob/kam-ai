@@ -9886,3 +9886,57 @@ Every one of these is a mechanical check: is the state exposed, and is it attach
 name. **Whether the app *sounds* right still needs somebody listening to TalkBack**, and
 that remains an owner task in HANDOFF. The tests draw the same line `AnnouncementsTest`
 draws, and they should not be read as more than they are.
+
+## The v1.0.0 milestone keeps its 106 closed issues, and this is settled
+
+The question was whether the milestone should hold only what blocks release, since its
+percentage is the first number anyone reads. It should not, and the argument is decisive
+rather than a matter of taste.
+
+**The standing rule derives release notes from the issues in the closed milestone.** Strip
+the shipped work and the v1.0.0 changelog becomes six items instead of a hundred and
+twelve. A milestone is the release manifest as much as it is a progress bar, and the
+manifest is the use that cannot be reconstructed from anywhere else.
+
+The progress-bar concern is real and is already solved by other means: the
+`release-blocker` label is the accurate count of what remains, and it is authoritative.
+Two questions, two instruments, and conflating them would break the one that has no
+substitute.
+
+Recorded so it does not come up again. What *was* wrong, and is fixed, is that #144 carried
+`release-blocker` and no milestone, so the open count read 5 when it was 6.
+
+## Standing suspicion: when a result is surprising, suspect the instrument first
+
+Three of the last four significant findings were defects in the things that verify other
+things, not in the things being verified:
+
+1. **The harness suppressions.** `grep -c ... || true` in a pipeline printing a clean zero
+   when adb had gone, in the script that certifies the release gate.
+2. **The guard bypass.** `isAllowedOutright` exempting anything that merely began with an
+   allowed sentence, unbounded, in the one place structurally exempt from every check.
+3. **The checker matching a word in a comment**, and so passing a script that recorded
+   missing evidence and never acted on it, within minutes of being written to catch
+   exactly that.
+
+The fourth was `say.sh` printing a failure and exiting zero. All four are apparatus.
+
+**The code under test has been in better shape than the apparatus measuring it**, and that
+is not a coincidence worth shrugging at. The application is exercised constantly, by hand
+and on the device, so its defects surface. The apparatus is exercised only by being
+trusted, and a measuring instrument that is wrong produces a plausible number rather than
+a visible failure. Nothing pushes back.
+
+**So: when a result is surprising, suspect the instrument before the subject.** Not as a
+reflex to avoid inconvenient findings, but because that is where the base rate actually is
+in this project. Concretely, before reasoning about a surprising figure:
+
+- What produced this number, and has that thing ever been tested?
+- What would this instrument report if the thing it measures were absent entirely? If the
+  answer is "zero" and the observation is zero, nothing has been measured.
+- Does a second, differently shaped check agree?
+
+The third question is why the battery re-run counts guard interventions *and* reads the
+replies directly. One number cannot disagree with itself.
+
+This is a standing rule, not an observation about one afternoon.
