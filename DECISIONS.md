@@ -9266,3 +9266,29 @@ The whole series, for the record: 7, 3, 9, 2, 0, 2, 0. The two nonzero results
 after the first three were each chased down rather than accepted or explained: the
 9 was the guard collision, and the 2 was ten dedicated runs away from being shown
 as noise.
+
+## Declining a budget raise, and saying so
+
+The remaining half of #137 needs a new instruction: what to do when somebody
+rejects an answer. About thirty estimated tokens, in the shared rules, so it costs
+every mode.
+
+After tonight the headroom is roughly twenty tokens in Logic Partner, sixteen in
+Brainstorm, five in General. It does not fit, and three raises have already been
+taken tonight.
+
+**Each of those was paid for by the application asserting something false about
+itself**: a web version that does not exist, an upload queue that does not exist.
+This one is different in kind. The app says something true and unhelpful, twice
+over, which is worse to read and smaller to be wrong about.
+
+So it is left, with the diagnosis written down. Recording the refusal because the
+easy path was another raise and nobody would have questioned it: every raise
+tonight was justified, which is exactly the condition under which the next
+unjustified one gets through.
+
+What it should wait for: a look at what the hard rules have accumulated. They are
+around six hundred tokens of shared instruction inherited by every mode, grown one
+defensible line at a time over several days. That wants trimming as a piece of work
+rather than defending one line at a time, and the trimming is where the room for
+this instruction will come from.
