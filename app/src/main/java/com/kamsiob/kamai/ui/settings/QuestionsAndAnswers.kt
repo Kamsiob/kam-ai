@@ -14,8 +14,9 @@ object QuestionsAndAnswers {
         Entry(
             "Does anything I type leave my phone?",
             "No. The AI runs on your phone, not on a server. Kam AI only touches the " +
-                "internet when you ask it to, like downloading a model or a content pack, " +
-                "or if you set up web search yourself.",
+                "internet for two things: downloading a model, a voice or a content " +
+                "pack when you choose to, and checking which content packs exist when " +
+                "you open Discover. Nothing you type is ever sent anywhere.",
         ),
         Entry(
             "Why does it sometimes get facts wrong?",

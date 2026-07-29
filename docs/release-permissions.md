@@ -11,7 +11,7 @@ dependency's merged manifest and appears nowhere in Kam AI's own.
 
 | permission | the feature | where the user is told |
 |---|---|---|
-| `INTERNET` | Downloading a model, a voice or a content pack, and opt-in web search | Full description, "the internet, only to download a model, a voice or a content pack when you choose to" |
+| `INTERNET` | Downloading a model, a voice or a content pack, and fetching the content pack list when Discover is opened | Full description, "the internet, only to download a model, a voice or a content pack when you choose to, and to check what content packs are available when you open Discover" |
 | `ACCESS_NETWORK_STATE` | Whether there is a connection and whether it is metered, so a multi-gigabyte model never starts on cellular unasked (#79) | Full description, "whether you have a connection and whether it is metered" |
 | `FOREGROUND_SERVICE` | A model download runs for twenty minutes and must survive the app being backgrounded | Full description, "a notification while a download is running, so it can carry on when you leave the app" |
 | `FOREGROUND_SERVICE_DATA_SYNC` | The type that service declares, required by the platform for the above | Same sentence |
