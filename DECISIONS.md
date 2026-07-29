@@ -9252,3 +9252,17 @@ than words, and code rather than prompt for exact wording, all answer the same
 question: how to write what the model says. This was a different question, when it
 should say it, and no amount of rewording the response addressed it. Worth keeping
 the two apart, because the fix for one looks like progress on the other and is not.
+
+## The battery after narrowing the character condition
+
+Thirty cases, three runs each, E4B: **zero interventions**, every cell, thermal 0
+for nine cases and 1 for the rest.
+
+That is the second consecutive clean battery, and it covers a change to the shared
+hard rules, which is the class of change that has broken other modes twice tonight.
+The standing check asked for it and it was worth asking for.
+
+The whole series, for the record: 7, 3, 9, 2, 0, 2, 0. The two nonzero results
+after the first three were each chased down rather than accepted or explained: the
+9 was the guard collision, and the 2 was ten dedicated runs away from being shown
+as noise.
