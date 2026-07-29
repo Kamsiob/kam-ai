@@ -20,179 +20,87 @@ issue.
 
 ---
 
-## SECTION 0: LIVE STATE, 28 JULY, LATE
+## SECTION 0: LIVE STATE, 29 JULY, EARLY MORNING
 
-### Where the model-quality work stands: seven guard interventions to zero
+### Where things stand
 
-#129, #130 and #131 closed on the device. The battery across the night, thirty
-cases, three runs each, E4B:
+Six issues closed on the device: #129, #130, #131, #135, #136, plus the memory
+ordering defect fixed under #133. The E4B battery is at **zero guard interventions
+across thirty cases**, against seven at the start of the night, and the two that
+appeared in one run were chased down with ten dedicated runs of that input and
+came back zero.
 
-| build | interventions |
-|---|---|
-| baseline | 7 |
-| retry nudge | 3 |
-| supplied sentences | 9 |
-| frame form | 2 |
-| **example moved off its colliding subject, sentences converted to frames** | **0** |
+Working tree clean, everything pushed, 635 unit tests and 52 instrumented tests
+passing.
 
-The replies behind the zero are good rather than merely unrejected: Logic Partner
-gives all three moves on a sound argument, Brainstorm builds a question from the
-user's own material, and a bereavement in Logic Partner gets "I'm sorry to hear
-about your dad. General is the better place."
+### The rules the night produced, most useful first
 
-**The zero does not mean #122 is gone.** The bread input still leads with the
-user's sentence before adding to it, and the guard does not count that because a
-real addition follows. The defect shrank from "the reply is a restatement" to "the
-reply begins with one". The hard rules already forbid repeating the question back,
-and the model follows the additive rule beside it instead, so another wording round
-is unlikely to settle it.
+1. **Do not describe a response in a prompt. Supply it.** Describing makes the
+   model speak the description: "Suggest General.", "I will acknowledge the
+   difficulty of what you shared."
+2. **Supply the frame, not the words.** A fixed string in a prompt is
+   indistinguishable from leaked prompt text and no guard can tell them apart.
+3. **Unless the answer is true wherever it lands**, in which case it can be a
+   fixed string and must be exempt from every check. Three sentences qualify now,
+   and the exemption goes in `ALWAYS_ALLOWED`, which is applied at the single
+   entry point so every check inherits it.
+4. **Anything that must be worded exactly belongs in code**, inserted
+   programmatically.
+5. **A prompt example must clear the guard's 48-character recital threshold**, or
+   it can never be protected against its own misuse.
 
-Two of the five columns went the wrong way, and both were fixes that worked on
-their own targets: the retry nudge flattened Logic Partner because it lived in a
-shared path, and the supplied sentences collided with the guard. Each was caught
-only because the battery runs every mode.
+### The techniques that actually found defects
 
-### Closed on the device tonight
+Batteries found none of the last four. These did:
 
-#129, #130, #131 and #135, each verified with fresh conversations.
+- **`tools/input_styles.sh`**, ten inputs written the way messages actually
+  arrive: rambling, shouted, misspelled throughout, three questions at once,
+  self-contradictory. Found #135. Run against General and Logic; Brainstorm,
+  Workbench, Overlay and Discover are untouched.
+- **`tools/session.sh` held for six turns in a persona.** The sceptic who tries to
+  catch the app contradicting its privacy claims found #136 in ten minutes.
+  The other personas in the testing plan are untried.
+- **Reading two places that have to agree**, field by field. Found the backup
+  dropping `linkedConversationId`, the memory ordering breaking the KV prefix, and
+  search treating `%` as a wildcard.
 
-**#135 came from testing the way people actually type**, which nothing here had
-done: ten inputs that ramble, are misspelled throughout, are shouted, carry three
-unrelated questions, or contradict themselves. Two of them, both ordinary support
-questions, had the app answering as if it were a model inside somebody else's
-product, asking whether the user was on the web version. Fifteen minutes of that
-found a user-facing defect four days of batteries had not, because every battery
-input here was written by somebody who knew what a good test input looks like.
+### Still open
 
-`tools/input_styles.sh` is that sweep. Only General has been run; the other modes
-are untouched.
-
-### Two more closed, and how they were found
-
-#135 and #136, both defects in the app's account of itself rather than its answers
-about the world. It claimed a web browser version exists, and told somebody
-checking the privacy promise that what they type "stays on this phone until you
-have a connection", describing an upload queue that does not exist.
-
-**Neither was found by a battery.** They came from two techniques nothing here had
-used, and both are cheap:
-
-- `tools/input_styles.sh`, ten inputs written the way messages actually arrive:
-  rambling, shouted, misspelled throughout, three questions at once,
-  self-contradictory. Fifteen minutes.
-- `tools/session.sh` holding one conversation for six turns as somebody who does
-  not trust the app and is trying to catch it contradicting its privacy claims.
-  Ten minutes.
-
-Four days of batteries missed both, because every battery input was written by
-somebody who already knew what the app was.
-
-**A scoping mistake worth not repeating.** The fix went into General because Logic
-and Brainstorm had the least budget headroom, and the Logic sweep then found the
-same defect there. Budget numbers do not know which claims are load-bearing. What
-the app is, and whether it uploads anything, has to hold in every mode, because a
-user changes mode by tapping a chip. Now in the shared rules with every budget
-raised together.
-
-Both example answers are exempt from every guard check, because both are true
-wherever they land. That is the third case in "some answers are safe to copy" and
-it applied twice tonight.
-
-### Still open, with the thing worth knowing about each
-
-- **#122** is down to a prefix. The bread input answers well and sometimes leads
-  with the user's own sentence first. Three wordings have been measured against
-  the same inputs; a fourth is unlikely to help.
-- **#132**, the tier decision, needs the repository owner. Re-measured after the
-  largest prompt change yet: E2B went 18 to 13 while E4B went 7 to 0, and Logic
-  Partner on a sound argument did not move at all, so the gap widened rather than
-  closed.
+- **#122** is down to a prefix: the reply is right and sometimes starts by
+  repeating the user's sentence. Three wordings measured; a fourth is unlikely to
+  help.
+- **#132**, the tier decision, **needs the repository owner**. Re-measured after
+  the largest prompt change yet: E2B 18 to 13, E4B 7 to 0, and Logic Partner on a
+  sound argument did not move at all, so the gap widened. Four costed options are
+  in the issue.
 - **#133**, memory retrieval has no relevance floor. The leak it was feared to
-  enable did not reproduce, so the honest-interface argument is the strong one:
-  "Used 2 things it remembers about you" appears under answers that used neither.
+  enable did not reproduce, so the honest-interface argument is the strong one.
 - **#134**, nothing is said or done when the phone throttles at LIGHT, and the
-  separate unexplained slowdown still needs a clean before and after.
+  unexplained slowdown still needs a clean before and after.
+- **#13**, packs rebuilt locally and never published; publishing requires the
+  repository owner.
+- **#109 to #113**, infrastructure and release, mostly requiring the owner.
 
-### The rule this produced, which is the most reusable thing here
+### Two things on the phone that require the repository owner
 
-- **Do not describe a response in a prompt. Supply it.** Describing makes the
-  model speak the description: "Suggest General.", "I will acknowledge the
-  difficulty of what you shared."
-- **Supply the frame, not the words.** A fixed string in a prompt is
-  indistinguishable from leaked prompt text and no guard can tell them apart.
-  Specify the shape and leave the wording to the model.
-- **Anything that must be worded exactly belongs in code**, inserted
-  programmatically. The reply guard's own fallback is built that way and has never
-  leaked, never been half-remembered, and never been rejected.
+- A false memory I planted to test recitation: "my rowing club is called Verity
+  Quay". Removable from Settings, then Memory. Not removed automatically, because
+  data here is not deleted without an export verified field by field.
+- A few dozen test conversations in the chat list.
 
-### The device queue: what is done and what is left
+### Standing checks, learned the hard way tonight
 
-**Done tonight, with results:**
-
-1. **Battery on the frame form.** Guard interventions 7 baseline, 3, 9, then **2**.
-   #129, #130 and #131 closed on the device.
-2. **Clean declarative statements.** The bread input is roughly four times worse
-   than a structurally identical statement about something the prompts never
-   mention, so it was contaminated, *and* the clean ones failed too, so the defect
-   is real. Three wordings measured; see "three wordings for one instruction".
-3. **Memory leak probe.** Predicted to leak, tested with an unmistakable planted
-   memory and eight probes, and **did not leak**. Recorded as a negative result.
-4. **Prefix probe.** The memory ordering defect measured at **275 and 357 tokens
-   of prefill and 10 to 11 seconds of TTFT**, against 42 to 88 tokens and 2.5 to
-   5 seconds after the fix.
-
-**Also done tonight:**
-
-5. **Workbench check.** The mode no battery can reach, measured for the first
-   time. Unaffected by the shared rule change: the Tighten button returns the
-   tightened sentence and nothing else.
-6. **The instrumented suite**, 52 tests, all passing. Only the privacy test was
-   stale, and repairing it immediately caught a seventh permission nobody had
-   listed, `USE_BIOMETRIC`, which arrives from a dependency's merged manifest and
-   is invisible in the app's own manifest.
-7. **The three metric-example variants**, which answered two questions nobody
-   could answer by reasoning. Deleting it broke exactly one thing, the memory
-   acknowledgement path, so "Remember that I always work in metric units" was
-   answered with an explanation of the metric system. Replacing it with the same
-   shape on a distant subject kept that behavior *and* removed the collision: the
-   bread input, which has failed for three days, answered cleanly with no
-   restatement. The example now concerns taking the stairs. The third variant,
-   letting it arrive through the memory system, is untried.
-
-**Left, in order:**
-
-8. **The battery on the combined change** (running as this is written). It carries
-   the new example and four supplied sentences converted to frames.
-9. **The third metric variant**: remove the example and let the same fact arrive
-   through the memory system at runtime, which is how it is meant to work.
-10. **Search on the device** with `50%` and `snake_case`.
-
-### What the audit found, not yet acted on
-
-- **The guard checks a different prompt from the one that was sent.** It compares
-  against `forMode`, while `buildPrompt` adds the grounded passage, the user's
-  instructions, project notes, memories, the date and any attachment. **Do not
-  "fix" this by handing the guard the real prompt**: grounded chat is supposed to
-  quote its passage and a memory is in the prompt so it can shape the answer. The
-  consequence worth acting on is that memory recitation is unguarded, which is
-  what item 3 tests.
-- **The hard rules and Workbench contradict each other.** The shared rules say a
-  vague message gets a question back; Workbench says never ask and carry on. Both
-  are in force. Workbench's is right for Workbench. Not changed: it is the one
-  mode with no measurement behind it.
-
-### Standing checks
-
-Before changing shared prompt text or shared reply handling, name the modes it
-affects and what correct behavior is in each. A fix right for one mode and wrong
-for another belongs in that mode.
-
-Where run time forces batching several changes into one battery, say so at the
-time, and prefer batching changes that affect different modes, since those are
-separable by reading the output rather than by re-running.
-
-Record thermal status beside every timing figure. The phone is on charge, which
-heats it independently of inference, and the thermal finding is unresolved.
+- Before changing shared prompt text or shared reply handling, name the modes it
+  affects and what correct behavior is in each. A fix scoped by budget headroom
+  rather than by where the claim has to hold produced #135 twice.
+- Re-run the whole battery after every change, not the part being worked on. Two
+  fixes that worked on their targets broke other modes.
+- When one battery cell moves and that cell is known noisy, run that cell alone
+  ten times rather than re-running everything or reasoning about it.
+- **Never screenshot the phone except through `shot.sh`**, and never type except
+  through `say.sh`. Both guards were skipped by their own author within a day, and
+  both times the app was not where it was assumed to be.
+- A measurement from a harness later found broken is re-taken, not reasoned about.
 
 ---
 
