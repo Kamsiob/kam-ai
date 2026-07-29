@@ -687,10 +687,11 @@ class KamRepository(
     fun search(query: String): Flow<SearchResults> {
         val trimmed = query.trim()
         if (trimmed.isBlank()) return kotlinx.coroutines.flow.flowOf(SearchResults())
+        val pattern = SearchQuery.escapeForLike(trimmed)
         return kotlinx.coroutines.flow.combine(
-            db.conversations().search(trimmed),
-            db.followUps().search(trimmed),
-            db.projects().search(trimmed),
+            db.conversations().search(pattern),
+            db.followUps().search(pattern),
+            db.projects().search(pattern),
         ) { conversations, followUps, projects ->
             SearchResults(conversations, followUps, projects)
         }

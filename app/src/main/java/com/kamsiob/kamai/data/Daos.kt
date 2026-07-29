@@ -97,7 +97,7 @@ interface ConversationDao {
                COALESCE(
                  (SELECT m.content FROM messages m
                    WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
-                     AND m.content LIKE '%' || :query || '%'
+                     AND m.content LIKE '%' || :query || '%' ESCAPE '\'
                    ORDER BY m.createdAt DESC LIMIT 1),
                  (SELECT m.content FROM messages m
                    WHERE m.conversationId = c.id AND m.role != 'SYSTEM'
@@ -105,11 +105,11 @@ interface ConversationDao {
                ) AS snippet,
                (SELECT COUNT(*) FROM messages m WHERE m.conversationId = c.id) AS messageCount
           FROM conversations c
-         WHERE (c.title LIKE '%' || :query || '%'
+         WHERE (c.title LIKE '%' || :query || '%' ESCAPE '\'
                 OR EXISTS (SELECT 1 FROM messages m
                             WHERE m.conversationId = c.id
                               AND m.role != 'SYSTEM'
-                              AND m.content LIKE '%' || :query || '%'))
+                              AND m.content LIKE '%' || :query || '%' ESCAPE '\'))
          ORDER BY c.pinned DESC, c.updatedAt DESC
         """,
     )
@@ -292,9 +292,9 @@ interface ProjectDao {
         """
         SELECT * FROM projects
          WHERE archived = 0
-           AND (name LIKE '%' || :query || '%'
-                OR instructions LIKE '%' || :query || '%'
-                OR notes LIKE '%' || :query || '%')
+           AND (name LIKE '%' || :query || '%' ESCAPE '\'
+                OR instructions LIKE '%' || :query || '%' ESCAPE '\'
+                OR notes LIKE '%' || :query || '%' ESCAPE '\')
          ORDER BY updatedAt DESC
         """,
     )
@@ -377,8 +377,8 @@ interface FollowUpDao {
     @Query(
         """
         SELECT * FROM follow_ups
-         WHERE snippet LIKE '%' || :query || '%'
-            OR note LIKE '%' || :query || '%'
+         WHERE snippet LIKE '%' || :query || '%' ESCAPE '\'
+            OR note LIKE '%' || :query || '%' ESCAPE '\'
          ORDER BY createdAt DESC
         """,
     )
