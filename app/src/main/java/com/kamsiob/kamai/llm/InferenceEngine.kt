@@ -139,6 +139,16 @@ class InferenceEngine(
      * and decodes only what is new (issue #38), which is the difference between
      * an eleven second wait and under a second on an ongoing turn.
      */
+    /**
+     * What to say about the phone being warm, once per episode, or null.
+     *
+     * Exposed here because the watcher is internal to the engine and the sentence
+     * belongs on screen. The engine deliberately does not show it itself: the
+     * engine has no screen, and a notice raised from here would appear whether or
+     * not anybody was looking.
+     */
+    fun thermalNotice(): String? = thermal.warningMessage()
+
     fun generate(
         prompt: String,
         mode: Mode,
@@ -568,11 +578,43 @@ class ThermalWatcher(context: Context) {
         else -> null
     }
 
-    /** Shown before a long job when the phone is already warm. */
-    fun warningMessage(): String? =
-        if (powerManager.currentThermalStatus >= PowerManager.THERMAL_STATUS_MODERATE) {
-            "Your phone is warm, so answers will be shorter for a bit."
-        } else {
-            null
+    /**
+     * What to tell the user, once, when the phone has become warm enough to
+     * change how the application behaves. Null when there is nothing new to say.
+     *
+     * **This used to have no callers at all**, which meant the user was told
+     * nothing at LIGHT and nothing at MODERATE either, while the context was
+     * quietly shrinking at MODERATE. Answers got slower and shorter and the
+     * application said nothing about why, which is the failure #134 describes,
+     * and it was worse than the issue claimed.
+     *
+     * LIGHT now says something, because LIGHT is where the phone starts throttling
+     * and where sustained use actually lands: measured over an evening of
+     * continuous generation, the platform reported LIGHT and never rose further.
+     *
+     * **It says it once per episode, not once per turn.** Nagging is banned, and a
+     * warm phone stays warm for many turns. The rule is to speak when the status
+     * rises above the highest already announced, and to reset once the phone is
+     * cool again, so a user who warms the phone twice in a session hears it twice
+     * and a user who warms it once hears it once.
+     */
+    private var announced: Int = PowerManager.THERMAL_STATUS_NONE
+
+    fun warningMessage(): String? {
+        val now = powerManager.currentThermalStatus
+        if (now <= PowerManager.THERMAL_STATUS_NONE) {
+            announced = PowerManager.THERMAL_STATUS_NONE
+            return null
         }
+        if (now <= announced) return null
+        announced = now
+        return when (now) {
+            PowerManager.THERMAL_STATUS_LIGHT ->
+                "Your phone is warming up, so answers will come more slowly for a while."
+            PowerManager.THERMAL_STATUS_MODERATE ->
+                "Your phone is warm, so answers will be shorter and slower for a bit."
+            else ->
+                "Your phone is hot. Answers will be short until it cools down."
+        }
+    }
 }

@@ -28,10 +28,10 @@ Read this first if the goal is to ship. Everything else in this file is context.
 
 | # | item | state |
 |---|---|---|
-| — | Crash-free pass on the minified build | **Done.** 33 steps, two walks, after fixing a real crash |
-| — | Data safety declaration re-derived | **Done.** `docs/release-data-safety.md` |
-| — | Permissions traced to features and listing | **Done.** `docs/release-permissions.md` |
-| — | Target API 36 | **Done.** Already 36 |
+| none | Crash-free pass on the minified build | **Done.** 33 steps, two walks, after fixing a real crash |
+| none | Data safety declaration re-derived | **Done.** `docs/release-data-safety.md` |
+| none | Permissions traced to features and listing | **Done.** `docs/release-permissions.md` |
+| none | Target API 36 | **Done.** Already 36 |
 | #113 | Screenshots from the release build | 14 of 16 done, chat list being finished |
 | #142 | Guard covers 1 of 6 prompt sources | 3 of 5 channels clean, 2 left |
 | #133 | Memory retrieval | Not started |
@@ -50,7 +50,7 @@ Read this first if the goal is to ship. Everything else in this file is context.
 4. **Upload and submit.** Not to be done by anyone else: the standing constraint is
    no upload, no submission, no track promotion, no tag, no release.
 5. **Expect one to two weeks in review**, sometimes longer, for a first submission
-   from a new organisation account. **The clock starts at submission**, and changing
+   from a new organization account. **The clock starts at submission**, and changing
    the binary during review restarts the queue. That is the whole reason the deferred
    list exists: work done before submission delays the start, work done during it is
    free.

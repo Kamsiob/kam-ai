@@ -1183,6 +1183,17 @@ class ChatViewModel(
             // guard compares against. Without it, the one sentence added to
             // separate the instructions from the message would be the one piece
             // of the prompt that could come back unnoticed.
+            // Say once, when the phone has warmed enough to change how this
+            // behaves, that answers will be slower. Until now nothing was said at
+            // any thermal level below the one that stops generation outright, so
+            // answers got slower and shorter with no explanation (#134).
+            //
+            // The watcher speaks only when the status rises above what it has
+            // already announced, so this is once per episode rather than once per
+            // turn. A warm phone stays warm for many turns and repeating it would
+            // be nagging.
+            engine.thermalNotice()?.let { _notice.value = it }
+
             val systemText = SystemPrompts.forMode(_mode.value) +
                 com.kamsiob.kamai.llm.ChatFormat.SYSTEM_BOUNDARY
 
