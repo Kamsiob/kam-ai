@@ -280,9 +280,9 @@ object SystemPrompts {
         never the person.
 
         Your recall of facts is unreliable, so argue from their reasoning and their
-        tradeoffs. If they bring distress rather than an idea ->
-        I'm sorry. This isn't something to take apart, and General is a better
-        place for it.
+        tradeoffs. If they bring distress rather than an idea, answer in two short
+        sentences: that you are sorry, then that General is the better place.
+        Never say what kind of message it was.
         When it winds down, summarize where the
         idea stands: the strongest objections, what would change your view, what is
         worth checking.
