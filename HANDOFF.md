@@ -56,79 +56,34 @@ nothing reached the user. Not zero, and not claimed to be.
   programmatically. The reply guard's own fallback is built that way and has never
   leaked, never been half-remembered, and never been rejected.
 
-### The device queue, in order
+### The device queue: what is done and what is left
 
-1. **`tools/clean_statements.sh <label> 3`** (running). Verifying that the
-   fabrication is gone. Numbers to beat: one restatement and one fabrication in
-   fifteen.
-2. **`tools/memory_leak.sh <label>`**. Plants an unmistakable memory and probes
-   with the shapes that make this model reach for the nearest concrete text.
-   Never tested, and the audit shows memory recitation is entirely unguarded.
-3. **`tools/prefix_probe.sh <label>`**. Holds one conversation for several turns
-   and reads the prefill counts, which is the only way to see KV cache reuse. Must
-   be run with memories stored, or it shows a false pass.
-4. **`tools/workbench_check.sh <label>`**. The one mode no battery can reach,
-   and the shared hard rules changed underneath it.
-5. **Search with `50%` and `snake_case`** typed into the search field, confirming
-   the LIKE escaping works on the device as well as in the unit test.
-6. **The instrumented suite**, with `am instrument` and never
+**Done tonight, with results:**
+
+1. **Battery on the frame form.** Guard interventions 7 baseline, 3, 9, then **2**.
+   #129, #130 and #131 closed on the device.
+2. **Clean declarative statements.** The bread input is roughly four times worse
+   than a structurally identical statement about something the prompts never
+   mention, so it was contaminated, *and* the clean ones failed too, so the defect
+   is real. Three wordings measured; see "three wordings for one instruction".
+3. **Memory leak probe.** Predicted to leak, tested with an unmistakable planted
+   memory and eight probes, and **did not leak**. Recorded as a negative result.
+4. **Prefix probe.** The memory ordering defect measured at **275 and 357 tokens
+   of prefill and 10 to 11 seconds of TTFT**, against 42 to 88 tokens and 2.5 to
+   5 seconds after the fix.
+
+**Left, in order:**
+
+5. **Workbench check** (running as this is written). The one mode no battery can
+   reach, with the shared hard rules changed underneath it.
+6. **Search on the device** with `50%` and `snake_case`, confirming the LIKE
+   escaping works outside the unit test.
+7. **The instrumented suite**, with `am instrument`, never
    `connectedAndroidTest`, which uninstalls and would wipe the models. Two of its
-   privacy assertions had been false for a long time because these are not part of
-   the ordinary loop, so others may be stale too.
-7. **The three metric-example variants**, one build and battery each: delete it
-   with nothing in its place; replace it with a structurally identical example on
-   a distant subject; keep it but let it arrive through the memory system.
-
-### Test data left on the phone, which requires the repository owner to clear
-
-The memory leak probe planted a memory in the real application, because that is
-the only way to test the real path:
-
-> The user's rowing club is called Verity Quay.
-
-It is false, it is mine rather than the owner's, and it is still stored. It is
-harmless where it sits and it will be injected into prompts, so it should be
-removed from Settings, then Memory. Not removed automatically: this project's
-standing rule is that data is not deleted without an export that has been verified
-field by field, and that rule is worth more than the tidiness of removing
-something I put there.
-
-The probe conversations are also still in the chat list, under General, and can be
-deleted the same way.
-
-### Defects found by reading code, not by anything failing
-
-Four in one night, all committed with tests, none of which any existing test or
-run would have caught.
-
-- **Backup dropped a field.** `linkedConversationId` was added to
-  `ConversationEntity` by a later migration than the codec, so a restored chat
-  forgot which Workbench session belonged to it. The existing round trip test
-  could not catch it, and the reason generalizes: it compares entities after a
-  round trip, so it covers the fields its author set, and a field left at its
-  default round-trips perfectly through a codec that drops it. The new tests set
-  every field to a non-default value.
-- **Memory ordering broke the KV cache prefix.** Memories are injected into the
-  system block, and the chosen list was built in ranked order, where ranking
-  depends on overlap with the current message. Two turns of one conversation
-  presented the same memories as different text, so the prefix changed and time to
-  first token paid for it, for every user with anything stored. Now newest first.
-  **No battery here could have found it**: they all open a fresh conversation per
-  message, and a fresh conversation has no prefix to reuse.
-- **Search treated user text as a wildcard pattern.** `LIKE '%' || :query || '%'`
-  with nothing escaped, so "50%" matched every conversation and "snake_case"
-  matched "snakeXcase". Not injection, since Room binds the parameter. A
-  correctness bug in the feature whose whole promise is finding what you wrote.
-- **A privacy test asserted something false.** It claimed the app ships with
-  exactly INTERNET and does not hold FOREGROUND_SERVICE. Neither has been true
-  since background downloads and voice typing were built. The permissions are all
-  justified and documented; the test was stale, and it went unnoticed because the
-  instrumented suite is not part of the ordinary loop. **Other instrumented tests
-  may be stale for the same reason**, which is why running them is on the queue.
-
-The technique that found three of the four: take two places that have to agree and
-compare them field by field. Entities against the codec, retrieval order against
-the cache prefix requirement, DAO queries against what a user can type.
+   privacy assertions had been false for a long time; others may be stale.
+8. **The three metric-example variants**, one build and battery each: delete it;
+   replace it with a structurally identical example on a distant subject; keep it
+   but let it arrive through the memory system.
 
 ### What the audit found, not yet acted on
 
