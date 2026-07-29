@@ -47,6 +47,24 @@ if ! echo "$focus" | grep -q "com.kamsiob.kamai"; then
   exit 1
 fi
 
+# Focus arrives before the pixels do.
+#
+# An activity can hold focus while the screen still shows what was there before
+# it, which is the whole of an activity transition. A capture taken in that window
+# passes every check above and photographs the previous app. It happened: the
+# focus was Kam AI's text intake activity and the image was the phone's assistant
+# settings, listing the owner's other installed apps. That file was destroyed.
+#
+# So settle, then check focus again, and only capture if it is still Kam AI. The
+# second check is the point: a transition that is still moving will have changed.
+sleep 1
+focus_again="$("$adb" shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus | tr -d '\r' || true)"
+if ! echo "$focus_again" | grep -q "com.kamsiob.kamai"; then
+  echo "Refusing to capture: focus moved while settling." >&2
+  echo "  focused window is now: ${focus_again:-unknown}" >&2
+  exit 1
+fi
+
 "$adb" exec-out screencap -p > "$out"
 
 # Orientation is part of whether a capture is usable. A run once produced ten
