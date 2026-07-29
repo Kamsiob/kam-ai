@@ -9128,3 +9128,30 @@ Both calls now fail the run. This is the third harness defect of the same shape
 tonight, after the timer wait and the negative rejection count, and all three
 produced output that looked exactly like data. The pattern to watch for is not a
 crash; it is a result that arrives without the work having happened.
+
+## The one screen that must never be captured
+
+Testing the share entry point produced three screenshots of the phone owner's
+other applications: the assistant settings listing their installed assistants
+twice, and the launcher listing Phone, Photos, Maps, Claude, Tasks, Joplin,
+WhatsApp, Gmail and Messages. All three were destroyed.
+
+Every guard in shot.sh passed each time, and correctly. `TextIntakeActivity` is a
+sheet: it is drawn over whatever app shared the text, so Kam AI genuinely holds
+focus while most of the screen belongs to somebody else. The premise the guard
+rests on, that focus means the screen is ours, is false for a sheet activity.
+
+No additional check fixes that, so shot.sh now refuses that activity by name.
+
+**The lesson is about how the third capture happened.** After the first, I added a
+settle-and-recheck, which was a real improvement and did not address the actual
+cause. After the second, I reset the phone to a clean state and tried again, which
+also did not address it. Each time the fix was aimed at the symptom that had just
+appeared rather than at why the guard could not know.
+
+The guard's premise should have been checked after the first one. Three files of
+somebody else's home screen is a poor price for finding that out.
+
+**How to test that entry point instead:** send the intent, then read the logs and
+the conversation it creates. The sheet's own appearance can be verified from the
+source and from the fact that the activity stays resumed rather than finishing.

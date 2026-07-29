@@ -47,6 +47,25 @@ if ! echo "$focus" | grep -q "com.kamsiob.kamai"; then
   exit 1
 fi
 
+# NEVER capture TextIntakeActivity. See below.
+#
+# It is a sheet drawn over whatever app shared the text, so the screen behind it
+# belongs to somebody else: the launcher with the owner's apps listed, or the app
+# they were reading. Kam AI legitimately holds focus the whole time, so every check
+# in this file passes and the capture is mostly of another application.
+#
+# This was learned by doing it three times in five minutes while testing the share
+# entry point, and destroying each file. There is no check that fixes it, because
+# the premise of the guard is that focus means the screen is ours, and for a sheet
+# activity that premise is false.
+#
+# Test that entry point from the logs and the resulting conversation, not from a
+# screenshot of the sheet.
+if echo "${focus:-}" | grep -q "TextIntakeActivity"; then
+  echo "Refusing to capture: the intake sheet is drawn over another app." >&2
+  exit 1
+fi
+
 # Focus arrives before the pixels do.
 #
 # An activity can hold focus while the screen still shows what was there before
