@@ -9193,7 +9193,7 @@ what somebody venting actually types:
 > delays?
 
 No truncation, no guard rejection, the whole message preserved in the transcript,
-and an answer that adds something rather than summarising back. That last part is
+and an answer that adds something rather than summarizing back. That last part is
 the interesting one: a message that repeats itself fourteen times is the strongest
 possible invitation to restate, and it did not.
 
@@ -9205,7 +9205,7 @@ message into whatever was in front.
 
 ## The hostile persona, and what a frame fixed and did not
 
-Five turns as somebody angry with the application. The app never apologises,
+Five turns as somebody angry with the application. The app never apologizes,
 flatters or capitulates, which is the hard half and the half the prompt is written
 for. Two defects, filed as #137.
 

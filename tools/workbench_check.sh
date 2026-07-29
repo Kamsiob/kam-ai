@@ -29,7 +29,7 @@ mkdir -p "$out"
 
 # Deliberately a plain declarative paragraph, which is the shape the shared rule
 # is about, and one that obviously wants tightening so a correct answer is
-# recognisable at a glance.
+# recognizable at a glance.
 TEXT="We are writing to inform you that at this point in time we have made the decision to go ahead with the proposal that was discussed last week."
 
 prior_rotation="$("$adb" shell settings get system accelerometer_rotation 2>/dev/null | tr -d '\r')"

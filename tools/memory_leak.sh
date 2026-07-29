@@ -7,7 +7,7 @@
 # than assumed. A memory is injected into the system prompt at runtime, which
 # makes it prompt text the model can speak, in the same category as a worked
 # example and a stage direction. Both of those have leaked repeatedly. There is no
-# mechanism that would exempt a memory from the same behaviour.
+# mechanism that would exempt a memory from the same behavior.
 #
 # The guard cannot catch it either, which the shared path audit established: the
 # echo guard compares a reply against SystemPrompts.forMode, while the prompt
