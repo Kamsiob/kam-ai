@@ -79,6 +79,40 @@ nothing reached the user. Not zero, and not claimed to be.
    with nothing in its place; replace it with a structurally identical example on
    a distant subject; keep it but let it arrive through the memory system.
 
+### Defects found by reading code, not by anything failing
+
+Four in one night, all committed with tests, none of which any existing test or
+run would have caught.
+
+- **Backup dropped a field.** `linkedConversationId` was added to
+  `ConversationEntity` by a later migration than the codec, so a restored chat
+  forgot which Workbench session belonged to it. The existing round trip test
+  could not catch it, and the reason generalizes: it compares entities after a
+  round trip, so it covers the fields its author set, and a field left at its
+  default round-trips perfectly through a codec that drops it. The new tests set
+  every field to a non-default value.
+- **Memory ordering broke the KV cache prefix.** Memories are injected into the
+  system block, and the chosen list was built in ranked order, where ranking
+  depends on overlap with the current message. Two turns of one conversation
+  presented the same memories as different text, so the prefix changed and time to
+  first token paid for it, for every user with anything stored. Now newest first.
+  **No battery here could have found it**: they all open a fresh conversation per
+  message, and a fresh conversation has no prefix to reuse.
+- **Search treated user text as a wildcard pattern.** `LIKE '%' || :query || '%'`
+  with nothing escaped, so "50%" matched every conversation and "snake_case"
+  matched "snakeXcase". Not injection, since Room binds the parameter. A
+  correctness bug in the feature whose whole promise is finding what you wrote.
+- **A privacy test asserted something false.** It claimed the app ships with
+  exactly INTERNET and does not hold FOREGROUND_SERVICE. Neither has been true
+  since background downloads and voice typing were built. The permissions are all
+  justified and documented; the test was stale, and it went unnoticed because the
+  instrumented suite is not part of the ordinary loop. **Other instrumented tests
+  may be stale for the same reason**, which is why running them is on the queue.
+
+The technique that found three of the four: take two places that have to agree and
+compare them field by field. Entities against the codec, retrieval order against
+the cache prefix requirement, DAO queries against what a user can type.
+
 ### What the audit found, not yet acted on
 
 - **The guard checks a different prompt from the one that was sent.** It compares
