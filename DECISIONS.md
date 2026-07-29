@@ -8900,3 +8900,39 @@ Worth noting what this exercise cost and returned. Ten conversations, about
 fifteen minutes, and it found a user-facing defect that four days of batteries had
 not, because every battery input in this project was written by somebody who knew
 what a good test input looks like.
+
+## Some answers are safe to copy, and that is what makes an example keepable
+
+Third collision in two days between text put into a prompt and the guard that
+catches text taken out of one, and the third different resolution. They are worth
+listing together, because which one applies is decided by a property of the
+sentence rather than by preference.
+
+| the answer is | resolution |
+|---|---|
+| different every time, built from what the user said | supply the frame, not the words |
+| fixed, and wrong if it lands anywhere else | keep it out of the prompt, insert it from code |
+| fixed, and **true wherever it lands** | keep it in the prompt, exempt it from every check |
+
+The third is the identity example added for #135: chats are always on this phone,
+in Kam AI's own storage, and nothing is ever uploaded. A model that emits that at
+the wrong moment has still said something correct about the application. The same
+property is why "Fix what? Tell me what is broken and I will start there." has
+been exempt since the guard existed.
+
+**That property is what makes a worked example keepable at all.** Every example
+this project has had trouble with failed it: Brainstorm's two openings were
+generic enough to be emitted anywhere and wrong when they were, the metric
+acknowledgement sat next to a common subject and interfered with it, and the
+character decline read as an answer to "why".
+
+So the question to ask of any example before it goes in is not whether it teaches
+well. It is what happens when the model emits it at the wrong moment, because it
+will.
+
+The exemption also has to be at the single entry point rather than in one check.
+That is written into `isBadReply` and the comment there records why: the checks
+grew one at a time, the exemptions did not follow, and twice a correct reply was
+discarded and replaced with "That came out wrong." This case would have made it
+three, since `legitimateFor` needs the user's message to match the example
+question and support questions arrive as paraphrases.
