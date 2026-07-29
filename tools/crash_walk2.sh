@@ -14,6 +14,7 @@
 # same screens.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 label="${1:?usage: crash_walk2.sh <label>}"
 out="/tmp/walk2-$label"
@@ -23,14 +24,14 @@ fails=0; step=0
 check() {
   step=$((step+1)); sleep 3
   local c a
-  c="$("$adb" logcat -d -b crash 2>/dev/null | grep -c "com.kamsiob.kamai" || true)"
-  a="$("$adb" logcat -d 2>/dev/null | grep -c "ANR in com.kamsiob.kamai" || true)"
+  c="$(adb_count "crash log lines" "com.kamsiob.kamai" "$adb" logcat -d -b crash)"
+  a="$(adb_count "ANR lines" "ANR in com.kamsiob.kamai" "$adb" logcat -d)"
   if [ "$c" -gt 0 ] || [ "$a" -gt 0 ]; then
     printf '  %02d  CRASH after: %s\n' "$step" "$1"; fails=$((fails+1))
   else
     printf '  %02d  ok: %s\n' "$step" "$1"
   fi
-  ./tools/shot.sh "$out/$(printf '%02d' $step).png" >/dev/null 2>&1 || true
+  capture_or_note tools "$out/$(printf '%02d' $step).png"
 }
 tap() { "$adb" shell input tap "$1" "$2"; }
 fresh() {  # mode-x
@@ -47,7 +48,13 @@ check "start"
 # A real message and a real reply in each chat mode.
 for x in 160 414 670; do
   fresh "$x"
-  WAIT=240 ./tools/say.sh "What is a good way to keep track of small repairs?" 240 >/dev/null 2>&1 || true
+  # A slow reply must not abort a 33 step walk, but it must not vanish either:
+  # say.sh now exits non-zero when nothing completed, and this records that as a
+  # missing piece of evidence so evidence_exit fails the run at the end.
+  if ! WAIT=240 ./tools/say.sh "What is a good way to keep track of small repairs?" 240 >/dev/null 2>&1; then
+    EVIDENCE_MISSES=$((EVIDENCE_MISSES + 1))
+    echo "  MISSING EVIDENCE: no reply completed at step $step" >&2
+  fi
   check "reply generated in mode x=$x"
 done
 
@@ -82,3 +89,7 @@ done
 echo
 if [ "$fails" -gt 0 ]; then echo "FAILED: $fails crashed. Captures in $out"; exit 1; fi
 echo "No crashes across $step steps. Captures in $out"
+
+# Fails the run if any capture or send went missing. The steps ran; without the
+# evidence that they ran as described, this is not a pass.
+evidence_exit

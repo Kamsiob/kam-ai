@@ -15,6 +15,7 @@
 # with no context to lean on.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 
 label="${1:?usage: input_styles.sh <label> [mode-x]}"
@@ -94,7 +95,7 @@ for text in "${inputs[@]}"; do
     echo "Aborting at $i: could not capture, so the reply cannot be read." >&2
     exit 1
   fi
-  echoes="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
+  echoes="$(adb_count "rejected replies" 'rejected' "$adb" logcat -d -s KamEcho)"
   printf '  %02d  echo=%s  %s\n' "$i" "$echoes" "${text:0:60}"
 done
 

@@ -9762,3 +9762,76 @@ survived silently. The difference is only that this one is recorded.
 
 The lesson, which is the reusable part: stage by path when more than one piece of work is
 open, rather than `git add -A` and trusting that only one thing changed.
+
+## The harness class, swept as a class, with a checker so it stays swept
+
+This kept being deferred because the next defect was more interesting. It is also the
+thing that makes every other measurement trustworthy, so it went first this time.
+
+**The five instances, and what they share.** Fixed timer waits, composer text
+persisting between messages, the keyboard eating Back, a counter going negative, and
+`say.sh` printing a failure while exiting zero. Each produced a confident wrong
+conclusion. The fifth was the worst, because the caller was written correctly:
+`mode_battery.sh` deliberately has no `|| true` on that call and the exit code
+defeated that care.
+
+The shape is always the same. **A measurement that fails silently reads as a
+measurement of zero, and zero is a publishable number.**
+
+### What the sweep actually found, and one thing it did not
+
+`tools/check_scripts.sh` is the checker. 32 scripts, 159 suppressions. Most are
+harmless: `input tap`, `am start`, `statusbar collapse`, restoring rotation. A
+suppression on best-effort environment setup is fine. A suppression on the thing being
+measured is not, and that is the only distinction that matters.
+
+**Eighteen real findings, in two classes.**
+
+**The empty count.** `n=$(grep -c PATTERN "$log" || true)`. The `|| true` looks
+harmless because `grep -c` exits 1 on no matches and prints 0, which is a genuine
+zero. But when the file is missing the variable is the empty string, every arithmetic
+use reads it as zero, and `echo_rate.sh` computed a rate from two of these, so a
+failed measurement reported "the guard never fired" rather than "nothing was
+measured".
+
+**The wrong zero, which is worse and was nearly missed.** In
+`n="$("$adb" logcat -d | grep -c PATTERN || true)"`, if adb is gone the pipeline still
+prints "0" and the variable is never empty. So `crash_walk.sh` and `crash_walk2.sh`,
+which are the release gate, could report zero crashes and zero ANRs across 33 steps
+because the device had gone away. **That is the thermal defect exactly**: 71 samples
+all reading status 0 against an idle phone, reported as evidence LIGHT is rare. Fixed
+by checking the upstream command's exit status separately from counting its output,
+which is what `adb_count` does.
+
+**Suppressed evidence capture.** Seven sites did `shot.sh ... || true`. `shot.sh`
+returns non-zero when Kam AI is not genuinely on screen, and that refusal is what
+keeps somebody's notifications out of this repository. It fired during this session,
+when a mistimed tap at font scale 2.0 opened a browser. Suppressed, a walk reports
+every step completed with captures missing from several. Now `capture_or_note` records
+the miss and `evidence_exit` fails the run, so a walk with holes cannot be read as a
+clean one.
+
+**What the sweep did not find, recorded because a clean result is also a result.** All
+32 scripts do set `-euo pipefail`. A first version of the checker read only the first
+25 lines and reported four scripts as missing it; those four carry long comment headers
+and set their flags below them. The check was wrong, not the scripts. And after
+`say.sh`, no script ends by printing a failure: it was the only instance.
+
+### The checker made my own mistake, which is the useful part of this entry
+
+The rule "a script using `capture_or_note` must call `evidence_exit`" was written with
+an unanchored `grep -q evidence_exit`. It matched the phrase in a *comment* in
+`crash_walk2.sh` and passed a script that recorded misses and never acted on them.
+
+**That is the defect the rule exists to find, one level up: something that reports
+compliance it has not earned.** Anchored to a real call now. Written down because a
+checker is only worth what its rules are worth, and this one was worth nothing for its
+first five minutes.
+
+### Verified rather than assumed
+
+Each guard was exercised: a genuine zero is accepted, an unreadable file is fatal, a
+failed upstream command is fatal rather than zero, an empty value is rejected, a
+non-numeric value is rejected, and a missing capture fails the run. Then `adb_count`
+was run against the real device, where it returned a true zero, and against a
+nonexistent adb, where it refused instead of reporting zero.

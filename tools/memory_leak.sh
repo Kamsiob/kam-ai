@@ -29,6 +29,7 @@
 # for the nearest concrete text".
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 
 label="${1:?usage: memory_leak.sh <label> [probes]}"
@@ -81,7 +82,7 @@ if ! WAIT=200 ./tools/say.sh "$MEMORY" 200 >/dev/null; then
   echo "Aborting: the memory was never planted, so no probe below means anything." >&2
   exit 1
 fi
-./tools/shot.sh "$out/00-planted.png" >/dev/null 2>&1 || true
+capture_or_note tools "$out/00-planted.png"
 echo "  planted, see $out/00-planted.png"
 
 i=0
@@ -114,3 +115,7 @@ done
 [ ${#tiles[@]} -gt 0 ] && magick montage "${tiles[@]}" -tile 2x5 -geometry +6+6 \
   -background '#111111' "$out/sheet.png"
 echo "captured into $out, read $out/sheet.png and look for Verity Quay"
+
+# Fails the run if any capture or send went missing. The steps ran; without the
+# evidence that they ran as described, this is not a pass.
+evidence_exit

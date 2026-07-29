@@ -22,6 +22,7 @@
 # either way and would show a false pass.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 
 label="${1:?usage: prefix_probe.sh <label> [turns]}"
@@ -122,7 +123,7 @@ for t in "${turns[@]}"; do
     echo "Aborting at turn $i: could not send, so the prefill counts would be wrong." >&2
     exit 1
   fi
-  ./tools/shot.sh "$out/$(printf '%02d' $i).png" >/dev/null 2>&1 || true
+  capture_or_note tools "$out/$(printf '%02d' $i).png"
   printf '  turn %s sent\n' "$i"
 done
 
@@ -133,3 +134,7 @@ echo "   a reused prefix is tens of tokens; a missed one is the whole block"
   sed 's/^/   /'
 echo
 echo "captures in $out"
+
+# Fails the run if any capture or send went missing. The steps ran; without the
+# evidence that they ran as described, this is not a pass.
+evidence_exit

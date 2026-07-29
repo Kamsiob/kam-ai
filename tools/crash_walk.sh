@@ -16,6 +16,7 @@
 # narrow down.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 label="${1:?usage: crash_walk.sh <label>}"
 out="/tmp/walk-$label"
@@ -27,16 +28,16 @@ check() {  # name
   step=$((step+1))
   sleep 3
   local crashes
-  crashes="$("$adb" logcat -d -b crash 2>/dev/null | grep -c "com.kamsiob.kamai" || true)"
+  crashes="$(adb_count "crash log lines" "com.kamsiob.kamai" "$adb" logcat -d -b crash)"
   local anrs
-  anrs="$("$adb" logcat -d 2>/dev/null | grep -c "ANR in com.kamsiob.kamai" || true)"
+  anrs="$(adb_count "ANR lines" "ANR in com.kamsiob.kamai" "$adb" logcat -d)"
   if [ "$crashes" -gt 0 ] || [ "$anrs" -gt 0 ]; then
     printf '  %02d  CRASH after: %s  (crash lines %s, anr %s)\n' "$step" "$1" "$crashes" "$anrs"
     fails=$((fails+1))
   else
     printf '  %02d  ok: %s\n' "$step" "$1"
   fi
-  ./tools/shot.sh "$out/$(printf '%02d' $step).png" >/dev/null 2>&1 || true
+  capture_or_note tools "$out/$(printf '%02d' $step).png"
 }
 
 tap() { "$adb" shell input tap "$1" "$2"; }
@@ -93,3 +94,7 @@ if [ "$fails" -gt 0 ]; then
   exit 1
 fi
 echo "No crashes across $step steps. Captures in $out"
+
+# Fails the run if any capture or send went missing. The steps ran; without the
+# evidence that they ran as described, this is not a pass.
+evidence_exit

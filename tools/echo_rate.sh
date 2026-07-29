@@ -14,6 +14,7 @@
 # sampler change would move, rather than how often one survived to the screen.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 
 runs="${1:?usage: echo_rate.sh <runs> <mode-x> <message>}"
@@ -34,8 +35,8 @@ printf '\n'
 sleep 2
 pkill -f 'adb logcat' 2>/dev/null || true
 
-rejected=$(grep -c 'KamEcho.*rejected' "$log" || true)
-replies=$(grep -c 'KamPerf.*TTFT=' "$log" || true)
+rejected=$(count_matching "rejected replies" 'KamEcho.*rejected' "$log")
+replies=$(count_matching "total replies" 'KamPerf.*TTFT=' "$log")
 echo "runs=$runs drafts=$replies rejections=$rejected"
 echo "--- by check:"
 grep -oE 'check=[a-z-]+' "$log" | sort | uniq -c || true

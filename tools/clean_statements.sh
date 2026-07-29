@@ -28,6 +28,7 @@
 # because the comparison is the finding.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 
 label="${1:?usage: clean_statements.sh <label> [repeats]}"
@@ -83,7 +84,7 @@ run_one() {  # id text
       echo "Aborting: could not capture \"$id\" run $i, so the reply cannot be read." >&2
       exit 1
     fi
-    echoes="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
+    echoes="$(adb_count "rejected replies" 'rejected' "$adb" logcat -d -s KamEcho)"
     therm="$("$adb" shell dumpsys thermalservice 2>/dev/null |
       grep -m1 'Thermal Status:' | grep -oE '[0-9]+' || echo '?')"
     printf '%s\t%s\t%s\t%s\n' "$id" "$i" "$echoes" "${therm:-?}" >> "$log"

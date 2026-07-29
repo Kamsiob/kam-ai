@@ -20,6 +20,7 @@
 # to measure.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 
 model="${1:?usage: tier_battery.sh <model-id> <label> [repeats]}"
@@ -70,8 +71,8 @@ run_case() {  # mode_name mode_x input_id input_text
       exit 1
     fi
 
-    echoes="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
-    methods="$("$adb" logcat -d -s KamMethod 2>/dev/null | grep -c 'announced' || true)"
+    echoes="$(adb_count "rejected replies" 'rejected' "$adb" logcat -d -s KamEcho)"
+    methods="$(adb_count "announced methods" 'announced' "$adb" logcat -d -s KamMethod)"
     # Thermal state beside every row, so a figure can be judged in context later
     # rather than argued about. A phone on charge heats independently of
     # inference, and a run taken warm is not comparable with one taken cool.

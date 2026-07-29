@@ -21,6 +21,7 @@
 # looks like a result.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 
 label="${1:?usage: workbench_check.sh <label>}"
@@ -51,7 +52,7 @@ sleep 2
 sleep 2
 "$adb" shell input tap 925 2122          # Workbench
 sleep 7
-./tools/shot.sh "$out/01-opened.png" >/dev/null 2>&1 || true
+capture_or_note tools "$out/01-opened.png"
 
 # The text box, then clear whatever a previous session left in it.
 "$adb" shell input tap 540 700
@@ -67,7 +68,7 @@ if "$adb" shell dumpsys input_method 2>/dev/null | grep -q 'mInputShown=true'; t
   "$adb" shell input keyevent KEYCODE_BACK
   sleep 1
 fi
-./tools/shot.sh "$out/02-typed.png" >/dev/null 2>&1 || true
+capture_or_note tools "$out/02-typed.png"
 
 # Tighten, the first preset.
 "$adb" shell input tap 115 1053
@@ -86,7 +87,7 @@ while [ "$SECONDS" -lt "$deadline" ]; do
   fi
 done
 sleep 2
-./tools/shot.sh "$out/03-result.png" >/dev/null 2>&1 || true
+capture_or_note tools "$out/03-result.png"
 
 echo
 echo "== what the engine did =="
@@ -94,3 +95,7 @@ echo "== what the engine did =="
 echo
 echo "read $out/03-result.png: the result should be the tightened text and"
 echo "nothing else, no preamble and no remark about the text."
+
+# Fails the run if any capture or send went missing. The steps ran; without the
+# evidence that they ran as described, this is not a pass.
+evidence_exit
