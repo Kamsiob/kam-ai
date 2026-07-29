@@ -64,6 +64,34 @@ Batteries found none of the last four. These did:
   dropping `linkedConversationId`, the memory ordering breaking the KV prefix, and
   search treating `%` as a wildcard.
 
+### The personas, and what they found that batteries did not
+
+Two of the personas in the testing plan have been run. Both found defects in
+minutes that four days of batteries had not.
+
+- **The sceptic**, six turns trying to catch the app contradicting its privacy
+  claims, found #136: it said what they type "stays on this phone until you have a
+  connection", describing an upload queue that does not exist.
+- **The hostile user**, five turns of insults, found #137: the character rule
+  fired on "are you always this stupid", and the app repeated one sentence
+  word-for-word three times to escalating complaints. The first half is fixed and
+  verified in both directions; the repetition is still open.
+
+**Untried personas**, all likely to be as productive: somebody in a hurry who
+outpaces it, somebody who taps things without reading, voice-only, largest fonts
+with a screen reader, and the chaotic one who switches modes constantly. Only the
+backgrounding half of the last was tested, and it passed: a long answer survived
+being sent to the home screen for twenty-five seconds and finished normally.
+
+### The distinction that came out of #137
+
+The three rules about prompts all answer *how to write what the model says*. #137
+needed a different question, *when it should say it*: the character instruction
+leaked as a supplied sentence, over-fired as a frame, and only worked once the
+condition itself was narrowed.
+
+Keep the two apart. A fix for one looks like progress on the other and is not.
+
 ### Still open
 
 - **#122** is down to a prefix: the reply is right and sometimes starts by
