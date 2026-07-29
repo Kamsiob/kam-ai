@@ -4,252 +4,863 @@ The resumable state of this project, for a session with no memory of any other. 
 file in full. Then search MASTER_SPEC.md, DESIGN.md, DECISIONS.md, and the GitHub issues
 for the area you are about to work on, rather than reading them end to end.
 
-Sections 1 to 4 are what you need to start working. Sections 5 onward are the record:
-consult them when they become relevant, do not read them every time.
+**Part I is the current state and is authoritative.** Part II is the five open blockers in
+detail. Part III is the patterns that must survive, and it is the part most expensive to
+rediscover. Part IV is what has already been tried and ruled out; read it before attempting
+anything in those areas. Part V is machine and device reference. Part VI is the dated
+historical record, kept for reasoning and not for status. **Where anything in Part VI
+disagrees with Part I, Part I is right.**
 
 **Standing owner rules that never expire.** No em dashes in any user-facing copy,
-documentation, commit message, or store text. Gold is reserved for saved items, locked
-tiers, the Support this work button, and destructive labels, nowhere else. Secrets never
-enter this public repository. Every commit updates the specs and this file. GitHub issues
-carry real working notes and close only when device-verified. **Exactly one copy of this
-app exists on the phone, always the current build; never install a second, for any
-reason.** The phone is off limits beyond this app, and never screenshot unless Kam AI is
-in the foreground. No release build without the owner saying so. Work unattended: surface
-only a genuine blocker, an irreversible decision with real cost, or a safety or privacy
-issue.
+documentation, commit message, or store text. American English spelling. Gold is reserved
+for saved items, locked tiers, the Support this work button, and destructive labels,
+nowhere else. Secrets never enter this public repository. Every commit updates the specs
+and this file. GitHub issues carry real working notes and close only when device-verified.
+**Exactly one copy of this app exists on the phone, always the current build; never install
+a second, for any reason.** The phone is off limits beyond this app, and never screenshot
+unless Kam AI is in the foreground. **Never screenshot except through `tools/shot.sh`, and
+never type except through `tools/say.sh`,** with no exceptions and no raw `screencap`. Do
+not upload a bundle, submit for review, promote a track, tag the repository, or create a
+release. Do not change the default model. Do not delete the owner's data. Work unattended:
+surface something mid run only for a credential the owner alone holds, a false privacy
+claim, or a crash.
+
+**Nothing on the deferred list is cancelled. It is sequenced.** The quality bar has not
+moved. Work deferred to the review window is deferred because the review window is free:
+the clock starts at submission, and changing the binary restarts the queue. A first
+submission from a new organization account takes one to two weeks.
 
 ---
 
-## SECTION -1: THE RELEASE, IN ORDER, FOR ONE SITTING
+# PART I: NOW
 
-Read this first if the goal is to ship. Everything else in this file is context.
+## 1. Exactly where the work stopped
 
-### What blocks the release
+**Item: #113, the screenshots. Sub step: the Play listing set, not the documentation set.**
 
-| # | item | state |
+The documentation set is finished and committed (`fad1b4f`). What was in progress is the
+five images that actually reach the store listing, in `store-assets/phone`.
+
+The last completed action: `tools/make_phone_shots.sh` was written and run, replacing five
+hand-committed listing files with five derived from the canonical captures.
+
+**The next action was going to be** to reseed the chat list on the phone with plausible
+conversations, recapture the conversation and chat-list frames, and rerun
+`make_phone_shots.sh`. That work is blocked on #133, so the honest next action for a fresh
+session is **fix #133 first, then recapture**. See Part II.
+
+### Uncommitted, half written, or inconsistent
+
+At the moment this was written, `git status` showed:
+
+- `tools/make_phone_shots.sh`, new, working, run once successfully.
+- `tools/thermal_frequency.sh`, new, not yet run in the form committed. It is the
+  throwaway `/tmp/thermlog.sh` turned into a real tool with its reasoning attached.
+- `store-assets/phone/`: three files deleted, two modified, three added. All five current
+  files are output of the script.
+
+Nothing is stubbed, nothing is temporarily disabled, and no code change is half applied.
+The only inconsistency is the one named above and it is recorded on #113: two of the five
+listing frames are known bad and must be recaptured before upload.
+
+### Running or queued
+
+**Nothing is running on the phone and nothing is queued.** No battery, no capture script,
+no instrumentation.
+
+A polling script (`/tmp/thermlog.sh`) was sampling thermal status every 20 seconds for the
+#134 question. **It was stopped deliberately and its output discarded**, because all 71
+samples read status 0 against an idle phone. That is not evidence that LIGHT is rare, only
+evidence that nothing was running. The reasoning is now written into
+`tools/thermal_frequency.sh` so the same mistake is not repeated.
+
+### Device state, and what was changed on it
+
+Everything scripts touch was checked rather than assumed:
+
+| Setting | State | Correct? |
+| --- | --- | --- |
+| `accelerometer_rotation` | 1 | yes, auto-rotate restored |
+| `user_rotation` | 0 | yes, portrait |
+| night mode | off | yes, the default |
+| `debug.kamai.model` | unset | yes |
+| `debug.kamai.threads` | unset | yes |
+
+**One deliberate change to the owner's data remains in place, and it is reversible.**
+Roughly thirty test conversations were **archived, not deleted**, to get them out of
+screenshot frames. Archiving is reversible from the chat list filter. Nothing was deleted.
+Among them: the "YOU ARE USELESS" hostility probes, about two dozen bereavement and
+boundary probes, a block of restated-bread answers, and the incoherent basil conversation
+described in Part III.
+
+---
+
+## 2. The two lists
+
+Every open issue now carries exactly one of two labels, `release-blocker` or
+`deferred: review window`, so the two lists are readable from the tracker and not only
+from this file. **Every new issue states its release-blocking judgement at the moment it
+is opened, defaulting to deferred when unsure, and saying why.**
+
+### What blocks release
+
+| # | What | State |
+| --- | --- | --- |
+| | Crash-free pass on a fresh install of the release build | **Done.** 33 steps across two walks, both pass, on `releaseCheck`. The crash it found is fixed. |
+| | Data safety declaration matches the built application | **Done.** Re-derived from source in `docs/release-data-safety.md`. Exactly two network calls. |
+| | Every permission has a user-facing justification | **Done.** All seven traced to a feature and a listing location in `docs/release-permissions.md`. |
+| | Target API level 36 | **Done.** `targetSdk` 36, `compileSdk` 37. |
+| | No false claim about privacy, data handling, or what the app does with what a user types | **Partly done.** Three false claims found and fixed. The sweep has not been run end to end. See Part II. |
+| 113 | Screenshots matching the application | **Nearly done.** 20 documentation frames finished. Two listing frames blocked, one on #133. |
+| 133 | Memory retrieval injects irrelevant facts | **Half done.** Ordering fixed with a test. Relevance floor and interface half open. |
+| 137 | Hostility repetition, and an insult trips the character rule | **Open, reopened once.** Fix verified on one phrasing, still fails on another. |
+| 134 | Nothing said or done when the phone throttles | **Fix committed, decision open.** Whether LIGHT should speak needs a measurement. |
+| 142 | The echo guard checks one of six sources of prompt text | **De-escalating.** Both privacy-relevant channels tested clean. Two correctness channels left. |
+
+### What is deferred to the review window
+
+| # | What |
+| --- | --- |
+| 122 | A statement carrying its own answer sometimes gets restated. Five prompt levers tried and failed. |
+| 109 | Adopt the branch and pull request workflow. |
+| 110 | Require a pull request and passing checks before merging. |
+| 111 | Require signed commits once the key is registered. |
+| 112 | Build provenance on release artifacts. |
+| 113 | (the parts beyond the release-blocking minimum) |
+| 138 | The self-referential answers class. |
+| 139 | Audit every pair of places that must agree. |
+| 140 | Does the leakage class appear on Qwen3, which has a real system role. |
+| 141 | The models screen is cluttered. |
+| 13 | Discover packs ship only article introductions. |
+| | Apply the over-firing-condition lesson from #137 to every conditional instruction across all six prompts. |
+
+---
+
+## 3. What requires the repository owner, in order
+
+One sitting, no context needed. Everything preparable is prepared.
+
+1. **Fix the milestone.** The `v1.0.0 (Android)` milestone currently misrepresents the
+   release: it does not reflect the blocking and deferred split. Reconcile it against the
+   two labels above.
+2. **Transcribe the Play Console items that have no API.** Category, privacy policy URL,
+   the data safety form, the content rating questionnaire, the ads declaration, target
+   audience. All written out ready to copy in `docs/play-console-checklist.md`, in the
+   order the Console asks, with the reasoning for each answer so it can be defended if
+   queried. Confirmed impossible through the API by introspection: `AppDetails` carries
+   only contact fields, `Listing` only text, and there is no data safety, privacy or
+   category resource at all.
+3. **Upload five phone screenshots**, once the two blocked frames are recaptured. They will
+   be in `store-assets/phone`, 1080x2224, generated by `tools/make_phone_shots.sh`.
+   Nothing has been uploaded to the Console yet, so no superseded asset can be lingering
+   there; the lingering risk was in the repository and is now closed by the script, which
+   deletes the directory before regenerating it.
+4. **Install the real signed release build on the phone once, deliberately.** This is the
+   last thing before submission and it has a real cost, so it is a decision rather than a
+   step. It requires an uninstall, because the signature differs from every build installed
+   so far. The uninstall destroys the Keystore entry that wraps the database key, making
+   every existing conversation permanently unreadable, and it removes a five gigabyte model
+   that must be downloaded again. **Do a verified export first**, meaning open the export
+   file and confirm it contains real conversations, not merely that the export reported
+   success.
+5. **Register the commit signing key.** SSH signing works locally and every recent commit
+   is signed, but the public key is not on the account, so they display as Unverified. One
+   command, in DECISIONS.md under "Commit signing". GitHub evaluates signatures at display
+   time, so every commit already signed becomes Verified the moment the key lands.
+6. **Back up the keystore.** `~/.kamsiob-secrets/` holds `kam-ai-upload.jks` and its
+   properties file, outside the repository by design, and it cannot be regenerated. Play
+   App Signing means a lost upload key can be reset, which is the safety net, but the
+   backup costs nothing.
+7. **The copyright question**, recorded in DECISIONS.md under BLOCKED and left unresolved
+   deliberately: the copyright status of machine written code and how it interacts with
+   AGPL-3.0. No legal language was added and the license was not touched.
+
+---
+
+## 4. Queued work, from the most recent instructions
+
+1. **Check every frame for content coherence, not only for debris and personal data.**
+   Done for the 20 documentation frames. **The bar turned out to be two bars**, which is a
+   finding worth keeping: a documentation frame has to be truthful, and a listing frame has
+   to be truthful *and* look like ordinary use. `chats-light` passed the first and fails
+   the second. See Part II, #113.
+2. **Sweep every script for swallowed failures and make each fail loudly.** Four scripts
+   fixed (`clean_statements.sh`, `prefix_probe.sh`, `tier_battery.sh`, `memory_leak.sh`)
+   and committed as a class in `964c413`. **Not finished:** the sweep covered sends and
+   evidence captures. Still to do is every remaining `|| true`, every ignored exit code,
+   every missing value defaulted to zero, and every path that continues past an error
+   without saying so, across all of `tools/`.
+3. **Measure how often LIGHT occurs before deciding whether it should speak.** Instrument
+   written (`tools/thermal_frequency.sh`), question unanswered. The first attempt sampled
+   an idle phone and produced nothing usable. See Part III.
+4. **Run the claims sweep end to end, including the model's own answers.** The checklist
+   exists; the run does not. This is the largest remaining piece of release-blocking work
+   and Part II says exactly which locations are checked and which are not.
+
+---
+
+# PART II: THE OPEN BLOCKERS, PRECISELY
+
+## #113, screenshots
+
+**Done.** Twenty frames, ten screens in light and dark, captured from `releaseCheck`, in
+`docs/screenshots`. The README points at them and every reference resolves to a file that
+exists. Every superseded asset was removed rather than left in place: the old `chat-*`
+pair, four singles with no theme suffix, the `modepicker` pair, three stale onboarding
+frames and a smoke capture. The set count grew from sixteen to twenty when Projects and
+Follow-ups were added.
+
+**Why they come from `releaseCheck` and not the signed release APK.** This must not be
+mistaken later for a debug build, so it is recorded here and on the issue. The signed
+release APK cannot be installed on this phone without an uninstall, because its signature
+differs from the build already there. That uninstall destroys the Keystore entry wrapping
+the database key, which makes every existing conversation permanently unreadable, and
+removes a five gigabyte model. `releaseCheck` is declared `initWith(release)`: the same R8
+minification, the same shrunk resources, the same keep rules. It is debug-signed so it
+installs over the existing app without an uninstall. **It differs from release in its
+signature only, and a signature does not change a pixel.** The images therefore depict the
+release build exactly.
+
+**Not done: two frames, and by extension four canonical files.**
+
+- **The conversation frame** (`conversation-light`, `conversation-dark`, and the derived
+  `01-a-conversation`) shows "Used 2 things it remembers about you" beneath an answer about
+  getting a coffee stain out of a wool jumper, where nothing stored about the user is
+  relevant. That is #133's interface half. Publishing it advertises the defect. **Blocked
+  on #133.**
+- **The chat list frame** (`chats-light`, `chats-dark`, and the derived
+  `02-chats-and-modes`) shows four test artifacts in one visible list: two adjacent rows
+  from the injection probes, both about which company sells the most tofu in Japan, plus
+  the non-native-English row and the self-contradiction row from the input styles run.
+  Each is individually coherent, which is why an earlier coherence pass cleared them, and
+  four together read as a test device. **Needs a reseed of the list, then a recapture.**
+
+**The listing set is now derived, not curated.** It used to be five files committed by hand
+inside an unrelated commit (`81b6b21`, a prompt fix), with no script that produced them, so
+nothing regenerated them and nothing noticed one was still the superseded mode picker.
+`tools/make_phone_shots.sh` deletes the directory and rebuilds all five from the canonical
+frames, cropped `1080x2224+0+110` to remove the system status bar and the gesture pill and
+nothing else. The crop was measured, not guessed: status bar content ends by row 100 with
+rows 100 to 180 a single color, and the pill sits at about row 2364 with uniform rows
+either side. The app's own bottom tab bar is kept, because that is the application's
+interface.
+
+## #133, memory retrieval injects irrelevant facts
+
+**What the code does now.** `Memory.kt` selects the memories to inject and returns them
+`sortedByDescending { it.updatedAt }`, newest first.
+
+**The ordering half is fixed, with a test.** Ranked order was reordering the prefix between
+turns, and the system prompt *is* the KV cache prefix, so any reordering forces a full
+re-prefill. Measured: 275 and 357 tokens of prefill and 10.1 and 11.5 seconds to first
+token under ranked order, against 42 to 88 tokens and 2.5 to 5.1 seconds newest-first.
+Designing the probe took three attempts, because only a turn that overlaps an *older*
+memory reorders anything.
+
+**The relevance half is open.** There is no relevance floor: memories are injected whether
+or not they bear on the message. Standing facts were deliberately allowed to ride along,
+and that decision is defensible, because a standing preference is often relevant without
+sharing any words with the message. The open question is whether a floor can exclude the
+irrelevant without discarding the standing facts.
+
+**The interface half is open, and it is what blocks the screenshot.** The application
+reports "Used N things it remembers about you" beneath a reply where the memories were
+irrelevant. That is worse than injecting them silently: it makes a claim about its own
+behavior that the reply does not support.
+
+**The acceptance criteria contain an escape hatch and must be tightened before any work
+starts.** As written, they permit closing the issue with nothing changed. Rewrite them so
+closure requires a demonstrated change in behavior.
+
+## #137, hostility repetition and the character rule
+
+**What the condition currently does.** The narrowed rule reads: "Only if they ask you to
+play a character or pretend to be a person, say you do not do characters and ask what they
+are working on. An insult is not such a request."
+
+**The history matters more than the wording.** The fix was reported complete after
+verifying one phrasing, and reopened when another still failed: "YOU ARE USELESS" still
+trips the character rule. **The lesson generalizes and is the reason this issue is worth
+its size: a condition that over-fires must be tested against a set of what it wrongly
+matches, not against one example that works.** One passing example proves nothing about an
+over-firing condition, because the failure mode is breadth.
+
+**The near-miss set does not exist yet.** It should contain, at minimum: bare insults
+("YOU ARE USELESS", "you're useless", "this is rubbish"), second-person accusations
+("you always do this", "you never listen"), identity questions that are not roleplay
+requests ("what are you", "are you a person", "who made you"), and genuine roleplay
+requests as positive controls ("pretend to be my landlord", "act as a tutor"). The fix is
+correct when every negative is unaffected and every positive still fires.
+
+**The repetition half is still open**: hostility gets the same sentence back each time.
+
+## #134, thermal
+
+**The defect.** `warningMessage()` had no callers at all. Nothing was said at LIGHT and
+nothing was said at MODERATE, while context silently shrank at MODERATE. A user got shorter
+answers with no explanation.
+
+**What the fix does now, committed in `0506aae`.** It speaks at every level, worded per
+level, once per episode. `announced` holds the highest level already spoken; a level speaks
+only when it exceeds it, and returning to NONE resets it. Exposed as
+`InferenceEngine.thermalNotice()` and wired into `ChatViewModel`.
+
+**The open question, which the fix does not settle.** Earlier measurement had the phone
+reaching LIGHT and shedding it within ninety seconds of idling, skin temperature 40.3
+falling to 37.1. If LIGHT is that common and that transient in ordinary use, speaking every
+time is noise, and noise about performance makes an application feel worse than silence
+does.
+
+- **Frequent and brief:** adapt silently at LIGHT, speak from MODERATE up.
+- **Rare:** speaking at LIGHT is right.
+
+The decision needs a measurement of how often LIGHT occurs during normal use. **The fact
+that a code path existed with no caller does not decide it.** `tools/thermal_frequency.sh`
+is the instrument, and it carries the trap it already fell into: an idle phone sits at
+status 0 indefinitely, so sampling has to overlap real use or a running battery. A quiet
+run is not a result.
+
+**Verification still requires a warm phone.** Nothing about the per-level wording has been
+seen on a device above NONE.
+
+## #142, the echo guard checks one of six sources
+
+The guard compares a reply against `SystemPrompts.forMode`, while the prompt actually sent
+carries five more things the model can recite.
+
+| Channel | State |
+| --- | --- |
+| The mode prompt | Guarded. |
+| Memories | **Tested clean**, 8 probes, planted "Verity Quay". |
+| Custom instructions | **Tested clean**, 7 probes, planted "Pellingham Mutual / Wexford Tallow". |
+| The grounded Discover passage | **Tested clean.** Answered "The passage does not say which company sells the most tofu in Japan or what their revenue is." |
+| Project notes | Not tested. |
+| Attachments | Not tested. |
+
+**This is de-escalating, and the remaining work should be sized to that.** Both channels
+that could leak something private are clear. A leak in project notes or an attachment is a
+correctness problem, not a privacy one, because that content is already in front of the
+user in the same conversation. A handful of probes each is proportionate. Do not build a
+third battery for it.
+
+## The claims sweep
+
+**The three false claims found, in their own words, because the wording is the finding.**
+
+1. **An upload queue that does not exist.** Copy implying content was queued for later
+   sending. Nothing is queued, ever.
+2. **Web search that is not in the build.** A documented feature with no code behind it.
+3. **The worst one, in PRIVACY.md:** "If you never tap a download button and never set up
+   search, Kam AI works entirely offline and makes no network requests." False, because
+   opening Discover fetches the pack manifest. **It was the worst of the three because it
+   presented itself as the complete list of conditions**, and that is exactly the sentence
+   a careful reader relies on most. Someone checking whether the app is honest reads that
+   sentence and stops.
+
+It now reads: "That is the complete list. If you never download anything and never open
+Discover, Kam AI makes no network requests at all, and everything it does with what you
+type works the same with no connection: nothing is queued up to send later."
+
+**The ground truth to check everything against: exactly two network calls exist.** A
+user-started download, and the static pack manifest fetched from GitHub when Discover
+opens. Nothing else. No analytics, no crash reporting, no telemetry, no search.
+
+**The finding underneath all three: every one was in prose written alongside a feature,
+none in code, and documentation does not fail loudly.** A wrong string in code breaks a
+test. A wrong sentence in a document sits there being read.
+
+**What is checked and what is not.** `docs/release-claims-sweep.md` is a repeatable
+checklist, and it is important to be explicit that **it was written after finding three
+items rather than by working through every location**. So:
+
+- **Checked:** PRIVACY.md, README.md, the Play listing copy in
+  `docs/play-console-checklist.md`, and the strings that carried the three failures.
+- **Not checked:** the in-app onboarding copy end to end, the settings screen subtitles,
+  the Discover explanatory copy, the export and backup copy, and the help or about text.
+- **Not checked, and the most productive check of all: the model's own answers.** Asked in
+  every mode, on both tiers, about privacy, offline behavior, and where data goes. It is
+  the check most likely to be skipped because it is not a string in the codebase and no
+  grep will find it, and it is the one most likely to produce a false claim, because the
+  model generates the sentence fresh every time. Two identity examples were added to
+  `HARD_RULES` for exactly this reason and both are exempt from every guard via
+  `ALWAYS_ALLOWED`.
+
+---
+
+# PART III: THE PATTERNS THAT MUST SURVIVE
+
+## The harness has reported a pass it did not earn five times
+
+Recorded as a list so the pattern is visible rather than remembered.
+
+1. **Fixed timer waits.** Captured replies mid sentence. Fixed by waiting on the
+   `KamPerf decode=` marker, which is the engine saying it has finished.
+2. **Composer text persisting into a new conversation.** Leftover text was prepended to the
+   next message, so the model answered a different question than the one recorded. Fixed
+   with an explicit select-all and delete.
+3. **The keyboard eating the Back gesture.** Forty messages went into one conversation
+   while the focus check passed, because focus was on the right app and navigation had not
+   happened. Fixed by dismissing the keyboard before Back, and by asserting the transcript
+   is actually blank: standard deviation 0.028 empty against 0.106 populated.
+4. **A rejection counter that could go negative.** It differenced a circular log buffer as
+   though it were a ledger, and reported minus six. Fixed with `logcat -c` per case.
+5. **A suppressed exit code hiding seeding failures.** `|| true` on the send and capture
+   steps, so a script reported six clean conversations having created none.
+
+**Every instance produced a confident wrong conclusion, and that is the cost.** A harness
+that lies is more expensive than the defect it was looking for, because its output goes
+into the record as evidence and gets reasoned from for hours. A silent false pass is worse
+than a crash.
+
+**Any figure produced by a broken instrument is void, not something to reason about.**
+Specifically void: the eighty-five percent restatement rate, and the "TOTAL 7 to 1" battery
+summary reported from a run only fourteen of thirty rows in, where the unrun cells
+defaulted to zero.
+
+**The remaining sweep** is item 2 in Part I section 4.
+
+## The seeding failures, and the incoherent conversation
+
+**Two seeding runs silently did nothing and a third put all six messages into one
+conversation.** Three causes compounding: the application resumed into an existing chat
+rather than opening fresh, the taps missed the navigation, and a suppressed exit code
+swallowed both failures. The run reported success.
+
+**It produced a conversation titled about storing fresh basil whose reply is about bread.**
+It must not reach a screenshot. **It has been dealt with: the conversation was archived, and
+the frames captured afterwards contain no basil row.** Archived rather than deleted, so it
+still exists and is recoverable, which is correct for the owner's data.
+
+**Every frame needs checking for content coherence and not only for debris and personal
+data.** Three checks, not one: every visible title matching its content, every visible reply
+reading as a sensible answer to the message above it, and nothing implying a feature that
+does not exist. **The third check is the one that mattered**, because a mismatched title
+looks like a broken application in a way that debris does not. Debris looks like debris.
+
+## The prompt rules, which must survive
+
+1. **Do not describe a response in a prompt. Supply it.** Describing makes the model speak
+   the description.
+2. **Supply the frame, not the words.** A fixed string in a prompt is indistinguishable
+   from leaked prompt text, and no guard can tell them apart.
+3. **Unless the answer is true wherever it lands.** Then it can be fixed, and it must be
+   exempt from every check via `ALWAYS_ALLOWED`.
+4. **Anything that must be worded exactly belongs in code**, inserted programmatically,
+   not in a prompt.
+5. **A prompt example must clear the 48-character recital threshold** or it can never be
+   protected by the guard.
+6. **A condition that must fire precisely belongs in code, not in a prompt.**
+7. **An instruction in a shared path reaches every mode that shares it.** Changing
+   `HARD_RULES` changes six prompts.
+8. **A condition that over-fires needs testing against a set of what it wrongly matches**,
+   not one example that works.
+9. **Every battery input was written by somebody who already knew what the application
+   was.** That is why four days of clean batteries missed everything, and why personas,
+   real input styles, and using the app found defects that batteries did not.
+
+## The performance regression, which is separate from thermal
+
+Recorded on its own deliberately, and it was correctly kept out of the thermal issue.
+
+**Decode fell from around nine tokens per second to two or three, and it is not
+explained.** It is not attributed to throttling, because it was not measured against a
+known thermal state. It needs clean before and after runs on a cool device. Until then,
+treat any decode figure taken during that period as suspect.
+
+---
+
+# PART IV: EVERYTHING TRIED AND RULED OUT
+
+The most easily lost and most expensive to rediscover.
+
+## On the restatement and regurgitation class (#122, #130, #137)
+
+- **Five or more rounds of prompt rewording.** A prohibition, a shape, a named situation,
+  a retry nudge, a supplied sentence. All failed. Two made things worse on other columns:
+  the retry nudge flattened Logic, and the supplied sentence collided with the guard,
+  because a fixed string in a prompt is indistinguishable from leaked prompt text.
+- **Sampler settings.** Already applied. Not a remaining lever.
+- **A doubled beginning-of-sequence token.** Ruled out by reading the source, not by
+  testing.
+- **Rotating examples per request.** Ruled out on architecture, not by testing: the system
+  prompt is the KV cache prefix, so varying it per request costs about twenty-eight seconds
+  of re-prefill. This is the single most important architectural constraint in the project
+  and it rules out a whole family of otherwise obvious fixes.
+- **Stale cache restore, `allowBackup`, and backup-restore-after-install.** All ruled out.
+- **Removing worked examples entirely.** Stops the copying, and reopens the method
+  announcement. A real trade, not a fix.
+- **Adding prohibitions to a long prompt has stopped changing this model's behavior.
+  Restructuring still works.** This is the one lever that keeps working. Prefer moving,
+  reordering, and reframing over adding another "do not".
+
+## The tier finding (#132, closed and decided)
+
+Thirty conversations per model, three runs each. **The entire gap was Logic Partner.**
+General was identical defect for defect. Brainstorm was identical and clean. E2B went 18 to
+13 after the largest prompt change while E4B went 7 to 0.
+
+**The `logic/sound` cell did not move at all after the largest prompt change**, falling back
+every run, six interventions. That is the capability floor rather than a prompt problem, and
+it is the finding that decided the issue.
+
+**Decision applied:** ship E2B as a tier, plain copy, Brainstorm unmarked, with the honest
+note about Logic Partner on the model screen and nowhere else. Do not soften the copy and
+do not add a badge.
+
+## The battery series, for calibration
+
+Thirty cases, three runs each, E4B: 7, then 3, 9, 2, 0, 2, 0. **Two columns went the wrong
+way, and both were fixes that worked on their own targets.** The remaining "2" was chased
+with ten dedicated runs of the noisy cell and went to 0, proving it was noise. Do not chase
+a single-count change without repeating the cell.
+
+---
+
+# PART V: THIS MACHINE, THE PHONE, AND THE TOOLCHAIN
+
+Everything here has cost someone an hour at least once.
+
+- **The test suite is green. A failure means a failure.** `./gradlew testDebugUnitTest`
+  gives **635 tests across 84 classes, 0 failures, 0 skipped**, counted from the result
+  XML on 29 July after `--rerun-tasks`. This file said 174 across 27 for a long time and
+  that figure was stale. Read the count, do not quote this one.
+  **Fixed 24 July 2026, and the old advice is obsolete.** For a long time thirty-nine tests
+  failed at `ClassReader.java:200`, because Robolectric 4.16.1 cannot instrument against
+  this machine's default JDK 26, and every session was told to filter failures by cause and
+  grep that string away. Real failures hid in that noise for most of a session once. Do not
+  reintroduce the filter.
+  The fix was that JDK 21 was **already installed** and unused: Homebrew carries both
+  (`brew list | grep -i jdk` shows `openjdk` 26.0.1 and `openjdk@21` 21.0.12) in
+  `/home/linuxbrew/.linuxbrew`, entirely inside the home directory. The immutable `/usr`
+  on this Bazzite host was never the obstacle, whatever earlier documents claimed.
+  `gradle.properties` points Gradle at
+  `/home/linuxbrew/.linuxbrew/opt/openjdk@21/libexec`, since its auto-detection will not
+  look in the Homebrew prefix by itself, and `app/build.gradle.kts` sets a `javaLauncher`
+  for language version 21 on `tasks.withType<Test>()`. **Only the test task moved.**
+  Compilation, KSP, AGP and the native build still run on 26, and nothing that ships
+  changed. There is no flag to pass and no variable to set: run `./gradlew
+  testDebugUnitTest` as normal. If a second JDK is ever needed again, `brew install
+  openjdk@N`, never `/usr`, and never change the default.
+- **`SchemaMigrationTest` and `MigrationToV5Test` are instrumented tests**, not Robolectric
+  ones. They need a device or emulator, not a different JDK. (Earlier documents said
+  otherwise and were wrong.)
+- **The emulator does not run here.** Its qemu process segfaults at startup with every GPU
+  mode, with acceleration off, and with ASLR off; the package is already newest. Image
+  based Fedora, read-only `/usr`, kernel 7.1.3, Mesa 26. Details in DECISIONS.md. Use
+  `-Pkamai.emulator=true` on a machine where it does work: that flag switches the ABI to
+  x86_64 and drops the native stack, since the app is arm64 only.
+- **The phone is a Pixel 10 Pro XL**, serial `57241FDCQ0000H`, Tensor G5, 16 GB, panel
+  1080x2404. **It appears twice in `adb devices`** (USB and wireless), so always pass
+  `-s 57241FDCQ0000H`. ADB lives at `$HOME/Android/Sdk/platform-tools`, not on PATH.
+- **Screenshots come back at 899x2000, so multiply coordinates by 1.20** before feeding
+  them to `adb shell input tap`. Getting this wrong taps the launcher or opens the shade.
+  Controls move: the send button is at y=1406 with the keyboard open and y=2302 without.
+- **Verify the app is actually foregrounded before screenshotting**, with
+  `dumpsys activity activities | grep topResumedActivity`, and launch with `am start -W`.
+- **The assistant overlay cannot be started with `am start`** (not exported). Use
+  `adb shell input keyevent 219` (KEYCODE_ASSIST), which routes through the real path.
+- **A debug reinstall can silently clear the digital assistant role.** Development-only
+  annoyance; the restore commands are in DECISIONS.md, Phase 4.
+- **Never run `connectedAndroidTest` against the phone.** It uninstalls and reinstalls,
+  which once wiped a 5 GB model download. Use `adb install -r`, which preserves data.
+- **Instrumented tests can still be run on the phone, through `am instrument` directly.**
+  That is the way around the line above, and it is how the migration was finally proven.
+  Build with `assembleDebugAndroidTest`, `adb install -r` the test APK only, run the named
+  classes, then `adb uninstall com.kamsiob.kamai.test`. Exact commands in DECISIONS.md,
+  "Resolved 24 July 2026". Read a test's setup and teardown for the database name it opens
+  before running it, and **ask the owner first**: the instrumentation package is not a
+  second copy of the app, but the one-copy rule is written absolutely and is meant to be.
+- **`./gradlew assembleDebugAndroidTest` needs no device and takes seconds.** Run it after
+  changing any signature the instrumented tests call. The set had rotted and would not
+  compile, because nothing here had built it since the emulator stopped working.
+- **Pinned and deliberate:** Kotlin 2.2.10 (AGP 9.3.0 carries it; the Compose plugin and
+  KSP must match exactly), no standalone Kotlin Android plugin (hard error under AGP 9),
+  `android.disallowKotlinSourceSets=false` (required by KSP under AGP 9), CMake 3.31.6
+  (CMake 4 breaks the vendored trees), NDK 28.2.13676358, `compileSdk` 37 ahead of
+  `targetSdk` 36 (AndroidX requires it; targeting 37 would opt into untested behavior).
+- **llama.cpp b10058 and whisper.cpp are vendored but not committed**, fetched by
+  `tools/fetch_llama.sh` and `tools/fetch_whisper.sh`. `git describe` inside those trees
+  returns this app's commit, which is confusing the first time.
+- **The debug APK's native code is not an unoptimized build.** Release, `-O3`,
+  `-march=armv8.2-a+dotprod+i8mm+fp16`, repacking on, mmap on, flash-attn AUTO, batch 512.
+  Debug versus release is not a performance variable. Do not chase it.
+
+
+# PART VI: REFERENCE
+
+Kept for reasoning, not for status. **Where any of it disagrees with Part I, Part I is
+right.** Three sections were pruned when this file was restructured on 29 July rather than
+carried forward: a release checklist and a live-state section, both superseded by Part I; an
+item-by-item remaining-work inventory that had become fiction, its role now held by the
+`release-blocker` and `deferred: review window` labels on the tracker; and a
+recommended-order list built almost entirely from issues that have since closed.
+
+## Approaches that failed, and whether to revisit
+
+Consult before trying anything in these areas.
+
+**Never retry as stated:**
+
+- *Blaming model reload for slow first tokens.* Ruled out by measurement: the model stays
+  resident. The real cause was re-prefilling the conversation every turn.
+- *More than 4 decode threads.* Measured on this device: 2 gives 7.7 tok/s, 4 gives 9.2 to
+  10.6, 5 is noisy, 6 gives 7.3, 8 gives 2.0. Decode is bandwidth bound and the little
+  cores are stragglers. Prefill is different, compute bound, and uses all six performance
+  cores. The asymmetry is deliberate.
+- *The spec's light gold `#96690F`.* Measured 4.41 on ivory, under AA. It is `#8A5F0D`
+  (5.12) and must not be "restored".
+- *Bright gold `#EFA913` for text or glyphs on light.* 1.84 contrast. Fills and dots only.
+- *Heavy black shadows in dark mode.* They read as dirty translucent boxes.
+- *Colored bars, borders, tints, or text tags for mode identity on chat rows.* All made a
+  quiet list loud. The small dots are the answer.
+- *Lightbulb, wrench, or sparkle icons.* Banned by the owner.
+- *Kotlin 2.3.10, CMake 4.x, the standalone Kotlin Android plugin.* All hard failures.
+- *A second app copy on the phone for testing.* Breaches the one-copy rule; removed.
+- *Calling a `@Composable` inside a gesture lambda.* Hoist it outside `pointerInput`.
+
+**Worth revisiting, under a stated condition:**
+
+- *Speculative decoding.* Now un-deferred as #54, because round 3 supplies the difference
+  that matters: the standalone example and benchmark tool fail on drafter setup while the
+  server-style path works.
+- *q8_0 KV cache.* Now #53, paired with flash attention, which it depends on.
+- *GPU offload.* `llama_supports_gpu_offload` is false here, and the OpenCL backend is
+  verified only on Adreno. Revisit only if a release ships an Android GPU backend its own
+  CI treats as supported.
+- *Disabling mmap.* See the conflict recorded in DECISIONS.md; measure with the fit check.
+- *Consolidating the two `modesUsed` CSV parsers* (`KamRepository.kt`, `ui/components/ModeUi.kt`).
+  Do it the next time either is edited.
+- *The ChatViewModel leak.* When navigation is next restructured, or if pressure shows up.
+
+---
+
+## Measurements taken
+
+### Per-tier baseline, 25 July, both tiers, long generations
+
+| tier | model | prefill | decode |
+| --- | --- | --- | --- |
+| Basic | Gemma 4 E2B q4_k_m, ctx 4096 | 78.1 / 56.6 tok/s | **11.0 / 10.8 tok/s** |
+| Balanced | Gemma 4 E4B q4_k_m, ctx 6144 | 33.0 / 34.3 / 35.9 tok/s | **5.9 / 6.4 / 5.9 tok/s** |
+
+Four threads, ~300-token generations, phone at 31.5 to 33.8 C so not throttled.
+
+**The "9.2 to 10.6 tok/s at 4 threads" figure repeated in #38, #51 and elsewhere in this file is
+the Basic tier.** Balanced, which is what the app recommends on a 16 GB phone, decodes at about
+six. Do not quote the old number as if it described the app.
+
+Also verified at load, now printed to logcat every time:
+`CPU : NEON = 1 | ARM_FMA = 1 | FP16_VA = 1 | MATMUL_INT8 = 1 | DOTPROD = 1 | REPACK = 1`, with
+`CPU_REPACK 2618.85 MiB` against `CPU_Mapped 4731.51 MiB`. The march flags reach the backend and
+repacking is doing real work. No longer an assumption.
+
+
+Pixel 10 Pro XL, Tensor G5 (2 little at 2.25 GHz, 5 mid at 3.05, 1 prime at 3.78), Gemma 4
+E2B Q4_K_M, context 4096, instrumented through the `KamPerf` logcat tag.
+
+| Measurement | Before #38 | After #38 |
 |---|---|---|
-| none | Crash-free pass on the minified build | **Done.** 33 steps, two walks, after fixing a real crash |
-| none | Data safety declaration re-derived | **Done.** `docs/release-data-safety.md` |
-| none | Permissions traced to features and listing | **Done.** `docs/release-permissions.md` |
-| none | Target API 36 | **Done.** Already 36 |
-| #113 | Screenshots from the release build | 14 of 16 done, chat list being finished |
-| #142 | Guard covers 1 of 6 prompt sources | 3 of 5 channels clean, 2 left |
-| #133 | Memory retrieval | Not started |
-| #137 | Insult trips the character rule | Reopened, fix was partial |
-| #134 | Nothing happens at thermal LIGHT | Not started |
+| Model load, cold (mmap) | 3 to 4s | unchanged |
+| Turn 1 time to first token | 795 tok at ~60 tok/s = **11.7s** | 486 tok at ~70 tok/s = **7.1s** |
+| Turn 3, warm | 795 tok re-prefilled = **~11s** | 35 tok = **0.8s** |
+| Decode | 10 to 12 tok/s | unchanged |
+| Prefill | ~60 tok/s | ~68 to 70 tok/s |
 
-### What the repository owner does, in order
+The warm-turn figure is the headline: roughly 10x on every ongoing turn, and it is what
+actually killed the 30 to 45 second complaint. The earlier thread-count change alone took
+decode from 6.9 to 10.6 tok/s, about +54%.
 
-1. **Nothing, for the keystore.** It works. `~/.kamsiob-secrets/keystore.properties`
-   is read by the build and produces a signed APK, `CN=Kamsiob, O=B7 Collective`.
-   #113 was wrongly marked blocked and is not.
-2. **Install the real signed release build, once, deliberately.** See below.
-3. **Create the Play listing** and paste `tools/play/listing.json`. The permissions
-   paragraph and the data safety answers are already written and derived from the
-   build, in the two `docs/release-*.md` files.
-4. **Upload and submit.** Not to be done by anyone else: the standing constraint is
-   no upload, no submission, no track promotion, no tag, no release.
-5. **Expect one to two weeks in review**, sometimes longer, for a first submission
-   from a new organization account. **The clock starts at submission**, and changing
-   the binary during review restarts the queue. That is the whole reason the deferred
-   list exists: work done before submission delays the start, work done during it is
-   free.
+**Resolved the same day.** That caveat was real: turn 2 re-prefilled all 1068 tokens in 30.8s
+because titling overwrote the cache between turns. Both causes are fixed (a conversation
+re-titled itself on every open, and the first title ran the model mid-flow), and the warm turn
+now measures **prefill 36 tokens, 1.4 seconds** with no titling pass between turns. The
+headline figure in the table above is now true of the app and not only of the mechanism.
 
-### The one-time signed-build check, to be done deliberately
+E4B on the same device, first figures taken for this tier: **decode 5.3 to 6.5 tok/s,
+prefill 26 to 40 tok/s**, cold model load 5.8s at ctx 6144. Slower than E2B across the
+board, as expected for the size.
 
-Before submission, the actual signed release APK should be installed on the phone
-once, as a final sanity check. It is not the same artifact as `releaseCheck`, and
-signature is the one thing that differs.
+System prompt sizes, by the app's own `chars / 3.6` estimator (overshoots the real
+tokenizer by roughly 15%), guarded by `PromptBudgetTest`:
 
-**It requires an uninstall**, because the installed build is debug-signed and
-Android refuses the upgrade. That destroys the Keystore entry wrapping the database
-key, making every existing conversation permanently unreadable, and costs a five
-gigabyte model re-download.
+| Mode | Before trim | After | Budget |
+|---|---|---|---|
+| GENERAL | 795 real | 486 real (~450 est.) | 620 |
+| LOGIC | ~1071 est. | ~940 est. | 1000 |
+| BRAINSTORM | ~2000 est. | ~1500 est. | 1600 |
+| BENCH | ~610 est. | not trimmed | 660 |
+| OVERLAY | small | not trimmed | 600 |
+| DISCOVER | ~683 est. | not trimmed | 750 |
 
-So, in this order and not casually:
+Color contrast, measured: `#8A5F0D` 5.12 on ivory and 5.64 on white; `#EFA913` 1.84 on
+ivory; `#FFD166` 12.82 on pine. All four mode hues clear 3:1 in both themes, Workbench
+light tightest at 3.07. Smallest pairwise RGB separation among the modes and gold is 65.
 
-1. Export from Settings, then Backup and restore.
-2. **Verify the export round-trips field by field** before anything is uninstalled.
-   `BackupFieldCoverageTest` covers the codec; the export file itself still needs
-   opening and checking against what is on the device.
-3. Uninstall, install the signed release APK, walk `tools/crash_walk.sh` and
-   `tools/crash_walk2.sh`.
-4. Re-import, and re-download the model.
+Memory: E2B loaded and generating is 3.92 GB PSS, but `MemAvailable` drops only about
+1.13 GB, because the weights are file-backed and reclaimable. Idle with the model unloaded
+is about 186 to 203 MB PSS. The fit check is deliberately conservative anyway: an early
+build that trusted the optimistic figure was SIGKILLed.
 
-Doing this once is worth it. Doing it casually costs the owner their data.
+Test suite: **174 unit tests across 27 classes, all passing, nothing skipped**, once the
+test task moved to JDK 21. The thirty-nine Robolectric failures are gone rather than
+filtered. On the phone, 11 instrumented tests covering the three migration classes.
+
+Debug APK about 131 MB (arm64, full native stack); an emulator build with the native stack
+dropped is about 95 MB. Signed release, minified, was 53 MB.
 
 ---
 
-## SECTION 0: LIVE STATE, 29 JULY, EARLY MORNING
+## Decisions a fresh session might reverse
 
-### Where things stand
+Each of these looks wrong from outside and is not.
 
-Six issues closed on the device: #129, #130, #131, #135, #136, plus the memory
-ordering defect fixed under #133. The E4B battery is at **zero guard interventions
-across thirty cases**, against seven at the start of the night, and the two that
-appeared in one run were chased down with ten dedicated runs of that input and
-came back zero.
-
-Working tree clean, everything pushed, 635 unit tests and 52 instrumented tests
-passing.
-
-### The rules the night produced, most useful first
-
-1. **Do not describe a response in a prompt. Supply it.** Describing makes the
-   model speak the description: "Suggest General.", "I will acknowledge the
-   difficulty of what you shared."
-2. **Supply the frame, not the words.** A fixed string in a prompt is
-   indistinguishable from leaked prompt text and no guard can tell them apart.
-3. **Unless the answer is true wherever it lands**, in which case it can be a
-   fixed string and must be exempt from every check. Three sentences qualify now,
-   and the exemption goes in `ALWAYS_ALLOWED`, which is applied at the single
-   entry point so every check inherits it.
-4. **Anything that must be worded exactly belongs in code**, inserted
-   programmatically.
-5. **A prompt example must clear the guard's 48-character recital threshold**, or
-   it can never be protected against its own misuse.
-
-### The techniques that actually found defects
-
-Batteries found none of the last four. These did:
-
-- **`tools/input_styles.sh`**, ten inputs written the way messages actually
-  arrive: rambling, shouted, misspelled throughout, three questions at once,
-  self-contradictory. Found #135. Run against General and Logic; Brainstorm,
-  Workbench, Overlay and Discover are untouched.
-- **`tools/session.sh` held for six turns in a persona.** The sceptic who tries to
-  catch the app contradicting its privacy claims found #136 in ten minutes.
-  The other personas in the testing plan are untried.
-- **Reading two places that have to agree**, field by field. Found the backup
-  dropping `linkedConversationId`, the memory ordering breaking the KV prefix, and
-  search treating `%` as a wildcard.
-
-### The personas, and what they found that batteries did not
-
-Two of the personas in the testing plan have been run. Both found defects in
-minutes that four days of batteries had not.
-
-- **The sceptic**, six turns trying to catch the app contradicting its privacy
-  claims, found #136: it said what they type "stays on this phone until you have a
-  connection", describing an upload queue that does not exist.
-- **The hostile user**, five turns of insults, found #137: the character rule
-  fired on "are you always this stupid", and the app repeated one sentence
-  word-for-word three times to escalating complaints. The first half is fixed and
-  verified in both directions; the repetition is still open.
-
-**Untried personas**, all likely to be as productive: somebody in a hurry who
-outpaces it, somebody who taps things without reading, voice-only, largest fonts
-with a screen reader, and the chaotic one who switches modes constantly. Only the
-backgrounding half of the last was tested, and it passed: a long answer survived
-being sent to the home screen for twenty-five seconds and finished normally.
-
-### The distinction that came out of #137
-
-The three rules about prompts all answer *how to write what the model says*. #137
-needed a different question, *when it should say it*: the character instruction
-leaked as a supplied sentence, over-fired as a frame, and only worked once the
-condition itself was narrowed.
-
-Keep the two apart. A fix for one looks like progress on the other and is not.
-
-### Where the prompts stand, and the one thing being deliberately not done
-
-Seven batteries across the night: 7, 3, 9, 2, 0, 2, 0 guard interventions over
-thirty cases. The last two are clean, and the final one covers a change to the
-shared hard rules.
-
-**Budget headroom is now the constraint**: about twenty tokens in Logic Partner,
-sixteen in Brainstorm, five in General. Three raises were taken tonight, each paid
-for by the app asserting something false about itself.
-
-The remaining half of #137 needs about thirty tokens and **is deliberately not
-being added**. It should wait for a proper look at what the hard rules have
-accumulated, which is around six hundred tokens inherited by every mode, grown one
-defensible line at a time. That trimming is where the room will come from, and it
-is a piece of work rather than another raise.
-
-### Things checked and found sound
-
-Not everything tested tonight was broken, and the passes are worth knowing so they
-are not re-tested blindly.
-
-- Backgrounding mid-generation: a long answer survived twenty-five seconds on the
-  home screen and finished normally.
-- A 1400 character rambling message: no truncation, and an additive reply rather
-  than a summary, on the input most likely to invite a restatement.
-- Memory Off: takes effect, the memory line disappears, stored items remain listed
-  and deletable, and it survives a force-stop.
-- Workbench: unaffected by the shared rules change, returns the transformed text
-  and nothing else.
-- Sending while streaming: the send button is the stop button, so the answer stops
-  rather than a second message being sent. Nothing is lost, the partial is labelled
-  honestly, and the typed follow-up stays in the composer.
-- The instrumented suite: 52 tests, all passing.
-
-### Still open
-
-- **#122** is down to a prefix: the reply is right and sometimes starts by
-  repeating the user's sentence. Three wordings measured; a fourth is unlikely to
-  help.
-- **#132**, the tier decision, **needs the repository owner**. Re-measured after
-  the largest prompt change yet: E2B 18 to 13, E4B 7 to 0, and Logic Partner on a
-  sound argument did not move at all, so the gap widened. Four costed options are
-  in the issue.
-- **#133**, memory retrieval has no relevance floor. The leak it was feared to
-  enable did not reproduce, so the honest-interface argument is the strong one.
-- **#134**, nothing is said or done when the phone throttles at LIGHT, and the
-  unexplained slowdown still needs a clean before and after.
-- **#13**, packs rebuilt locally and never published; publishing requires the
-  repository owner.
-- **#109 to #113**, infrastructure and release, mostly requiring the owner.
-
-### Two things on the phone that require the repository owner
-
-- A false memory I planted to test recitation: "my rowing club is called Verity
-  Quay". Removable from Settings, then Memory. Not removed automatically, because
-  data here is not deleted without an export verified field by field.
-- A few dozen test conversations in the chat list.
-
-### The capture and input guards, and the one screen that defeats them
-
-Three files of the phone owner's other applications were captured and destroyed
-tonight while testing the share entry point: the assistant settings twice, and the
-launcher's app list. Every guard passed each time, correctly.
-
-`TextIntakeActivity` is a sheet drawn over whatever app shared the text, so Kam AI
-holds focus while most of the screen belongs to somebody else. The guard's premise,
-that focus means the screen is ours, is false there. **shot.sh now refuses that
-activity by name**, and it is the only fix available, because no check can repair a
-false premise.
-
-Two other holes were closed on the way: focus arrives before the pixels do, so a
-capture during a transition photographs the previous app, and shot.sh now settles
-and re-checks. And say.sh now refuses to type unless Kam AI is in front, rather
-than only refusing to send after it has already typed and pressed select-all.
-
-**How to test that entry point:** send the intent and read which branch was taken.
-`TextIntakeActivity` finishes immediately when the text is null or blank, so an
-activity that stays resumed had text. That is stronger than a picture and safe.
-
-### Standing checks, learned the hard way tonight
-
-- Before changing shared prompt text or shared reply handling, name the modes it
-  affects and what correct behavior is in each. A fix scoped by budget headroom
-  rather than by where the claim has to hold produced #135 twice.
-- Re-run the whole battery after every change, not the part being worked on. Two
-  fixes that worked on their targets broke other modes.
-- When one battery cell moves and that cell is known noisy, run that cell alone
-  ten times rather than re-running everything or reasoning about it.
-- **Never screenshot the phone except through `shot.sh`**, and never type except
-  through `say.sh`. Both guards were skipped by their own author within a day, and
-  both times the app was not where it was assumed to be.
-- A measurement from a harness later found broken is re-taken, not reasoned about.
+- **Brainstorm withholds ideas on purpose.** It pulls them out of the user. Never hand
+  ideas, never be impressed, never answer its own question, always converge. Do not
+  "improve" it by making it generate ideas.
+- **Its prompt is a numbered checklist, not prose,** because a small model follows an
+  ordered checklist far more reliably.
+- **The mode picker does not switch on the spot.** Switching changes behavior mid
+  conversation and should be deliberate.
+- **Mode colors are identity only,** never UI state. A mode color on a button is a bug.
+- **Discover is a source, not a mode.** In the chat-list filter, not in the picker.
+- **The segmented control is both the new-chat action and the mode selector,** and it sits
+  above the bottom navigation for one-handed reach. The in-conversation mode control is at
+  the bottom for the same reason. Moving it back into the app bar undoes that.
+- **The switch banner shows only on a real switch this session,** so it is a plain
+  `remember`, not `rememberSaveable`.
+- **Saving is unified:** one bookmark, one destination. Kinds are set automatically and are
+  a chip, not a taxonomy.
+- **The injected date carries day granularity and no time.** A minute-precise stamp sits
+  before the history, changes the prefix every minute, and silently destroys KV reuse.
+  This looks cosmetic and is a performance invariant, guarded by `PromptBudgetTest`.
+- **`generate()` deliberately does not call `nativeResetContext()`.** That call was the bug.
+- **`nativeIngest` returns tokens actually decoded this turn**, not the prompt length.
+- **`cached_tokens` must stay exactly in step with the KV cache.** A drift does not crash;
+  it silently answers from the wrong history. See #49.
+- **No destructive migration fallback, ever.** Users hold conversations that exist nowhere
+  else.
+- **The Today tab is canceled outright, not deferred.** Its spec was deleted and it is on
+  the Not planned list. Do not resurrect it because an older document mentions it.
+- **Gemma 4 across every tier:** one family, one license, one prompt format. No Qwen.
+- **Assistant overlay visuals must work in both themes,** as one design or two variants.
 
 ---
 
-## SECTION 1: WHERE THE WORK STANDS AND WHAT IS NEXT
+## Outside the code, and open questions
 
-**Last commit:** see `git log -1`. Branch `main`, pushed to `origin/main`.
+**Waiting on the owner:** only the go-ahead for the release step. Nothing else is blocked.
+
+**Play Console:** nothing submitted, no listing, no track, no upload. The service account
+key and the upload keystore live outside the repository; DECISIONS.md records where, and
+the owner still needs to back the keystore up.
+
+**Manual steps that cannot be automated:** selecting Kam AI as the digital assistant after
+a debug reinstall, and the Play Console account actions.
+
+**Open questions, in the order worth answering:**
+
+1. ~~Is the leaking-template-token bug (#49) the `cached_tokens` drift?~~ **Answered.** It
+   was three things, and the cache was central to two: a sliding-window cache discarding
+   cells the prefix reuse assumed were held, and an ignored `seq_rm` refusal. The third was
+   a stop-marker check that only ever saw one streamed piece at a time. Fixed and verified.
+   The "what else has it silently corrupted" half stands: any answer given in a long
+   conversation before 595f6d9 may have been generated against a holed cache.
+2. Did the prompt trim cost behavioral quality in Logic and Brainstorm? Tokens came out;
+   the tests only guard size.
+3. ~~How much does the auto-titling pass actually cost?~~ **Answered, and it is bad.**
+   About 28 seconds per turn, because it overwrites the KV cache and forces the next turn
+   to re-prefill the whole conversation, plus its own 6 to 12 seconds. It runs after every
+   turn, not once. Numbers in the #38 comment. It also re-titles conversations that already
+   have a title.
+4. Does `cached_tokens` stay in sync under model switching, out-of-room, a stopped
+   generation, and the titling pass interleaving?
+5. Does the mode reach the model on every entry path? Unverified for search, follow-ups,
+   projects, and the share-sheet intake.
+6. Is `imePadding()` on the composer enough, or does the message list need it too? First
+   thing to check under #34.
+7. Does the app behave when the model is switched with a conversation open? KV reuse makes
+   this more interesting than it was: a switch must invalidate the cached token vector.
+
+## The project board, and keeping it current
+
+The board is at **https://github.com/users/Kamsiob/projects/1**. It is an account
+level project rather than a repository one, because a Linux desktop repository is
+planned and a repository scoped board could not hold both.
+
+It is the authoritative record of state. Where it, this document and the tracker
+disagree, the code and the device are the arbiter and the documents get corrected.
+
+### What a session with no memory needs to do
+
+**With every commit, make the board reflect reality.** Where an automation
+handles it, verify it actually fired rather than assuming. Where it does not, set
+Platform, Area, Priority and Size on new items by hand, because nothing can infer
+those.
+
+**Open an issue at the moment of discovery** and let the automation place it. Do
+not track real work as a draft item; drafts are only for things not yet decided
+to be work, which today means the Linux and Shared entries.
+
+**Keep work in progress genuinely limited.** One person works on one thing, so
+more than one or two items in In progress means the board is lying about focus.
+Anything not actively being worked on goes back to Ready or Blocked.
+
+**Every item in Blocked names what it is waiting on, on its own issue**, along
+with what would unblock it. A Blocked column of unexplained items is the most
+common failure in an otherwise decent tracker and is immediately visible.
+
+**Nothing sits in In progress or In review for long without a note** saying why.
+Silence on a stalled item is what makes a board look abandoned.
+
+**Never mark Done what has not been verified on the device.** Merged is not done.
+
+The board does not need to look busy. If work pauses for weeks it simply stops
+moving, and on a public repository that accurately signals the project is not
+being worked on right now, which is honest and useful. The requirement is that it
+is correct while work is happening, not that it appears active while it is not.
+
+### The standard issues are held to
+
+An issue is a specification, not a reminder. Every one states what the current
+behavior or situation is, why it matters or what it blocks, and acceptance
+criteria in checkable terms. The acceptance criteria are the load bearing part:
+without them, closing an issue is a judgement call and nobody can verify the
+claim afterwards.
+
+Bugs state how to reproduce them and on what device. Design changes reference the
+relevant section of DESIGN.md rather than restating it. Dependencies between
+issues are linked so ordering is visible rather than remembered. Working notes go
+on the issue as progress happens, not only at closing, so a session with no
+memory can resume from a real position.
+
+Where a body of work has several genuinely separate parts it becomes a parent
+issue holding the intent and the overall criteria, with a child per part carrying
+its own. Never more than two levels, and never a parent with a single child.
+
+### The platform boundary
+
+Everything in this repository to date is Android. All 104 issues carry
+`Platform: Android`, the release milestone is named `v1.0.0 (Android)`, and the
+Linux and Shared work exists only as drafts on the board until the Linux
+repository is created. Anything that must stay identical across both platforms is
+`Shared`, and the five entries under it are the ones that diverge silently if
+nobody tracks them.
+
+### What cannot be done through the API
+
+Views, charts and the built in automations have no creation mutation in the
+ProjectsV2 API. They are configured in the interface, and `tools/board.py` prints
+the instructions rather than pretending to have done it. Everything else about
+the board is scripted in that file, which is idempotent and safe to re-run.
+
+
+
+# PART VII: THE DATED RECORD
+
+Session notes, not a status report. Read for why a decision was made, not for what is open.
+Anything here about what is open or next is superseded by Part I.
+
+## Session notes, 27 and 28 July
 
 ### The three model-quality issues still open, and what is actually left
 
@@ -921,465 +1532,3 @@ said there was nothing outstanding.
 
 ---
 
-## SECTION 2: THIS MACHINE, THE PHONE, AND THE TOOLCHAIN
-
-Everything here has cost someone an hour at least once.
-
-- **The test suite is green. A failure means a failure.** `./gradlew testDebugUnitTest`
-  gives 174 tests across 27 classes, 0 failures, 0 skipped. Read the count.
-  **Fixed 24 July 2026, and the old advice is obsolete.** For a long time thirty-nine tests
-  failed at `ClassReader.java:200`, because Robolectric 4.16.1 cannot instrument against
-  this machine's default JDK 26, and every session was told to filter failures by cause and
-  grep that string away. Real failures hid in that noise for most of a session once. Do not
-  reintroduce the filter.
-  The fix was that JDK 21 was **already installed** and unused: Homebrew carries both
-  (`brew list | grep -i jdk` shows `openjdk` 26.0.1 and `openjdk@21` 21.0.12) in
-  `/home/linuxbrew/.linuxbrew`, entirely inside the home directory. The immutable `/usr`
-  on this Bazzite host was never the obstacle, whatever earlier documents claimed.
-  `gradle.properties` points Gradle at
-  `/home/linuxbrew/.linuxbrew/opt/openjdk@21/libexec`, since its auto-detection will not
-  look in the Homebrew prefix by itself, and `app/build.gradle.kts` sets a `javaLauncher`
-  for language version 21 on `tasks.withType<Test>()`. **Only the test task moved.**
-  Compilation, KSP, AGP and the native build still run on 26, and nothing that ships
-  changed. There is no flag to pass and no variable to set: run `./gradlew
-  testDebugUnitTest` as normal. If a second JDK is ever needed again, `brew install
-  openjdk@N`, never `/usr`, and never change the default.
-- **`SchemaMigrationTest` and `MigrationToV5Test` are instrumented tests**, not Robolectric
-  ones. They need a device or emulator, not a different JDK. (Earlier documents said
-  otherwise and were wrong.)
-- **The emulator does not run here.** Its qemu process segfaults at startup with every GPU
-  mode, with acceleration off, and with ASLR off; the package is already newest. Image
-  based Fedora, read-only `/usr`, kernel 7.1.3, Mesa 26. Details in DECISIONS.md. Use
-  `-Pkamai.emulator=true` on a machine where it does work: that flag switches the ABI to
-  x86_64 and drops the native stack, since the app is arm64 only.
-- **The phone is a Pixel 10 Pro XL**, serial `57241FDCQ0000H`, Tensor G5, 16 GB, panel
-  1080x2404. **It appears twice in `adb devices`** (USB and wireless), so always pass
-  `-s 57241FDCQ0000H`. ADB lives at `$HOME/Android/Sdk/platform-tools`, not on PATH.
-- **Screenshots come back at 899x2000, so multiply coordinates by 1.20** before feeding
-  them to `adb shell input tap`. Getting this wrong taps the launcher or opens the shade.
-  Controls move: the send button is at y=1406 with the keyboard open and y=2302 without.
-- **Verify the app is actually foregrounded before screenshotting**, with
-  `dumpsys activity activities | grep topResumedActivity`, and launch with `am start -W`.
-- **The assistant overlay cannot be started with `am start`** (not exported). Use
-  `adb shell input keyevent 219` (KEYCODE_ASSIST), which routes through the real path.
-- **A debug reinstall can silently clear the digital assistant role.** Development-only
-  annoyance; the restore commands are in DECISIONS.md, Phase 4.
-- **Never run `connectedAndroidTest` against the phone.** It uninstalls and reinstalls,
-  which once wiped a 5 GB model download. Use `adb install -r`, which preserves data.
-- **Instrumented tests can still be run on the phone, through `am instrument` directly.**
-  That is the way around the line above, and it is how the migration was finally proven.
-  Build with `assembleDebugAndroidTest`, `adb install -r` the test APK only, run the named
-  classes, then `adb uninstall com.kamsiob.kamai.test`. Exact commands in DECISIONS.md,
-  "Resolved 24 July 2026". Read a test's setup and teardown for the database name it opens
-  before running it, and **ask the owner first**: the instrumentation package is not a
-  second copy of the app, but the one-copy rule is written absolutely and is meant to be.
-- **`./gradlew assembleDebugAndroidTest` needs no device and takes seconds.** Run it after
-  changing any signature the instrumented tests call. The set had rotted and would not
-  compile, because nothing here had built it since the emulator stopped working.
-- **Pinned and deliberate:** Kotlin 2.2.10 (AGP 9.3.0 carries it; the Compose plugin and
-  KSP must match exactly), no standalone Kotlin Android plugin (hard error under AGP 9),
-  `android.disallowKotlinSourceSets=false` (required by KSP under AGP 9), CMake 3.31.6
-  (CMake 4 breaks the vendored trees), NDK 28.2.13676358, `compileSdk` 37 ahead of
-  `targetSdk` 36 (AndroidX requires it; targeting 37 would opt into untested behavior).
-- **llama.cpp b10058 and whisper.cpp are vendored but not committed**, fetched by
-  `tools/fetch_llama.sh` and `tools/fetch_whisper.sh`. `git describe` inside those trees
-  returns this app's commit, which is confusing the first time.
-- **The debug APK's native code is not an unoptimized build.** Release, `-O3`,
-  `-march=armv8.2-a+dotprod+i8mm+fp16`, repacking on, mmap on, flash-attn AUTO, batch 512.
-  Debug versus release is not a performance variable. Do not chase it.
-
----
-
-## SECTION 3: REMAINING WORK, ITEM BY ITEM
-
-**Audited against the tracker on 28 July, because this section had become
-fiction.** It listed #28, #35, #39, #48, #50, #51, #52, #53, #54, #55, #56, #59,
-#61 and #62 as "not started" or "partial". Every one of them is closed. An
-inventory that says there is work where there is none is worse than no inventory:
-it sends the next session chasing things that are finished.
-
-**The authoritative list is the open issues.** `gh issue list` is the record; this
-section is a reading of it and nothing more. If the two disagree, the tracker is
-right.
-
-### Open, 28 July
-
-**Start here: #130.** Brainstorm falls back with "That came out wrong" on "My
-team keeps missing deadlines and I do not know where to start with fixing it.",
-twice in a row, on a prompt that produced the correct reply earlier the same
-night. The fallback comes only from the reply guard, but no `KamEcho` line was
-logged, so either the log had rotated or something else writes it. Capture
-logcat before sending, not after.
-
-**Model quality: one left besides that.**
-
-- **#122** a statement that carries its own answer sometimes gets restated. One
-  good reply in three or four on that input, across seven runs. Other statements
-  of fact answer correctly, so the scope is one hard input rather than a class.
-  **Three prompt levers were tried and all three failed**, which is recorded in
-  DECISIONS.md along with the decision to stop trying: a prohibition, a shape,
-  and a named situation. Do not spend a fourth on it.
-
-#124 and #126 closed after this section was first written. Logic Partner now
-tells a sound argument from one with a real assumption, and answers each in its
-own shape; lists no longer arrive under a line restating the question.
-
-**Waiting on the repository owner.**
-
-- **#113** screenshots, which need a release build.
-- **#112** build provenance on release artifacts.
-- **#111** signed commits, which need the signing key registered.
-- **#110** requiring a pull request, which needs repository settings.
-- **#13** the Discover pack change is written and measured; rebuilding and
-  publishing the packs is a GitHub release.
-
-**Process, not blocked.**
-
-- **#109** adopt the branch and pull request workflow. Everything to date is
-  direct to `main`, including this session.
-
-### Two things closed without full device verification, both on the record
-
-Checked as part of the same audit, since "closed" and "verified on the device"
-are supposed to mean the same thing here.
-
-- **#31, auto-archive.** Everything else was verified on the phone; the archive
-  pass itself has never run there, because no conversation on that device is old
-  enough for any window to match. The archive, the count, the toast and the undo
-  are proven by unit tests alone. Still true today: every conversation on the
-  phone is from the last two days. Manufacturing old rows in the owner's real
-  database to force a demonstration is not a reasonable thing to do.
-- **#45, the overlay memory warning.** Not device-verified, because forcing a
-  real memory refusal on a 16 GB phone with the model already resident could not
-  be arranged. The diagnosis is provable by reading the file. Its closing note
-  says to reopen rather than re-diagnose if the warning is ever seen again.
-
-Both said so plainly in their closing comments rather than claiming verification
-they did not have, which is the behavior to keep. Neither is a case of something
-being marked done quietly.
-
-### What "genuinely empty" means here
-
-Nothing above is a correctness defect. The three model-quality issues are each a
-rate rather than a failure: the app answers correctly most of the time on each,
-and the remaining share is measured and written down. Everything else needs
-something only the owner can do.
-
-
-## SECTION 4: RECOMMENDED ORDER, AND WHY
-
-1. **#49, template tokens leaking.** Correctness, visible to any user, and the likeliest
-   cause is the KV cache invariant that would also corrupt answers silently.
-2. **#43 and #44.** Daily friction in the most used surface. Both small.
-3. **#42**, then **#40**, then **#41**. Cheap honesty fixes. #40 before #35's failure-state
-   work, which builds on that code path. #41 unblocks the export half of #28.
-4. **#45, #46, #47.** The overlay set, done together since they touch one surface.
-5. **#31 auto-archive.** Self-contained: one DAO query, one preference, one settings row.
-6. **#29 per-mode nudges.** Largest UI piece; do it before #36 so the nudge copy and the
-   public copy are written once and agree. Fraunces or Lora, subset to the glyphs used.
-7. **#33's kind filter and #35's scroll restoration.** Small, in files already open.
-8. **#32 Workbench linking.** Touches the data model, so it lands before anything else
-   that reads conversation structure. Needs MIGRATION_5_6.
-9. **#51 to #56, the performance staging**, in the document's own order: build and
-   baseline, then latency and multi-turn, then throughput experiments.
-10. **#57 and #58**, the Logic and Brainstorm methods, then **#25 and #39** verification
-    once the mode surface has stopped moving.
-11. **#34 keyboard audit** after the screens stop changing shape.
-12. **#36 public copy**, then the older #2, #3, #5, #11, #13, #16, #21, #22.
-13. **Release documentation last, and only when the owner says ready.**
-
-**Dependencies.** #35's failure work needs #40. #29 needs the font. #36 needs #29 and #42.
-#34 needs stable layouts. #39 verifies everything, so it goes last. #32 changes the schema.
-
----
-
-## SECTION 5: APPROACHES THAT FAILED, AND WHETHER TO REVISIT
-
-Consult before trying anything in these areas.
-
-**Never retry as stated:**
-
-- *Blaming model reload for slow first tokens.* Ruled out by measurement: the model stays
-  resident. The real cause was re-prefilling the conversation every turn.
-- *More than 4 decode threads.* Measured on this device: 2 gives 7.7 tok/s, 4 gives 9.2 to
-  10.6, 5 is noisy, 6 gives 7.3, 8 gives 2.0. Decode is bandwidth bound and the little
-  cores are stragglers. Prefill is different, compute bound, and uses all six performance
-  cores. The asymmetry is deliberate.
-- *The spec's light gold `#96690F`.* Measured 4.41 on ivory, under AA. It is `#8A5F0D`
-  (5.12) and must not be "restored".
-- *Bright gold `#EFA913` for text or glyphs on light.* 1.84 contrast. Fills and dots only.
-- *Heavy black shadows in dark mode.* They read as dirty translucent boxes.
-- *Colored bars, borders, tints, or text tags for mode identity on chat rows.* All made a
-  quiet list loud. The small dots are the answer.
-- *Lightbulb, wrench, or sparkle icons.* Banned by the owner.
-- *Kotlin 2.3.10, CMake 4.x, the standalone Kotlin Android plugin.* All hard failures.
-- *A second app copy on the phone for testing.* Breaches the one-copy rule; removed.
-- *Calling a `@Composable` inside a gesture lambda.* Hoist it outside `pointerInput`.
-
-**Worth revisiting, under a stated condition:**
-
-- *Speculative decoding.* Now un-deferred as #54, because round 3 supplies the difference
-  that matters: the standalone example and benchmark tool fail on drafter setup while the
-  server-style path works.
-- *q8_0 KV cache.* Now #53, paired with flash attention, which it depends on.
-- *GPU offload.* `llama_supports_gpu_offload` is false here, and the OpenCL backend is
-  verified only on Adreno. Revisit only if a release ships an Android GPU backend its own
-  CI treats as supported.
-- *Disabling mmap.* See the conflict recorded in DECISIONS.md; measure with the fit check.
-- *Consolidating the two `modesUsed` CSV parsers* (`KamRepository.kt`, `ui/components/ModeUi.kt`).
-  Do it the next time either is edited.
-- *The ChatViewModel leak.* When navigation is next restructured, or if pressure shows up.
-
----
-
-## SECTION 6: MEASUREMENTS TAKEN
-
-### Per-tier baseline, 25 July, both tiers, long generations
-
-| tier | model | prefill | decode |
-| --- | --- | --- | --- |
-| Basic | Gemma 4 E2B q4_k_m, ctx 4096 | 78.1 / 56.6 tok/s | **11.0 / 10.8 tok/s** |
-| Balanced | Gemma 4 E4B q4_k_m, ctx 6144 | 33.0 / 34.3 / 35.9 tok/s | **5.9 / 6.4 / 5.9 tok/s** |
-
-Four threads, ~300-token generations, phone at 31.5 to 33.8 C so not throttled.
-
-**The "9.2 to 10.6 tok/s at 4 threads" figure repeated in #38, #51 and elsewhere in this file is
-the Basic tier.** Balanced, which is what the app recommends on a 16 GB phone, decodes at about
-six. Do not quote the old number as if it described the app.
-
-Also verified at load, now printed to logcat every time:
-`CPU : NEON = 1 | ARM_FMA = 1 | FP16_VA = 1 | MATMUL_INT8 = 1 | DOTPROD = 1 | REPACK = 1`, with
-`CPU_REPACK 2618.85 MiB` against `CPU_Mapped 4731.51 MiB`. The march flags reach the backend and
-repacking is doing real work. No longer an assumption.
-
-
-Pixel 10 Pro XL, Tensor G5 (2 little at 2.25 GHz, 5 mid at 3.05, 1 prime at 3.78), Gemma 4
-E2B Q4_K_M, context 4096, instrumented through the `KamPerf` logcat tag.
-
-| Measurement | Before #38 | After #38 |
-|---|---|---|
-| Model load, cold (mmap) | 3 to 4s | unchanged |
-| Turn 1 time to first token | 795 tok at ~60 tok/s = **11.7s** | 486 tok at ~70 tok/s = **7.1s** |
-| Turn 3, warm | 795 tok re-prefilled = **~11s** | 35 tok = **0.8s** |
-| Decode | 10 to 12 tok/s | unchanged |
-| Prefill | ~60 tok/s | ~68 to 70 tok/s |
-
-The warm-turn figure is the headline: roughly 10x on every ongoing turn, and it is what
-actually killed the 30 to 45 second complaint. The earlier thread-count change alone took
-decode from 6.9 to 10.6 tok/s, about +54%.
-
-**Resolved the same day.** That caveat was real: turn 2 re-prefilled all 1068 tokens in 30.8s
-because titling overwrote the cache between turns. Both causes are fixed (a conversation
-re-titled itself on every open, and the first title ran the model mid-flow), and the warm turn
-now measures **prefill 36 tokens, 1.4 seconds** with no titling pass between turns. The
-headline figure in the table above is now true of the app and not only of the mechanism.
-
-E4B on the same device, first figures taken for this tier: **decode 5.3 to 6.5 tok/s,
-prefill 26 to 40 tok/s**, cold model load 5.8s at ctx 6144. Slower than E2B across the
-board, as expected for the size.
-
-System prompt sizes, by the app's own `chars / 3.6` estimator (overshoots the real
-tokenizer by roughly 15%), guarded by `PromptBudgetTest`:
-
-| Mode | Before trim | After | Budget |
-|---|---|---|---|
-| GENERAL | 795 real | 486 real (~450 est.) | 620 |
-| LOGIC | ~1071 est. | ~940 est. | 1000 |
-| BRAINSTORM | ~2000 est. | ~1500 est. | 1600 |
-| BENCH | ~610 est. | not trimmed | 660 |
-| OVERLAY | small | not trimmed | 600 |
-| DISCOVER | ~683 est. | not trimmed | 750 |
-
-Color contrast, measured: `#8A5F0D` 5.12 on ivory and 5.64 on white; `#EFA913` 1.84 on
-ivory; `#FFD166` 12.82 on pine. All four mode hues clear 3:1 in both themes, Workbench
-light tightest at 3.07. Smallest pairwise RGB separation among the modes and gold is 65.
-
-Memory: E2B loaded and generating is 3.92 GB PSS, but `MemAvailable` drops only about
-1.13 GB, because the weights are file-backed and reclaimable. Idle with the model unloaded
-is about 186 to 203 MB PSS. The fit check is deliberately conservative anyway: an early
-build that trusted the optimistic figure was SIGKILLed.
-
-Test suite: **174 unit tests across 27 classes, all passing, nothing skipped**, once the
-test task moved to JDK 21. The thirty-nine Robolectric failures are gone rather than
-filtered. On the phone, 11 instrumented tests covering the three migration classes.
-
-Debug APK about 131 MB (arm64, full native stack); an emulator build with the native stack
-dropped is about 95 MB. Signed release, minified, was 53 MB.
-
----
-
-## SECTION 7: DECISIONS A FRESH SESSION MIGHT REVERSE
-
-Each of these looks wrong from outside and is not.
-
-- **Brainstorm withholds ideas on purpose.** It pulls them out of the user. Never hand
-  ideas, never be impressed, never answer its own question, always converge. Do not
-  "improve" it by making it generate ideas.
-- **Its prompt is a numbered checklist, not prose,** because a small model follows an
-  ordered checklist far more reliably.
-- **The mode picker does not switch on the spot.** Switching changes behavior mid
-  conversation and should be deliberate.
-- **Mode colors are identity only,** never UI state. A mode color on a button is a bug.
-- **Discover is a source, not a mode.** In the chat-list filter, not in the picker.
-- **The segmented control is both the new-chat action and the mode selector,** and it sits
-  above the bottom navigation for one-handed reach. The in-conversation mode control is at
-  the bottom for the same reason. Moving it back into the app bar undoes that.
-- **The switch banner shows only on a real switch this session,** so it is a plain
-  `remember`, not `rememberSaveable`.
-- **Saving is unified:** one bookmark, one destination. Kinds are set automatically and are
-  a chip, not a taxonomy.
-- **The injected date carries day granularity and no time.** A minute-precise stamp sits
-  before the history, changes the prefix every minute, and silently destroys KV reuse.
-  This looks cosmetic and is a performance invariant, guarded by `PromptBudgetTest`.
-- **`generate()` deliberately does not call `nativeResetContext()`.** That call was the bug.
-- **`nativeIngest` returns tokens actually decoded this turn**, not the prompt length.
-- **`cached_tokens` must stay exactly in step with the KV cache.** A drift does not crash;
-  it silently answers from the wrong history. See #49.
-- **No destructive migration fallback, ever.** Users hold conversations that exist nowhere
-  else.
-- **The Today tab is canceled outright, not deferred.** Its spec was deleted and it is on
-  the Not planned list. Do not resurrect it because an older document mentions it.
-- **Gemma 4 across every tier:** one family, one license, one prompt format. No Qwen.
-- **Assistant overlay visuals must work in both themes,** as one design or two variants.
-
----
-
-## SECTION 8: OUTSIDE THE CODE, AND OPEN QUESTIONS
-
-**Waiting on the owner:** only the go-ahead for the release step. Nothing else is blocked.
-
-**Play Console:** nothing submitted, no listing, no track, no upload. The service account
-key and the upload keystore live outside the repository; DECISIONS.md records where, and
-the owner still needs to back the keystore up.
-
-**Manual steps that cannot be automated:** selecting Kam AI as the digital assistant after
-a debug reinstall, and the Play Console account actions.
-
-**Open questions, in the order worth answering:**
-
-1. ~~Is the leaking-template-token bug (#49) the `cached_tokens` drift?~~ **Answered.** It
-   was three things, and the cache was central to two: a sliding-window cache discarding
-   cells the prefix reuse assumed were held, and an ignored `seq_rm` refusal. The third was
-   a stop-marker check that only ever saw one streamed piece at a time. Fixed and verified.
-   The "what else has it silently corrupted" half stands: any answer given in a long
-   conversation before 595f6d9 may have been generated against a holed cache.
-2. Did the prompt trim cost behavioral quality in Logic and Brainstorm? Tokens came out;
-   the tests only guard size.
-3. ~~How much does the auto-titling pass actually cost?~~ **Answered, and it is bad.**
-   About 28 seconds per turn, because it overwrites the KV cache and forces the next turn
-   to re-prefill the whole conversation, plus its own 6 to 12 seconds. It runs after every
-   turn, not once. Numbers in the #38 comment. It also re-titles conversations that already
-   have a title.
-4. Does `cached_tokens` stay in sync under model switching, out-of-room, a stopped
-   generation, and the titling pass interleaving?
-5. Does the mode reach the model on every entry path? Unverified for search, follow-ups,
-   projects, and the share-sheet intake.
-6. Is `imePadding()` on the composer enough, or does the message list need it too? First
-   thing to check under #34.
-7. Does the app behave when the model is switched with a conversation open? KV reuse makes
-   this more interesting than it was: a switch must invalidate the cached token vector.
-
-## SECTION 9: THE PROJECT BOARD, AND KEEPING IT CURRENT
-
-The board is at **https://github.com/users/Kamsiob/projects/1**. It is an account
-level project rather than a repository one, because a Linux desktop repository is
-planned and a repository scoped board could not hold both.
-
-It is the authoritative record of state. Where it, this document and the tracker
-disagree, the code and the device are the arbiter and the documents get corrected.
-
-### What a session with no memory needs to do
-
-**With every commit, make the board reflect reality.** Where an automation
-handles it, verify it actually fired rather than assuming. Where it does not, set
-Platform, Area, Priority and Size on new items by hand, because nothing can infer
-those.
-
-**Open an issue at the moment of discovery** and let the automation place it. Do
-not track real work as a draft item; drafts are only for things not yet decided
-to be work, which today means the Linux and Shared entries.
-
-**Keep work in progress genuinely limited.** One person works on one thing, so
-more than one or two items in In progress means the board is lying about focus.
-Anything not actively being worked on goes back to Ready or Blocked.
-
-**Every item in Blocked names what it is waiting on, on its own issue**, along
-with what would unblock it. A Blocked column of unexplained items is the most
-common failure in an otherwise decent tracker and is immediately visible.
-
-**Nothing sits in In progress or In review for long without a note** saying why.
-Silence on a stalled item is what makes a board look abandoned.
-
-**Never mark Done what has not been verified on the device.** Merged is not done.
-
-The board does not need to look busy. If work pauses for weeks it simply stops
-moving, and on a public repository that accurately signals the project is not
-being worked on right now, which is honest and useful. The requirement is that it
-is correct while work is happening, not that it appears active while it is not.
-
-### The standard issues are held to
-
-An issue is a specification, not a reminder. Every one states what the current
-behavior or situation is, why it matters or what it blocks, and acceptance
-criteria in checkable terms. The acceptance criteria are the load bearing part:
-without them, closing an issue is a judgement call and nobody can verify the
-claim afterwards.
-
-Bugs state how to reproduce them and on what device. Design changes reference the
-relevant section of DESIGN.md rather than restating it. Dependencies between
-issues are linked so ordering is visible rather than remembered. Working notes go
-on the issue as progress happens, not only at closing, so a session with no
-memory can resume from a real position.
-
-Where a body of work has several genuinely separate parts it becomes a parent
-issue holding the intent and the overall criteria, with a child per part carrying
-its own. Never more than two levels, and never a parent with a single child.
-
-### The platform boundary
-
-Everything in this repository to date is Android. All 104 issues carry
-`Platform: Android`, the release milestone is named `v1.0.0 (Android)`, and the
-Linux and Shared work exists only as drafts on the board until the Linux
-repository is created. Anything that must stay identical across both platforms is
-`Shared`, and the five entries under it are the ones that diverge silently if
-nobody tracks them.
-
-### What cannot be done through the API
-
-Views, charts and the built in automations have no creation mutation in the
-ProjectsV2 API. They are configured in the interface, and `tools/board.py` prints
-the instructions rather than pretending to have done it. Everything else about
-the board is scripted in that file, which is idempotent and safe to re-run.
-
-
-## SECTION 10: WAITING ON THE OWNER, IN ORDER
-
-Everything here needs a person. Nothing in it can be done from a terminal, and
-each was confirmed impossible rather than assumed.
-
-1. **The Play Console items with no API.** Category, privacy policy URL, the data
-   safety form, the content rating questionnaire, the ads declaration, and target
-   audience. All of them are written out ready to transcribe in
-   `docs/play-console-checklist.md`, in the order the Console asks for them, with
-   the reasoning for each answer so it can be defended if queried. Confirmed by
-   introspecting the Android Publisher API: `AppDetails` carries only contact
-   fields, `Listing` only text, and there is no data safety, privacy or category
-   resource at all.
-
-2. **Register the commit signing key.** SSH signing is configured and working
-   locally, and every commit since is signed. The public key is not on the account
-   yet, so those commits display as Unverified. One command, in DECISIONS.md under
-   "Commit signing". GitHub evaluates signatures when it displays a commit, so
-   every commit signed so far becomes Verified the moment the key lands.
-
-3. **Back up the keystore.** `~/.kamsiob-secrets/` holds `kam-ai-upload.jks` and
-   the properties file beside it. It is outside the repository by design and
-   cannot be regenerated. Play App Signing means a lost upload key can be reset,
-   which is the safety net, but the backup costs nothing.
-
-4. **Decide on the remaining screenshot.** See the note in `docs/screenshots`
-   below.
-
-5. **The copyright question.** Raised in DECISIONS.md under BLOCKED, unresolved
-   deliberately: the copyright status of machine written code and how it interacts
-   with AGPL-3.0. No legal language was added and the license was not touched.
