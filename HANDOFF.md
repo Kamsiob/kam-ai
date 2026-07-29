@@ -72,18 +72,31 @@ nothing reached the user. Not zero, and not claimed to be.
    of prefill and 10 to 11 seconds of TTFT**, against 42 to 88 tokens and 2.5 to
    5 seconds after the fix.
 
+**Also done tonight:**
+
+5. **Workbench check.** The mode no battery can reach, measured for the first
+   time. Unaffected by the shared rule change: the Tighten button returns the
+   tightened sentence and nothing else.
+6. **The instrumented suite**, 52 tests, all passing. Only the privacy test was
+   stale, and repairing it immediately caught a seventh permission nobody had
+   listed, `USE_BIOMETRIC`, which arrives from a dependency's merged manifest and
+   is invisible in the app's own manifest.
+7. **The three metric-example variants**, which answered two questions nobody
+   could answer by reasoning. Deleting it broke exactly one thing, the memory
+   acknowledgement path, so "Remember that I always work in metric units" was
+   answered with an explanation of the metric system. Replacing it with the same
+   shape on a distant subject kept that behavior *and* removed the collision: the
+   bread input, which has failed for three days, answered cleanly with no
+   restatement. The example now concerns taking the stairs. The third variant,
+   letting it arrive through the memory system, is untried.
+
 **Left, in order:**
 
-5. **Workbench check** (running as this is written). The one mode no battery can
-   reach, with the shared hard rules changed underneath it.
-6. **Search on the device** with `50%` and `snake_case`, confirming the LIKE
-   escaping works outside the unit test.
-7. **The instrumented suite**, with `am instrument`, never
-   `connectedAndroidTest`, which uninstalls and would wipe the models. Two of its
-   privacy assertions had been false for a long time; others may be stale.
-8. **The three metric-example variants**, one build and battery each: delete it;
-   replace it with a structurally identical example on a distant subject; keep it
-   but let it arrive through the memory system.
+8. **The battery on the combined change** (running as this is written). It carries
+   the new example and four supplied sentences converted to frames.
+9. **The third metric variant**: remove the example and let the same fact arrive
+   through the memory system at runtime, which is how it is meant to work.
+10. **Search on the device** with `50%` and `snake_case`.
 
 ### What the audit found, not yet acted on
 
