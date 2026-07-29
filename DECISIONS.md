@@ -8669,3 +8669,28 @@ It also cost two runs to a navigation defect on the way, where Back on the chat
 list left the application entirely and the taps went to the phone owner's home
 screen and calendar. That is fixed in both the probe and in say.sh, which now
 refuses to type at all unless Kam AI is in front rather than only refusing to send.
+
+## Workbench survived the shared rule change
+
+The standing check flagged Workbench as the mode a shared hard-rules change could
+break and no battery could see. The prediction recorded before testing was that
+the mode prompt, being more specific and sitting after the shared rules, probably
+wins, and that "probably" was not good enough for a mode nobody had measured.
+
+It wins. Given a plain declarative paragraph and the Tighten button:
+
+> We are writing to inform you that at this point in time we have made the
+> decision to go ahead with the proposal that was discussed last week.
+
+came back as:
+
+> We've decided to move forward with the proposal from last week.
+
+The result and nothing else. No preamble, no remark about the text, and no sign of
+the shared rule that says a statement gets one line that adds to it.
+
+So the hard rules and Workbench contradict each other in the prompt, recorded
+earlier in the shared path audit, and the contradiction is harmless in practice
+because the specific instruction wins. That is worth knowing rather than assuming,
+and it is still worth tidying eventually: a prompt that says "ask when vague" and
+"never ask" in the same breath is one edit away from the wrong one winning.
