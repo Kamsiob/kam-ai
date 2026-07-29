@@ -8793,3 +8793,38 @@ demonstration into memory silently removes the demonstration.
 
 Recorded rather than run, because running it would reproduce variant A exactly and
 the evidence is already sitting in that run's captures.
+
+## Seven to zero, and the thing the zero does not cover
+
+The battery on the combined change: the acknowledgement example moved to a distant
+subject, four supplied sentences converted to frames.
+
+| | baseline | frame form | now |
+|---|---|---|---|
+| guard interventions, 30 cases | 7 | 2 | **0** |
+
+Thermal 0 for twenty cases and 1 for ten, recorded per row.
+
+The replies behind the zero are good, which matters more than the number. Logic
+Partner gives the full three moves on a sound argument, naming the claim, the
+assumption it rests on, and the data that would settle it. Brainstorm builds a
+question out of the user's own material. A bereavement in Logic Partner gets "I'm
+sorry to hear about your dad. General is the better place."
+
+**What the zero does not cover.** The bread input still leads with the user's own
+sentence before adding to it:
+
+> It needs a hot oven, around 230C. Baking bread usually requires a high initial
+> heat to set the crust properly.
+
+That is a real answer with a restatement stuck on the front, and the guard does not
+count it because a genuine addition follows. So the count is zero and the defect
+is not gone; it has shrunk from "the reply is a restatement" to "the reply begins
+with one".
+
+Worth saying plainly because a zero invites the wrong conclusion. The hard rules
+already say an answer starts with the answer and never repeats the question back,
+and the model is ignoring that while following the additive rule next to it. That
+is a prompt asking for two things and getting the newer one, which no further
+wording round is likely to resolve, and it is now the smallest remaining piece of
+#122 rather than the whole of it.
