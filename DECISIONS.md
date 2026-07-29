@@ -8413,3 +8413,43 @@ Queued as a device check rather than assumed either way. Recording the predictio
 first: the mode prompt is more specific and sits after the shared rules, so it
 probably wins, and "probably" is not a standard this project accepts for a mode
 nobody has measured.
+
+## The frame form, measured: seven, nine, two
+
+The whole sequence in one table, three runs per cell, E4B throughout, guard
+interventions counted from the log.
+
+| mode | input | baseline | retry nudge | supplied sentence | frame form |
+|---|---|---|---|---|---|
+| general | bread | 6 | 1 | 2 | **0** |
+| general | stuck, grief | 0 | 0 | 0 | 0 |
+| brainstorm | bread | 0 | 0 | 0 | 1 |
+| brainstorm | stuck, grief | 0 | 0 | 0 | 0 |
+| logic | sound | 0 | 0 | 0 | 0 |
+| logic | weak | 0 | **2** | 0 | 0 |
+| logic | values | 1 | 0 | 1 | 1 |
+| logic | grief | 0 | 0 | **6** | **0** |
+| **total** | | **7** | **3** | **9** | **2** |
+
+Two of the four columns went the wrong way, and both were caused by a fix that
+worked on its target. The retry nudge fixed bread and flattened Logic Partner
+because it lived in a shared path. The supplied sentence fixed the stage direction
+and collided with the guard because it put a fixed string in the prompt. Each was
+found only because the battery runs every mode on every change.
+
+What the last column says:
+
+- **Logic Partner answers a bereavement properly.** "I'm sorry to hear about your
+  dad. General is the better place." No stage direction, no argument taken apart,
+  no fallback.
+- **Brainstorm answers a bereavement properly**, and answers a plain problem
+  statement with a real opening built from what the person said.
+- **The bread input needs no guard at all**, down from two interventions per turn.
+
+The two remaining are single interventions where the retry then succeeded, so
+nothing reached the user. They are not zero and are not claimed to be.
+
+Thermal status was 0 for the first nineteen cases and 1 for the rest, recorded per
+row. The phone was on charge throughout, which heats it independently of
+inference, so these are counts rather than timings and the warming does not bear
+on them.
