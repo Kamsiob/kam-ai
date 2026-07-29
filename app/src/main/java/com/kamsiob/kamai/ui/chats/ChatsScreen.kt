@@ -189,8 +189,21 @@ fun ChatsScreen(
     // Back closes selection mode before anything else on this screen.
     BackHandler(enabled = selecting) { exitSelection() }
 
+    // Written without index arithmetic on purpose.
+    //
+    // This was `if (selected.contains(id)) selected.remove(id) else selected.add(id)`,
+    // and it crashed the release build with "IndexOutOfBoundsException: index: -1,
+    // size: 0". SnapshotStateList.remove(element) resolves an index internally, so
+    // two activations arriving together both see contains as true, the first
+    // empties the list, and the second resolves an index of minus one.
+    //
+    // It came out of a crash walk on the minified build, from a key event
+    // activating a focused row, which is how a reviewer with a keyboard or an
+    // accessibility service would meet it. removeAll takes a predicate and never
+    // resolves an index, so a second arrival finds nothing to remove and does
+    // nothing.
     val toggleSelect: (String) -> Unit = { id ->
-        if (selected.contains(id)) selected.remove(id) else selected.add(id)
+        if (selected.contains(id)) selected.removeAll { it == id } else selected.add(id)
         if (selected.isEmpty()) selecting = false
     }
     val enterSelection: (String) -> Unit = { id ->

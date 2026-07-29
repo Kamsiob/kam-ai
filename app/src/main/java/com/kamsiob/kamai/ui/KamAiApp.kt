@@ -1429,7 +1429,7 @@ private fun CrashReportHost(
         onClear = {
             com.kamsiob.kamai.CrashLog.clear(context)
             text = null
-            stack.remove(Pushed.CrashReport)
+            stack.removeAll { it == Pushed.CrashReport }
         },
     )
 }

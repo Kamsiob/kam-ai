@@ -612,7 +612,7 @@ fun StorageScreen(
                         } else Modifier,
                     ),
                     onClick = if (selecting) {
-                        { if (isSel) selectedIds.remove(artifact.id) else selectedIds.add(artifact.id) }
+                        { if (isSel) selectedIds.removeAll { it == artifact.id } else selectedIds.add(artifact.id) }
                     } else {
                         null
                     },
@@ -794,7 +794,7 @@ fun MemoryScreen(
                 KamCard(
                     Modifier.fillMaxWidth(),
                     onClick = if (selecting) {
-                        { if (isSel) selectedIds.remove(entry.id) else selectedIds.add(entry.id) }
+                        { if (isSel) selectedIds.removeAll { it == entry.id } else selectedIds.add(entry.id) }
                     } else {
                         null
                     },
