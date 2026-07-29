@@ -9696,3 +9696,69 @@ change, in the same group, and filed rather than folded into an unrelated commit
 It does not resolve #133. Irrelevant memories being injected is a real defect whether or
 not a note is displayed, and hiding the indicator would make it harder to notice rather
 than fixing it. Said on both issues so nobody later reads the toggle as the resolution.
+
+## The fourth false claim, and the one place a prose sweep would never have looked
+
+The claims sweep found three false claims by reading documents. The fourth was in the
+system prompt.
+
+**`HARD_RULES` instructed the model to answer "Everything works the same offline."** And
+`PromptEcho.ALWAYS_ALLOWED` listed that same sentence as exempt from every guard, on the
+written grounds that it was "true wherever it lands: the app works the same with no
+connection and queues nothing, always".
+
+That justification was wrong. Two network calls exist: a download the user starts, and the
+Discover pack manifest fetched when Discover opens. So:
+
+- "Can I get new packs with no signal?" -> "Everything works the same offline." False.
+- "Do I need a connection to download a model?" -> same sentence. False.
+
+**It is the same defect as the worst of the original three, which was the PRIVACY.md
+sentence that presented itself as the complete list of conditions.** A sentence whose
+breadth implies there are no network calls at all is worse than a narrow sentence that is
+wrong, because a careful reader relies on it most.
+
+And it was in the worst possible place. Not in prose, where a wrong sentence merely sits
+there being read, but in the instructions the model is told to follow, on the exemption
+list that means no guard will ever reject it, answering the exact question a privacy
+conscious user asks.
+
+**Now: "Everything you type is handled the same with no connection. Nothing is queued up to
+send later."** That keeps what #136 needed, which was killing the deferred upload story,
+and matches the corrected PRIVACY.md wording rather than overshooting it. Both copies were
+changed together, because `ALWAYS_ALLOWED` compares replies against the exemplar by prefix
+and they must be the same text.
+
+Also narrowed: onboarding read "Short reads from Wikipedia, offline", where the commas made
+"offline" a property of the feature rather than of the packs, while opening Discover fetches
+the manifest. Tied to the pack instead, matching how the Discover screen already words it.
+
+**What was checked and found sound**, so the next session does not redo it: every string in
+`app/src/main` matching network, offline, upload, tracking and data location claim shapes.
+That covers the onboarding copy, the settings subtitles, the Discover explanatory copy, the
+backup copy and the help text. `SupportSignpost` ("no ads, no tracking"), `VoiceScreen`
+("no network and no account", which describes use and is true), `BackupScreen`,
+`DiscoverSheets`, `QuestionsAndAnswers`, and slide 5's "No locked features" (about payment;
+the locked model tiers are a memory constraint, not a paywall).
+
+**What is left of the sweep is the model's own answers**, in every mode on both tiers. The
+exemplar it is now told to follow is correct, which it was not before.
+
+### A bookkeeping error in how this was committed, recorded rather than tidied away
+
+`SystemPrompts.kt`, `PromptEcho.kt` and `OnboardingCopy.kt` were committed inside
+`dd49f73`, whose message is about the #144 memory note toggle and does not mention them.
+`tools/prefix_probe.sh`, which belongs with the #143 measurement, is in there too.
+
+They were staged by a `git add -A` while unrelated work was in flight. Nothing is lost and
+nothing is wrong in the code, but a later reader looking for the offline claim fix by commit
+message would not find it, and would reasonably conclude it had never been made.
+
+This is written down rather than fixed by a rebase because the commits were unpushed and
+rewriting three of them under a thin context budget is the larger risk. **It is the same
+class as the five listing screenshots committed by hand inside an unrelated commit**, and
+that one was harmful specifically because nothing recorded it and a superseded image
+survived silently. The difference is only that this one is recorded.
+
+The lesson, which is the reusable part: stage by path when more than one piece of work is
+open, rather than `git add -A` and trusting that only one thing changed.
