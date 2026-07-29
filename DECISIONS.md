@@ -8170,20 +8170,21 @@ because a reply lifted from the instructions is not a reply. A supplied sentence
 is prompt text that is *supposed* to be spoken, and nothing told the guard the
 difference.
 
-The repair is not to withdraw either one. It is the exemption that already exists
-for the safe worked example, extended to every supplied sentence, and DECISIONS
-already records the shape of getting that wrong: "a guard is only worth having if
-its false positives are cheaper than its misses", and "the safe example has to be
-exempt from every check, not one". Exempting it from `isParrot` alone would leave
-`containsPromptText` to reject the same reply.
+**This entry first proposed extending the guard's safe-example exemption to every
+supplied sentence. That was wrong, and the next entry says why.** It is left here
+rather than deleted because the reasoning that produced it is the reasoning
+somebody will produce again: the two fixes look symmetrical, so weakening the
+guard looks like the only way to keep both.
 
-Not attempted under time pressure, deliberately. An unverified change to a guard,
-made on the way out, is how a false positive gets shipped to the one path where
-tone matters most.
+It is not, and the alternative was already on the device in the same run. The
+correct repair is the frame form in the entry below: specify how many sentences,
+what each carries, and what must not appear, and leave the words to the model. No
+fixed string enters the prompt, so nothing collides, and the guard is not touched
+at all.
 
-**Recorded as the immediate next step, and as a general warning: every remaining
-stage direction converted to a supplied sentence will hit this, so the guard
-exemption comes first and the conversions follow it.**
+**The ordering claim here is stale too.** It said the exemption must come before
+the remaining stage direction conversions. It must not: conversions written in the
+frame form need no exemption and can proceed immediately.
 
 ## Supply the frame, not the words: the conversion that worked and the one that did not
 
@@ -8218,3 +8219,31 @@ Brainstorm's frame form needs no guard change at all, and a guard exemption is a
 change to the one component whose false positives are the most expensive thing in
 this codebase. Try the frame first, and reach for the exemption only if something
 genuinely needs a fixed string.
+
+
+## Anything that must be worded exactly belongs in code, not in a prompt
+
+The corollary to supplying the frame rather than the words, and it closes the case
+the frame form does not cover.
+
+Sometimes a sentence genuinely has to be precise: a boundary, a refusal, a legal
+or safety line, a phrase that has been argued over and settled. The frame form
+leaves wording to the model, which is exactly wrong for those.
+
+**Put them in code and insert them programmatically.** The fallback that appears
+when the reply guard rejects a draft twice is already built this way, and it has
+never leaked, never been half-remembered, and never been rejected by a guard,
+because the model was never asked to reproduce it.
+
+That removes the whole class of collision instead of exempting it. A guard cannot
+distinguish a fixed string the model was told to speak from a fixed string it
+lifted, because there is no difference: both are prompt text appearing in a reply.
+The only reliable fix is to keep the fixed string out of the prompt.
+
+Three places to put a sentence, then, in order of preference:
+
+1. **Code**, when the words must be exact.
+2. **A frame in the prompt**, when the words should vary with what the user said.
+3. **A fixed string in the prompt**, which is now the option that needs
+   justifying, because it is the one that puts a guard and an instruction in
+   direct conflict.
