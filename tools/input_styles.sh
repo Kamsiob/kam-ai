@@ -76,8 +76,24 @@ for text in "${inputs[@]}"; do
   sleep 2
   "$adb" shell input tap "$mode_x" 2122
   sleep 7
-  WAIT=240 ./tools/say.sh "$text" 240 >/dev/null 2>&1 || true
-  ./tools/shot.sh "$out/$(printf '%02d' $i).png" >/dev/null 2>&1 || true
+  # No `|| true` on either of these, and that is the whole point.
+  #
+  # The first version swallowed both. A run then navigated out of the app, say.sh
+  # correctly refused to type, shot.sh correctly refused to capture, and this
+  # script printed ten clean results having sent nothing at all. Zero rejections
+  # across ten inputs, which is exactly what a good result looks like.
+  #
+  # Two guards did their jobs and the harness turned their refusals into a pass.
+  # A silent false pass is worse than a crash: it goes into the record as
+  # evidence.
+  if ! WAIT=240 ./tools/say.sh "$text" 240 >/dev/null; then
+    echo "Aborting at $i: could not send. Nothing after this would mean anything." >&2
+    exit 1
+  fi
+  if ! ./tools/shot.sh "$out/$(printf '%02d' $i).png" >/dev/null; then
+    echo "Aborting at $i: could not capture, so the reply cannot be read." >&2
+    exit 1
+  fi
   echoes="$("$adb" logcat -d -s KamEcho 2>/dev/null | grep -c 'rejected' || true)"
   printf '  %02d  echo=%s  %s\n' "$i" "$echoes" "${text:0:60}"
 done
