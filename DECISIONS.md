@@ -8311,3 +8311,33 @@ it affects and what correct behavior is in each. Where a fix is right for one
 mode and wrong for another, it belongs in that mode. Where it genuinely belongs in
 the shared layer, name the modes it must not alter and confirm afterwards that it
 did not.
+
+## Memory's only defense against being recited is a prohibition
+
+Reading the injection path before testing it. `withMemory` appends:
+
+> Things you have been told about this user before. Use them only when relevant,
+> and do not bring them up for their own sake:
+
+followed by the memories as a bulleted list.
+
+That instruction is a prohibition, and this project has measured, repeatedly, that
+prohibitions do not reliably change this model's behavior while shapes and worked
+examples do. See "adding a prohibition to a long prompt stopped changing this
+model's behavior".
+
+So the position is: **a user's personal facts are placed in the prompt as plain
+text, the only thing discouraging their recitation is the weakest lever available,
+and no guard covers them**, since the echo guard compares against `forMode` and
+never sees the memories at all.
+
+None of the three legs is wrong on its own. Memories have to be in the prompt to
+be used. The instruction is the right instruction. The guard cannot be handed the
+real prompt without rejecting correct replies. It is the combination that has
+never been looked at, and every other kind of prompt text in this application has
+leaked at least once.
+
+Recorded before measuring rather than after, so the prediction is on the record
+either way: if a planted memory can be made to appear in an answer about something
+else, this is a defect affecting every user who has ever told it anything. If it
+cannot, that is a real finding about where the leaking stops, and worth as much.
