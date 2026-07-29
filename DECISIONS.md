@@ -8247,3 +8247,67 @@ Three places to put a sentence, then, in order of preference:
 3. **A fixed string in the prompt**, which is now the option that needs
    justifying, because it is the one that puts a guard and an instruction in
    direct conflict.
+
+## The shared path audit, and the two things in it
+
+Prompted by the retry nudge, which was written for one input, landed in the shared
+reply path, and quietly broke Logic Partner. The question for the audit: what else
+sits in a shared layer having been written for a defect seen in one mode.
+
+### The guard checks a different prompt from the one that was sent
+
+`ChatViewModel` compares a reply against `SystemPrompts.forMode(mode)` plus the
+boundary. The prompt actually sent is built by `buildPrompt`, which adds, in
+order: the grounded passage for a Discover conversation, the user's system-wide
+instructions, the project's instructions and notes, the retrieved memories, the
+date, and any attached document.
+
+**None of that is visible to the guard.** A reply that recites the user's own
+instructions, a project note, a stored memory, an attached document, or the
+passage is not caught by anything.
+
+The direction of the mistake is fortunate and that is all it is. Had the guard
+been given the real prompt, it would reject correct replies constantly: grounded
+Discover chat is *supposed* to quote the passage, a reply about an attached
+document is supposed to draw on it, and a memory is in the prompt precisely so it
+can shape the answer. So this must not be "fixed" by handing the guard the full
+prompt, which is the obvious repair and the wrong one.
+
+What it does mean is that **memory recitation is entirely unguarded**, and that is
+worth testing rather than assuming, because the canonical memory in this project
+is "always work in metric units" and the earliest failure on record is that exact
+line appearing on an unrelated message. That failure was diagnosed as a worked
+example leaking. The same string is also the example memory. Nothing has ever
+separated the two.
+
+### The hard rules and Workbench contradict each other
+
+The hard rules, inherited by every mode:
+
+> A message too short or too vague to act on gets a question back, never a guess
+> and never a description of yourself.
+
+Workbench, forty lines later in the same prompt:
+
+> If the instruction is ambiguous, pick the most ordinary reading and carry on
+> rather than asking.
+
+One says ask, the other says never ask, and both are in force. This is what the
+audit was looking for: a rule written for General's behaviour, placed in the
+shared layer, contradicting a mode whose correct behaviour is the opposite.
+Workbench's own line is the right one for Workbench, because the user has already
+chosen a transformation from a button, so there is no ambiguity about whether an
+output is wanted.
+
+Not changed yet. Workbench is the one mode with no measurement behind it, having
+been wrongly audited once already, and a change to the shared rules touches every
+mode. It is recorded here and belongs in the same battery pass as the remaining
+conversions.
+
+### The standing check, so this is done before rather than after
+
+Before any change to shared prompt text or shared reply handling: name the modes
+it affects and what correct behaviour is in each. Where a fix is right for one
+mode and wrong for another, it belongs in that mode. Where it genuinely belongs in
+the shared layer, name the modes it must not alter and confirm afterwards that it
+did not.
