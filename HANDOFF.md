@@ -88,6 +88,27 @@ Batteries found none of the last four. These did:
   data here is not deleted without an export verified field by field.
 - A few dozen test conversations in the chat list.
 
+### The capture and input guards, and the one screen that defeats them
+
+Three files of the phone owner's other applications were captured and destroyed
+tonight while testing the share entry point: the assistant settings twice, and the
+launcher's app list. Every guard passed each time, correctly.
+
+`TextIntakeActivity` is a sheet drawn over whatever app shared the text, so Kam AI
+holds focus while most of the screen belongs to somebody else. The guard's premise,
+that focus means the screen is ours, is false there. **shot.sh now refuses that
+activity by name**, and it is the only fix available, because no check can repair a
+false premise.
+
+Two other holes were closed on the way: focus arrives before the pixels do, so a
+capture during a transition photographs the previous app, and shot.sh now settles
+and re-checks. And say.sh now refuses to type unless Kam AI is in front, rather
+than only refusing to send after it has already typed and pressed select-all.
+
+**How to test that entry point:** send the intent and read which branch was taken.
+`TextIntakeActivity` finishes immediately when the text is null or blank, so an
+activity that stays resumed had text. That is stronger than a picture and safe.
+
 ### Standing checks, learned the hard way tonight
 
 - Before changing shared prompt text or shared reply handling, name the modes it
