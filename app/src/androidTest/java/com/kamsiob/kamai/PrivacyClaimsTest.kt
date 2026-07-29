@@ -76,6 +76,13 @@ class PrivacyClaimsTest {
         // Voice typing, transcribed on device. Asked for at first use, and the
         // microphone is not required to install.
         "android.permission.RECORD_AUDIO" to "voice typing, transcribed on device",
+        // The app lock. USE_FINGERPRINT is explicitly removed in the manifest,
+        // because minSdk is 31 and it could never be used, leaving only something
+        // to explain on the store listing. This is the one that does the work.
+        //
+        // It was missing from the first version of this list, and this test is
+        // what found it, which is the argument for the test existing.
+        "android.permission.USE_BIOMETRIC" to "the app lock",
     )
 
     @Test
