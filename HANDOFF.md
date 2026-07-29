@@ -38,11 +38,25 @@ sentence, the model then said the supplied sentence, and the echo guard rejected
 it for being prompt text. See DECISIONS.md, "supplying the sentence puts it in the
 prompt, where the guard is watching".
 
-**The next step, before anything else:** extend the existing safe-example
-exemption in `PromptEcho` to cover supplied sentences, across *every* check rather
-than one. `isParrot` alone is not enough; `containsPromptText` will reject the
-same reply. Then re-run `tools/tier_battery.sh gemma-4-e4b-it-q4km <label> 3` and
-confirm `logic grief` returns to zero.
+**The next step, and it is cheaper than it first looked.** Brainstorm's
+conversion, made in the same pass, does *not* collide with the guard, and the
+difference says what to do. Brainstorm specifies the frame and leaves the words
+open, so the model writes them and there is no fixed string to match:
+
+> I'm sorry you're going through this. General is a better place for this.
+
+Zero rejections across three runs. Logic Partner supplied the sentence verbatim
+instead, so the model's correct reply was prompt text.
+
+So rewrite Logic's distress rule in Brainstorm's frame form: how many sentences,
+what each carries, what must not appear, words left to the model. **That needs no
+guard change at all.** Only if something genuinely requires a fixed string should
+the safe-example exemption in `PromptEcho` be extended, and then across *every*
+check rather than one, since `isParrot` alone leaves `containsPromptText` to
+reject the same reply.
+
+Then re-run `tools/tier_battery.sh gemma-4-e4b-it-q4km <label> 3` and confirm
+`logic grief` returns to zero.
 
 **Every remaining stage-direction conversion will hit this same wall**, so the
 exemption comes first and further conversions follow it.

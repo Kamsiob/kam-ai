@@ -8184,3 +8184,37 @@ tone matters most.
 **Recorded as the immediate next step, and as a general warning: every remaining
 stage direction converted to a supplied sentence will hit this, so the guard
 exemption comes first and the conversions follow it.**
+
+## Supply the frame, not the words: the conversion that worked and the one that did not
+
+Both conversions were made in the same pass and only one collided with the echo
+guard. The difference is worth more than either fix.
+
+**Brainstorm, which works.** The prompt specifies the shape and leaves the words
+open: two short sentences, the first that you are sorry, the second that General
+is the better place, and never say what kind of message it was. On the device:
+
+> I'm sorry you're going through this. General is a better place for this.
+>
+> I'm sorry for the loss you experienced. General is a better place for this.
+
+Correct routing, no stage direction, no method, no question, and **zero guard
+rejections across three runs**. The two replies differ, which is the point: there
+is no fixed string for the guard to match, because the model wrote the words.
+
+**Logic Partner, which did not.** The prompt supplies the sentence verbatim. The
+model said it, and the guard rejected it as prompt text, every turn, so a
+bereavement got the fallback.
+
+So the rule from "this model speaks descriptions of responses" needs a second
+half. Describing a response makes the model speak the description. Supplying the
+exact words makes the reply indistinguishable from a leak. **What works is
+specifying the frame with the content slots left open**: how many sentences, what
+each one carries, and what must not appear. Concrete enough that there is nothing
+to narrate, open enough that the model writes the words.
+
+That is also the cheaper repair for Logic Partner. Rewriting its distress rule in
+Brainstorm's frame form needs no guard change at all, and a guard exemption is a
+change to the one component whose false positives are the most expensive thing in
+this codebase. Try the frame first, and reach for the exemption only if something
+genuinely needs a fixed string.
