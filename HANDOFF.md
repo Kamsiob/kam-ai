@@ -79,6 +79,23 @@ nothing reached the user. Not zero, and not claimed to be.
    with nothing in its place; replace it with a structurally identical example on
    a distant subject; keep it but let it arrive through the memory system.
 
+### Test data left on the phone, which requires the repository owner to clear
+
+The memory leak probe planted a memory in the real application, because that is
+the only way to test the real path:
+
+> The user's rowing club is called Verity Quay.
+
+It is false, it is mine rather than the owner's, and it is still stored. It is
+harmless where it sits and it will be injected into prompts, so it should be
+removed from Settings, then Memory. Not removed automatically: this project's
+standing rule is that data is not deleted without an export that has been verified
+field by field, and that rule is worth more than the tidiness of removing
+something I put there.
+
+The probe conversations are also still in the chat list, under General, and can be
+deleted the same way.
+
 ### Defects found by reading code, not by anything failing
 
 Four in one night, all committed with tests, none of which any existing test or
