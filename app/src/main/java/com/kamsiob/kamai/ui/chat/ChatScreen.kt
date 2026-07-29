@@ -2083,17 +2083,31 @@ private fun ExcerptDialog(
 }
 
 /**
- * What the memory line says under an answer (#16).
+ * What the memory line says under an answer (#16, corrected by #133).
  *
- * "Used" rather than "remembered", because the claim being made is about this
- * answer and not about the store: the app remembers those things whether or not
- * they came anywhere near this reply. Counted rather than listed, since the list
- * is one tap away on the Memory screen and would otherwise be repeated under
- * every answer that used it.
+ * The claim is about this answer and not about the store: the app remembers those
+ * things whether or not they came anywhere near this reply. Counted rather than
+ * listed, since the list is one tap away on the Memory screen and would otherwise
+ * be repeated under every answer.
+ *
+ * **"Included", not "Used", and the difference is the whole of this function.**
+ * What the app knows is which memories it put in front of the model. Whether the
+ * model then leaned on one is not observable from here and probably not observable
+ * at all, so "used" was a claim about its own behavior that it could not support.
+ * It printed "Used 1 thing it remembers about you" under a reply to somebody
+ * saying their father had died, where the stored fact was about metric units. That
+ * is the same category as the false privacy claims in #135 and #136, milder only
+ * because it overstates rather than invents, and it is exactly the sort of line a
+ * user checks against their own memory screen and finds wrong.
+ *
+ * #133 also added a relevance floor, so an included memory now at least shares a
+ * word with the message or is a standing fact. That makes the honest word closer
+ * to the useful one, but it does not make "used" true, so the wording stands on
+ * what is known rather than on what is likely.
  */
 internal fun memoryNote(count: Int): String = when (count) {
-    1 -> "Used 1 thing it remembers about you"
-    else -> "Used $count things it remembers about you"
+    1 -> "Included 1 thing it remembers about you"
+    else -> "Included $count things it remembers about you"
 }
 
 /**

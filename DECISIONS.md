@@ -9430,3 +9430,162 @@ success is part of the result.
 the session, and one wrong claim that reached the record before a test disproved
 it. A harness that lies costs more than the defect it was built to find, because
 the defect is at least still there to be found afterwards.
+
+## The relevance floor, and what it costs the KV cache prefix
+
+#133's two open halves are now code, and the second one turned up a conflict with
+#38 and #52 that reading the issue would not have shown.
+
+**The floor.** `MemoryRetrieval.select` ranked and never filtered, so a memory was
+injected whenever there was room, and with `MEMORY_LIMIT` at 12 and the budget at
+ten percent of the window, a user with twelve stored facts had all twelve in front
+of the model on every message. Now a memory qualifies two ways and no others: it
+shares a word with the message, or `isStanding` recognizes it as a fact that bears
+on any reply. Everything else is dropped even when there is room.
+
+**The standing rule is code with a test, not a comment, and that was the point of
+tightening the acceptance criteria.** "A name or a job matters regardless of the
+question" was a defensible rule sitting in a doc comment where nothing could check
+it. It is now three mechanisms:
+
+| mechanism | why that mechanism | example |
+|---|---|---|
+| anchored at the start of the fact | stored facts are third-person predicates about the person | "works as a nurse" |
+| matched anywhere | the marker cannot be about anything else | "they/them", "screen reader", "metric" |
+| preference verb **and** an answer-style word | the verb alone is not a floor | "prefers plain language" |
+
+**The anchoring is the whole of why it is safe, and one real memory proves it.**
+"The user's rowing club is called Verity Quay" was planted during the #133 leak
+probes. A contains-check on "is called" would have classified a rowing club as an
+identity fact and injected it into every message forever, which is the original
+defect wearing the fix's clothes. Anchored after the subject strip, that fact reads
+"rowing club is called ...", which begins with nothing in the list. So "is called"
+is deliberately **not** a marker, and "name is" and "is named" are, because they
+require the naming word.
+
+**Applying the #137 lesson before being told to.** #137 was reopened because a
+condition was verified on one phrasing and failed on another, and the standing rule
+is exactly the same shape: a condition over free text. So it is tested against a
+list of what it must *not* match, and that list is longer than the list of what it
+must: seven topical preferences, ten ongoing projects and one-off facts, four
+naming traps, three facts about somebody other than the user. Over-firing here is
+the safe direction, because it quietly restores the old behavior rather than losing
+a name, but "the safe direction" is not a reason to leave it unmeasured.
+
+**Two fixtures in the existing tests were wrong in a way worth recording.** "The
+user always works in metric units" is a standing fact phrased without a preference
+verb, and the first version of the rule dropped it. That is why the adverb strip and
+the units-anywhere list exist: they were not designed, they were forced by a real
+memory the rule got wrong.
+
+### The cost, predicted from the code and not yet measured
+
+The memory block is appended at the tail of the system block, and the system block
+is the KV cache prefix. **A floor makes the injected set depend on the message's
+words, so the block is no longer byte identical between turns of one conversation.**
+The invalidation point is the first differing byte, so a turn that overlaps a stored
+fact re-prefills the memory block, the date, and all of the history behind it.
+
+This is the same defect the ordering fix was for, arriving from the other direction,
+and it is worth being blunt that the fix makes one thing worse: the no-floor
+behavior was *perfectly* stable, because the set never varied. Measured cost of an
+unstable memory block, from the ranked-order probe: 275 and 357 tokens of prefill
+and 10.1 and 11.5 seconds to first token, against 42 to 88 tokens and 2.5 to 5.1
+seconds when the block held still.
+
+**It is not the same size, and guessing which way is not acceptable here.** Under
+ranked order the block changed on every turn. Under the floor it changes only on a
+turn that overlaps a stored fact, and the standing facts, which are most of what
+survives the floor on an ordinary message, do not vary at all. So the frequency is
+lower and unknown. `tools/prefix_probe.sh` exists for precisely this measurement and
+it is queued.
+
+**Recorded as a prediction, in the order the standing rule requires: prediction
+first, measurement after.** `MemoryPrefixStabilityTest` pins the varying set as a
+known cost rather than leaving it to be discovered from a slow first token.
+
+**The architectural fix, if the measurement says the cost matters**, is to keep only
+standing facts in the cached prefix and place topical ones next to the current turn,
+where the prefill is paid anyway. It is not being smuggled in with the floor,
+because it changes prompt assembly for all six modes and one of those is Workbench,
+which the battery cannot reach. Tracked as its own issue.
+
+## "Used" was a claim the app could not support, and "Included" is one it can
+
+The line under a reply read "Used N things it remembers about you". The app knows
+which memories it put in front of the model. Whether the model then leaned on one is
+not observable from the call site and probably not observable at all, so "used" was
+a statement about its own behavior that it could not check.
+
+It printed "Used 1 thing it remembers about you" under a reply to somebody saying
+their father had died, where the stored fact was about metric units.
+
+That is the same category as the false privacy claims in #135 and #136: the
+application describing itself inaccurately. It is milder, because it overstates
+rather than invents, and it is worse in one respect, which is that it is the sort of
+line a user checks against their own memory screen and finds wrong.
+
+**Now "Included N things it remembers about you".** The acceptance criterion said it
+plainly: if the difference between available and used cannot be known, the honest
+line is about what was available. Counting what was injected and calling it used is
+the defect; counting what was injected and saying so is not.
+
+Rejected wordings, and why:
+
+- **"Used", kept with the floor doing the work.** The floor makes an included memory
+  at least word-relevant or standing, which makes "used" *likely* rather than true.
+  This project does not ship likely as a claim about itself.
+- **"Sent N things it remembers about you".** Accurate about the mechanism and
+  actively alarming in an application whose whole position is that nothing leaves
+  the phone. "Sent" reads as sent somewhere.
+- **"Remembered N things".** A statement about the store, not about this answer,
+  which is the question the line exists to answer.
+
+The stored field stays `memoriesUsed`, in the entity, the migration and the backup
+codec. Renaming it would be a database migration for a comment, and the wording that
+reaches a user is the part that was making the claim.
+
+### Verified on the device, all three cases
+
+`tools/memory_floor_probe.sh`, fresh conversation each, General, Gemma 4 E4B, with
+the two probe memories in the store: "my rowing club is called Verity Quay" and
+"I always work in metric units".
+
+| message | line under the reply | before |
+|---|---|---|
+| How do I get a coffee stain out of a rug? | Included 1 thing it remembers about you | Used 2 things |
+| What are you? | Included 1 thing it remembers about you | Used 2 things |
+| Is the rowing club open on Sunday? | Included 2 things it remembers about you | Used 2 things |
+
+**The middle row is the issue.** "What are you?" is a question about the application
+that no stored fact bears on, and it carried two personal facts and a line claiming
+both had been used. It now carries one, the standing fact, and says it included it.
+
+**The third row is the check that the floor did not simply break retrieval**, which
+a floor easily can. The reply was "I don't know if Verity Quay is open on Sunday. Do
+you have a schedule for the club?" The memory was excluded from the two unrelated
+messages and re-admitted by overlap here, and the model then used it by name. That
+is retrieval working, not surviving.
+
+**The rowing club is excluded for the right reason and it was worth confirming
+against the stored text rather than the test fixture.** The store holds the user's
+own words, "my rowing club is called Verity Quay", not the third-person form the
+auto extractor would write. After the subject strip that reads "rowing club is
+called Verity Quay", which begins with no marker. Had "is called" been in the list,
+this row would have read 2 and the fix would have been decorative.
+
+### One defect found in the harness while running it
+
+`say.sh` printed "no reply completed within 30s" and exited 0, because the warning
+was the last command in the file and `echo` succeeds. Every caller was therefore
+told nothing arrived and continued as though it had. `mode_battery.sh` deliberately
+has no `|| true` on that call, and the exit code defeated that care.
+
+The first probe of the run hit it: a cold model, five gigabytes of weights, slower
+than the ceiling. The capture proved the reply had landed a second later, so nothing
+was wrong with the result, which is exactly why this is worth writing down. A
+harness that cries wolf and a harness that reports a pass it did not earn are the
+same defect, and this one had been sitting behind the four fixed in 964c413.
+
+Fixed: it exits 1 and says that raising the ceiling is the usual answer. Same class
+as queued item 2, which is not finished.

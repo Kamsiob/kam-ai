@@ -126,11 +126,119 @@ object MemoryRetrieval {
     }
 
     /**
-     * The memories most worth injecting for [query], within [budgetChars] and at
-     * most [max] entries. Overlap dominates so a directly relevant fact wins;
-     * recency breaks ties and lets a few standing facts ride along on leftover
-     * budget even with no overlap (a name or job matters regardless of the
-     * question).
+     * The words a fact can be "about the user" in a way that governs every reply,
+     * as opposed to being about a thing, a place, or an event they mentioned once.
+     *
+     * Anchored at the start of the fact rather than searched for anywhere in it,
+     * and that anchoring is the whole reason this is safe. Stored facts are
+     * third-person predicates about the person: "works as a nurse", "lives in
+     * Leeds", "name is Kam". A topical fact that happens to contain the same words
+     * does not begin with them: "the user's rowing club is called Verity Quay" is
+     * about a club, and a contains-check on "is called" would have called it an
+     * identity fact and injected it into every message forever. That memory is a
+     * real one from the #133 probes, and it is the case this list is tested against.
+     */
+    private val STANDING_PREFIXES = listOf(
+        // Naming. "name is" and "is named" require the naming word; "is called"
+        // deliberately is not here, because it attaches to anything.
+        "name is", "is named", "goes by", "prefers to be called",
+        // Occupation and study, by explicit marker only. "is a ..." is not a
+        // marker: "is a vegetarian" and "is a big cricket fan" are topical.
+        "works as", "works at", "works in", "job is", "is retired",
+        "is a student", "is studying", "studies", "teaches",
+        // Where they are, which bears on dates, units, spelling and services.
+        "lives in", "based in", "is from",
+        // What they read and write in.
+        "speaks", "first language", "native language",
+    )
+
+    /**
+     * Facts that identify the person or govern how they must be addressed. Safe to
+     * look for anywhere in the text, because none of these can be about a rowing
+     * club: no topical fact contains "they/them" or "screen reader" by accident.
+     */
+    private val STANDING_ANYWHERE = listOf(
+        "pronoun", "they/them", "she/her", "he/him",
+        "dyslexi", "screen reader", "hard of hearing", "low vision",
+        "colour blind", "color blind", "autistic", "adhd",
+        // How every answer has to be expressed, whatever it is about. These are
+        // safe anywhere because a stored fact does not mention the units or the
+        // spelling it wants unless that is what the fact is for. The real memory
+        // "the user always works in metric units" is why the verb list alone is
+        // not enough: it is a standing fact phrased without a preference verb.
+        "metric", "imperial", "celsius", "fahrenheit", "24-hour clock",
+        "american spelling", "british spelling",
+    )
+
+    /**
+     * A preference is standing only when it is a preference about *the answer*.
+     * "prefers plain language" changes every reply; "prefers oat milk" changes a
+     * reply about coffee and nothing else. The verb alone is not enough, and
+     * treating it as enough is how a floor stops being a floor.
+     */
+    private val ANSWER_STYLE = listOf(
+        "plain", "simple", "short", "brief", "concise", "detail", "direct",
+        "blunt", "formal", "informal", "casual", "bullet", "list", "jargon",
+        "technical", "example", "analog", "metric", "imperial", "celsius",
+        "fahrenheit", "mile", "kilometre", "kilometer", "24-hour", "swear",
+        "emoji", "spelling", "american", "british",
+    )
+    private val PREFERENCE_VERBS = listOf(
+        "prefers", "likes", "dislikes", "hates", "wants", "does not like",
+        "doesn't like", "asks for", "needs",
+    )
+
+    /**
+     * Whether a memory bears on a reply regardless of what the message is about.
+     *
+     * This is the rule that lets standing facts ride along with no word overlap,
+     * expressed as code so it can be tested rather than left to the model (#133).
+     * Deliberately narrow: over-firing here quietly restores the old
+     * inject-everything behavior, and under-firing loses a name on an unrelated
+     * question, so the tests cover both directions.
+     */
+    fun isStanding(text: String): Boolean {
+        val t = text.lowercase().trim()
+        if (STANDING_ANYWHERE.any { it in t }) return true
+        // Strip a leading subject so "the user's name is Kam" and "name is Kam"
+        // are the same fact. Only the subject goes: the possessive in "the user's
+        // rowing club" leaves "rowing club is called ...", which is the point.
+        var body = t
+            .removePrefix("the user's ").removePrefix("the user ")
+            .removePrefix("user's ").removePrefix("user ")
+            .removePrefix("they ").removePrefix("i ").removePrefix("my ")
+            .trim()
+        // "always works in metric units" and "usually prefers short answers" are
+        // the same facts as without the adverb. Stripped after the subject so
+        // "the user always ..." reaches the same place.
+        for (adverb in listOf("always ", "usually ", "generally ", "normally ", "often ")) {
+            body = body.removePrefix(adverb)
+        }
+        if (STANDING_PREFIXES.any { body.startsWith(it) }) return true
+        return PREFERENCE_VERBS.any { body.startsWith(it) } &&
+            ANSWER_STYLE.any { it in body }
+    }
+
+    /**
+     * The memories worth injecting for [query], within [budgetChars] and at most
+     * [max] entries.
+     *
+     * **There is a floor, and a memory below it is not injected at all** (#133).
+     * A memory qualifies two ways and no others: it shares a word with the message,
+     * or [isStanding] recognizes it as a fact that bears on any reply. Everything
+     * else is dropped even when there is room for it.
+     *
+     * This used to rank and never filter, so twelve stored facts meant twelve facts
+     * in front of the model on every message. That cost ten percent of a 4096 token
+     * window on the tier that can least afford it, and it made the app tell a user
+     * it had used something it remembered about them underneath an answer about a
+     * coffee stain. The prompt already asked the model to "use them only when
+     * relevant", which is the wrong way round: the cheap deterministic filter was
+     * skipped in favor of the expensive unreliable one.
+     *
+     * Relevant memories fill the budget first, best overlap first. Standing facts
+     * then ride along on what is left, which keeps the behavior that was decided
+     * on deliberately: a name or a job matters regardless of the question.
      */
     fun select(
         items: List<Item>,
@@ -141,12 +249,23 @@ object MemoryRetrieval {
     ): List<String> {
         if (items.isEmpty() || budgetChars <= 0 || max <= 0) return emptyList()
         val q = tokens(query)
-        val ranked = items.sortedByDescending { item ->
-            val overlap = tokens(item.text).count { mt -> q.any { qt -> matches(mt, qt) } }
+        fun overlapOf(item: Item) =
+            tokens(item.text).count { mt -> q.any { qt -> matches(mt, qt) } }
+        fun recencyOf(item: Item): Double {
             val ageDays = (now - item.updatedAt).coerceAtLeast(0L) / 86_400_000.0
-            val recency = 1.0 / (1.0 + ageDays)
-            overlap * 10.0 + recency
+            return 1.0 / (1.0 + ageDays)
         }
+
+        val relevant = items.filter { overlapOf(it) > 0 }
+            .sortedByDescending { overlapOf(it) * 10.0 + recencyOf(it) }
+        // Standing facts are the fallback, not competition for the relevant ones,
+        // so they are appended rather than merged into one ranking. A standing
+        // fact that also overlaps is already in the first list; excluding it here
+        // is what stops it being injected twice.
+        val standing = items.filter { overlapOf(it) == 0 && isStanding(it.text) }
+            .sortedByDescending { recencyOf(it) }
+        val ranked = relevant + standing
+
         val chosen = ArrayList<Item>()
         var used = 0
         for (item in ranked) {

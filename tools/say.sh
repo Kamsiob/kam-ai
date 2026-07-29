@@ -121,4 +121,24 @@ while [ "$SECONDS" -lt "$deadline" ]; do
 done
 # The screen is a frame or two behind the log line that says the work is done.
 sleep 2
-[ "$seen" -eq 1 ] || echo "say.sh: no reply completed within ${wait_s}s" >&2
+
+# **Exit nonzero, do not merely mention it.** This warning used to be the last
+# command in the file, so the `echo` succeeded and the script exited 0 whatever
+# had happened. Callers were then told a reply had not arrived and carried on as
+# though one had, which is the same class as the four scripts fixed in 964c413:
+# mode_battery.sh deliberately has no `|| true` on this call, and that care was
+# defeated by the exit code.
+#
+# Found by tools/memory_floor_probe.sh, where the first message of a run timed out
+# on a cold model, the run continued, and the capture happened to prove the reply
+# had in fact landed a moment later. Benign that time. Not a reason to leave it.
+#
+# A caller that genuinely wants to continue past a timeout has to say so with an
+# explicit `|| true` and a reason. The usual fix is a larger ceiling: the first
+# generation after the app starts loads five gigabytes of weights and is much
+# slower than every one after it.
+if [ "$seen" -ne 1 ]; then
+  echo "say.sh: no reply completed within ${wait_s}s" >&2
+  echo "say.sh: the message may still have been sent; raise the ceiling for a cold model" >&2
+  exit 1
+fi

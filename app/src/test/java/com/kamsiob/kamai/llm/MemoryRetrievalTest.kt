@@ -29,9 +29,15 @@ class MemoryRetrievalTest {
         val items = listOf(
             item("aaaaaaaaaa", 1), item("bbbbbbbbbb", 2), item("cccccccccc", 3),
         )
-        // Budget fits about two 10-char entries plus separators.
-        val chosen = MemoryRetrieval.select(items, "x", now, budgetChars = 22, max = 10)
-        assertThat(chosen.size).isAtMost(2)
+        // Every entry must clear the relevance floor (#133) or this tests nothing:
+        // with a query of "x" all three are now dropped for irrelevance and the
+        // assertion passes without the budget being consulted. The query names all
+        // three so the budget is the only thing doing any work, and the count is
+        // asserted exactly rather than as an upper bound for the same reason.
+        val query = "aaaaaaaaaa bbbbbbbbbb cccccccccc"
+        // Budget fits exactly two 10-char entries plus their separators.
+        val chosen = MemoryRetrieval.select(items, query, now, budgetChars = 22, max = 10)
+        assertThat(chosen).hasSize(2)
     }
 
     @Test
