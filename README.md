@@ -66,7 +66,7 @@ Real captures from the phone, never mockups.
 <table>
 <tr>
 <td width="33%"><img src="docs/screenshots/chats-light.png" alt="The chat list"></td>
-<td width="33%"><img src="docs/screenshots/chat-light.png" alt="A conversation"></td>
+<td width="33%"><img src="docs/screenshots/conversation-light.png" alt="A conversation"></td>
 <td width="33%"><img src="docs/screenshots/discover-light.png" alt="Discover"></td>
 </tr>
 <tr>
@@ -77,12 +77,12 @@ Real captures from the phone, never mockups.
 <tr>
 <td><img src="docs/screenshots/projects-light.png" alt="Projects"></td>
 <td><img src="docs/screenshots/followups-light.png" alt="Follow-ups"></td>
-<td><img src="docs/screenshots/modepicker.png" alt="Choosing a mode"></td>
+<td><img src="docs/screenshots/model-light.png" alt="Choosing a model"></td>
 </tr>
 <tr>
 <td><b>Projects</b> keep related chats together under instructions and notes they all share.</td>
 <td><b>Follow-ups</b> is where everything you saved ends up, from anywhere in the app.</td>
-<td><b>Switching mode</b> partway through a chat, keeping everything already said.</td>
+<td><b>Choosing a model.</b> Speed measured on your own phone, quality against the models offered here, and an honest note where one is weaker at something.</td>
 </tr>
 </table>
 
@@ -94,13 +94,13 @@ Real captures from the phone, never mockups.
 <table>
 <tr>
 <td width="33%"><img src="docs/screenshots/chats-dark.png" alt="The chat list, dark"></td>
-<td width="33%"><img src="docs/screenshots/chat-dark.png" alt="A conversation, dark"></td>
+<td width="33%"><img src="docs/screenshots/conversation-dark.png" alt="A conversation, dark"></td>
 <td width="33%"><img src="docs/screenshots/discover-dark.png" alt="Discover, dark"></td>
 </tr>
 <tr>
 <td><img src="docs/screenshots/projects-dark.png" alt="Projects, dark"></td>
 <td><img src="docs/screenshots/followups-dark.png" alt="Follow-ups, dark"></td>
-<td><img src="docs/screenshots/modepicker-dark.png" alt="Choosing a mode, dark"></td>
+<td><img src="docs/screenshots/model-dark.png" alt="Choosing a model, dark"></td>
 </tr>
 </table>
 
