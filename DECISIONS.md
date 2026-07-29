@@ -8631,3 +8631,41 @@ passage does not leak into Discover answers.
 It also confirmed #133 on the device. "Used 2 things it remembers about you"
 appeared under an answer to "What are you?", which no stored fact bears on. The
 retrieval has no relevance floor and this is what that looks like from the outside.
+
+## The memory ordering defect, measured on the device
+
+The unit test proved the order changed. This is what it cost, measured with
+`tools/prefix_probe.sh`: one conversation held for five turns, same phone, same
+probe, one line of code different.
+
+| build | prefill per turn | time to first token |
+|---|---|---|
+| ranked order | **275 and 357 tokens** | **10.1s and 11.5s** |
+| newest first | 42 to 88 tokens | 2.5 to 5.1s |
+
+Roughly a threefold difference in the thing this application measures itself by,
+on an ordinary turn of an ordinary conversation, for any user with more than one
+thing stored.
+
+**Designing the probe took three attempts and the failures are the instructive
+part.** The first two runs reported healthy reuse on the broken build, which would
+have closed the question with the wrong answer.
+
+- Turns that share no word with any stored memory rank by recency alone, so
+  ranked order and recency order coincide and the block never changes. A probe
+  made entirely of unrelated turns cannot tell a stable block from an unstable one.
+- Then a turn that overlapped the *newest* memory, which also failed: that memory
+  was already first by recency, so ranking put it where recency already had it.
+
+Only a turn overlapping an **older** memory reorders anything, because only that
+pulls something up past something else. That is the one case the probe has to
+contain, and it is not the case anybody writes by accident.
+
+The general form is worth keeping: **a probe for an ordering defect has to contain
+the input that changes the order.** Two runs of a well-intentioned probe said the
+broken build was fine.
+
+It also cost two runs to a navigation defect on the way, where Back on the chat
+list left the application entirely and the taps went to the phone owner's home
+screen and calendar. That is fixed in both the probe and in say.sh, which now
+refuses to type at all unless Kam AI is in front rather than only refusing to send.

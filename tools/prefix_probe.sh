@@ -40,10 +40,28 @@ trap restore EXIT
 # Deliberately about different subjects turn to turn. If the block were still
 # ordered by relevance, changing subject is exactly what would reorder it, so
 # these are the turns most likely to miss the cache.
+# One of these deliberately overlaps the *oldest* stored memory, and the rest do
+# not.
+#
+# That is the whole design, and the first version got it wrong. With turns that
+# share no word with anything stored, ranking by overlap and ranking by recency
+# give the same order, so a run cannot tell a stable block from an unstable one
+# and reports success either way. The overlapping turn is what pulls one memory to
+# the front of the ranking, which is the moment the block changes.
+#
+# It has to be the oldest memory, which took two failed attempts to work out. If
+# the overlapping turn matches the newest one, that memory was already first by
+# recency, so the ranking puts it exactly where recency already had it and the
+# block does not change. Only pulling an *older* memory to the front reorders
+# anything.
+#
+# Run it with a memory about metric units stored, which is this project's
+# canonical example, or the middle turn overlaps nothing and this is the useless
+# version again.
 turns=(
   "What is a good way to keep track of small repairs around the house?"
   "The back gate sticks whenever the wood swells."
-  "How long should tea steep?"
+  "Is it worth switching from metric units to imperial for baking?"
   "What time do most libraries close on a Sunday?"
   "Remind me what we were talking about."
 )
@@ -54,8 +72,24 @@ sleep 8
 
 # One conversation, held. Not session.sh, because this needs the log cleared and
 # read at a specific point rather than screenshots.
+# Back, then check we are still in the app.
+#
+# On the chat list, Back leaves Kam AI entirely and lands on the launcher, and
+# every tap after that goes to somebody else's home screen. Two runs were lost to
+# this before say.sh was taught to refuse to type when the app is not in front.
+# The same guard already existed in mode_fit.sh and was never carried across,
+# which is its own lesson about fixing a defect in one script and leaving its
+# copies alone.
+if "$adb" shell dumpsys input_method 2>/dev/null | grep -q 'mInputShown=true'; then
+  "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
+  sleep 1
+fi
 "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
 sleep 2
+if ! "$adb" shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus | grep -q com.kamsiob.kamai; then
+  "$adb" shell am start -n com.kamsiob.kamai/.MainActivity >/dev/null 2>&1 || true
+  sleep 6
+fi
 "$adb" shell cmd statusbar collapse >/dev/null 2>&1 || true
 "$adb" shell input tap 143 2270
 sleep 2
