@@ -8560,3 +8560,39 @@ recognized as one.
 
 Experiments that modify tracked files should be staged deliberately, or the
 experiment should live in a file the commit does not sweep up.
+
+## Three wordings for one instruction, and none of them is free
+
+Same five inputs, three runs each, General, E4B. The rejection count is the cheap
+measure; what the replies actually did is the real one.
+
+| wording | rejections | what went wrong |
+|---|---|---|
+| acknowledge it in one line | 6 of 15 | restatements, the original defect |
+| a detail they left out | 2 of 15 | **fabrication**: an invented closing time |
+| a general fact that bears on it | 3 of 15 | a restated sentence in front of a real answer |
+
+**The fabrication is gone**, which was the point. No invented particulars in any of
+the fifteen runs.
+
+What replaced it is milder and still wrong. Two of three library replies open by
+repeating the user's sentence and then add something:
+
+> The library closes early on Sundays. What time does it close?
+
+That is not a restatement in the sense the guard catches, because a real question
+follows it, and it is not nothing: the hard rules already say an answer starts
+with the answer and never repeats the question back, and the model is ignoring
+that rule while following the new one.
+
+**Keeping the third wording, and the reason is harm rather than count.** Three
+rejections beats two on the tally and loses on everything that matters. A restated
+sentence in front of a good answer is clumsy and visibly so. A confident invented
+fact about somebody's own library is the failure this application's central claim
+is about, it does not look like an error, and no guard sees it. Choosing the
+higher number here is choosing the failure a user can recognize.
+
+Recorded rather than iterated on further. Three prompt wordings have now been
+measured against the same inputs; a fourth would be the sixth round of editing on
+this instruction, and the evidence from the first five is that the remaining
+distance is not in the wording.
