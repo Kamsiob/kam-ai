@@ -8828,3 +8828,38 @@ and the model is ignoring that while following the additive rule next to it. Tha
 is a prompt asking for two things and getting the newer one, which no further
 wording round is likely to resolve, and it is now the smallest remaining piece of
 #122 rather than the whole of it.
+
+## The tier finding survived the largest prompt change yet
+
+The prompts changed more in one night than in the previous three days: the
+acknowledgement example moved off its colliding subject, five stage directions
+converted to frames, the statement instruction rewritten twice. On E4B that took
+the battery from seven guard interventions to zero across thirty cases.
+
+The same prompts on E2B went from 18 to 13, and the one cell that matters did not
+move at all.
+
+| mode | input | E2B before | E2B now | E4B now |
+|---|---|---|---|---|
+| general | bread | 6 | 3 | 0 |
+| brainstorm | all three | 0 | 0 | 0 |
+| logic | **sound** | **6** | **6** | **0** |
+| logic | values | 4 | 3 | 0 |
+| logic | weak | 2 | 1 | 0 |
+| total | | 18 | 13 | **0** |
+
+Six interventions across three runs on a sound argument is both attempts rejected
+every time, which is the fallback every time.
+
+**The gap widened.** Before tonight, 18 against 7. Now 13 against 0, and the whole
+remainder is Logic Partner.
+
+This is the strongest evidence yet for the thing #132 asks the owner to decide,
+and it closes one of the four options. The prompt is identical on both tiers and
+one tier now runs it perfectly. Continuing to make E2B hold an argument is not
+winnable by prompt work: this was the sixth round and the largest, it improved
+every other cell on E2B, and it moved that one not at all.
+
+Worth noting what would have happened without the per-mode breakdown. "E2B went
+from 18 to 13" reads as progress. Per mode it reads as the improvement landing
+everywhere except the place that matters, which is the opposite conclusion.
