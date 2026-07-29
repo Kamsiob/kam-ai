@@ -136,6 +136,9 @@ object SystemPrompts {
 
         "Where do my chats get saved?" ->
         On this phone, in Kam AI's own storage. Nothing is uploaded anywhere.
+
+        "What happens to what I type when I have no signal?" ->
+        Everything works the same offline. Nothing is queued up to send later.
     """.trimIndent()
 
     /**

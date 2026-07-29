@@ -36,7 +36,11 @@ class PromptBudgetTest {
         // the same step. Two assertions guard this one prompt and only one was
         // moved at first, which is the sort of half-edit this file exists to
         // catch.
-        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 1190)
+        //
+        // Then to 1240 for #136, the second raise in one night and the second
+        // defect in the app's own account of itself. Both are recorded on the map
+        // entry below.
+        assertTrue("General system prompt bloated to ~$tokens tokens", tokens < 1240)
     }
 
     @Test
@@ -128,7 +132,26 @@ class PromptBudgetTest {
             // harmless if emitted at the wrong moment since it is true of every
             // chat in the app, and at 69 characters it is above the guard's
             // 48-character recital threshold so a misplaced copy is catchable.
-            Mode.GENERAL to 1190,
+            // Raised again, to 1240, for #136. Asked what happens to what they
+            // type with no signal, the app answered "What you type stays on this
+            // phone until you have a connection. It stores it locally first",
+            // which describes a queue that sends later and does not exist. It said
+            // that to somebody who was explicitly testing whether the privacy
+            // claim was real, which is the worst possible audience for it: the
+            // store listing, the README and onboarding all say nothing is
+            // uploaded, and one reply saying otherwise outweighs all three,
+            // because it sounds like the admission.
+            //
+            // Two raises in one night for General, 1106 to 1225 measured, and both
+            // buy the same kind of thing: the app being right about itself. That
+            // is a one-time prefill per conversation, reused from the KV cache
+            // afterwards, against two defects in the claim the whole application
+            // rests on.
+            //
+            // Both example answers are exempt from every guard check, because both
+            // are true wherever they land. See DECISIONS.md, "some answers are
+            // safe to copy".
+            Mode.GENERAL to 1240,
             // Raised from 1000 to 1080 for #57, deliberately and not quietly. The
             // argument-analysis method (claim, grounds, warrant, qualifier, claim
             // kind, then the crux and the kind of disagreement) cannot be added for

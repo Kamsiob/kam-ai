@@ -50,6 +50,11 @@ class PromptQuotableTextTest {
                 "at an ambiguous message, the output is still correct.",
         "we should skip automated tests to ship faster" to
             "The topic of Logic Partner's worked argument. Fixes #114.",
+        "What happens to what I type when I have no signal?" to
+            "The input half of the offline example in General. Fixes #136, where " +
+                "the app told somebody checking its privacy claim that what they " +
+                "type stays on the phone until there is a connection, which " +
+                "describes a queue that does not exist.",
         "Where do my chats get saved?" to
             "The input half of the identity example in General. Fixes #135, where " +
                 "questions about the app were answered as though Kam AI were a " +

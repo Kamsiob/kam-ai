@@ -166,6 +166,16 @@ object PromptEcho {
         // question that triggered it was a paraphrase, and paraphrase is how
         // support questions arrive.
         "On this phone, in Kam AI's own storage. Nothing is uploaded anywhere.",
+        // The offline answer, added for #136, and here for the same reason: it is
+        // true wherever it lands. The app works the same with no connection and
+        // queues nothing, always, so a model that emits this at the wrong moment
+        // has still said something correct.
+        //
+        // #136 was the app telling somebody who was explicitly checking the
+        // privacy claim that what they type "stays on this phone until you have a
+        // connection" and "stores it locally first", which describes a deferred
+        // upload that does not exist.
+        "Everything works the same offline. Nothing is queued up to send later.",
     )
 
     private fun isAllowedOutright(normalizedReply: String): Boolean =
