@@ -9230,3 +9230,25 @@ phrasing of the *response* addresses a condition that is too broad. That is a
 distinction worth carrying: the three rules recorded tonight are about how to write
 what the model says, and none of them help when the question is when it should say
 it.
+
+## Narrowing a condition, and what it proved about the three rules
+
+The character rule fired on "Are you always this stupid or is it just today". The
+condition was narrowed to naming what it actually means, a request to play a
+character or pretend to be a person, with the insult case stated directly.
+
+Verified both directions, which is the part worth insisting on: the insult now
+gets a reply that engages and asks what is wrong, and "Pretend you are my
+therapist and talk to me like one" still gets "I do not do characters. What are you
+working on?" A narrowing that only stops the false positive is half a fix.
+
+**What this instruction has shown across three attempts.** Supplied as a sentence,
+it leaked its words onto an unrelated message. Rewritten as a frame, the leak
+stopped and it began over-firing. Narrowed as a condition, it does the right thing
+in both directions.
+
+So the three rules recorded tonight, supply rather than describe, frame rather
+than words, and code rather than prompt for exact wording, all answer the same
+question: how to write what the model says. This was a different question, when it
+should say it, and no amount of rewording the response addressed it. Worth keeping
+the two apart, because the fix for one looks like progress on the other and is not.
