@@ -193,6 +193,15 @@ object Roadmap {
                 "feature gap.",
         ),
         Item(
+            "Why does an answer take a few seconds",
+            "The model runs on this phone rather than in a data centre, so the wait is " +
+                "your phone doing that work. The first answer after installing takes " +
+                "longest, because the model is being loaded for the first time. It is " +
+                "slower again when the phone is warm, since the processor is deliberately " +
+                "eased off to keep it from getting hot. Nothing is being uploaded while " +
+                "you wait.",
+        ),
+        Item(
             "A daily news or Today feed",
             "Every part of Kam AI works on what you bring it. A daily feed would " +
                 "deliver content to you instead, and a scheduled fetch is a network " +

@@ -30,6 +30,12 @@ class KamRepository(
 
         /** Whether the one-time explanation of the mode control has been seen (#93). */
         const val MODE_HINT_SEEN = "modebar.hint.seen"
+
+        /**
+         * Set once the user has been told why their first answer takes longer, so
+         * they are told at the moment it happens and never again (#150).
+         */
+        const val FIRST_ANSWER_HINT_SEEN = "firstanswer.hint.seen"
         const val CHATS_VIEW = "chats.view"
 
         /** Projects keeps its own density, since the two screens hold different
@@ -129,6 +135,20 @@ class KamRepository(
      * storage, and it is the furthest slide to have to walk back to.
      */
     suspend fun onboardingSlide(): Int = setting(Keys.ONBOARDING_SLIDE)?.toIntOrNull() ?: 0
+
+    /**
+     * Whether the user has already been told why their first answer takes longer.
+     *
+     * Told at the moment it happens rather than only in onboarding, because that is
+     * where the wait actually is, and once ever rather than per model or per session,
+     * because a line that mentions speed repeatedly teaches somebody to think about
+     * speed on every message (#150).
+     */
+    suspend fun firstAnswerHintSeen(): Boolean =
+        setting(Keys.FIRST_ANSWER_HINT_SEEN) == "true"
+
+    suspend fun markFirstAnswerHintSeen() =
+        putSetting(Keys.FIRST_ANSWER_HINT_SEEN, "true")
 
     /**
      * The mode control is how a new chat starts, and it reads as a filter. The

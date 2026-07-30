@@ -289,8 +289,19 @@ private fun SlideOne(onContinue: () -> Unit) {
                     color = colors.textSecondary,
                 )
             }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(14.dp))
+            // The speed expectation, on the privacy slide on purpose (#150): the wait
+            // and the reason for it are the same fact, so they belong in the same
+            // breath rather than as a caveat somewhere later.
             Staggered(3) {
+                Text(
+                    OnboardingCopy.SLIDE1_SPEED,
+                    style = KamTheme.type.body,
+                    color = colors.textTertiary,
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            Staggered(4) {
                 Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     OnboardingCopy.slide1Chips.forEach { KamChip(it) }
                 }

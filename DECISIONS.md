@@ -10390,3 +10390,63 @@ Reverted, with the reasoning written at the line so the next person does not "fi
 **This is the third time the pair check has found something**, and the first time what it found
 was a change being made in the moment rather than an old drift. A check that catches your own
 work as it happens is worth more than one that audits it afterwards.
+
+## Setting expectations about speed, measured first and written from the worst case
+
+The largest unaddressed launch risk, and not a polish item. Someone downloads several
+gigabytes, sends a first message, and waits. Not knowing why, they conclude the application is
+broken and uninstall it, and that judgement is made once and never revisited.
+
+### The honest range, measured before any copy was written
+
+`tools/first_answer_range.sh`, E4B, thermal status 0, which is the *best* case:
+
+| case | time to first token | prefill |
+|---|---|---|
+| cold, force-stopped first | 4.9 s | 155 tok |
+| warm, fresh conversation | 4.8 s | 151 tok |
+| warm again | 4.9 s | 152 tok |
+| **the memory path** | **9.2 s** | 287 tok |
+
+**Two things this corrected.** The often-quoted 2.9 seconds is a held conversation reusing its
+prefix; a fresh conversation, which is what a new user opens, is about five seconds. And the
+memory path roughly doubles it, consistent with #143 at a different point in the run.
+
+**The worst realistic case is worse than anything in that table.** Thermal was 0 throughout and a
+warm phone was measured at roughly threefold, and the true first answer after installing is
+slower than the "cold" row here because those weights had already been read once and were still
+in the page cache. That is why the copy says "a few seconds", "longest the first time" and
+"slower when the phone is warm" rather than naming a number.
+
+### Told in three places, each doing a different job
+
+**Onboarding, once**, on the privacy slide rather than as a caveat elsewhere, because the wait
+and the reason for it are the same fact. Framed as what they get: "That wait is your phone doing
+the work a data centre would otherwise do with your words." Nothing else on the store can say
+that.
+
+**At the first message, which matters more**, because that is where the wait actually is. A
+plain line, not a spinner and not a percentage that cannot be honest, shown once ever:
+
+> Starting the model up, so this first answer takes longer. The ones after it are quicker.
+
+First written as "Loading the model onto the phone", and changed because **that reads as
+downloading**, which is the one thing the user has just finished doing and must not be told is
+happening again.
+
+**The Q&A screen and the store listing**, so somebody deciding whether to install knows before
+they download several gigabytes. A user who was told it would be slower and finds it slower is
+fine. A user who was not is gone.
+
+### What was deliberately not done
+
+No apology, and the word "slow" appears nowhere: it says what the phone is doing and why. No
+number the app cannot keep. **No persistent indicator or badge**, because anything mentioning
+speed on every message teaches somebody to think about speed on every message. Once at
+onboarding, once at the first answer, and after that only when there is a specific reason for a
+specific wait, which #134 already covers for a warm phone.
+
+### Verified on the device
+
+The line appears on the first message and **not on the second**, checked across an app restart
+between the two.

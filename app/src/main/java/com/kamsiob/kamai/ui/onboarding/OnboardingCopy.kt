@@ -33,6 +33,29 @@ object OnboardingCopy {
         button = "Continue",
     )
 
+    /**
+     * The speed expectation, set once, as part of the honest framing rather than as an
+     * apology (#150).
+     *
+     * **The largest unaddressed launch risk.** Someone downloads several gigabytes, sends
+     * a first message, and waits. Not knowing why, they conclude it is broken and
+     * uninstall, and that judgement is made once and never revisited.
+     *
+     * Written from measurement rather than hope: E4B on a cool phone gives about five
+     * seconds for an ordinary answer and about nine on the memory path, and a warm phone
+     * is roughly threefold worse. So this says "a few seconds" and "longer when the phone
+     * is warm" rather than naming a number the app cannot keep, and it says the first one
+     * is the slowest, because that is the moment most likely to lose somebody.
+     *
+     * Framed as what they get. The wait is the phone doing work a data centre would
+     * otherwise do with their words, and no other assistant on the store can say that.
+     */
+    const val SLIDE1_SPEED =
+        "Answers take a few seconds, and the very first one after installing takes " +
+            "longest while the model loads. That wait is your phone doing the work a " +
+            "data centre would otherwise do with your words. It is slower when the " +
+            "phone is warm, and quicker once it gets going."
+
     val slide1Chips = listOf("No characters.", "No roleplay.", "No pretend friend.")
 
     val slide2 = Slide(

@@ -459,6 +459,32 @@ class ChatViewModel(
         // than after the model has finished loading and ingesting the prompt.
         _streaming.value = true
         viewModelScope.launch {
+            // The first answer a person ever waits for, explained once, at the moment
+            // the wait happens (#150).
+            //
+            // **This is the point where a new user is lost.** They have downloaded
+            // several gigabytes, typed a first message, and are now watching an
+            // indicator. If they do not know why, the conclusion is that the app is
+            // broken, and that judgement is made once and never revisited.
+            //
+            // Measured on this phone, E4B, cool: about five seconds for an ordinary
+            // answer and about nine on the memory path, with a warm phone roughly
+            // threefold worse. The true first answer after installing is slower still,
+            // because the weights have never been read. So the line promises nothing
+            // and explains instead, and it says the next ones are quicker because that
+            // is the fact that keeps somebody here.
+            //
+            // Once, ever. Not a badge, not a persistent indicator, and never repeated:
+            // anything that mentions speed on every message teaches the user to think
+            // about speed on every message.
+            if (!repository.firstAnswerHintSeen()) {
+                repository.markFirstAnswerHintSeen()
+                // "Loading the model onto the phone" first, changed because it reads as
+                // downloading, which is the one thing the user has just finished doing
+                // and must not be told is happening again. "Starting up" is what it is.
+                _notice.value = "Starting the model up, so this first answer takes " +
+                    "longer. The ones after it are quicker."
+            }
             val id = _conversationId.value ?: repository.createConversation(_mode.value).also {
                 _conversationId.value = it
             }
