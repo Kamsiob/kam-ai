@@ -166,6 +166,31 @@ first seeded set was thrown away and reseeded because of it**, so the frames sho
 by default rather than what it does under a test artifact. Read the settings array of an export
 before trusting that the device is clean.
 
+### The claims sweep: finished, and it passes
+
+**The last piece was the model's own answers**, which no grep finds and which the model
+generates fresh each time. Six probes across General, Logic and Brainstorm, each in a fresh
+conversation, on the default tier. **No false claim in any of them.**
+
+**Read the replies out of an exported backup, not off screenshots.** That is the cheap, exact
+way to grade what the model actually said: decrypt, then walk conversations and messages. Six
+screenshots would have cost more and told you less.
+
+**What it found instead, and why it is not blocking.** The model copies the two worked examples
+in `HARD_RULES` back verbatim, including to three questions they do not answer: airplane mode,
+tracking and ads, and training on conversations. Nothing false, but the app answers its best
+question badly. Filed as **#156**, deferred, to be done with the over-firing-condition item
+because it is the same lesson.
+
+**The near miss is the part to keep.** Those exemplars are a magnet: they pull in every
+privacy-adjacent question whether they fit it or not. **Had the fourth false claim not been fixed
+earlier in this session, four of these six answers would have been false**, because the model
+would have copied "Everything works the same offline" exactly as readily. The sweep passes
+because the exemplar is correct, not because the model is careful.
+
+**Not covered, stated rather than implied:** one tier only. E2B copies exemplars more readily,
+not less, so it is unlikely to be more precise, but that is reasoning and not a measurement.
+
 ### Onboarding and speed: done, with named gaps
 
 **Both were done and verified this session, so read this before redoing them.**
@@ -183,13 +208,37 @@ before trusting that the device is clean.
   inside the expectation the copy already sets, and 17% of turns is close enough to persistent to
   become wallpaper.
 
-### After those two, the release
+### The release: the application is shippable, and the bundle is built
 
-Say plainly whether the application is shippable, then build the signed bundle. **Verify the
-artifact rather than trusting the build**, report the version with one line of reasoning, confirm
-the listing is complete, and write into section 3 exactly what the owner does in order.
+**Every release blocker on the tracker is closed.** #142 and #113 both closed 30 July, along with
+#153, #154 and #155 found on the way through them, and the claims sweep is finished. Nothing
+carries the `release-blocker` label and is open.
 
-**Do not upload, submit, promote, tag, or create a release.**
+**The signed bundle is built and its artifact verified**, not merely built:
+
+- `app/build/outputs/bundle/release/app-release.aab`, 46,254,492 bytes,
+  sha256 `48d858b22fe5a2dd800f564357fd994bbc5987f5645d3484104cac4a8697a228`.
+- `jarsigner -verify` reports **jar verified**, signed by `CN=Kamsiob, O=B7 Collective, C=US`,
+  4096-bit RSA.
+- Read out of the artifact itself rather than from the build files: package
+  `com.kamsiob.kamai`, versionName `1.0.0`, one module, `arm64-v8a` only, one dex, eight native
+  libraries.
+- **Seven `uses-permission` entries, matching `docs/release-permissions.md` exactly.**
+  `DUMP`, `BIND_QUICK_SETTINGS_TILE` and `BIND_VOICE_INTERACTION` appear in the manifest as
+  `android:permission` guards, which require the *caller* to hold them. They are locks, not
+  requests, and a naive string search over the manifest will report them as permissions. It did
+  here, which is why this is written down.
+
+**Version 1.0.0, versionCode 1**, and the reasoning is one line: nothing has ever been uploaded,
+so there is no published code to be ahead of.
+
+**The listing is complete.** `tools/play/listing.json` carries the title (26 of 30 characters),
+short description (77 of 80) and full description (3,126 of 4,000) in en-US; `store-assets/` has
+the icon and feature graphic; `store-assets/phone` has the five screenshots at 1080x2224. The
+network claims in the full description match the code, including the Discover manifest fetch.
+
+**Nothing was uploaded, submitted, promoted, tagged or released.** That is section 3 and it is the
+owner's.
 
 ## 2. The two lists
 
@@ -206,7 +255,7 @@ is opened, defaulting to deferred when unsure, and saying why.**
 | | Data safety declaration matches the built application | **Done.** Re-derived from source in `docs/release-data-safety.md`. Exactly two network calls. |
 | | Every permission has a user-facing justification | **Done.** All seven traced to a feature and a listing location in `docs/release-permissions.md`. |
 | | Target API level 36 | **Done.** `targetSdk` 36, `compileSdk` 37. |
-| | No false claim about privacy, data handling, or what the app does with what a user types | **Partly done.** Three false claims found and fixed. The sweep has not been run end to end. See Part II. |
+| | No false claim about privacy, data handling, or what the app does with what a user types | **Done 30 July.** Four false claims found and fixed, and the last piece, the model's own answers, is now run: six probes, three modes, no false claim. See below. |
 | 113 | Screenshots matching the application | **Closed 30 July.** All 20 documentation frames and all 5 listing frames recaptured from a seeded, ordinary-looking device and read individually. |
 | 133 | Memory retrieval injects irrelevant facts | **Closed.** Ordering, relevance floor and interface half all fixed and device verified. |
 | 144 | A setting for whether the memory note appears | **Done.** Off by default, device verified, and it unblocked #113. |
@@ -231,48 +280,77 @@ is opened, defaulting to deferred when unsure, and saying why.**
 | 140 | Does the leakage class appear on Qwen3, which has a real system role. |
 | 141 | The models screen is cluttered. |
 | 13 | Discover packs ship only article introductions. |
-| | Apply the over-firing-condition lesson from #137 to every conditional instruction across all six prompts. |
+| 156 | The privacy exemplars are copied to questions they do not answer. |
+| | Apply the over-firing-condition lesson from #137 to every conditional instruction across all six prompts. Do it with #156; same lesson. |
 
 ---
 
-## 3. What requires the repository owner, in order
+## 3. What the owner does next, in order
 
-One sitting, no context needed. Everything preparable is prepared.
+**One sitting, no context needed. Nothing here is blocked on anything in this file.**
+Every release blocker on the tracker is closed. The signed bundle is built and its
+artifact verified. Nothing has been uploaded, submitted, promoted, tagged or released,
+and none of that was done deliberately: it is step 5 onward and it is yours.
 
-1. **Fix the milestone.** The `v1.0.0 (Android)` milestone currently misrepresents the
-   release: it does not reflect the blocking and deferred split. Reconcile it against the
-   two labels above.
-2. **Transcribe the Play Console items that have no API.** Category, privacy policy URL,
+Steps 1 to 4 are preparation and cost nothing. **Step 5 is the irreversible one.**
+
+1. **Back up the keystore, first, because everything else depends on it.**
+   `~/.kamsiob-secrets/` holds `kam-ai-upload.jks` and its properties file, outside the
+   repository by design, and it cannot be regenerated. Play App Signing means a lost
+   upload key can be reset, which is the safety net, but the backup costs nothing and
+   the moment to do it is before the first upload, not after.
+
+2. **Register the commit signing key.** One command, in DECISIONS.md under "Commit
+   signing". SSH signing works locally and every recent commit is signed, but the public
+   key is not on the account, so they display as Unverified. GitHub evaluates signatures
+   at display time, so **every commit already signed becomes Verified the moment the key
+   lands.** Do it before anyone looks at the repository.
+
+3. **Fix the `v1.0.0 (Android)` milestone.** It does not reflect the blocking and
+   deferred split. Reconcile it against the two labels in section 2. Cosmetic, but it is
+   the first thing that misleads a reader of the tracker.
+
+4. **Confirm the privacy policy URL resolves.** `https://kamsiob.com/kam-ai/privacy`,
+   loaded in a browser. **A listing pointing at a policy that 404s is a policy violation
+   on its own.** If it is not live, the fallback that definitely resolves is
+   `https://github.com/Kamsiob/kam-ai/blob/main/PRIVACY.md`, and the listing and
+   `docs/play-console-checklist.md` both need to say whichever one you use.
+
+5. **Install the real signed release build on the phone once, deliberately.** A decision
+   rather than a step, and the only irreversible one here.
+
+   It requires an uninstall, because the signature differs from every build installed so
+   far. **The uninstall destroys the Keystore entry that wraps the database key, making
+   every conversation on the phone permanently unreadable**, and it removes a five
+   gigabyte model that must be downloaded again.
+
+   **Export first, and open the file.** Not "the export said it worked". The method is
+   written up under #113 in this file: decrypt, then check that the conversations array
+   holds real text. There is a verified export from 30 July already on the machine and
+   the phone, but take a fresh one, because the seeded chat list is what is on there now
+   and it is the thing you would be destroying.
+
+6. **Upload the five phone screenshots.** `store-assets/phone`, 1080x2224, generated by
+   `tools/make_phone_shots.sh`. Nothing has ever been uploaded to the Console, so no
+   superseded asset can be lingering there.
+
+7. **Transcribe the Play Console items that have no API.** Category, privacy policy URL,
    the data safety form, the content rating questionnaire, the ads declaration, target
    audience. All written out ready to copy in `docs/play-console-checklist.md`, in the
    order the Console asks, with the reasoning for each answer so it can be defended if
    queried. Confirmed impossible through the API by introspection: `AppDetails` carries
    only contact fields, `Listing` only text, and there is no data safety, privacy or
    category resource at all.
-3. **Upload five phone screenshots**, once the two blocked frames are recaptured. They will
-   be in `store-assets/phone`, 1080x2224, generated by `tools/make_phone_shots.sh`.
-   Nothing has been uploaded to the Console yet, so no superseded asset can be lingering
-   there; the lingering risk was in the repository and is now closed by the script, which
-   deletes the directory before regenerating it.
-4. **Install the real signed release build on the phone once, deliberately.** This is the
-   last thing before submission and it has a real cost, so it is a decision rather than a
-   step. It requires an uninstall, because the signature differs from every build installed
-   so far. The uninstall destroys the Keystore entry that wraps the database key, making
-   every existing conversation permanently unreadable, and it removes a five gigabyte model
-   that must be downloaded again. **Do a verified export first**, meaning open the export
-   file and confirm it contains real conversations, not merely that the export reported
-   success.
-5. **Register the commit signing key.** SSH signing works locally and every recent commit
-   is signed, but the public key is not on the account, so they display as Unverified. One
-   command, in DECISIONS.md under "Commit signing". GitHub evaluates signatures at display
-   time, so every commit already signed becomes Verified the moment the key lands.
-6. **Back up the keystore.** `~/.kamsiob-secrets/` holds `kam-ai-upload.jks` and its
-   properties file, outside the repository by design, and it cannot be regenerated. Play
-   App Signing means a lost upload key can be reset, which is the safety net, but the
-   backup costs nothing.
-7. **The copyright question**, recorded in DECISIONS.md under BLOCKED and left unresolved
-   deliberately: the copyright status of machine written code and how it interacts with
-   AGPL-3.0. No legal language was added and the license was not touched.
+
+8. **Then submit.** The clock starts at submission and changing the binary restarts the
+   queue, so everything on the deferred list in section 2 is deliberately sequenced to
+   happen inside the review window rather than before it. A first submission from a new
+   organization account takes one to two weeks.
+
+**The copyright question is not a step.** It is recorded in DECISIONS.md under BLOCKED
+and left unresolved on purpose: the copyright status of machine written code and how it
+interacts with AGPL-3.0. No legal language was added and the license was not touched.
+It does not block submission; it is yours to decide when you want to.
 
 ---
 
