@@ -28,7 +28,13 @@ restore() {
   [ "${prior:-0}" = "0" ] && "$adb" shell cmd notification set_dnd off >/dev/null 2>&1 || true
 }
 trap restore EXIT
-"$adb" shell cmd notification set_dnd priority >/dev/null 2>&1 || true
+# Total silence, not "priority".
+#
+# `priority` still lets priority senders through, and starred contacts and repeat
+# callers are priority senders by default. That is not a theoretical gap: a capture
+# during this work came back with an incoming call from a contact across the top of
+# it, name and photograph. That file was destroyed and never committed.
+"$adb" shell cmd notification set_dnd none >/dev/null 2>&1 || true
 sleep 1
 
 # 1. The app must be the top activity.
@@ -63,6 +69,42 @@ fi
 # screenshot of the sheet.
 if echo "${focus:-}" | grep -q "TextIntakeActivity"; then
   echo "Refusing to capture: the intake sheet is drawn over another app." >&2
+  exit 1
+fi
+
+# 3. And no notification may be drawn over it, which focus cannot tell you.
+#
+# **This is the hole the two checks above do not close, and it cost a capture.**
+# A heads-up notification is drawn by SystemUI over whatever is on screen without
+# ever taking focus, so `topResumedActivity` stays Kam AI, `mCurrentFocus` stays Kam
+# AI, and both guards pass while the top of the screen belongs to somebody's private
+# life. It happened here: an incoming call from a contact, name and photograph,
+# across a Workbench capture. The file was destroyed and never committed.
+#
+# The shade window is the signal, because a heads-up is rendered inside it. Idle it
+# reports isOnScreen=false with no surface; showing anything, pulled down or popped
+# up, it reports isOnScreen=true. That covers both, which is why this replaces
+# nothing above rather than duplicating the focus check.
+shade="$("$adb" shell dumpsys window windows 2>/dev/null \
+  | awk '/Window #[0-9]+ Window\{[^}]*NotificationShade\}/,/isOnScreen/' \
+  | grep -m1 isOnScreen | tr -d '\r' || true)"
+if echo "$shade" | grep -q "isOnScreen=true"; then
+  echo "Refusing to capture: a notification is drawn over Kam AI." >&2
+  echo "  The shade window is on screen, which is either the shade pulled down or" >&2
+  echo "  a heads-up notification. Neither takes focus, so nothing else catches it." >&2
+  exit 1
+fi
+
+# 4. And the phone must not be ringing or in a call.
+#
+# Belt and braces for the same incident. An incoming call can put its own interface
+# up, and total silence does not always suppress the call interface itself. A
+# non-zero call state is a refusal rather than something to wait out, because the
+# capture can simply happen later.
+callstate="$("$adb" shell dumpsys telephony.registry 2>/dev/null \
+  | grep -m1 'mCallState' | tr -d ' \r' || true)"
+if [ -n "$callstate" ] && [ "$callstate" != "mCallState=0" ]; then
+  echo "Refusing to capture: the phone is ringing or in a call ($callstate)." >&2
   exit 1
 fi
 
