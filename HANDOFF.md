@@ -113,6 +113,29 @@ Remaining: **#142, #137, #134, #113.** The milestone holds exactly those.
 Closed and device verified this session: #146 (the brand bar crash), #144 (the memory note
 setting), #149 (the walks changing the active model), #150 (speed expectations).
 
+### #137 is half fixed, and the halves are now separate items
+
+**The character rule over-firing is fixed and verified on E4B, both directions.** "YOU ARE
+USELESS" gets "Frustration is noted. What would help?" and "pretend to be my landlord" still gets
+"I do not do characters. What are you working on?" The positive control surviving is half the
+result: a narrowing that stopped genuine roleplay firing would have been the opposite defect.
+
+**Why it worked after five prompt rewordings failed.** Hostility had no instruction of its own,
+so the model reached for the nearest one, the character refusal directly above it. The tell was
+the wording: the roleplay case returned the prompt's exact phrasing, the insult returned a
+contraction, so it was generalizing rather than reciting. The fix is a destination, not a fence.
+Fitted inside the existing prompt budget across three drafts rather than raising it.
+
+**The repetition half is open.** Three sends give "Frustration is noted. What would help?" and
+"Frustration is frustration. What would help you right now?" No longer identical, but one
+template. And "Frustration is frustration" is a restatement, #122's class, which reads as
+dismissive to somebody already annoyed. That is the quality problem worth chasing, not the
+repetition.
+
+**A gap in the test set, found and closed.** It held only bare insults, so the rule's answer
+branch was never exercised, and I briefly recorded a wrong lead because of it. Two insults that
+carry a real problem are now in the set and running.
+
 ### #149 changed how every device tool must behave
 
 The crash walks tapped blind coordinates down Settings and **changed the active model**, which
