@@ -10632,3 +10632,50 @@ repeated**, which is the argument for treating this as reply quality rather than
 The pattern in this project is that the first attempt informed by the right diagnosis works and
 the ones after it do not. This was that attempt and it did not land. Continuing would be the
 fifth prompt-reword round on this issue, and Part IV records four of those already failing.
+
+## #134 settled: LIGHT is rare, and the status is not what a user feels
+
+The open decision was whether LIGHT should speak. The earlier attempt sampled an idle phone,
+produced 71 zeroes, and measured nothing. This one overlapped the sampling with real work, which
+is what the instrument's own header says is required.
+
+**110 samples at 10 second intervals, concurrent with 14 back-to-back long generations on E4B.
+Every reading at status 0.** Battery temperature rose from 31.2 C to 34.1 C and fell back to
+28.1 C after the load ended, so the phone genuinely warmed. It warmed and still never reported
+LIGHT.
+
+By the instrument's own rule, rare means speaking at LIGHT is right. The current behavior stands
+and #134 is closed. Readings kept in `docs/thermal-under-load.tsv`.
+
+### The finding the measurement was not looking for
+
+**Performance degraded while the status stayed at 0.** TTFT 7717 ms and 8841 ms late in the run,
+against a 4.9 second baseline measured the same day on the same tier and the same kind of fresh
+conversation. Roughly 1.6 to 1.8 times slower, with Android reporting nothing above NONE.
+
+So the notice, which is keyed to status, would have said nothing during exactly the experience
+#134 was opened about: "answers got slower and shorter with no explanation". **The fix covers the
+case where the system says the phone is hot. It does not cover the case where the phone is
+slow, and on this device those are different cases.**
+
+Filed as #152 and deferred rather than folded back into #134, because #134's fix is correct and
+this is a different mechanism. Widening a settled issue to hold a new finding is how an issue
+stops being closable.
+
+### Two caveats, stated rather than buried
+
+The phone was **on a charger throughout**, which adds heat rather than removing it, so this is not
+a flattering condition. And a Pixel 10 Pro XL has good thermals: this is a result about this
+device, and an earlier observation of LIGHT being reached and shed within ninety seconds shows it
+is reachable, just not by this load.
+
+### A defect in the instrument, found by using it
+
+Only 2 of 14 perf lines survived to be read, because `perf_probe.sh` reads the log once at the
+end and logcat is circular. **That is the same defect I fixed in `prefix_probe.sh` earlier and did
+not carry across to its sibling**, which is the same failure mode as `03299e6` fixing
+`remove(element)` in four places and leaving `removeAt(lastIndex)`.
+
+Fixing a defect in one script and leaving its copies alone is now the third instance this week. It
+argues for the checker gaining a rule about reading logcat at the end, rather than for me being
+more careful.
