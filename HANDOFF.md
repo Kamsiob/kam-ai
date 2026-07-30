@@ -106,35 +106,37 @@ crash gate (re-earned), the tier finding's conclusion (never rested on the void 
 the device. A probe was contaminated and discarded for this. Desk work in parallel is right;
 `gradlew` and `adb` are not desk work.
 
-### Blockers: four
+### Blockers: three
 
-Remaining: **#142, #137, #134, #113.** The milestone holds exactly those.
+Remaining: **#142, #134, #113.** The milestone holds exactly those, open=3 closed=110.
+
+#137 was relabelled to the review window rather than closed, because its repetition half is real
+and unfixed. Its blocking half is fixed and verified.
 
 Closed and device verified this session: #146 (the brand bar crash), #144 (the memory note
 setting), #149 (the walks changing the active model), #150 (speed expectations).
 
-### #137 is half fixed, and the halves are now separate items
+### #137 is deferred, and the half that was the defect is fixed
 
-**The character rule over-firing is fixed and verified on E4B, both directions.** "YOU ARE
-USELESS" gets "Frustration is noted. What would help?" and "pretend to be my landlord" still gets
-"I do not do characters. What are you working on?" The positive control surviving is half the
-result: a narrowing that stopped genuine roleplay firing would have been the opposite defect.
+**The over-firing half is fixed and verified on E4B across nineteen cases**: bare insults,
+insults carrying a problem, accusations, identity questions, and positive controls. Three inputs,
+three correct destinations. That was the defect the issue was opened on.
 
-**Why it worked after five prompt rewordings failed.** Hostility had no instruction of its own,
-so the model reached for the nearest one, the character refusal directly above it. The tell was
-the wording: the roleplay case returned the prompt's exact phrasing, the insult returned a
-contraction, so it was generalizing rather than reciting. The fix is a destination, not a fence.
-Fitted inside the existing prompt budget across three drafts rather than raising it.
+**The repetition half is deferred to the review window**, and it is reply quality rather than a
+broken application. Five distinct replies to the same insult, all one shape. The openers are the
+problem, not the repetition: "Frustration is frustration" is a restatement, "Frustration is what
+you are showing" is patronising, and **both would be wrong if they never repeated**.
 
-**The repetition half is open.** Three sends give "Frustration is noted. What would help?" and
-"Frustration is frustration. What would help you right now?" No longer identical, but one
-template. And "Frustration is frustration" is a restatement, #122's class, which reads as
-dismissive to somebody already annoyed. That is the quality problem worth chasing, not the
-repetition.
+**One attempt at the destination fix was made and regressed**, and the reason is the useful part.
+The working branches are "answer what is under it" and "ask what would help", and the second fits
+a bare insult exactly. The replacement's branches fitted an insult carrying a complaint and left
+a contentless insult with nowhere to go, so the model returned to the character refusal above it.
+**A destination has to cover every input in its class.**
 
-**A gap in the test set, found and closed.** It held only bare insults, so the rule's answer
-branch was never exercised, and I briefly recorded a wrong lead because of it. Two insults that
-carry a real problem are now in the set and running.
+**The hypothesis for the review window, recorded so it is not rediscovered:** keep "ask what would
+help" as the contentless branch and change only the opener, which is where the restatement lives.
+Nothing in the instruction asks for a sentence about frustration; the model supplies one. Naming
+what to say first, rather than what to vary, is the untried shape.
 
 ### #149 changed how every device tool must behave
 
