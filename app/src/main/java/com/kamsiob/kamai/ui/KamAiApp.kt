@@ -139,6 +139,37 @@ internal fun conversationVmKey(
     nonce: () -> String = { java.util.UUID.randomUUID().toString() },
 ): String = if (id.isNotEmpty()) id else "new-${nonce()}"
 
+/**
+ * Pops the navigation stack, and does nothing when there is nothing to pop (#147).
+ *
+ * **This is the crash `03299e6` fixed in one form and left in another.** That commit
+ * converted every `remove(element)` on a `SnapshotStateList` to `removeAll { }`,
+ * because `remove` resolves an index internally and a second activation resolved
+ * minus one. The `removeAt(lastIndex)` form has the identical failure and was not
+ * covered: `lastIndex` on an empty list *is* minus one, so the call throws
+ * "index: -1, size: 0" from the same place.
+ *
+ * How it is reached, which is the part that makes it a store rejection rather than an
+ * exotic case: `BrandBar`'s back action was `onBack = if (stack.isNotEmpty()) { {
+ * stack.removeAt(stack.lastIndex) } } else null`. **The emptiness check runs at
+ * composition and the lambda runs later**, so two activations arriving before the next
+ * recomposition both invoke a lambda that was built when the stack had one entry. The
+ * first empties it; the second computes minus one.
+ *
+ * It arrived through `dispatchKeyEvent`, a key event activating a focused control,
+ * which is how somebody using a keyboard or an accessibility service meets it. Exactly
+ * as in `03299e6`.
+ *
+ * Checking inside the lambda is sufficient rather than lucky: Compose dispatches click
+ * and key handlers on the main thread, so two activations run in sequence and the
+ * second sees the emptied list. That is also why the four sites that already checked
+ * inside their lambdas never crashed while this one did.
+ */
+private fun androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>.popTop() {
+    val i = lastIndex
+    if (i >= 0) removeAt(i)
+}
+
 @Composable
 fun KamAiApp(app: AppViewModel = viewModel()) {
     val colors = KamTheme.colors
@@ -283,7 +314,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
         onProgress = { backGesture = it },
         onBack = {
             when {
-                stack.isNotEmpty() -> stack.removeAt(stack.lastIndex)
+                stack.isNotEmpty() -> stack.popTop()
                 tab != NavItem.CHATS -> tab = NavItem.CHATS
             }
         },
@@ -298,7 +329,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
         ) {
             BrandBar(
                 onBack = if (stack.isNotEmpty()) {
-                    { stack.removeAt(stack.lastIndex) }
+                    { stack.popTop() }
                 } else {
                     null
                 },
@@ -337,7 +368,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     )
                     is Pushed.Conversation -> ConversationScreen(
                         app, pushed.id, pushed.startMode, pushed.initialText, pushed.vmKey,
-                        onExit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) },
+                        onExit = { stack.popTop() },
                         onOpenModel = { stack.add(Pushed.Model) },
                         onOpenWorkbench = { chatId ->
                             stack.add(
@@ -1324,7 +1355,7 @@ private fun ProjectHost(
         onAddExisting = { id -> app.assignConversationToProject(id, projectId) },
         onDelete = {
             app.deleteProject(projectId, project?.name, conversations.size) {
-                if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex)
+                stack.popTop()
             }
         },
     )
@@ -1341,7 +1372,7 @@ private fun CustomInstructionsHost(
         maxChars = app.systemInstructionsMax,
         onSave = { text ->
             app.saveUserInstructions(text)
-            if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex)
+            stack.popTop()
         },
     )
 }

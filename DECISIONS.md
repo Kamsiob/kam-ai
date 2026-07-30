@@ -10049,3 +10049,66 @@ this started.
 
 It was verified by reintroducing the defect and watching it fail, not only by watching it
 pass.
+
+## The fixed instrument's first act was to find a crash the broken one had passed
+
+This is the concrete case for the standing suspicion, recorded while it is still specific.
+
+`crash_walk2.sh` was re-run after the walk scripts were fixed. It failed immediately, on a
+build that the previous instrument had certified clean:
+
+```
+java.lang.IndexOutOfBoundsException: index: -1, size: 0
+  at androidx.compose.runtime.snapshots.SnapshotStateList.removeAt
+  at com.kamsiob.kamai.ui.KamAiAppKt.KamAiApp$lambda$40$0$0$0(KamAiApp.kt:301)
+  at androidx.compose.ui.platform.AndroidComposeView.dispatchKeyEvent
+```
+
+**It is the crash `03299e6` fixed in one form and left in another.** That commit converted
+every `remove(element)` on a `SnapshotStateList` to `removeAll { }` and said explicitly that
+it fixed all four places the pattern appeared. It did. But `removeAt(lastIndex)` is the same
+defect with a different spelling, because `lastIndex` on an empty list is minus one, and that
+form was never in scope.
+
+Two lessons, and the second is the more useful one.
+
+**The narrow one.** When a fix is applied "everywhere the pattern appears", the pattern has to
+be defined by its *failure* rather than by its syntax. The failure here is passing a resolved
+index to a list that may have emptied since the index was computed. `remove(element)` and
+`removeAt(lastIndex)` are two spellings of it, and searching for the first spelling found four
+sites and missed a fifth. This is the third time in this session that a fix applied to
+instances rather than to a shape left a live instance behind: the exemption list bypass was in
+three places, the harness suppressions were in eighteen.
+
+**The broad one.** The gate had been certified by an instrument that could not fail. The old
+walk counted crashes with `grep -c ... || true` in a pipeline, so a dead device produced a
+clean zero, and a clean zero is what it produced. The first thing the repaired instrument did
+was find a release blocking crash.
+
+That is not a coincidence to note and move past. **A measuring instrument that cannot fail
+will report success, and success is what everyone downstream then reasons about.** The
+practical form of the standing suspicion is therefore not "be sceptical" but a demand: before
+trusting a gate, demonstrate that it fails. That was done here, with a stand-in adb that dies
+mid-walk, and it took ten minutes.
+
+### What was specifically wrong with the check, since it looked correct
+
+```kotlin
+onBack = if (stack.isNotEmpty()) { { stack.removeAt(stack.lastIndex) } } else null
+```
+
+The guard is real and it is in the wrong place. **It runs at composition; the lambda runs
+later.** Two activations before the next recomposition both call a lambda built when the stack
+had one entry.
+
+The four sites that checked inside their lambdas were fine, and that is sufficient rather than
+lucky, which is worth knowing before somebody "hardens" them: Compose dispatches click and key
+handlers on the main thread, so two activations run in sequence and the second sees the emptied
+list. A check inside the lambda is enough. A check outside it is not a check.
+
+### The walk's crash count is also wrong, separately
+
+It reported "7 crashed" for one crash, because it compares a cumulative count against zero on
+every step rather than against the previous step. Every step after the first crash reports a
+crash. The pass/fail verdict is unaffected, the number in it is wrong, and it is filed rather
+than left to mislead somebody counting severity.
