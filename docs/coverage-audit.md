@@ -79,17 +79,33 @@ and whether a conversation started inside a project carries both its project and
 delete case is the one most likely to be wrong, because it is the only one where rows point at
 something being removed.
 
-### Follow-ups — **none**, and it had a defect before
+### Follow-ups — **better covered than this entry first claimed; the gap is the entry points**
 
-- [ ] Saving from a conversation, from Discover, and from the overlay
-- [ ] The check and pursue kinds
-- [ ] The source filter
-- [ ] Selecting specific text to bookmark
-- [ ] Completion state
-- [ ] **Whether bookmark state survives reopening**, which was a defect once already
+Corrected after reading. This said "none", and the state machine is in fact covered by tests
+that use a real Room database rather than pure functions.
 
-The last one is not speculative: it broke before. A thing that broke once and is untested is
-the highest-yield item on this page.
+- [x] **Completion state**, and more: `FollowUpStateTest` covers a flagged item starting open,
+      completing stamping the time, uncompleting clearing it, the open count counting only open
+      items, completed items sorting by completion time, removal, adding a note and project link
+      later, **deleting the source conversation keeping the follow-up but dropping the link**,
+      and the source mode being carried.
+- [x] **The check and pursue kinds**, and **the source filter**: `FollowUpFilterTest`, twelve
+      cases including the two filters combining rather than replacing, a filter that no longer
+      matches anything falling back to everything, and source order being stable so the row does
+      not reshuffle.
+- [x] **Bookmark state surviving reopening — the defect class cannot recur.** It was flagged
+      here as the highest-yield item because it broke once. Reading the code settles it: the
+      flagged set is `remember(openUps, doneUps) { (openUps + doneUps).mapNotNull { it.messageId } }`,
+      derived from the persisted follow-up flows. It is not local UI state that a reopen could
+      lose, which is what the original defect was. It also includes completed items, so a
+      bookmark stays visibly set after completion, which is deliberate.
+- [ ] Saving from a conversation, from Discover, and from the overlay — **three UI entry points,
+      none exercised**
+- [ ] Selecting specific text to bookmark — **not exercised**
+
+So the remaining work is the four entry points rather than the feature. Still worth doing: the
+Discover and overlay routes are the two that reach a different surface, and #147 says the harness
+cannot reach one of them.
 
 ### App lock — **none**
 
