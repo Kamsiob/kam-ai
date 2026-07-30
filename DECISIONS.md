@@ -10112,3 +10112,44 @@ It reported "7 crashed" for one crash, because it compares a cumulative count ag
 every step rather than against the previous step. Every step after the first crash reports a
 crash. The pass/fail verdict is unaffected, the number in it is wrong, and it is filed rather
 than left to mislead somebody counting severity.
+
+## Two instrument fixes, each demonstrated rather than asserted
+
+### The walks reported one crash as many
+
+`check()` compared a cumulative crash count against zero, so every step after the first
+crash counted again. That is how walk two reported "7 crashed" for a single
+`IndexOutOfBoundsException`. The pass/fail verdict was right; the number in it was wrong,
+and wrong in the direction somebody reads as severity.
+
+Fixed by comparing against the previous count. Demonstrated by injecting one crash that
+persists in the buffer, which is what a real crash does:
+
+```
+OLD (cumulative vs zero):        NEW (delta vs previous):
+  step 3 CRASH                     step 3 CRASH
+  step 4 CRASH                     step 4 ok
+  step 5 CRASH                     step 5 ok
+  ...                              ...
+  => reported 5 crashed            => reported 1 crashed
+```
+
+Both walks carry it. The run still fails, which is correct: one crash is a store rejection.
+
+### prefix_probe read the whole buffer once at the end
+
+Six turns produced five perf lines, one of which was the titler, so two turn lines were
+missing and the mapping from line to turn was guesswork. The cause was not subtle once
+looked at: **logcat is circular and six long generations aged the earliest lines out.**
+
+Now each turn's line is read immediately after that turn and written to `perf.tsv` against
+its turn number, and the buffer is cleared between turns. A turn with no line is recorded
+as `MISSING` and counts as missing evidence, because an absence read as nothing is exactly
+how the thermal measurement went wrong.
+
+The output also now says what `mode=BENCH` is, since an unexplained value in an instrument
+is the thing that made the whole measurement suspect: it is the conversation titler, which
+runs after the first exchange of a new chat and uses its own prompt.
+
+**Neither of these changes a conclusion.** The 17% frequency and the 444 token spike stand.
+What changes is that the next run's numbers will be attributable without inference.

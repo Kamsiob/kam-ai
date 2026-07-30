@@ -124,14 +124,35 @@ for t in "${turns[@]}"; do
     exit 1
   fi
   capture_or_note tools "$out/$(printf '%02d' $i).png"
-  printf '  turn %s sent\n' "$i"
+
+  # Read the perf line for *this* turn now, rather than reading the whole buffer once
+  # at the end. logcat is circular, and a six turn run of long generations aged the
+  # earliest lines out: six turns produced five lines, one of which was the titler, so
+  # two turn lines were missing and the mapping from line to turn was guesswork.
+  #
+  # A missing line is also recorded rather than skipped, because "no perf line for turn
+  # 4" is a fact about the run and an absence read as nothing is how the thermal
+  # measurement went wrong.
+  line="$("$adb" logcat -d -s KamPerf 2>/dev/null | grep -oE 'mode=[A-Z]+ TTFT=[0-9]+ms prefill=[0-9]+tok' | tail -1 || true)"
+  if [ -z "$line" ]; then
+    echo "  turn $i: NO PERF LINE, so this turn is not measured" >&2
+    EVIDENCE_MISSES=$((EVIDENCE_MISSES + 1))
+  else
+    printf '  turn %s  %s\n' "$i" "$line"
+  fi
+  printf '%s\t%s\n' "$i" "${line:-MISSING}" >> "$out/perf.tsv"
+  "$adb" logcat -c >/dev/null 2>&1 || true
 done
 
 echo
 echo "== prefill tokens per turn, in order =="
 echo "   a reused prefix is tens of tokens; a missed one is the whole block"
-"$adb" logcat -d -s KamPerf 2>/dev/null | grep -oE 'mode=[A-Z]+ TTFT=[0-9]+ms prefill=[0-9]+tok' |
-  sed 's/^/   /'
+echo "   read per turn rather than from one buffer dump, so each line belongs to a"
+echo "   known turn and a missing one says so"
+sed 's/^/   turn /' "$out/perf.tsv"
+echo
+echo "   mode=BENCH is the conversation titler, which runs after the first exchange of"
+echo "   a new chat and uses its own prompt. Expected, not an anomaly."
 echo
 echo "captures in $out"
 

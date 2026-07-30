@@ -21,12 +21,19 @@ out="/tmp/walk2-$label"
 mkdir -p "$out"
 
 fails=0; step=0
+# The previous counts, so a crash is reported once rather than on every step after
+# it. This reported "7 crashed" for one crash: it compared a cumulative count
+# against zero, so every step following the first crash counted again. The verdict
+# was right and the number was wrong, which is its own kind of misleading when
+# somebody reads it as severity.
+prev_c=0; prev_a=0
 check() {
   step=$((step+1)); sleep 3
   local c a
   c="$(adb_count "crash log lines" "com.kamsiob.kamai" "$adb" logcat -d -b crash)"
   a="$(adb_count "ANR lines" "ANR in com.kamsiob.kamai" "$adb" logcat -d)"
-  if [ "$c" -gt 0 ] || [ "$a" -gt 0 ]; then
+  if [ "$c" -gt "$prev_c" ] || [ "$a" -gt "$prev_a" ]; then
+    prev_c="$c"; prev_a="$a"
     printf '  %02d  CRASH after: %s\n' "$step" "$1"; fails=$((fails+1))
   else
     printf '  %02d  ok: %s\n' "$step" "$1"

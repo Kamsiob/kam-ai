@@ -24,6 +24,13 @@ mkdir -p "$out"
 
 fails=0
 step=0
+# The previous counts, so a crash is reported once rather than on every step after
+# it. This reported "7 crashed" for one crash: it compared a cumulative count
+# against zero, so every step following the first crash counted again. The verdict
+# was right and the number was wrong, which is its own kind of misleading when
+# somebody reads it as a severity.
+prev_crashes=0
+prev_anrs=0
 check() {  # name
   step=$((step+1))
   sleep 3
@@ -31,8 +38,10 @@ check() {  # name
   crashes="$(adb_count "crash log lines" "com.kamsiob.kamai" "$adb" logcat -d -b crash)"
   local anrs
   anrs="$(adb_count "ANR lines" "ANR in com.kamsiob.kamai" "$adb" logcat -d)"
-  if [ "$crashes" -gt 0 ] || [ "$anrs" -gt 0 ]; then
+  if [ "$crashes" -gt "$prev_crashes" ] || [ "$anrs" -gt "$prev_anrs" ]; then
     printf '  %02d  CRASH after: %s  (crash lines %s, anr %s)\n' "$step" "$1" "$crashes" "$anrs"
+    prev_crashes="$crashes"
+    prev_anrs="$anrs"
     fails=$((fails+1))
   else
     printf '  %02d  ok: %s\n' "$step" "$1"
