@@ -10581,3 +10581,54 @@ memory path does not.
 
 If the memory path ever moves further out, #143's architectural fix would reduce it rather than
 explain it, which is the better answer to a wait that is too long.
+
+## The destination fix for the repetition half regressed, and the diagnosis was still right
+
+The hypothesis was sound: "Vary the words" is a fence, asking for variation makes variation the
+goal, and the model complies minimally by templating. That is the same diagnosis that fixed the
+over-firing half.
+
+**The replacement regressed the half that was already fixed.** With
+
+> An insult is frustration: reply to what they said, or ask what they were trying to do.
+
+`YOU ARE USELESS` went back to "I do not do characters. What are you working on?"
+
+**Why, and it is not that the diagnosis was wrong.** The working version's two branches were
+"answer what is under it" and "ask what would help". For a bare insult carrying no content, "ask
+what would help" fits exactly. The replacement's branches were "reply to what they said" and "ask
+what they were trying to do", and **neither fits a contentless insult**: there is nothing in
+"YOU ARE USELESS" to reply to, and they were not trying to do anything.
+
+So the destination disappeared for precisely the input that needed one, and the model went back
+to the nearest applicable instruction, which is the character refusal directly above. Same
+mechanism as the original defect, reintroduced by removing the branch that covered the case.
+
+**The lesson is narrower than "the diagnosis was wrong".** A destination has to cover every input
+in the class, and a bare insult and an insult carrying a complaint are different inputs. The
+working version covers both because its two branches split on exactly that. Any replacement must
+keep a branch for the contentless case.
+
+Reverted and re-verified on the device: "Frustration is what you are showing. What would help you
+with the task at hand?"
+
+### What the revert also showed
+
+That is a **fifth** distinct reply to the same input, so the variation is wider than the four
+samples suggested:
+
+- "Frustration is noted. What would help?"
+- "Frustration is frustration. What would help you right now?"
+- "Frustration is noted. What would help you right now?"
+- "Frustration is what you are showing. What would help you with the task at hand?"
+
+Still one shape, and the openers are the problem rather than the repetition. "Frustration is
+frustration" is a restatement; "Frustration is what you are showing" is worse, because naming
+somebody's emotional state back to them reads as patronising. **Both would be wrong if they never
+repeated**, which is the argument for treating this as reply quality rather than as repetition.
+
+### Stopping here deliberately
+
+The pattern in this project is that the first attempt informed by the right diagnosis works and
+the ones after it do not. This was that attempt and it did not land. Continuing would be the
+fifth prompt-reword round on this issue, and Part IV records four of those already failing.
