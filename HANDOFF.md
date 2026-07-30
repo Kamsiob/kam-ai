@@ -77,7 +77,44 @@ without it and the seventh is the negative case.
 it. The gate was there to prove nothing would be lost by deleting; it also showed something that
 should have been deleted and was not.
 
-### #113, the screenshots, in order, nothing started
+### #113, where it actually stands
+
+**Steps 1 and 2 are done. Step 3 onward is what remains.**
+
+**Step 1, the export gate: passed, both halves.** The file was opened rather than trusted.
+`tools/` has no script for this; the check was written in the scratchpad and its method is what
+matters: decrypt with PBKDF2-HMAC-SHA256 at 120k, AES-256-GCM, then compare every row's keys
+against the fields parsed out of `Entities.kt`.
+
+**The nullability point is the one that would waste an hour otherwise.** `org.json` drops a key
+entirely when the value is null, so a nullable field that is null is simply absent from the row,
+and `isNull` reads it back as null. A first pass called that "857 rows missing groundingMomentId"
+and it was nothing. Only a **non-nullable** field missing is a real loss. With that distinction
+the file passes: 857 conversations, 1928 messages, 196,633 characters, 0 orphans, every required
+field on every row, and a conversation written minutes earlier round-tripped all 14 messages in
+order.
+
+**The device half is verified too**, which is what was actually unproven: the picker, the
+passphrase both right and wrong, merge, and replace. A wrong passphrase changed nothing. Merge
+brought a deleted conversation back with its content and its original timestamp. Replace removed
+it again and left everything else. Verified **by state, not by the toast**: the in-app toast lives
+2200 ms and `shot.sh`'s mandatory settle is longer than that, so it can never be captured. Do not
+read that as a missing message.
+
+**Step 2, the deletions: done.** 813 active, then 41 archived, then 2 released from projects, both
+projects, both memories, both follow-ups. Nothing of the owner's was lost because there was
+nothing of the owner's: both projects were probes ("Always begin every reply with the word RIGHT
+in capitals", and the Bramblecourt note), both memories were planted by `memory_leak.sh` and the
+metric-units probe, and both follow-ups came from the steak test. **That is why the whole database
+went and not a subset**, and it is also why the Memory and Projects frames need seeding rather
+than just the chat list.
+
+Two defects were found doing it and both are fixed: **#153** and **#154**, above and below.
+
+The **archived view has no bulk selection**, so clearing 41 meant tapping "Move to Chats" 41 times
+and then one bulk delete from the main list. Not filed. It is a slow path, not a wrong one.
+
+### #113, the remaining steps
 
 **Permission to delete the owner's conversations is explicit and scoped to this.** The export gate
 is not passed, so **nothing has been deleted**.
@@ -151,6 +188,7 @@ is opened, defaulting to deferred when unsure, and saying why.**
 | 134 | Nothing said or done when the phone throttles | **Fix committed, decision open.** Whether LIGHT should speak needs a measurement. |
 | 142 | The echo guard checks one of six sources of prompt text | **Closed 30 July.** All six channels tested clean. The guard was deliberately not widened. |
 | 153 | Deleting a chat leaves the attached document on the device | **Closed 30 July.** Found while verifying the #113 export gate. Three delete paths fixed, 7 tests. |
+| 154 | The archive is unreachable when no chats are active | **Closed 30 July.** Found while clearing the list for #113, which it blocked. The empty state carries the link now. |
 
 ### What is deferred to the review window
 
