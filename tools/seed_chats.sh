@@ -23,10 +23,14 @@
 #
 # ## Workbench is not one of these, and that is not a bug
 #
-# Workbench is its own screen with its own input, persisted as the `workbench.input`
-# setting rather than as a conversation. Tapping its chip opens that screen, and its
-# composer sits close enough to a chat's that say.sh will happily type into it and
-# wait out a real generation. Nothing lands in the chat list, and nothing says so.
+# Workbench is its own screen. What you type goes into the `workbench.input` setting rather than a
+# conversation, and the button that runs a change is nowhere near where a chat's send button sits,
+# so say.sh types into the box and taps empty space. The first run of this script reported eight of
+# nine seeded when the eighth had produced no conversation at all.
+#
+# **It does make conversations, just not this way.** Running a change from the chips writes a real
+# conversation that shows up in the chat list under the Workbench dot. So the gap is in how this
+# script drives the screen, not in the screen.
 #
 # So the modes seeded here are the three that make conversations. The Workbench frame
 # in the screenshot set comes from the screen itself, which is what it should show.

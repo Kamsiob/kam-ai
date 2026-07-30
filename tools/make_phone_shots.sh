@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Derives the five Play listing screenshots from the canonical capture set.
+# Derives the eight Play listing screenshots from the canonical capture set.
 #
 #   tools/make_phone_shots.sh
 #
@@ -36,20 +36,36 @@ src="docs/screenshots"
 out="store-assets/phone"
 crop="1080x2224+0+110"
 
-# Five frames, in the order they appear on the listing. The first is what the
-# application is, the last is the promise it makes about your data, and the three
-# between are the reasons to keep it.
+# Eight frames, which is what Play allows, in the order they appear on the listing.
 #
-# `choosing-a-model` replaces the mode picker that used to hold this slot. A mode
-# is now chosen from the chat list, which frame 02 already shows, and the model
-# screen earns a slot on its own: it measures speed on your own phone and says
-# plainly where a smaller model is weaker.
+# The shape of the run: what it is, how it is organized, then one frame per mode
+# because the modes are the whole idea, then the two things that keep somebody
+# coming back, and finally the promise about their data. A browser who stops after
+# three has still seen the app and its central claim.
+#
+# **Two screens were deliberately left out, and the reasons are worth keeping.**
+#
+# `model-light` is a good screen and an honest one: it measures speed on the phone
+# it is running on and says plainly where a smaller model is weaker. It is cut
+# because it answers a question nobody has before installing, and `08-on-device`
+# already carries the on-device story to a browser.
+#
+# `followups-light` is cut because saved items are a thing you discover by using
+# the app, and a screenshot of a list of two saved answers does not read as a
+# reason to install.
+#
+# Every one of these is a crop of a real capture. Nothing here has a caption
+# painted on it, no device frame, and no marketing text, because the moment a
+# screenshot carries a claim the image is making a promise the app has to keep.
 frames=(
   "01-a-conversation:conversation-light"
   "02-chats-and-modes:chats-light"
-  "03-choosing-a-model:model-light"
-  "04-discover:discover-light"
-  "05-on-device:settings-light"
+  "03-logic-partner:logic-light"
+  "04-brainstorm:brainstorm-light"
+  "05-workbench:workbench-light"
+  "06-projects:projects-light"
+  "07-discover:discover-light"
+  "08-on-device:settings-light"
 )
 
 command -v magick >/dev/null || { echo "ImageMagick is needed." >&2; exit 1; }
@@ -72,4 +88,8 @@ for pair in "${frames[@]}"; do
 done
 
 echo
-echo "five frames in $out, each traceable to a canonical capture"
+# Counted, not typed. This line said "five" while the array held eight, which is
+# a small version of the exact drift this script exists to prevent.
+echo "${#frames[@]} frames in $out, each traceable to a canonical capture"
+echo "Play allows 8. Check every one after regenerating: the crop moves both edges,"
+echo "so a row that read fine in the full frame can be half cut in the listing one."
