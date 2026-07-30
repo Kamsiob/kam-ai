@@ -10274,3 +10274,67 @@ invisible in every output except a small label in the corner of a screenshot.
   activation was reproduced and fixed on the same build within minutes.
 - **Stands:** the crash walks themselves. Their findings are tier-independent.
 - **Unaffected:** #133 and #144, verified at 18:42 to 19:12 on E4B, before the change.
+
+## What each tool changes, and whether it puts it back
+
+#149's second half. The first half was "an instrument that changes what it measures"; this is
+the operational form, applied to every script rather than to the one that was caught.
+
+| tool | changes | restores |
+|---|---|---|
+| `crash_walk.sh` | rotation, Settings taps | **was NO, now trap** |
+| `crash_walk2.sh` | rotation, Settings taps | **was NO, now trap** |
+| `capture_store.sh` | rotation, night mode | trap |
+| `clean_statements.sh` | rotation | trap |
+| `eval/mode_fit.sh` | rotation | trap |
+| `input_styles.sh` | rotation | trap |
+| `memory_leak.sh` | rotation | trap |
+| `prefix_probe.sh` | rotation | trap |
+| `shot.sh` | DND | trap |
+| `tier_battery.sh` | rotation, **debug props** | trap |
+| `workbench_check.sh` | rotation | trap |
+| `character_rule_probe.sh`, `memory_floor_probe.sh`, `mode_battery.sh`, `perf_probe.sh`, `session.sh` | taps only | nothing to restore |
+
+**Exactly two scripts changed configuration without restoring it, and they are the two that
+caused #149.** They set `accelerometer_rotation 0` and never put it back, so every run left
+auto-rotate off on somebody's phone. `prefix_probe.sh` has had the trap since it was written;
+the walks never did, and nothing noticed, because a changed setting is invisible in the output.
+
+That is the same blindness that let them change the active model. A tool is judged on what it
+reports; nothing judges it on what it leaves behind.
+
+**Now a checker rule:** a script containing `settings put`, `cmd uimode` or `setprop` must have
+a `trap ... EXIT`. Restoring at the end is not enough, because the interesting exits are the
+failures.
+
+### The blind-tap rule, and the eleven pixels behind it
+
+**No script taps blind coordinates in a screen containing a destructive action.**
+
+Settings holds "Delete everything" at y~2044 and the "Confirm before deleting a chat" toggle at
+y~1928. The walks tapped 780, 929, 1078, 1227, 1376, then 1525, 1674, 1823, and backed out
+between each. y=780 is the Model row, which is how #149 happened.
+
+**The arithmetic that makes this worse than untidy.** `crash_walk` taps y=1078. "Forget
+everything" on the Memory screen sits at y~1067. **Eleven pixels.** A single eaten back gesture
+after the Memory row leaves the next tap landing on it. The walk that certifies the release gate
+was one failed gesture from deleting the owner's memory, and it would have reported `ok` for
+that step because nothing crashed.
+
+Two protections, because one is not enough:
+
+1. **Settings is re-established from the Chats tab before every row tap**, so a tap can never
+   land in a screen left open by a failed back. Two extra taps per row.
+2. **A hard ceiling, `SETTINGS_SAFE_MAX_Y=1850`**, refused loudly rather than silently skipped,
+   so the destructive rows stay out of reach even if the layout moves. A larger font scale moves
+   every row down, and the walk has no idea what font scale it is running at.
+
+### E4B restored and confirmed
+
+`Model: Gemma 4 E4B, 5.0 GB`, read back from the Settings row rather than assumed. E4B was
+already on disk, so this was an activation and not a download.
+
+Worth noting from the Model screen: the Basic card carries "Logic Partner needs a larger model.
+On this one it usually cannot hold an argument and asks you to rephrase instead." So #132's tier
+finding is surfaced to the user in the app, which is why the voided #137 run's symptoms were
+predictable once the tier was known.

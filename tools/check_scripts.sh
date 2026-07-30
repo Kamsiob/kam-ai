@@ -83,7 +83,19 @@ for f in $scripts; do
   fi
 done
 
-# 7. The Kotlin guards, checked for the partial-match allowance pattern. Separate
+# 7. A script that changes device configuration puts it back.
+#
+#    The crash walks set rotation and never restored it, so every run left auto-rotate
+#    off on somebody's phone, and nothing noticed because a changed setting is invisible
+#    in the output. The same blindness is how the walks changed the active model (#149).
+for f in $scripts; do
+  if grep -q 'settings put\|cmd uimode\|setprop' "$f"; then
+    grep -q 'trap .* EXIT' "$f" ||
+      note "CHANGES CONFIG WITHOUT RESTORING (add a trap): $f"
+  fi
+done
+
+# 8. The Kotlin guards, checked for the partial-match allowance pattern. Separate
 #    file because the rule needs function scope, which is beyond grep.
 python3 tools/check_partial_match.py || fail=1
 
