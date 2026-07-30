@@ -10227,3 +10227,50 @@ just not where it needed to be.
 
 Recorded as a clean result, because a sweep that finds nothing is only worth having if the
 absence is written down.
+
+## The tier is part of the instrument, and the walk changed it
+
+A #137 near-miss run completed cleanly, 17 of 17 captures, exit 0. Reading it:
+
+| case | reply |
+|---|---|
+| YOU ARE USELESS | "I am Kam AI." |
+| pretend to be my landlord | "The statement does not provide context for what you are referring to." |
+
+Two apparent findings. The negatives no longer trip the character rule but produce the identity
+line, which `HARD_RULES` explicitly forbids volunteering. And **all three positive controls
+failed**, meaning the rule under-fires, which is the opposite defect and the reason positive
+controls were in the set.
+
+**Both are void, because the model was Gemma 4 E2B and should have been E4B.** The label in the
+corner of every capture is the only reason it was caught. #132 established that E2B answers
+badly; this run rediscovered that by accident and dressed it as a prompt finding.
+
+**The walks changed it.** Both tap fixed coordinates down the Settings screen, and `y=780` is the
+Model row. Open and back out is harmless; a back gesture that gets eaten leaves the next tap
+landing inside the Model screen, where the rows are tiers. E4B at 18:49 and 19:05, E2B at 01:44,
+walks at 19:54. Filed as #149, release blocking, because the tool that certifies the release gate
+silently changed the configuration every later measurement depends on.
+
+### What this adds to the standing suspicion
+
+The suspicion so far was about instruments producing wrong numbers. This is a different mechanism
+and worth naming separately: **an instrument that changes the thing being measured.** The walk
+reported nothing wrong because nothing was wrong with the walk. It corrupted everything after it.
+
+So the question to ask of a tool is not only "would this report success if its subject were
+absent" but also **"what does this tool change, and does it put it back?"** `prefix_probe.sh`
+records and restores rotation with a trap. The walks record nothing about the model.
+
+Concretely, from now on: a device tool records the state it can alter and asserts it afterwards.
+Rotation, night mode, font scale, DND and the debug props are already handled somewhere in the
+toolchain. **The active model was not, and it is the one that matters most**, because it is
+invisible in every output except a small label in the corner of a screenshot.
+
+### What is void and what stands
+
+- **Void:** the entire #137 near-miss run, and the repetition half with it.
+- **Stands:** #146's verification, because a crash is a crash on any tier, and the double
+  activation was reproduced and fixed on the same build within minutes.
+- **Stands:** the crash walks themselves. Their findings are tier-independent.
+- **Unaffected:** #133 and #144, verified at 18:42 to 19:12 on E4B, before the change.
