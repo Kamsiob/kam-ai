@@ -10507,3 +10507,36 @@ channels which could be closed have been.
 
 The privacy question, which is what the issue was opened on, was already answered: both channels
 that could leak something private were tested clean.
+
+## The chained-command defect, in my own workflow
+
+I pushed a failing test suite. The command was `./gradlew testDebugUnitTest ... && git push`, so
+the push ran on the exit status of a `grep` in the middle of the pipeline rather than on whether
+the tests passed. Two style-rule violations reached origin.
+
+**This is the same defect class as everything else this week**, applied to the workflow rather
+than to the application: an action taken as though a precondition held, when nothing checked that
+it held. `say.sh` printing a failure and exiting zero, `grep -c` returning a clean zero from a
+dead device, the walk reporting `ok` while the model changed underneath it. All the same shape.
+
+### The audit of my own routine commands, since one instance implies others
+
+| pattern | what goes wrong | status |
+|---|---|---|
+| `gradlew test ... \| grep ... && git push` | the grep's exit status gates the push, not the tests | **stop chaining; run, read, then push** |
+| `grep -c X file && ...` | `grep -c` exits 1 when the count is zero, so a legitimate zero aborts the chain | **bit me twice**, once mid-cleanup and once committing HANDOFF |
+| `pkill -f name` | matches the shell running it | **bit me twice**; use `pgrep -f 'nam[e]'` |
+| `cmd \| tail -n` then `echo $?` | reports `tail`'s status, not the command's | seen once, harmless there |
+
+The `grep -c` one is worth naming precisely because it looks like the safest thing in the list. A
+count of zero is a successful measurement and a failing exit code, and every `&&` after it treats
+that as an error. It is the mirror image of the defect in `echo_rate.sh`, where a zero count was
+treated as success when it should have been an error.
+
+### The rule
+
+**Never gate an irreversible action on a chained exit status.** Run the check, read the result,
+then act. The two-step costs one extra round trip and removes an entire class.
+
+This is not a resolution to be more careful. It is the same thing the checker does for the
+scripts: the habit was replaced, not the intention.
