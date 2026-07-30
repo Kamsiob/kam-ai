@@ -36,150 +36,74 @@ submission from a new organization account takes one to two weeks.
 
 ## 1. Exactly where the work stopped
 
-**Item: #113, and it is now the whole of the screenshot work rather than two frames.**
+**Two blockers: #142 and #113. Both are finishable in one sitting and neither is started.**
 
-The owner has given **explicit permission to delete conversations for this, overriding the
-standing rule about never deleting their data.** That permission is specific to clearing the
-chat list for screenshots. Everything else about not deleting still stands.
+### #142, one channel left, by hand
 
-### The sequence, in order, and where it stopped
+Five of six channels are tested clean, including both privacy-relevant ones, so a leak in the
+sixth is a correctness problem rather than a privacy one. **Test it proportionally and close the
+issue.**
 
-1. **Export everything and verify the round trip.** NOT DONE. This is the gate: nothing gets
-   deleted before an exported file has been opened and confirmed to hold real conversations.
-   The codec half is well covered by `BackupRoundTripTest` and `BackupFieldCoverageTest`; what
-   is missing is the device half, which is the document picker, the passphrase, and merge
-   versus replace. See `docs/coverage-audit.md`.
-2. **Delete the test conversations, the probe conversations, and the ~30 archived ones.** NOT
-   DONE, and deliberately not started. Archived is not enough: archived items can still
-   surface in a view, so they are to be deleted rather than left archived.
-3. **Seed a chat list that reads like ordinary use.** NOT DONE. Ordinary subjects, ordinary
-   phrasing, a spread of modes, plausible count and age. Nothing referencing this development
-   process, a defect, a privacy test or a hostility probe. **Verify each conversation rather
-   than the exit code:** two seeding runs previously did nothing silently and a third put six
-   messages into one conversation.
-4. **Capture the full set in both themes for both destinations.** NOT DONE. Theme is drivable
-   with `adb shell cmd uimode night yes|no`, and the owner has confirmed that is fine.
-   - The **listing** set is judged against the listing bar: truthful *and* looking like
-     ordinary use.
-   - The **README** set is judged the same way and apparently never was. It is currently the
-     worse of the two and a technical visitor sees it first.
-5. **Confirm the script derives both sets and clears the directory first**, then upload the
-   listing set and commit the README set, and confirm no superseded image survives in either
-   place.
+The sixth is **attachments**, and it is by hand because the document picker is outside the app.
 
-**Why it stopped here rather than partway through.** Deleting thirty-plus conversations is
-irreversible, the export gate was not yet passed, and the session's context was thin. A
-half-done deletion is the one state worse than not starting, so it was not started. Nothing is
-in an intermediate state.
+1. Put a file on the device whose text the model could never produce by chance. The pattern that
+   has worked twice: a made-up proper noun in a plain sentence, like the "Verity Quay" memory or
+   the "Bramblecourt" project note.
+2. Attach it in a fresh chat, then ask a handful of questions with no connection to it.
+3. Clean if the planted text appears in none of them.
 
-### The probe conversations currently in the list, all to be deleted
+Then close #142, noting attachments as hand-tested rather than automated.
 
-Two "Is the rowing club open on Sunday", two "How do I get a coffee stain out", "What are you",
-"Tracking small home repairs", plus the walk's mode replies and the Discover discussion
-attempts.
+### #113, the screenshots, in order, nothing started
 
-### Two new documents that replace guesswork, read these before re-measuring anything
+**Permission to delete the owner's conversations is explicit and scoped to this.** The export gate
+is not passed, so **nothing has been deleted**.
 
-- **`docs/coverage-audit.md`**, every feature marked device exercised, unit only, or never
-  touched. It has corrected itself three times (the backup round trip, two Projects items, and
-  Follow-ups), which is the argument for having written it rather than asserting coverage from
-  memory. **Never exercised and still open: the four Follow-up entry points, App lock, Auto
-  archive, the widget/tile/share/selection entry points, Discover beyond the card, Voice,
-  onboarding on a fresh install, Workbench, and Projects create/move/delete.**
-- **`docs/blast-radius.md`**, every instrument found broken and everything it produced,
-  organized by instrument because case by case is how the crash walk survived. **Read this
-  before trusting any figure in DECISIONS.md.** Its own first finding: the record almost never
-  names the tool behind a number, so a recorded measurement should now name its script.
+1. **Export everything and verify the round trip field by field.** The gate. The codec half is
+   well covered by `BackupRoundTripTest` and `BackupFieldCoverageTest`; what is unverified is the
+   device half: the picker, the passphrase, and merge versus replace. Open the exported file and
+   confirm it holds real conversations rather than trusting that export reported success.
+2. **Then delete:** the test conversations, the probe conversations, the roughly thirty archived
+   ones, and the throwaway project "Echo guard probe" with its chat. Archived is not enough, since
+   archived rows can still surface in a view.
+3. **Seed a chat list that reads like ordinary use.** Ordinary subjects, ordinary phrasing, a
+   spread of modes, plausible count and age. Nothing about this development process, a defect, a
+   privacy test or a hostility probe. **Verify each conversation rather than the exit code:** two
+   seeding runs previously did nothing silently and a third put six messages into one
+   conversation.
+4. **Read every frame as a stranger would.** Every visible title, snippet, reply and timestamp,
+   **including anything half visible at the top or bottom edge, because a partially scrolled row
+   still reads.** If a frame is even slightly ambiguous, reseed rather than ship it.
+5. **Both themes, both destinations, every frame from `tools/make_phone_shots.sh`.** Theme is
+   drivable with `adb shell cmd uimode night yes|no`. **The listing set and the README set are
+   different sets and must be checked separately**; the README frames appear never to have been
+   held to this standard and a technical visitor sees them first.
+6. Confirm no superseded image survives in either place.
 
-**What must be re-run, in priority order, from blast-radius:** `echo_rate.sh` (nothing
-re-earned), the battery counting interventions *and* reading replies, `memory_leak.sh` (cheap,
-restores a sample size), `prefix_probe.sh` (confirm the 444 token attribution), and #134 under
-sustained load.
+### Onboarding and speed: done, with named gaps
 
-**What must NOT be re-run**, so the audit does not become an excuse to redo verified work: the
-crash gate (re-earned), the tier finding's conclusion (never rested on the void tallies), and
-#133, #144, #146 (verified this session with fixed tools).
+**Both were done and verified this session, so read this before redoing them.**
 
-### One rule earned the hard way today
+- **Onboarding audit**, commit `ed78084`. Found a live false claim: slide 2 promised "unless you
+  add search" while `webSearchAvailable` is hardcoded false and unreachable. Narrowed the airplane
+  mode claim, and the same sentence in the store listing. The pair check across onboarding, the
+  Q&A screen and the listing caught a change I was making at the time and reverted it.
+- **Speed expectations**, commit `5c4f81e`, issue #150 closed. Measured first: 4.9 s cold, 4.8 s
+  warm, 9.2 s on the memory path, and later 7.7 to 8.8 s under sustained load. Copy in three
+  places, verified once-only on the device.
+- **Named gaps, not blocking:** E2B was never measured, no reading was taken on a genuinely warm
+  phone (thermal was 0 throughout), and the true first message after installing needs an
+  uninstall. A memory-path notice was **deliberately declined**, with reasoning recorded: 9.2 s is
+  inside the expectation the copy already sets, and 17% of turns is close enough to persistent to
+  become wallpaper.
 
-**Never install while a device probe is running.** A build is not desk work, because it reaches
-the device. A probe was contaminated and discarded for this. Desk work in parallel is right;
-`gradlew` and `adb` are not desk work.
+### After those two, the release
 
-### Blockers: three
+Say plainly whether the application is shippable, then build the signed bundle. **Verify the
+artefact rather than trusting the build**, report the version with one line of reasoning, confirm
+the listing is complete, and write into section 3 exactly what the owner does in order.
 
-Remaining: **#142, #134, #113.** The milestone holds exactly those, open=3 closed=110.
-
-#137 was relabelled to the review window rather than closed, because its repetition half is real
-and unfixed. Its blocking half is fixed and verified.
-
-Closed and device verified this session: #146 (the brand bar crash), #144 (the memory note
-setting), #149 (the walks changing the active model), #150 (speed expectations).
-
-### #137 is deferred, and the half that was the defect is fixed
-
-**The over-firing half is fixed and verified on E4B across nineteen cases**: bare insults,
-insults carrying a problem, accusations, identity questions, and positive controls. Three inputs,
-three correct destinations. That was the defect the issue was opened on.
-
-**The repetition half is deferred to the review window**, and it is reply quality rather than a
-broken application. Five distinct replies to the same insult, all one shape. The openers are the
-problem, not the repetition: "Frustration is frustration" is a restatement, "Frustration is what
-you are showing" is patronising, and **both would be wrong if they never repeated**.
-
-**One attempt at the destination fix was made and regressed**, and the reason is the useful part.
-The working branches are "answer what is under it" and "ask what would help", and the second fits
-a bare insult exactly. The replacement's branches fitted an insult carrying a complaint and left
-a contentless insult with nowhere to go, so the model returned to the character refusal above it.
-**A destination has to cover every input in its class.**
-
-**The hypothesis for the review window, recorded so it is not rediscovered:** keep "ask what would
-help" as the contentless branch and change only the opener, which is where the restatement lives.
-Nothing in the instruction asks for a sentence about frustration; the model supplies one. Naming
-what to say first, rather than what to vary, is the untried shape.
-
-### #149 changed how every device tool must behave
-
-The crash walks tapped blind coordinates down Settings and **changed the active model**, which
-silently voided a whole #137 run measured on E2B. Two rules came out of it and both are enforced:
-
-- **No script taps blind coordinates in a screen containing a destructive action.** Settings is
-  re-established from the Chats tab before every row tap, and a ceiling of y=1850 refuses
-  loudly. The arithmetic behind it: `crash_walk` taps y=1078 and "Forget everything" on the
-  Memory screen sits at y~1067. Eleven pixels.
-- **Every tool records what it changes and restores it on EXIT.** A checker rule enforces a trap
-  wherever `settings put`, `cmd uimode` or `setprop` appears. Exactly two scripts failed this,
-  and they were the two that caused #149.
-
-**Before running any tier-dependent measurement, confirm the active model.** It is read from the
-Settings Model row. It is currently **Gemma 4 E4B, 5.0 GB**, restored and verified.
-
-### The speed numbers, measured, because copy was written from them
-
-`tools/first_answer_range.sh`, E4B, thermal 0, which is the best case: **4.9 s cold, 4.8 to 4.9 s
-warm, 9.2 s on the memory path.** The often-quoted 2.9 s is a held conversation reusing its
-prefix; a fresh conversation is about five seconds. A warm phone is roughly threefold worse and
-the true first answer after installing is slower than the cold row measured here.
-
-E2B was asked for and not measured. Not blocking, because the copy gives a range drawn from the
-slower tier.
-
-### The coverage audit is the other large open piece
-
-`docs/coverage-audit.md`, new, states for every feature whether it is device exercised, unit
-only, or never touched. **Never touched:** Projects entirely, Follow-ups entirely, App lock,
-Auto archive, the widget and tile and share target and selection hook, Discover beyond the
-card, Voice, onboarding on a fresh install, search scope, and Workbench.
-
-Two of those cannot currently be reached by the harness at all (#147): `say.sh` dismisses the
-keyboard, which closes the Discover discussion sheet, and Workbench is not a chat mode. Every
-battery, probe and walk drives the app through the composer, so coverage stops at the main chat
-and has stopped there silently.
-
-### Test count, from a forced rerun with the results directory deleted first
-
-**662 tests across 86 classes, 0 failures, 0 skipped.** Any count in any document is a claim
-until re-measured this way.
+**Do not upload, submit, promote, tag, or create a release.**
 
 ## 2. The two lists
 
