@@ -80,14 +80,14 @@ attempts.
 
 ### Two new documents that replace guesswork, read these before re-measuring anything
 
-- **`docs/coverage-audit.md`** — every feature marked device exercised, unit only, or never
+- **`docs/coverage-audit.md`**, every feature marked device exercised, unit only, or never
   touched. It has corrected itself three times (the backup round trip, two Projects items, and
   Follow-ups), which is the argument for having written it rather than asserting coverage from
   memory. **Never exercised and still open: the four Follow-up entry points, App lock, Auto
   archive, the widget/tile/share/selection entry points, Discover beyond the card, Voice,
   onboarding on a fresh install, Workbench, and Projects create/move/delete.**
-- **`docs/blast-radius.md`** — every instrument found broken and everything it produced,
-  organised by instrument because case by case is how the crash walk survived. **Read this
+- **`docs/blast-radius.md`**, every instrument found broken and everything it produced,
+  organized by instrument because case by case is how the crash walk survived. **Read this
   before trusting any figure in DECISIONS.md.** Its own first finding: the record almost never
   names the tool behind a number, so a recorded measurement should now name its script.
 
