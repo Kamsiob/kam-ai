@@ -10679,3 +10679,43 @@ not carry across to its sibling**, which is the same failure mode as `03299e6` f
 Fixing a defect in one script and leaving its copies alone is now the third instance this week. It
 argues for the checker gaining a rule about reading logcat at the end, rather than for me being
 more careful.
+
+## The sibling rule, promoted from an observation because it is three for three
+
+Three times this week a fix landed in one place and not in its siblings:
+
+1. **`03299e6`** converted every `remove(element)` on a `SnapshotStateList` to `removeAll { }`,
+   said explicitly that it fixed all four sites, and did. `removeAt(lastIndex)` is the same defect
+   differently spelled, was never in scope, and crashed the release build (#146).
+2. **The harness suppressions.** `say.sh` was fixed for printing a failure and exiting zero, and
+   the same class sat in eighteen other places until swept as a class.
+3. **`prefix_probe.sh`** was fixed for reading logcat once at the end. `perf_probe.sh` has the
+   identical defect and lost 12 of 14 measurements during the #134 run.
+
+Three is not a coincidence, so it becomes a rule rather than a third note.
+
+### The rule
+
+**After fixing anything, find every other place the same construct appears and fix or clear each
+one before closing.**
+
+Two clauses that make it usable rather than pious:
+
+- **Enumerate by the defect, not the spelling.** Searching for `remove(` found four sites and
+  missed the fifth, because the fifth was spelled `removeAt(`. The question is not "where else
+  does this text appear" but "where else can this failure happen". The emptiness sweep found six
+  sites by asking which operations throw on an empty collection, rather than which ones were
+  spelled like the one that crashed.
+- **If the class cannot be enumerated, say so on the issue rather than closing it as done.** An
+  unenumerable class is a real answer. What is not acceptable is closing an issue implying the
+  class was swept when only the instance was.
+
+### Why it keeps happening, which the rule has to survive
+
+Every one of the three was fixed carefully, by somebody who had just understood the defect well
+enough to explain it. The failure is not carelessness. It is that **understanding a defect makes
+its instance vivid and its class invisible**: the mind is full of the specific line that broke.
+
+That is why this is a step in the process rather than an instruction to be thorough. The
+checkers, the near-miss set and the coverage audit all exist for the same reason, and each was
+written after the same discovery.
