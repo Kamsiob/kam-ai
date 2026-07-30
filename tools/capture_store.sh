@@ -17,10 +17,30 @@
 # genuinely in front, and every frame must still be looked at before use: the
 # guard stops the wrong application being photographed, not the right application
 # showing something personal.
+#
+# ## Two things this got wrong, both fixed
+#
+# **A refused capture used to be survivable.** `grab` printed "REFUSED" and returned
+# success, so the run finished, said "captured into docs/screenshots", and exited 0
+# with frames missing. Worse than missing: the *previous* run's file was still
+# sitting there, so the set looked complete and was silently stale. That is the same
+# defect make_phone_shots.sh was written to close on the listing side, and it was
+# still open on this side. The directory is emptied first now, and a refusal fails
+# the run.
+#
+# **The set was eight frames and the canonical set is ten.** Projects and Follow-ups
+# were in docs/screenshots and were not produced by this script, so nothing
+# regenerated them and nothing would have noticed them going stale. They are captured
+# here now, which is the whole premise of having a script.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/loud.sh"
 adb="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 out=docs/screenshots
+
+# Emptied rather than overwritten, so a refused capture cannot leave the previous
+# run's file behind looking current.
+rm -f "$out"/*.png
 mkdir -p "$out"
 
 prior_rotation="$("$adb" shell settings get system accelerometer_rotation 2>/dev/null | tr -d '\r')"
@@ -44,17 +64,31 @@ home() {
   "$adb" shell input tap 142 2270; sleep 3
 }
 
-grab() { ./tools/shot.sh "$out/$1-$THEME.png" >/dev/null && echo "    $1-$THEME" || echo "    REFUSED $1-$THEME"; }
+# Records a refusal and keeps going, and [evidence_exit] fails the run at the end, so
+# a set with holes in it can never be read as a complete one.
+grab() { capture_or_note tools "$out/$1-$THEME.png" && echo "    $1-$THEME"; }
 
+# Row centres, measured rather than guessed. The old values were 560, 760 and 960;
+# 960 falls in the gap below the third card rather than on it, which taps nothing.
+ROW1=574; ROW2=730; ROW3=886
+
+# **Which conversation sits in which row decides what three of these frames show.**
+# Rows one, two and three become the conversation, logic and brainstorm frames, so
+# the seeded ages are set to put a General, a Logic and a Brainstorm chat in that
+# order. See HANDOFF, #113. If the list is reseeded, check that before capturing.
 capture_all() {
-  home;                                   grab chats
-  "$adb" shell input tap 540 560; sleep 4; grab conversation
+  home;                                    grab chats
+  "$adb" shell input tap 540 "$ROW1"; sleep 4; grab conversation
   home
-  "$adb" shell input tap 540 760; sleep 4; grab logic
+  "$adb" shell input tap 540 "$ROW2"; sleep 4; grab logic
   home
-  "$adb" shell input tap 540 960; sleep 4; grab brainstorm
+  "$adb" shell input tap 540 "$ROW3"; sleep 4; grab brainstorm
   home
-  "$adb" shell input tap 925 2122; sleep 6; grab workbench
+  "$adb" shell input tap 924 2122; sleep 6; grab workbench
+  home
+  "$adb" shell input tap 406 2252; sleep 5; grab projects
+  home
+  "$adb" shell input tap 671 2252; sleep 5; grab followups
   home
   "$adb" shell input tap 936 2270; sleep 6; grab discover
   home
@@ -75,3 +109,12 @@ for mode in no yes; do
 done
 
 echo "captured into $out"
+echo ""
+echo "Twenty frames is the whole set. Now read every one of them as a stranger"
+echo "would, including anything half visible at an edge, because a partially"
+echo "scrolled row still reads. The guard stops the wrong application being"
+echo "photographed; it does not stop the right one showing something it should not."
+
+# Fails the run if any capture was refused. The steps ran; without the evidence
+# that they ran as described, this is not a complete set.
+evidence_exit

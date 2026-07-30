@@ -84,6 +84,26 @@ Real captures from the phone, never mockups.
 <td><b>Follow-ups</b> is where everything you saved ends up, from anywhere in the app.</td>
 <td><b>Choosing a model.</b> Speed measured on your own phone, quality against the models offered here, and an honest note where one is weaker at something.</td>
 </tr>
+<tr>
+<td><img src="docs/screenshots/logic-light.png" alt="Logic Partner"></td>
+<td><img src="docs/screenshots/brainstorm-light.png" alt="Brainstorm"></td>
+<td><img src="docs/screenshots/workbench-light.png" alt="Workbench"></td>
+</tr>
+<tr>
+<td><b>Logic Partner</b> works a problem through rather than agreeing with it.</td>
+<td><b>Brainstorm</b> goes wide first and picks later.</td>
+<td><b>Workbench</b> takes text you already have and reshapes it, keeping the before and the after side by side.</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/settings-light.png" alt="Settings"></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><b>Settings.</b> What is on the device, what it remembers, and where your data goes, which is nowhere.</td>
+<td></td>
+<td></td>
+</tr>
 </table>
 
 <details>
@@ -101,6 +121,16 @@ Real captures from the phone, never mockups.
 <td><img src="docs/screenshots/projects-dark.png" alt="Projects, dark"></td>
 <td><img src="docs/screenshots/followups-dark.png" alt="Follow-ups, dark"></td>
 <td><img src="docs/screenshots/model-dark.png" alt="Choosing a model, dark"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/logic-dark.png" alt="Logic Partner, dark"></td>
+<td><img src="docs/screenshots/brainstorm-dark.png" alt="Brainstorm, dark"></td>
+<td><img src="docs/screenshots/workbench-dark.png" alt="Workbench, dark"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/settings-dark.png" alt="Settings, dark"></td>
+<td></td>
+<td></td>
 </tr>
 </table>
 

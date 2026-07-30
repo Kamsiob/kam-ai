@@ -114,31 +114,57 @@ Two defects were found doing it and both are fixed: **#153** and **#154**, above
 The **archived view has no bulk selection**, so clearing 41 meant tapping "Move to Chats" 41 times
 and then one bulk delete from the main list. Not filed. It is a slow path, not a wrong one.
 
-### #113, the remaining steps
+### #113, steps 3 to 6: done, and closed
 
-**Permission to delete the owner's conversations is explicit and scoped to this.** The export gate
-is not passed, so **nothing has been deleted**.
+**Step 3, the seeding.** Seven conversations across General, Logic and Brainstorm, plus one inside
+a project, from `tools/seed_chats.sh`. Ordinary subjects: a tomato sauce stain, soaking chickpeas,
+yellowing leaf tips, a savings calculation, a laptop over three years against five, a fortieth
+birthday, a rushed morning, and a note to a letting agent about a boiler service.
 
-1. **Export everything and verify the round trip field by field.** The gate. The codec half is
-   well covered by `BackupRoundTripTest` and `BackupFieldCoverageTest`; what is unverified is the
-   device half: the picker, the passphrase, and merge versus replace. Open the exported file and
-   confirm it holds real conversations rather than trusting that export reported success.
-2. **Then delete:** the test conversations, the probe conversations, the roughly thirty archived
-   ones, and the throwaway project "Echo guard probe" with its chat. Archived is not enough, since
-   archived rows can still surface in a view.
-3. **Seed a chat list that reads like ordinary use.** Ordinary subjects, ordinary phrasing, a
-   spread of modes, plausible count and age. Nothing about this development process, a defect, a
-   privacy test or a hostility probe. **Verify each conversation rather than the exit code:** two
-   seeding runs previously did nothing silently and a third put six messages into one
-   conversation.
-4. **Read every frame as a stranger would.** Every visible title, snippet, reply and timestamp,
-   **including anything half visible at the top or bottom edge, because a partially scrolled row
-   still reads.** If a frame is even slightly ambiguous, reseed rather than ship it.
-5. **Both themes, both destinations, every frame from `tools/make_phone_shots.sh`.** Theme is
-   drivable with `adb shell cmd uimode night yes|no`. **The listing set and the README set are
-   different sets and must be checked separately**; the README frames appear never to have been
-   held to this standard and a technical visitor sees them first.
-6. Confirm no superseded image survives in either place.
+**Ages come through the backup round trip, and that is the only route to them.** Everything seeded
+in one run lands minutes apart, and a list where every row says "12m" reads as a device set up
+this morning. So: export, rewrite `createdAt` and `updatedAt`, re-encrypt with a fresh salt and
+nonce, import with Replace. The list now reads 6h, 2d, 3d, 5d, 1w, 1w, 2w. The script is in the
+scratchpad rather than `tools/`, but the method is written down here because it is the reusable
+part.
+
+**Ages are keyed on content, not on seed order, and that is load-bearing.** `capture_store.sh`
+opens rows one, two and three for the conversation, logic and brainstorm frames, so which
+conversation is newest decides what three frames show. Seed order would have put three General
+chats at the top and the wrong mode in two frames. **If the list is ever reseeded, check that
+before capturing.**
+
+**Steps 4 to 6.** All twenty frames read individually, both themes, then the five listing frames
+read again after cropping, because the crop changes both edges. The half-visible row at the foot
+of the Settings frame is "Open with the power button. Set up. Long-press power to ask", which
+reads true. `discover-light` and `discover-dark` show different passages because Discover deals at
+random; that is honest rather than a mismatch. Nothing superseded survives: both scripts empty
+their directory first, and git shows twenty and five files all modified, none added, none deleted.
+
+**Three things were found doing this and all three are fixed.**
+
+- **#153 and #154**, above.
+- **#155**, the capture guard. A frame came back with an incoming call from a contact across the
+  top of it, name and photograph. Destroyed, never committed. **A heads-up notification never
+  takes focus**, so both of `shot.sh`'s guards passed. Total silence rather than priority now, plus
+  a refusal while the shade window is on screen, which covers heads-up and pulled-down together.
+
+**Two harness lessons that will cost an hour if rediscovered:**
+
+- **Workbench is not a conversation.** It is its own screen with its input in the `workbench.input`
+  setting, and its composer sits close enough to a chat's that `say.sh` types into it and waits out
+  a real generation. The first seeding run reported eight of nine with the eighth having produced
+  nothing. It is out of `seed_chats.sh` now, and the Workbench frame comes from the screen itself.
+- **A finished generation is not a conversation.** `say.sh` returned success for a Brainstorm seed
+  that ended up with a user message and no reply. Count the list on the device; the script cannot.
+
+**The debris that only the backup file showed.** `system.instructions` still held #142's planted
+"I work at Pellingham Mutual ... Keep answers short", despite that issue's note saying it was
+cleared, and it was shaping every reply in the app. `workbench.input` held garbled text that would
+have gone straight into a frame. Neither is visible on a screen you would think to check. **The
+first seeded set was thrown away and reseeded because of it**, so the frames show what the app does
+by default rather than what it does under a test artifact. Read the settings array of an export
+before trusting that the device is clean.
 
 ### Onboarding and speed: done, with named gaps
 
@@ -181,14 +207,15 @@ is opened, defaulting to deferred when unsure, and saying why.**
 | | Every permission has a user-facing justification | **Done.** All seven traced to a feature and a listing location in `docs/release-permissions.md`. |
 | | Target API level 36 | **Done.** `targetSdk` 36, `compileSdk` 37. |
 | | No false claim about privacy, data handling, or what the app does with what a user types | **Partly done.** Three false claims found and fixed. The sweep has not been run end to end. See Part II. |
-| 113 | Screenshots matching the application | **Nearly done.** 20 documentation frames finished. No longer blocked on #133. Needs the probe conversations cleared, then two frames recaptured. |
-| 133 | Memory retrieval injects irrelevant facts | **Nearly done.** Ordering, relevance floor and interface half all fixed and device verified. Only `memory_leak.sh` plus #142's channel test remain. |
+| 113 | Screenshots matching the application | **Closed 30 July.** All 20 documentation frames and all 5 listing frames recaptured from a seeded, ordinary-looking device and read individually. |
+| 133 | Memory retrieval injects irrelevant facts | **Closed.** Ordering, relevance floor and interface half all fixed and device verified. |
 | 144 | A setting for whether the memory note appears | **Done.** Off by default, device verified, and it unblocked #113. |
-| 137 | Hostility repetition, and an insult trips the character rule | **Open, reopened once.** Fix verified on one phrasing, still fails on another. |
-| 134 | Nothing said or done when the phone throttles | **Fix committed, decision open.** Whether LIGHT should speak needs a measurement. |
+| 137 | Hostility repetition, and an insult trips the character rule | **Moved to deferred.** Open, and no longer labelled release-blocking on the tracker. |
+| 134 | Nothing said or done when the phone throttles | **Closed.** Settled by measurement: LIGHT is rare, and the status is not what a user feels. |
 | 142 | The echo guard checks one of six sources of prompt text | **Closed 30 July.** All six channels tested clean. The guard was deliberately not widened. |
 | 153 | Deleting a chat leaves the attached document on the device | **Closed 30 July.** Found while verifying the #113 export gate. Three delete paths fixed, 7 tests. |
 | 154 | The archive is unreachable when no chats are active | **Closed 30 July.** Found while clearing the list for #113, which it blocked. The empty state carries the link now. |
+| 155 | `shot.sh` captures heads-up notifications | **Closed 30 July.** A capture came back with a contact's incoming call across it. Destroyed. Focus is not a statement about pixels. |
 
 ### What is deferred to the review window
 

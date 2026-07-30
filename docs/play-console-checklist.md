@@ -7,9 +7,16 @@ exposes only `contactEmail`, `contactPhone`, `contactWebsite` and
 `fullDescription` and `video`; and there is no data safety, privacy policy or
 category resource anywhere in the edits API.
 
-Everything the API **can** reach is already uploaded and verified: the title, the
-short and full descriptions, the icon, the feature graphic, and the phone
-screenshots.
+Everything the API **can** reach is written and ready to go, in
+`tools/play/listing.json` and `store-assets/`: the title, the short and full
+descriptions, the icon, the feature graphic, and the phone screenshots.
+
+**None of it has been uploaded.** An earlier version of this line said it was
+already uploaded and verified, and that was wrong. Nothing has ever been sent to
+the Console. That is worth stating plainly rather than quietly correcting,
+because a reader who believed it would skip the upload and then wonder why the
+listing was empty. The one consolation is the one HANDOFF already records: with
+nothing uploaded, no superseded asset can be lingering up there.
 
 Answers below are derived from the release build's actual behaviour, not from
 what was declared before. The foreground service work changed the permission set
