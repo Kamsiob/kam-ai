@@ -548,6 +548,17 @@ interface SettingsDao {
 
     @Query("DELETE FROM settings WHERE key = :key")
     suspend fun remove(key: String)
+
+    /**
+     * Removes every setting whose key starts with [prefix].
+     *
+     * Exists for attachments. An attached document's text is a setting keyed by
+     * conversation, so a delete that clears rows and not settings leaves the whole
+     * document behind. See `deleteEverything`, which has no conversation ids left
+     * to walk by the time it needs to do this.
+     */
+    @Query("DELETE FROM settings WHERE key LIKE :prefix || '%'")
+    suspend fun removeByPrefix(prefix: String)
 }
 
 /** How many conversations a project holds. See `observeProjectCounts`. */

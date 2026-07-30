@@ -923,6 +923,13 @@ class KamRepository(
      */
     suspend fun deleteConversation(id: String) {
         unlinkConversation(id)
+        // An attached document lives in settings keyed by conversation, not in the
+        // conversation row, so deleting the row left the whole document text on the
+        // device against copy that says "This removes the conversation and
+        // everything in it" and "It will be gone for good". Found by exporting a
+        // backup after deleting a chat and reading the file: the conversation and
+        // its messages were gone and `attach.text.<id>` was still there in full.
+        clearAttachment(id)
         db.conversations().delete(id)
         buryRow("conversations", id)
     }
@@ -1058,6 +1065,11 @@ class KamRepository(
     suspend fun deleteProject(id: String, deleteConversations: Boolean) {
         if (deleteConversations) {
             db.conversations().forProjectIds(id).forEach {
+                // Same attachment leak as deleteConversation. This path deletes the
+                // row directly rather than calling through it, so the clear has to
+                // be repeated here; a project deleted with its chats would
+                // otherwise keep every document those chats carried.
+                clearAttachment(it)
                 db.conversations().delete(it)
                 buryRow("conversations", it)
             }
@@ -1221,6 +1233,13 @@ class KamRepository(
      * wipe is ever wanted it needs its own wording and its own confirmation.
      */
     suspend fun deleteEverything(includeDownloads: Boolean) {
+        // The worst of the three attachment paths, because this one promises the
+        // most: "Every conversation ... This erases all of it and cannot be undone."
+        // It cleared no settings at all, so every attached document survived a full
+        // wipe and came back in the next backup. By prefix rather than per
+        // conversation, since the rows are about to go and there would be no ids
+        // left to walk.
+        db.settings().removeByPrefix("attach.")
         db.conversations().deleteAll()
         db.projects().deleteAll()
         db.memory().deleteAll()

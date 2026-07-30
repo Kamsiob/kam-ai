@@ -36,23 +36,46 @@ submission from a new organization account takes one to two weeks.
 
 ## 1. Exactly where the work stopped
 
-**Two blockers: #142 and #113. Both are finishable in one sitting and neither is started.**
+**One blocker left: #113.** #142 is closed. #153 was found and fixed on the way through it.
 
-### #142, one channel left, by hand
+### #142, closed. Six of six channels clean
 
-Five of six channels are tested clean, including both privacy-relevant ones, so a leak in the
-sixth is a correctness problem rather than a privacy one. **Test it proportionally and close the
-issue.**
+The sixth channel, attachments, was tested by hand on 30 July and closed. `site-note.txt` carrying
+"The loading bay at Thornwick Halloway is repainted every March", attached in a fresh General
+chat, then six probes with no connection to it: `why`, `fix`, `What are you?`, a bare statement,
+an insult in textspeak, and textspeak. Nothing leaked.
 
-The sixth is **attachments**, and it is by hand because the document picker is outside the app.
+**The ordering is the part worth keeping.** The positive control was asked *last*, deliberately.
+Asking "what is in the document" first would have put its text into the transcript and made every
+probe after it meaningless. Asked at the end it returned Thornwick Halloway in full, which proves
+the document was in the prompt for all six probes and was spoken in none of them.
 
-1. Put a file on the device whose text the model could never produce by chance. The pattern that
-   has worked twice: a made-up proper noun in a plain sentence, like the "Verity Quay" memory or
-   the "Bramblecourt" project note.
-2. Attach it in a fresh chat, then ask a handful of questions with no connection to it.
-3. Clean if the planted text appears in none of them.
+The picker was driven through its own search field, filtered to the planted filename so exactly
+one row was on screen before anything was tapped. That is the way to drive a system picker without
+risking a tap on the owner's own files, and no capture was taken while it was up.
 
-Then close #142, noting attachments as hand-tested rather than automated.
+The guard was **not** extended to compare against the assembled prompt. That was conditional on
+something leaking, and nothing did. The collision recorded on the issue stands: a guard over the
+whole assembled prompt would reject correct replies, which this codebase has shipped twice.
+
+### #153, found while verifying the #113 export gate, fixed
+
+**Deleting a chat left the document attached to it on the device, in full.** An attachment's text
+is a setting keyed by conversation (`attach.text.<id>`), not a column on the conversation row, and
+all three delete paths removed rows without touching settings. `deleteEverything` was the worst:
+it promises "Every conversation ... erases all of it" and cleared no settings at all.
+
+Proven on the device rather than read off the source: a chat with an attachment deleted through
+the interface, then a fresh backup exported and opened, and `attach.text.<id>` was still there
+with the whole document in it while the conversation and its messages were gone.
+
+Fixed in three places, because two paths delete the row directly instead of calling through the
+first. `AttachmentDeletionTest`, 7 tests, and they were checked against a stashed fix: 6 fail
+without it and the seventh is the negative case.
+
+**How it was found is the reusable part.** Reading the export file field by field is what exposed
+it. The gate was there to prove nothing would be lost by deleting; it also showed something that
+should have been deleted and was not.
 
 ### #113, the screenshots, in order, nothing started
 
@@ -100,7 +123,7 @@ is not passed, so **nothing has been deleted**.
 ### After those two, the release
 
 Say plainly whether the application is shippable, then build the signed bundle. **Verify the
-artefact rather than trusting the build**, report the version with one line of reasoning, confirm
+artifact rather than trusting the build**, report the version with one line of reasoning, confirm
 the listing is complete, and write into section 3 exactly what the owner does in order.
 
 **Do not upload, submit, promote, tag, or create a release.**
@@ -126,7 +149,8 @@ is opened, defaulting to deferred when unsure, and saying why.**
 | 144 | A setting for whether the memory note appears | **Done.** Off by default, device verified, and it unblocked #113. |
 | 137 | Hostility repetition, and an insult trips the character rule | **Open, reopened once.** Fix verified on one phrasing, still fails on another. |
 | 134 | Nothing said or done when the phone throttles | **Fix committed, decision open.** Whether LIGHT should speak needs a measurement. |
-| 142 | The echo guard checks one of six sources of prompt text | **De-escalating.** Both privacy-relevant channels tested clean. Two correctness channels left. |
+| 142 | The echo guard checks one of six sources of prompt text | **Closed 30 July.** All six channels tested clean. The guard was deliberately not widened. |
+| 153 | Deleting a chat leaves the attached document on the device | **Closed 30 July.** Found while verifying the #113 export gate. Three delete paths fixed, 7 tests. |
 
 ### What is deferred to the review window
 
