@@ -78,6 +78,34 @@ Two "Is the rowing club open on Sunday", two "How do I get a coffee stain out", 
 "Tracking small home repairs", plus the walk's mode replies and the Discover discussion
 attempts.
 
+### Two new documents that replace guesswork, read these before re-measuring anything
+
+- **`docs/coverage-audit.md`** — every feature marked device exercised, unit only, or never
+  touched. It has corrected itself three times (the backup round trip, two Projects items, and
+  Follow-ups), which is the argument for having written it rather than asserting coverage from
+  memory. **Never exercised and still open: the four Follow-up entry points, App lock, Auto
+  archive, the widget/tile/share/selection entry points, Discover beyond the card, Voice,
+  onboarding on a fresh install, Workbench, and Projects create/move/delete.**
+- **`docs/blast-radius.md`** — every instrument found broken and everything it produced,
+  organised by instrument because case by case is how the crash walk survived. **Read this
+  before trusting any figure in DECISIONS.md.** Its own first finding: the record almost never
+  names the tool behind a number, so a recorded measurement should now name its script.
+
+**What must be re-run, in priority order, from blast-radius:** `echo_rate.sh` (nothing
+re-earned), the battery counting interventions *and* reading replies, `memory_leak.sh` (cheap,
+restores a sample size), `prefix_probe.sh` (confirm the 444 token attribution), and #134 under
+sustained load.
+
+**What must NOT be re-run**, so the audit does not become an excuse to redo verified work: the
+crash gate (re-earned), the tier finding's conclusion (never rested on the void tallies), and
+#133, #144, #146 (verified this session with fixed tools).
+
+### One rule earned the hard way today
+
+**Never install while a device probe is running.** A build is not desk work, because it reaches
+the device. A probe was contaminated and discarded for this. Desk work in parallel is right;
+`gradlew` and `adb` are not desk work.
+
 ### Blockers: four, down from six
 
 #146 and #144 are closed and device verified. Remaining: **#142, #137, #134, #113.** The
