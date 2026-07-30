@@ -10540,3 +10540,44 @@ then act. The two-step costs one extra round trip and removes an entire class.
 
 This is not a resolution to be more careful. It is the same thing the checker does for the
 scripts: the habit was replaced, not the intention.
+
+## What remains of the speed work, and one notice deliberately not added
+
+The measurement and the three placements are done and verified (#150, closed). Three items from
+the original brief are not, and they split into two that are worth doing and one that is not.
+
+### Not measured, and honestly outstanding
+
+- **Both tiers.** Only E4B was measured. E2B is faster per token and the shape should hold, but
+  the numbers are not in hand. Not blocking, because the copy gives a range drawn from the
+  slower tier, which is the conservative direction.
+- **A turn on a warm phone.** Thermal status was 0 for every reading, so the whole table is the
+  best case. The threefold degradation figure comes from an earlier measurement, and it is the
+  single largest factor in the honest range. Worth folding into `first_answer_range.sh` as a
+  case that waits for the phone to warm rather than hoping it is warm.
+- **The true first message after installing**, which cannot be reproduced without an uninstall
+  and therefore waits on the deliberate release-build install.
+
+### The memory-path notice, and why it should not exist
+
+The brief says to explain a long wait whenever the reason is knowable, and the memory path is
+knowable at prompt-build time. It fires on about 17% of turns and roughly doubles the wait.
+
+**Deciding against it, and recording the reasoning rather than the conclusion.**
+
+The measured numbers are 4.9 seconds ordinary and 9.2 seconds on the memory path. The copy
+already tells the user that answers take "a few seconds" and are slower when the phone is warm.
+**Nine seconds is inside the expectation that copy sets.** A notice would be explaining a wait
+the user was already told to expect.
+
+And 17% of turns is not rare. A line appearing on roughly one turn in six is close enough to
+persistent to become wallpaper, and the brief is explicit that nothing should mention speed on
+every message. The two notices that exist earn their place by being once-only (the first answer)
+or genuinely exceptional (a warm phone at threefold).
+
+**The threshold that makes this consistent:** explain a wait when it falls outside what the user
+was told to expect. Loading the model does, at first-run. A warm phone does, at threefold. The
+memory path does not.
+
+If the memory path ever moves further out, #143's architectural fix would reduce it rather than
+explain it, which is the better answer to a wait that is too long.
