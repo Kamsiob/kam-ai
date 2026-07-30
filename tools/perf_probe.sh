@@ -29,6 +29,15 @@ sleep 6
 
 prompt="Explain in about eight sentences why bread needs a hot oven."
 
+# Where each run's measurement is kept as it happens.
+#
+# logcat is circular, and reading it once at the end loses the early runs: the #134
+# thermal run sent 14 generations and only 2 lines survived to be read. That is the
+# same defect fixed in prefix_probe.sh and not carried across to here, which is the
+# third time this week a fix has been applied to one script and not its siblings.
+lines_out="/tmp/perf-probe-lines.tsv"
+: > "$lines_out"
+
 for i in $(seq 1 "$runs"); do
   "$adb" shell cmd statusbar collapse >/dev/null 2>&1 || true
   # Back out to the list, and relaunch if that left the app, since Back from the
@@ -42,9 +51,14 @@ for i in $(seq 1 "$runs"); do
   "$adb" shell input tap "$mode_x" 2122   # a fresh conversation in this mode
   sleep 6
   ./tools/say.sh "$prompt" "$wait_s" >/dev/null
+  # Read this run's line now, then clear, so run 1 is still readable at run 14.
+  printf '%s\t%s\n' "$i" \
+    "$("$adb" logcat -d -s KamPerf 2>/dev/null | grep 'decode=' | tail -1 | tr -d '\r')" \
+    >> "$lines_out"
+  "$adb" logcat -c >/dev/null 2>&1 || true
   echo "run $i done"
 done
 
 echo
-echo "=== what the engine measured"
-"$adb" logcat -d -s KamPerf 2>/dev/null | grep -E 'TTFT=' || echo "no measurements captured"
+echo "=== what the engine measured, one line per run, none aged out"
+cat "$lines_out"

@@ -83,7 +83,20 @@ for f in $scripts; do
   fi
 done
 
-# 7. A script that changes device configuration puts it back.
+# 7. Deliberately not a rule: "reads logcat once at the end".
+#
+#    It was written and withdrawn in the same minute, and the reason is worth keeping.
+#    logcat is circular, prefix_probe lost turn lines to it and perf_probe lost 12 of 14
+#    during the #134 run, so the defect is real. But every cheap test for it is wrong:
+#    flagging any script that greps logcat caught say.sh, which reads it as a completion
+#    signal rather than for results, and requiring a `logcat -c` missed perf_probe, which
+#    clears once at the start and then accumulates.
+#
+#    A rule that fires on the wrong thing and misses the right one is worse than no rule,
+#    because it trains people to ignore the output. perf_probe is fixed directly instead.
+#    If this returns it needs to know where a loop begins, which grep cannot tell it.
+
+# 8. A script that changes device configuration puts it back.
 #
 #    The crash walks set rotation and never restored it, so every run left auto-rotate
 #    off on somebody's phone, and nothing noticed because a changed setting is invisible
@@ -95,7 +108,7 @@ for f in $scripts; do
   fi
 done
 
-# 8. The Kotlin guards, checked for the partial-match allowance pattern. Separate
+# 9. The Kotlin guards, checked for the partial-match allowance pattern. Separate
 #    file because the rule needs function scope, which is beyond grep.
 python3 tools/check_partial_match.py || fail=1
 
