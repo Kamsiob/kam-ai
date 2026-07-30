@@ -113,16 +113,41 @@ combinations, zero observed.
 - [ ] Switching voices
 - [ ] Downloading and deleting a voice model
 
-### Export and import round trip — **partial, and a field was already dropped silently**
+### Export and import round trip — **the codec half is well covered; the device half is not**
 
-Export has been run. **A full round trip has never been verified.**
+**This entry was wrong when first written, and the correction is instructive.** I recorded the
+round trip as never verified, then found two tests that cover it thoroughly, and my evidence
+for the original claim was a grep of the codec for keys written but never read. That grep
+produced seven candidates and **every one was a false positive**: five are format metadata,
+two (`saved`, `savedAt`) are deliberately read-only so a legacy pre-unification backup folds
+its moments into follow-ups, and `rev`/`lastWriterId` are read through an accessor the regex
+did not match.
 
-- [ ] Populate everything, export, wipe, import
-- [ ] Assert equality field by field: archived and pinned state, ordering, timestamps,
-      relationships, follow-up kinds, project instructions, memory
+So the instrument was mine, and it was the unreliable thing. Exactly the standing suspicion,
+pointed at my own work.
 
-**A successful import is not evidence**, because a field was already found silently dropping.
-This is also the gate on deleting anything, so it comes first in the current sequence.
+**What is genuinely covered, at the codec level:**
+
+- `BackupRoundTripTest` — codec round trips identically, crypto round trips, a wrong
+  passphrase is rejected, garbage is not a backup, sync stamps survive, an older unstamped
+  backup imports as unstamped rather than overwriting.
+- `BackupFieldCoverageTest` — **every field set to something other than its default**, which
+  is the right technique and not the obvious one. It exists because `linkedConversationId`
+  was added by a migration later than the codec, export silently dropped the link between a
+  chat and its Workbench session, and the plain round trip test could not catch it: a field
+  left at its default round-trips perfectly through a codec that drops it, because the
+  default is what comes back.
+
+**What is not covered, and is the actual gap:** everything above the codec.
+
+- [ ] Writing the file through the document picker
+- [ ] The passphrase flow on the device, including a wrong one
+- [ ] Choosing the file back through the picker
+- [ ] **Merge versus replace**, which is a branch with no unit coverage at all
+- [ ] Opening the exported file and confirming it holds real conversations, rather than
+      trusting that export reported success
+
+The last one is the gate on deleting anything.
 
 ### Onboarding end to end — **none on a fresh install**
 

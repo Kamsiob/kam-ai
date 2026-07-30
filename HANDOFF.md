@@ -36,80 +36,69 @@ submission from a new organization account takes one to two weeks.
 
 ## 1. Exactly where the work stopped
 
-**Item: #113, the listing screenshots. Sub step: clearing the chat list, then recapturing.**
+**Item: #113, and it is now the whole of the screenshot work rather than two frames.**
 
-The ordering dependency that used to sit here is discharged. #113 no longer waits on #133.
+The owner has given **explicit permission to delete conversations for this, overriding the
+standing rule about never deleting their data.** That permission is specific to clearing the
+chat list for screenshots. Everything else about not deleting still stands.
 
-**What blocked it was the conversation frame carrying "Used 2 things it remembers about
-you" under an answer about a coffee stain.** Three separate changes each removed that,
-and all three are on the device:
+### The sequence, in order, and where it stopped
 
-1. The line reads "Included N things it remembers about you", because the app knows what
-   it put in front of the model and not what the model leaned on (`f790b72`).
-2. The line is **off by default**. #144 added a setting for whether it appears at all
-   (`dd49f73`), so an ordinary install shows no note under any reply.
-3. The count is right anyway. #133's relevance floor means a coffee stain question no
-   longer pulls in a fact about a rowing club: measured on the device, two included
-   memories became one.
+1. **Export everything and verify the round trip.** NOT DONE. This is the gate: nothing gets
+   deleted before an exported file has been opened and confirmed to hold real conversations.
+   The codec half is well covered by `BackupRoundTripTest` and `BackupFieldCoverageTest`; what
+   is missing is the device half, which is the document picker, the passphrase, and merge
+   versus replace. See `docs/coverage-audit.md`.
+2. **Delete the test conversations, the probe conversations, and the ~30 archived ones.** NOT
+   DONE, and deliberately not started. Archived is not enough: archived items can still
+   surface in a view, so they are to be deleted rather than left archived.
+3. **Seed a chat list that reads like ordinary use.** NOT DONE. Ordinary subjects, ordinary
+   phrasing, a spread of modes, plausible count and age. Nothing referencing this development
+   process, a defect, a privacy test or a hostility probe. **Verify each conversation rather
+   than the exit code:** two seeding runs previously did nothing silently and a third put six
+   messages into one conversation.
+4. **Capture the full set in both themes for both destinations.** NOT DONE. Theme is drivable
+   with `adb shell cmd uimode night yes|no`, and the owner has confirmed that is fine.
+   - The **listing** set is judged against the listing bar: truthful *and* looking like
+     ordinary use.
+   - The **README** set is judged the same way and apparently never was. It is currently the
+     worse of the two and a technical visitor sees it first.
+5. **Confirm the script derives both sets and clears the directory first**, then upload the
+   listing set and commit the README set, and confirm no superseded image survives in either
+   place.
 
-**The next action is the other half of #113, which was always independent: the chat list
-is not clean.** It carries this session's probe conversations, several near duplicates:
-two "Is the rowing club open on Sunday", two "How do I get a coffee stain out", a "What
-are you", a "Tracking small home repairs". Judged against the listing bar rather than the
-documentation bar, a list of near duplicate test prompts does not look like ordinary use
-even though every frame would be truthful. So: clear or archive those, seed plausible
-ones, recapture the conversation and chat-list frames, rerun `tools/make_phone_shots.sh`.
+**Why it stopped here rather than partway through.** Deleting thirty-plus conversations is
+irreversible, the export gate was not yet passed, and the session's context was thin. A
+half-done deletion is the one state worse than not starting, so it was not started. Nothing is
+in an intermediate state.
 
-### Numbers in this file that were wrong, now measured
+### The probe conversations currently in the list, all to be deleted
 
-**The test suite is 650 tests across 85 classes** as of `f790b72`, and **656 across 86**
-as of `dd49f73`. This file previously claimed 174 across 27, and a forced rerun elsewhere
-gave 635 across 84. Counted from the JUnit XML, with the result files confirmed written by
-the run rather than left over from a previous one. Nothing was failing.
+Two "Is the rowing club open on Sunday", two "How do I get a coffee stain out", "What are you",
+"Tracking small home repairs", plus the walk's mode replies and the Discover discussion
+attempts.
 
-The 9 second suite time is real and is not a sign the tests were skipped; that was checked
-by file timestamp rather than assumed.
+### Blockers: four, down from six
 
-### Uncommitted, half written, or inconsistent
+#146 and #144 are closed and device verified. Remaining: **#142, #137, #134, #113.** The
+milestone holds exactly those four.
 
-Nothing. The working tree is clean and everything below is committed and on the phone.
+### The coverage audit is the other large open piece
 
-The previous version of this section described `tools/make_phone_shots.sh`,
-`tools/thermal_frequency.sh` and five `store-assets/phone` files as uncommitted. They
-landed in `fad1b4f` and that description was stale.
+`docs/coverage-audit.md`, new, states for every feature whether it is device exercised, unit
+only, or never touched. **Never touched:** Projects entirely, Follow-ups entirely, App lock,
+Auto archive, the widget and tile and share target and selection hook, Discover beyond the
+card, Voice, onboarding on a fresh install, search scope, and Workbench.
 
-### Running or queued
+Two of those cannot currently be reached by the harness at all (#147): `say.sh` dismisses the
+keyboard, which closes the Discover discussion sheet, and Workbench is not a chat mode. Every
+battery, probe and walk drives the app through the composer, so coverage stops at the main chat
+and has stopped there silently.
 
-**Nothing is running on the phone and nothing is queued.**
+### Test count, from a forced rerun with the results directory deleted first
 
-`tools/prefix_probe.sh` has been run once for the #133 cost question and its result is in
-#143. `tools/memory_floor_probe.sh` has been run once and its result is in #133.
-
-The #134 thermal question is still unmeasured. The one attempt sampled an idle phone: 71
-samples all reading status 0, which is evidence nothing was running rather than evidence
-that LIGHT is rare. `tools/thermal_frequency.sh` carries the reasoning. **It needs
-measuring under sustained inference load, which has not been done.**
-
-### Device state, and what was changed on it
-
-Everything scripts touch was checked rather than assumed:
-
-| Setting | State | Correct? |
-| --- | --- | --- |
-| `accelerometer_rotation` | 1 | yes, auto-rotate restored |
-| `user_rotation` | 0 | yes, portrait |
-| night mode | off | yes, the default |
-| `debug.kamai.model` | unset | yes |
-| `debug.kamai.threads` | unset | yes |
-
-**One deliberate change to the owner's data remains in place, and it is reversible.**
-Roughly thirty test conversations were **archived, not deleted**, to get them out of
-screenshot frames. Archiving is reversible from the chat list filter. Nothing was deleted.
-Among them: the "YOU ARE USELESS" hostility probes, about two dozen bereavement and
-boundary probes, a block of restated-bread answers, and the incoherent basil conversation
-described in Part III.
-
----
+**662 tests across 86 classes, 0 failures, 0 skipped.** Any count in any document is a claim
+until re-measured this way.
 
 ## 2. The two lists
 
