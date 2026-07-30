@@ -307,12 +307,30 @@ fun ChatsScreen(
         // within thumb reach, instead of at the top of a tall screen.
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
-                conversations.isEmpty() -> EmptyState(
-                    title = "Nothing here yet",
-                    body = "Ask it something. Whatever is on your mind, it runs on this " +
-                        "phone, so nothing you type leaves it.",
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                // The way to the archive has to survive the empty state.
+                //
+                // The link used to live only inside the list, so with no active
+                // conversations the list was replaced by this and the archive
+                // became unreachable: every archived chat was still there and
+                // there was no way to get to any of it. "Archive old chats" makes
+                // that reachable without doing anything unusual, since a long
+                // enough gap can archive the lot, and the app would then look as
+                // though it had lost everything.
+                conversations.isEmpty() -> Column(Modifier.fillMaxWidth()) {
+                    EmptyState(
+                        title = "Nothing here yet",
+                        body = "Ask it something. Whatever is on your mind, it runs on this " +
+                            "phone, so nothing you type leaves it.",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (archivedCount > 0) {
+                        ArchivedLink(
+                            archivedCount,
+                            onOpenArchived,
+                            Modifier.padding(horizontal = KamTheme.dimens.screenPadding),
+                        )
+                    }
+                }
 
                 filtered.isEmpty() -> EmptyState(
                     title = "Nothing matches",
@@ -1321,12 +1339,12 @@ fun ArchivedScreen(
  * (#48).
  */
 @Composable
-private fun ArchivedLink(count: Int, onOpen: () -> Unit) {
+private fun ArchivedLink(count: Int, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     Text(
         "Archived ($count)",
         style = KamTheme.type.label,
         color = KamTheme.colors.textSecondary,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onOpen)
