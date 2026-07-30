@@ -21,9 +21,15 @@ object OnboardingCopy {
     val slide1 = Slide(
         eyebrow = "How it works",
         title = "Everything happens on your phone",
+        // "Turn on airplane mode and it still works" was true of the thing being
+        // discussed and too broad as written, the same shape as "Everything works the
+        // same offline" which the claims sweep narrowed in the system prompt. Two
+        // network calls exist: a download the user starts, and the Discover pack
+        // manifest. Chatting is unaffected by either, so the sentence now says that
+        // rather than implying the whole application is.
         body = "Most AI apps send what you type to a company's computers. Kam AI doesn't. " +
             "The AI is downloaded onto your phone and runs right there, so your " +
-            "conversations never leave it. Turn on airplane mode and it still works.",
+            "conversations never leave it. Turn on airplane mode and you can still chat.",
         button = "Continue",
     )
 
@@ -45,7 +51,13 @@ object OnboardingCopy {
     val slide2NotFor = listOf(
         "Obscure facts. It will get some wrong.",
         "Making images.",
-        "News, scores, live anything, unless you add search.",
+        // "News, scores, live anything, unless you add search." until the onboarding
+        // audit. Web search is not in the build: `webSearchAvailable` is hardcoded
+        // false and the settings row that would expose it is never shown. So the
+        // clause promised a capability a user could not add, which is the same false
+        // claim the sweep already found in the documentation, still live in the copy
+        // somebody reads first.
+        "News, scores, prices, anything happening now. It has no connection to the world.",
         "Long research reports and heavy documents.",
     )
 
@@ -64,6 +76,12 @@ object OnboardingCopy {
     // it here was part of issue #42.
     val slide3Modes = listOf(
         "General" to "Everyday questions and back-and-forth.",
+        // Checked during the onboarding audit and deliberately left as "Logic Partner".
+        // The compact mode control shows "Logic" because it has one line to work with,
+        // but every piece of prose in the product uses the full name: the store listing,
+        // the questions and answers screen, and the in-app note about the mode needing a
+        // larger model. Onboarding is prose. Changing it to match the control would have
+        // made it the odd one out, which is the opposite of the drift being looked for.
         "Logic Partner" to "Argues the other side and pokes holes in your thinking.",
         "Brainstorm" to "Will not hand you ideas, it pulls them out of you.",
         "Workbench" to "Paste something in, get it rewritten, tightened, or reorganized.",

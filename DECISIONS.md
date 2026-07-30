@@ -10338,3 +10338,55 @@ Worth noting from the Model screen: the Basic card carries "Logic Partner needs 
 On this one it usually cannot hold an argument and asks you to rephrase instead." So #132's tier
 finding is surfaced to the user in the app, which is why the voided #137 run's symptoms were
 predictable once the tier was known.
+
+## The onboarding audit, read against the built application rather than patched
+
+Read as though for the first time, against what is in the build, rather than fixed where
+something was remembered as wrong. Three drifts, and the pair check corrected a fourth that was
+mine.
+
+### A capability promised that does not exist
+
+Slide 2's "not for" list read **"News, scores, live anything, unless you add search."**
+
+`webSearchAvailable` is hardcoded `false` in `KamAiApp.kt`, and the settings row that would
+expose it is inside `if (webSearchAvailable)`, so it is never shown. **There is no way for a
+user to add search.** The clause promised a capability that cannot be added, in the copy
+somebody reads before anything else.
+
+This is the same false claim the sweep already found in the documentation, still live in the
+onboarding, which is worth noting on its own: **the sweep fixed the documentation and the
+application still said it.** Now: "News, scores, prices, anything happening now. It has no
+connection to the world."
+
+### The airplane mode claim, narrowed the same way its sibling was
+
+"Turn on airplane mode and it still works" is the same shape as "Everything works the same
+offline", which the claims sweep narrowed in the system prompt. Two network calls exist. Chat is
+unaffected by either; Discover cannot fetch new packs. Now "you can still chat", which is what
+the sentence was actually about.
+
+The store listing carried the identical sentence and now carries the identical fix.
+
+### The listing overstated search, which #148 had already found in the app
+
+"Search across everything you have written" -> "Search across your chats, projects and
+bookmarks." Workbench artifacts are not searchable at all, so "everything you have written" was
+not true.
+
+### The pair check corrected me, which is the point of running it
+
+I changed slide 3's "Logic Partner" to "Logic", because `Mode.LOGIC -> "Logic"` is what the mode
+bar, the chat rows and the follow-up filter display.
+
+**That was wrong, and the pair check across onboarding, the Q&A screen and the listing caught
+it.** The compact control shows "Logic" because it has one line to work with. Every piece of
+prose in the product uses the full name: the store listing, the Q&A screen, and `WeakModeNote`'s
+in-app warning. Onboarding is prose. Changing it would have made it the odd one out, which is
+the opposite of the drift being hunted.
+
+Reverted, with the reasoning written at the line so the next person does not "fix" it again.
+
+**This is the third time the pair check has found something**, and the first time what it found
+was a change being made in the moment rather than an old drift. A check that catches your own
+work as it happens is worth more than one that audits it afterwards.
