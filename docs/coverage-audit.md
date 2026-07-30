@@ -47,19 +47,37 @@ user-visible outcome was observed, not when a screen was reached.
 
 Ordered by what a first-day user is most likely to touch.
 
-### Projects — **none**
+### Projects — **none on the device; two items answered by reading**
 
-No issue, no probe, no walk step. Everything below is unknown.
+No probe, no walk step. Two of the six are answerable from the code and are answered here, so
+the device work that remains is smaller than it looked.
 
 - [ ] Creating a project
-- [ ] Project instructions, and whether they reach the prompt
+- [x] **Project instructions do reach the prompt.** `ChatViewModel` reads
+      `conversation.projectId`, loads the project, and calls
+      `SystemPrompts.withProject(system, instructions, notes)`. Composition order is the mode
+      prompt, then the user's standing instructions, then the project's, then memory, then the
+      date.
 - [ ] Moving a conversation in, out, and between projects
-- [ ] **Instructions applying forward from the point of a move**, not retroactively
+- [x] **Instructions apply forward by construction, not retroactively.** They are read from the
+      conversation's *current* `projectId` at prompt-build time, so a move takes effect on the
+      next message and nothing rewrites history. Moving out (`projectId` null) stops them
+      applying; moving between projects swaps them. There is no per-message record of which
+      project was active, and there does not need to be.
 - [ ] Deleting a project, and what becomes of its conversations
 - [ ] A conversation started inside a project carrying both its project and its mode
 
-The move case is the one most likely to be wrong, because it is the only one where two pieces
-of state have to agree about a point in time.
+**A cost worth naming, found by reading rather than measuring.** Project instructions sit in the
+system block, which is the KV cache prefix. So **moving a conversation between projects
+invalidates the prefix and costs a full re-prefill on the next turn**, in a held conversation
+where the history is the bulk of it. That is #143's cost class arriving from a user action
+rather than from retrieval. Not a defect and not worth preventing; worth knowing before somebody
+measures a slow turn after a move and looks for a different cause.
+
+Still device work: creating, moving, deleting a project and what becomes of its conversations,
+and whether a conversation started inside a project carries both its project and its mode. The
+delete case is the one most likely to be wrong, because it is the only one where rows point at
+something being removed.
 
 ### Follow-ups — **none**, and it had a defect before
 
