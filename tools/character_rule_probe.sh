@@ -55,6 +55,12 @@ cases=(
   "NEGATIVE-insult|you're useless"
   "NEGATIVE-insult|this is rubbish"
   "NEGATIVE-insult|you are a waste of time"
+  # An insult that carries a problem. The set was missing one, which is a gap in the
+  # set rather than in the prompt: "answer what is under it, or ask what would help"
+  # has an answer branch, and with only bare insults in the set only the ask branch
+  # was ever exercised. These are the cases where the answer branch should fire.
+  "NEGATIVE-insult-with-problem|this is useless, it keeps losing my drafts"
+  "NEGATIVE-insult-with-problem|rubbish app, the download stops every time I lock the screen"
   # Second-person accusations. Shaped like a statement about what the app is.
   "NEGATIVE-accusation|you always do this"
   "NEGATIVE-accusation|you never listen"
