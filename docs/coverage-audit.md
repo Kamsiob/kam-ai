@@ -157,11 +157,29 @@ is not, including the one-time mode explanation and the coach mark if it was bui
 Costly: a fresh install means an uninstall, which destroys the database key and a five
 gigabyte model. Recorded as needing the owner's deliberate decision rather than done casually.
 
-### Search scope — **unit only**
+### Search scope — **answered by reading, and it covers more than its label says**
 
-- [ ] Whether it covers follow-ups, project names, project instructions and saved Discover
-      items, or only conversation text
-- [ ] Whether the wildcard defect had siblings
+Resolved without a device, since scope is a property of the queries. Filed as #148.
+
+| kind | fields matched |
+|---|---|
+| conversations | `title`, `messages.content` |
+| projects | `name`, `instructions`, `notes` |
+| follow-ups | `snippet`, `note`, which reaches saved Discover moments after the unification |
+
+So the audit's open question is answered: **it does cover project instructions and saved
+Discover items.** Two findings came out of asking:
+
+- The field is labelled "Search conversations" while the search reaches three kinds. An
+  understatement rather than a false claim, and the rare direction where the app is more
+  capable than it says.
+- **Workbench artifacts are not searchable at all.** No `search` DAO, absent from
+  `SearchResults`.
+- Memory is not searched either, and that looks deliberate: the Memory screen lists everything
+  in full. Recorded so nobody "fixes" it.
+
+Escaping is handled (`ESCAPE '\'` on every `LIKE`), and `SearchQueryTest` covers the wildcard
+class, so the sibling question is covered by unit tests rather than open.
 
 ### Workbench — **none**, blocked on #147
 
