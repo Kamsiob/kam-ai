@@ -165,6 +165,23 @@ internal fun conversationVmKey(
  * second sees the emptied list. That is also why the four sites that already checked
  * inside their lambdas never crashed while this one did.
  */
+/**
+ * Pushes a screen unless it is already on top (#146's class, found by sweeping for it).
+ *
+ * The same stale-lambda shape as `popTop`, one step milder. `onSettings` is chosen by
+ * `if (stack.isEmpty())` at composition and the lambda runs later, so two taps on the gear
+ * before the next recomposition both push. `add` never throws, so this is not a crash: the
+ * stack becomes [Settings, Settings] and the user has to press back twice to leave a screen
+ * they entered once.
+ *
+ * Not found by a crash, because it cannot crash. Found by asking where else a condition is
+ * evaluated at composition while its lambda runs later, which is the question #146 raised and
+ * the reason to sweep for a defect's *shape* rather than its symptom.
+ */
+private fun androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>.pushOnce(screen: Pushed) {
+    if (lastOrNull() != screen) add(screen)
+}
+
 private fun androidx.compose.runtime.snapshots.SnapshotStateList<Pushed>.popTop() {
     val i = lastIndex
     if (i >= 0) removeAt(i)
@@ -334,7 +351,7 @@ fun KamAiApp(app: AppViewModel = viewModel()) {
                     null
                 },
                 onSettings = if (stack.isEmpty()) {
-                    { stack.add(Pushed.Settings) }
+                    { stack.pushOnce(Pushed.Settings) }
                 } else {
                     null
                 },

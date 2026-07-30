@@ -10153,3 +10153,77 @@ runs after the first exchange of a new chat and uses its own prompt.
 
 **Neither of these changes a conclusion.** The 17% frequency and the 444 token spike stand.
 What changes is that the next run's numbers will be attributable without inference.
+
+## A contaminated run, discarded rather than reasoned about
+
+`character_rule_probe.sh` was started in the background and then, a few cases in, a
+`./gradlew installDebug` was run for an unrelated fix. **Installing over a running app kills
+it.** The probe's guards relaunch and carry on, so it would have completed and produced a
+full set of captures, several taken across an app restart in the middle of a conversation.
+
+Killed and discarded rather than kept with a caveat. A partially contaminated set is worse
+than no set, because the contamination is invisible in the output: every capture looks like a
+capture, and the affected ones would have been read as evidence about the character rule when
+they are evidence about being restarted.
+
+**The rule this earns: never install while a device probe is running.** Desk work and device
+work in parallel is correct and was asked for. **A build is not desk work, because it reaches
+the device.** Queue the probe, do work that touches neither `gradlew` nor `adb`, and batch
+installs between runs rather than during them.
+
+### A second, smaller lesson about killing things
+
+`pkill -f say.sh` killed the shell that ran it, because `pkill -f` matches against full
+command lines including the one doing the matching. Twice. The fix is the old trick of writing
+the pattern so it cannot match itself, `pgrep -f 'character_rule_prob[e]'`, which matches the
+target and not the searcher.
+
+Worth a line because it wasted three attempts, and because it is the same shape as everything
+else here: a tool whose failure mode is to act on the wrong thing while reporting success.
+
+## The stale-lambda sweep, and a live instance that could not crash
+
+Swept for #146's *shape* rather than its symptom: a condition evaluated at composition whose
+lambda runs later. Two sites, both in `KamAiApp`.
+
+`onBack` was #146 and is fixed. **`onSettings` was live:**
+
+```kotlin
+onSettings = if (stack.isEmpty()) { { stack.add(Pushed.Settings) } } else null
+```
+
+Two taps on the gear before the next recomposition both push, because the emptiness test ran
+at composition. `add` never throws, so there is no crash and no log line: the stack becomes
+`[Settings, Settings]` and the user presses back twice to leave a screen they entered once.
+
+**Nothing would ever have found this.** It produces no exception, no ANR, and no wrong answer.
+It was found by asking where else the shape appears, which is the argument for sweeping by
+defect rather than by symptom, and the third time in this session that has paid: the exemption
+bypass was in three places, the harness suppressions in eighteen, the emptiness defect in two
+spellings.
+
+Fixed with `pushOnce`, which is idempotent against the top of the stack.
+
+## The collection-emptiness sweep, by defect rather than spelling
+
+Every operation that throws on an empty collection, not just the spelling that crashed:
+`first`, `last`, `single`, `reduce`, `removeAt`, `removeFirst`, `removeLast`, `[0]`.
+
+Nine sites, six real after excluding a doc comment and two `lineSequence()` calls that always
+yield at least one element. **All six guard correctly**, and the way they guard is the finding:
+
+| site | guard |
+|---|---|
+| `ContinuationJoin.needsSpace` | `if (existing.isEmpty() \|\| next.isEmpty()) return false` |
+| `PromptBuilder` trim loop | `while (kept.isNotEmpty() && ...)` |
+| `AppViewModel.deleteArtifacts` | `if (ids.isEmpty()) return` |
+| `ChatViewModel` notices | the `when` branch tests `removed.isNotEmpty()` first |
+| `DownloadService` | `if (active.isEmpty()) return@collectLatest` |
+
+**Every one guards in the same synchronous scope as its use. #146's guard was in a different
+scope from its use.** That is the whole distinction, and it is why a search for unguarded
+collection access would have found nothing while the crash was live: the call *was* guarded,
+just not where it needed to be.
+
+Recorded as a clean result, because a sweep that finds nothing is only worth having if the
+absence is written down.
