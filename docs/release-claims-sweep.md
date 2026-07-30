@@ -67,7 +67,12 @@ documentation.
 - [ ] The hosted privacy copy, if it diverges from `PRIVACY.md`
 - [ ] `README.md`
 - [ ] `docs/index.md`, the website
-- [ ] `OnboardingCopy.kt`, every slide
+- [ ] **`OnboardingCopy.kt`, every slide. Higher risk than its position suggests.** It is the
+      first thing a user reads and the last thing a documentation sweep looks at, because it is
+      a string in the codebase rather than a document. The original sweep removed the web search
+      claim from the documentation and **onboarding went on promising it** ("unless you add
+      search") until a separate audit found it. Check first-run copy against the build, not
+      against the documents, since the documents can already be correct while the app is not.
 - [ ] `QuestionsAndAnswers.kt`, every entry
 - [ ] Every settings row title and subtitle, `SettingsScreens.kt`
 - [ ] Every empty state, including Discover's and Chats'

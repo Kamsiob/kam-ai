@@ -106,10 +106,39 @@ crash gate (re-earned), the tier finding's conclusion (never rested on the void 
 the device. A probe was contaminated and discarded for this. Desk work in parallel is right;
 `gradlew` and `adb` are not desk work.
 
-### Blockers: four, down from six
+### Blockers: three
 
-#146 and #144 are closed and device verified. Remaining: **#142, #137, #134, #113.** The
-milestone holds exactly those four.
+#146, #144, #149 and #150 are closed and device verified. Remaining: **#142, #137, #113.**
+The milestone holds exactly those. #134 remains open and is listed below.
+
+**Wait, count carefully:** the open release-blocker labels are #142, #137, #134, #113. #134 is
+still open and still needs measuring under sustained inference load. So four.
+
+### #149 changed how every device tool must behave
+
+The crash walks tapped blind coordinates down Settings and **changed the active model**, which
+silently voided a whole #137 run measured on E2B. Two rules came out of it and both are enforced:
+
+- **No script taps blind coordinates in a screen containing a destructive action.** Settings is
+  re-established from the Chats tab before every row tap, and a ceiling of y=1850 refuses
+  loudly. The arithmetic behind it: `crash_walk` taps y=1078 and "Forget everything" on the
+  Memory screen sits at y~1067. Eleven pixels.
+- **Every tool records what it changes and restores it on EXIT.** A checker rule enforces a trap
+  wherever `settings put`, `cmd uimode` or `setprop` appears. Exactly two scripts failed this,
+  and they were the two that caused #149.
+
+**Before running any tier-dependent measurement, confirm the active model.** It is read from the
+Settings Model row. It is currently **Gemma 4 E4B, 5.0 GB**, restored and verified.
+
+### The speed numbers, measured, because copy was written from them
+
+`tools/first_answer_range.sh`, E4B, thermal 0, which is the best case: **4.9 s cold, 4.8 to 4.9 s
+warm, 9.2 s on the memory path.** The often-quoted 2.9 s is a held conversation reusing its
+prefix; a fresh conversation is about five seconds. A warm phone is roughly threefold worse and
+the true first answer after installing is slower than the cold row measured here.
+
+E2B was asked for and not measured. Not blocking, because the copy gives a range drawn from the
+slower tier.
 
 ### The coverage audit is the other large open piece
 
