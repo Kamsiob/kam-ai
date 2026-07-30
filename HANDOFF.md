@@ -106,13 +106,12 @@ crash gate (re-earned), the tier finding's conclusion (never rested on the void 
 the device. A probe was contaminated and discarded for this. Desk work in parallel is right;
 `gradlew` and `adb` are not desk work.
 
-### Blockers: three
+### Blockers: four
 
-#146, #144, #149 and #150 are closed and device verified. Remaining: **#142, #137, #113.**
-The milestone holds exactly those. #134 remains open and is listed below.
+Remaining: **#142, #137, #134, #113.** The milestone holds exactly those.
 
-**Wait, count carefully:** the open release-blocker labels are #142, #137, #134, #113. #134 is
-still open and still needs measuring under sustained inference load. So four.
+Closed and device verified this session: #146 (the brand bar crash), #144 (the memory note
+setting), #149 (the walks changing the active model), #150 (speed expectations).
 
 ### #149 changed how every device tool must behave
 
