@@ -645,6 +645,19 @@ class ChatViewModel(
     private var lastMemoriesUsed: Int = 0
 
     /**
+     * The instruction-like text in the assembled prompt, for the echo guard (#142).
+     *
+     * The guard compared replies against the mode prompt alone, while the prompt sent
+     * carries five more things a model can recite. Two of those five can be added
+     * without cost, and three cannot: an attachment, a Discover passage and a stored
+     * memory are content the model is *meant* to quote, so guarding them would discard
+     * correct answers, which is a worse defect than the one being fixed.
+     *
+     * Read straight after [buildPrompt], like [lastMemoriesUsed].
+     */
+    private var lastGuardableInstructions: String = ""
+
+    /**
      * How many of the oldest turns the last built prompt had to drop to fit (#90).
      *
      * Read straight after [buildPrompt], like [lastMemoriesUsed]. A summary of a
@@ -1003,6 +1016,7 @@ class ChatViewModel(
         // Precedence (see DECISIONS.md): the app's mode and hard rules above win
         // and can never be overridden; then the user's system-wide instructions;
         // then this project's instructions; then memory.
+        var projectInstructions: String? = null
         val userInstructions = repository.userInstructions()
         if (userInstructions.isNotBlank()) {
             system = SystemPrompts.withUserInstructions(system, userInstructions)
@@ -1011,6 +1025,7 @@ class ChatViewModel(
         conversation?.projectId?.let { projectId ->
             repository.project(projectId)?.let {
                 system = SystemPrompts.withProject(system, it.instructions, it.notes)
+                projectInstructions = it.instructions
             }
         }
 
@@ -1029,6 +1044,25 @@ class ChatViewModel(
         // can say that memory was involved (#16). Set here rather than returned
         // because buildPrompt has one caller and four other things to say.
         lastMemoriesUsed = memories.size
+        // What the echo guard is allowed to see, beyond the mode prompt (#142).
+        //
+        // **Not the whole assembled system, and the distinction is the whole finding.**
+        // The guard rejects a reply that recites its prompt. Some of what goes into the
+        // prompt is *content the model is meant to quote*: an attached document, a
+        // Discover passage, a stored memory, a project's notes. A reply that answers a
+        // question about a document by quoting the document is correct, and feeding
+        // those channels to the guard would discard exactly the answers the feature
+        // exists to produce. That is the same failure the guard already learned once,
+        // when it threw away a right answer for matching an example.
+        //
+        // What *is* safe to add is the instruction-like text, which the model is never
+        // meant to read back: the user's standing instructions and a project's
+        // instructions. Those are the two channels of the six that can be closed
+        // without cost.
+        lastGuardableInstructions = buildString {
+            if (userInstructions.isNotBlank()) append(userInstructions).append('\n')
+            projectInstructions?.let { if (it.isNotBlank()) append(it).append('\n') }
+        }
 
         // Inject the real current date, which the model otherwise gets wrong. Day
         // granularity, not the time: a minute-precise stamp would change every
@@ -1220,8 +1254,11 @@ class ChatViewModel(
             // be nagging.
             engine.thermalNotice()?.let { _notice.value = it }
 
+            // The mode prompt plus the instruction-like channels (#142). See
+            // lastGuardableInstructions for why the content channels are excluded.
             val systemText = SystemPrompts.forMode(_mode.value) +
-                com.kamsiob.kamai.llm.ChatFormat.SYSTEM_BOUNDARY
+                com.kamsiob.kamai.llm.ChatFormat.SYSTEM_BOUNDARY +
+                lastGuardableInstructions
 
             suspend fun streamOnce(usePrompt: String = prompt) {
                 engine.generate(usePrompt, _mode.value, onStop = { stopReason = it })

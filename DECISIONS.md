@@ -10450,3 +10450,60 @@ specific wait, which #134 already covers for a warm phone.
 
 The line appears on the first message and **not on the second**, checked across an app restart
 between the two.
+
+## #142 reframed: four of the six channels must stay unguarded, and that is the finding
+
+The issue says the guard checks one of six sources of prompt text and reads as five channels
+waiting to be closed. Reading the code closes two of them and establishes that **three must
+never be closed**, which is a better outcome than probing them.
+
+### What the guard was handed
+
+```kotlin
+val systemText = SystemPrompts.forMode(_mode.value) + ChatFormat.SYSTEM_BOUNDARY
+```
+
+The mode prompt alone. The prompt actually sent also carries the user's standing instructions,
+a project's instructions and notes, retrieved memories, a Discover passage when grounded, and an
+attached document.
+
+### Why "pass the whole assembled prompt" is wrong
+
+It is the obvious fix and it would break the product.
+
+**Some of what goes into the prompt is content the model is meant to quote.** A reply that
+answers a question about an attached document by quoting the document is correct. A grounded
+Discover answer quotes its passage by design; that is what grounding means. A reply that says
+"I don't know if Verity Quay is open on Sunday" is memory working exactly as intended, and it
+was observed doing so during #133.
+
+Feeding those channels to the guard would discard precisely the answers those features exist to
+produce. **That is the same failure this guard already learned once**, when a correct reply was
+thrown away for matching an example answer, and the lesson written then was that destroying good
+answers silently is not a smaller failure than showing a copied one.
+
+### So the six split three ways
+
+| channel | guarded? | why |
+|---|---|---|
+| mode prompt | yes, always | never meant to be read back |
+| user instructions | **now yes** | instruction-like, never meant to be quoted |
+| project instructions | **now yes** | same |
+| project notes | **no** | notes the chats "start from", meant to be drawn on |
+| memories | no | quoting a memory is the feature working |
+| grounded passage | no | quoting the passage is what grounded means |
+| attachment | no | quoting the document is the whole point |
+
+Two channels closed at no cost. Four left open deliberately, with the reason recorded at the
+field so nobody closes them later and wonders why document answers started disappearing.
+
+### What this does to the issue
+
+The remaining work is smaller than "two channels to probe". Project notes and attachments were
+listed as untested; they are now **untestable in the sense the issue meant**, because a leak
+from them is indistinguishable from correct use of them. What can be said is that both are
+correctness rather than privacy concerns, which the issue already established, and that the two
+channels which could be closed have been.
+
+The privacy question, which is what the issue was opened on, was already answered: both channels
+that could leak something private were tested clean.
