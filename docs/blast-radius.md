@@ -4,7 +4,7 @@ Every instrument found broken this session, and everything it produced.
 
 **Why this is a document and not a series of judgements.** Case by case is how the crash walk
 survived: each figure looked reasonable on its own, and nobody asked what had produced it. So
-this is organised by *instrument* rather than by result, and the question asked of each is the
+this is organized by *instrument* rather than by result, and the question asked of each is the
 same one: if this tool were broken in the way it was broken, what would it have reported?
 
 **The first finding is about the record itself.** DECISIONS.md almost never names the tool that
