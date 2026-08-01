@@ -96,7 +96,7 @@ jobs:
       # the cache key changes with it.
       - name: Cache the fetched native sources
         id: native-sources
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             app/src/main/cpp/llama.cpp
@@ -110,7 +110,7 @@ jobs:
           tools/fetch_whisper.sh
 
       - name: Cache the native build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             app/.cxx
