@@ -38,7 +38,7 @@ jobs:
           java-version: '21'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Compile the app
         run: ./gradlew compileDebugKotlin --no-daemon
@@ -87,7 +87,7 @@ jobs:
           java-version: '21'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # llama.cpp and whisper.cpp are fetched rather than committed, since
       # together they are hundreds of megabytes of source that would make this
