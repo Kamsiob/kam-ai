@@ -12,7 +12,7 @@
 agp = "9.3.1"
 kotlin = "2.4.10"
 ksp = "2.3.10"
-composeBom = "2026.06.01"
+composeBom = "2026.08.00"
 coreKtx = "1.19.0"
 splashscreen = "1.2.0"
 documentfile = "1.1.0"
@@ -37,7 +37,7 @@ sqlcipher = "4.17.0"
 pdfbox-android = "2.0.27.0"
 sqlite = "2.7.0"
 biometric = "1.1.0"
-fragment = "1.8.9"
+fragment = "1.9.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
